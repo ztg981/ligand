@@ -1,0 +1,108 @@
+import { Segmented, Slider } from "../components/Controls.jsx";
+import { Icon } from "../components/Icons.jsx";
+import { ACCENTS } from "../theme/useTweaks.js";
+
+/* Floating Tweaks panel — theme / accent / ambient glow / corner radius /
+   density. Every control is wired to the live tweaks state, so the whole app
+   re-themes instantly. */
+export default function TweaksPanel({ tweaks, set, onClose }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 20,
+        right: 20,
+        width: 280,
+        background: "var(--panel)",
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        boxShadow: "var(--shadow-pop), 0 30px 60px -20px rgba(40,30,16,0.3)",
+        padding: 14,
+        zIndex: 80,
+      }}
+    >
+      <div className="row between" style={{ marginBottom: 10 }}>
+        <div className="row" style={{ gap: 6 }}>
+          <span className="brand-dot" style={{ width: 14, height: 14 }} />
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Tweaks</span>
+        </div>
+        <button className="iconbtn" style={{ width: 24, height: 24 }} onClick={onClose}>
+          <Icon.Close />
+        </button>
+      </div>
+
+      <div className="setting-row" style={{ padding: "6px 0" }}>
+        <div className="name">Theme</div>
+        <Segmented
+          value={tweaks.theme}
+          onChange={(v) => set({ theme: v })}
+          options={[
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+          ]}
+        />
+      </div>
+
+      <div className="setting-row" style={{ padding: "6px 0" }}>
+        <div className="name">Accent</div>
+        <div className="row" style={{ gap: 4 }}>
+          {ACCENTS.map((a) => (
+            <button
+              key={a.id}
+              className={"swatch-pick " + (tweaks.accent === a.id ? "active" : "")}
+              style={{ background: a.color, width: 20, height: 20 }}
+              onClick={() => set({ accent: a.id })}
+              title={`Hue ${a.id}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: "8px 0" }}>
+        <div className="row between" style={{ marginBottom: 4 }}>
+          <span className="name">Ambient glow</span>
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            {tweaks.ambient}%
+          </span>
+        </div>
+        <Slider
+          value={tweaks.ambient}
+          min={0}
+          max={100}
+          step={5}
+          onChange={(v) => set({ ambient: v })}
+          format={(v) => v + "%"}
+        />
+      </div>
+
+      <div style={{ padding: "8px 0" }}>
+        <div className="row between" style={{ marginBottom: 4 }}>
+          <span className="name">Corner radius</span>
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            {tweaks.radius}px
+          </span>
+        </div>
+        <Slider
+          value={tweaks.radius}
+          min={4}
+          max={20}
+          step={2}
+          onChange={(v) => set({ radius: v })}
+          format={(v) => v + "px"}
+        />
+      </div>
+
+      <div className="setting-row" style={{ padding: "6px 0", borderBottom: "none" }}>
+        <div className="name">Density</div>
+        <Segmented
+          value={tweaks.density}
+          onChange={(v) => set({ density: v })}
+          options={[
+            { value: "compact", label: "Compact" },
+            { value: "comfy", label: "Comfy" },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
