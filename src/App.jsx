@@ -97,6 +97,7 @@ export default function App() {
             removeReflection={store.removeReflection}
             onSnoozeGoal={store.snoozeGoalReview}
             onReviseGoalDate={store.reviseGoalTargetDate}
+            onGoToPomodoro={() => setTab("pomodoro")}
             confirmBeforeDelete={confirmBeforeDelete}
           />
         );

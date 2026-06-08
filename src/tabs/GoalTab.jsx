@@ -137,6 +137,57 @@ function TermChip({ term }) {
   return <span className={long ? "chip lav" : "chip mint"}>{long ? "Long-term" : "Short-term"}</span>;
 }
 
+const WIDGET_SIZES = ["small", "medium", "large"];
+const WIDGET_COLS = { small: "col-4", medium: "col-6", large: "col-12" };
+const WIDGET_TYPES = [
+  {
+    type: "habits",
+    title: "Habit checker",
+    sub: "Track forgiving habits for this goal.",
+    icon: <Icon.Check />,
+  },
+  {
+    type: "tasks",
+    title: "Task list",
+    sub: "Add and manage goal-linked tasks.",
+    icon: <Icon.Pin />,
+  },
+  {
+    type: "progress",
+    title: "Progress tracker",
+    sub: "See task progress and weekly check-ins.",
+    icon: <Icon.Target />,
+  },
+  {
+    type: "countup",
+    title: "What I'm proud of",
+    sub: "A gentle count-up streak card.",
+    icon: <Icon.Flame />,
+  },
+  {
+    type: "reflections",
+    title: "Journal/reflection",
+    sub: "Save notes and gentle reflections.",
+    icon: <Icon.Book />,
+  },
+  {
+    type: "encouragement",
+    title: "Encouraging message",
+    sub: "A small supportive nudge.",
+    icon: <Icon.Spark />,
+  },
+  {
+    type: "pomodoro",
+    title: "Pomodoro quick-start",
+    sub: "Jump to the focus timer.",
+    icon: <Icon.Timer />,
+  },
+];
+
+function widgetId() {
+  return `widget_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
 function GoalTasks({
   goal,
   tasks,
@@ -325,6 +376,290 @@ function GoalTasks({
   );
 }
 
+function WidgetPicker({ existingTypes, onAdd, onClose }) {
+  return (
+    <div className="scrim" role="presentation" onMouseDown={onClose}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="widget-picker-title"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ width: 560 }}
+      >
+        <div style={{ padding: 18 }}>
+          <div className="row between" style={{ alignItems: "flex-start", gap: 12 }}>
+            <div>
+              <div className="eyebrow">Customize this goal</div>
+              <h2 id="widget-picker-title" className="page-title" style={{ fontSize: 21 }}>
+                Add a widget
+              </h2>
+              <p className="page-sub" style={{ margin: "5px 0 0" }}>
+                Choose one helpful piece. You can resize or move it after.
+              </p>
+            </div>
+            <button className="iconbtn" title="Close" onClick={onClose}>
+              <Icon.Close />
+            </button>
+          </div>
+
+          <div className="grid grid-12" style={{ marginTop: 14 }}>
+            {WIDGET_TYPES.map((item) => {
+              const alreadyAdded = existingTypes.includes(item.type);
+              return (
+                <button
+                  key={item.type}
+                  className="card hover col-6"
+                  onClick={() => !alreadyAdded && onAdd(item.type)}
+                  disabled={alreadyAdded}
+                  style={{
+                    textAlign: "left",
+                    cursor: alreadyAdded ? "default" : "pointer",
+                    opacity: alreadyAdded ? 0.55 : 1,
+                  }}
+                >
+                  <div className="card-title">
+                    {item.icon} {item.title}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
+                    {alreadyAdded ? "Already added to this layout." : item.sub}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EncouragingWidget({ goal, tasks }) {
+  const goalTasks = tasks.filter((t) => t.goalId === goal.id);
+  const done = goalTasks.filter((t) => t.done).length;
+  const active = goalTasks.length - done;
+  const line =
+    done > 0
+      ? `${done} step${done === 1 ? "" : "s"} done here already. That counts.`
+      : active > 0
+      ? "Pick one small next step. You do not have to carry the whole goal at once."
+      : "This goal is waiting calmly. Add one tiny action when it feels useful.";
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Spark /> Encouragement
+        </div>
+      </div>
+      <div style={{ fontSize: 14, color: "var(--accent-ink)", lineHeight: 1.5 }}>
+        {line}
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 8 }}>
+        Gentle progress beats perfect plans.
+      </div>
+    </div>
+  );
+}
+
+function PomodoroQuickStart({ onGoToPomodoro }) {
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Timer /> Pomodoro quick-start
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45, marginBottom: 10 }}>
+        Ready for a focus block? Open the timer and do one gentle round.
+      </div>
+      <button className="btn primary" onClick={onGoToPomodoro}>
+        <Icon.Play /> Open timer
+      </button>
+    </div>
+  );
+}
+
+function GoalWidgets({
+  goal,
+  tasks,
+  countUps,
+  updateGoal,
+  addTask,
+  updateTask,
+  toggleTask,
+  removeTask,
+  addHabit,
+  checkInHabit,
+  removeHabit,
+  addReflection,
+  removeReflection,
+  confirmBeforeDelete,
+  onGoToPomodoro,
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const widgets = Array.isArray(goal.widgetLayout)
+    ? goal.widgetLayout.filter((w) => WIDGET_TYPES.some((item) => item.type === w.type))
+    : [];
+
+  const saveWidgets = (next) => updateGoal(goal.id, { widgetLayout: next });
+  const addWidget = (type) => {
+    saveWidgets([...widgets, { id: widgetId(), type, size: "medium" }]);
+    setPickerOpen(false);
+  };
+  const removeWidget = (id) => saveWidgets(widgets.filter((w) => w.id !== id));
+  const moveWidget = (index, delta) => {
+    const nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= widgets.length) return;
+    const next = [...widgets];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    saveWidgets(next);
+  };
+  const resizeWidget = (id) =>
+    saveWidgets(
+      widgets.map((w) => {
+        if (w.id !== id) return w;
+        const current = WIDGET_SIZES.includes(w.size) ? w.size : "medium";
+        const size = WIDGET_SIZES[(WIDGET_SIZES.indexOf(current) + 1) % WIDGET_SIZES.length];
+        return { ...w, size };
+      })
+    );
+
+  const renderWidget = (widget) => {
+    switch (widget.type) {
+      case "habits":
+        return (
+          <HabitChecker
+            goal={goal}
+            addHabit={addHabit}
+            checkInHabit={checkInHabit}
+            removeHabit={removeHabit}
+            confirmBeforeDelete={confirmBeforeDelete}
+          />
+        );
+      case "tasks":
+        return (
+          <GoalTasks
+            goal={goal}
+            tasks={tasks}
+            addTask={addTask}
+            updateTask={updateTask}
+            toggleTask={toggleTask}
+            removeTask={removeTask}
+            confirmBeforeDelete={confirmBeforeDelete}
+          />
+        );
+      case "progress":
+        return <GoalProgress goal={goal} tasks={tasks} />;
+      case "countup":
+        return <CountUp countUp={countUps && countUps[0]} />;
+      case "reflections":
+        return (
+          <Reflections
+            goal={goal}
+            addReflection={addReflection}
+            removeReflection={removeReflection}
+            confirmBeforeDelete={confirmBeforeDelete}
+          />
+        );
+      case "encouragement":
+        return <EncouragingWidget goal={goal} tasks={tasks} />;
+      case "pomodoro":
+        return <PomodoroQuickStart onGoToPomodoro={onGoToPomodoro} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="row between" style={{ marginBottom: 10, gap: 12, alignItems: "flex-end" }}>
+        <div>
+          <div className="eyebrow">Custom widgets</div>
+          <h2 className="page-title" style={{ fontSize: 18 }}>
+            Add what helps
+          </h2>
+        </div>
+        <button className="btn primary" onClick={() => setPickerOpen(true)}>
+          <Icon.Plus /> Add widget
+        </button>
+      </div>
+
+      {widgets.length === 0 ? (
+        <div className="card" style={{ color: "var(--ink-3)" }}>
+          Add optional widgets here without changing the main layout above.
+        </div>
+      ) : (
+        <div className="grid grid-12">
+          {widgets.map((widget, index) => {
+            const size = WIDGET_SIZES.includes(widget.size) ? widget.size : "medium";
+            return (
+              <div
+                key={widget.id}
+                className={WIDGET_COLS[size]}
+                style={{ minWidth: 0 }}
+              >
+                <div
+                  className="row between"
+                  style={{
+                    gap: 8,
+                    marginBottom: 5,
+                    padding: "0 4px",
+                    color: "var(--ink-3)",
+                  }}
+                >
+                  <span className="tag">
+                    {(WIDGET_TYPES.find((item) => item.type === widget.type)?.title || "Widget")} · {size}
+                  </span>
+                  <span className="row" style={{ gap: 4, flex: "none" }}>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => moveWidget(index, -1)}
+                      disabled={index === 0}
+                      style={{ opacity: index === 0 ? 0.45 : 1 }}
+                    >
+                      Up
+                    </button>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => moveWidget(index, 1)}
+                      disabled={index === widgets.length - 1}
+                      style={{ opacity: index === widgets.length - 1 ? 0.45 : 1 }}
+                    >
+                      Down
+                    </button>
+                    <button className="btn ghost sm" onClick={() => resizeWidget(widget.id)}>
+                      Size
+                    </button>
+                    <ConfirmButton
+                      className="btn ghost sm"
+                      confirmLabel="Remove?"
+                      title="Remove widget"
+                      onConfirm={() => removeWidget(widget.id)}
+                      requireConfirmation={confirmBeforeDelete}
+                      style={{ color: "oklch(0.55 0.16 20)" }}
+                      icon={<Icon.Trash width={13} height={13} />}
+                    />
+                  </span>
+                </div>
+                {renderWidget(widget)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {pickerOpen && (
+        <WidgetPicker
+          existingTypes={widgets.map((w) => w.type)}
+          onAdd={addWidget}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 /* GoalTab — the preset layout shown for any goal.
    The built-in "Productivity" goal uses the very same layout; it just
    can't be deleted or renamed. Composition (left = do/track, right =
@@ -347,6 +682,7 @@ export default function GoalTab({
   removeReflection,
   onSnoozeGoal,
   onReviseGoalDate,
+  onGoToPomodoro,
   confirmBeforeDelete = true,
 }) {
   const [editing, setEditing] = useState(false);
@@ -483,6 +819,24 @@ export default function GoalTab({
           />
         </div>
       </div>
+
+      <GoalWidgets
+        goal={goal}
+        tasks={tasks}
+        countUps={countUps}
+        updateGoal={updateGoal}
+        addTask={addTask}
+        updateTask={updateTask}
+        toggleTask={toggleTask}
+        removeTask={removeTask}
+        addHabit={addHabit}
+        checkInHabit={checkInHabit}
+        removeHabit={removeHabit}
+        addReflection={addReflection}
+        removeReflection={removeReflection}
+        confirmBeforeDelete={confirmBeforeDelete}
+        onGoToPomodoro={onGoToPomodoro}
+      />
     </>
   );
 }
