@@ -138,6 +138,13 @@ function TermChip({ term }) {
 
 const WIDGET_LAYOUT_VERSION = 2;
 const WIDGET_SIZE_VARIANTS = ["compact", "medium", "wide", "tall", "large"];
+const WIDGET_SIZE_LABELS = {
+  compact: "Compact",
+  medium: "Medium",
+  wide: "Wide",
+  tall: "Tall",
+  large: "Large",
+};
 const LEGACY_WIDGET_SIZE_MAP = { small: "compact", medium: "medium", large: "wide" };
 const LEGACY_WIDGET_TYPE_MAP = {
   habits: "habits",
@@ -448,6 +455,12 @@ function resolveWidgetLayoutV2(goal) {
   };
 }
 
+function normalizeWidgetOrders(widgets) {
+  return [...widgets]
+    .sort((a, b) => a.order - b.order)
+    .map((widget, index) => ({ ...widget, order: (index + 1) * 10 }));
+}
+
 const WIDGET_SIZES = ["small", "medium", "large"];
 const WIDGET_COLS = { small: "col-4", medium: "col-6", large: "col-12" };
 const WIDGET_TYPES = [
@@ -687,7 +700,18 @@ function GoalTasks({
   );
 }
 
-function WidgetPicker({ existingTypes, onAdd, onClose }) {
+function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
+  const hiddenWidgets = widgets.filter((widget) => widget.hidden && WIDGET_REGISTRY[widget.type]);
+  const addableTypes = [
+    "habits",
+    "goalTasks",
+    "progress",
+    "countUp",
+    "reflections",
+    "encouragement",
+    "pomodoroQuickStart",
+  ];
+
   return (
     <div className="scrim" role="presentation" onMouseDown={onClose}>
       <div
@@ -706,7 +730,7 @@ function WidgetPicker({ existingTypes, onAdd, onClose }) {
                 Add a widget
               </h2>
               <p className="page-sub" style={{ margin: "5px 0 0" }}>
-                Choose one helpful piece. You can resize or move it after.
+                Choose one helpful piece. You can resize, hide, or move it after.
               </p>
             </div>
             <button className="iconbtn" title="Close" onClick={onClose}>
@@ -714,26 +738,52 @@ function WidgetPicker({ existingTypes, onAdd, onClose }) {
             </button>
           </div>
 
-          <div className="grid grid-12" style={{ marginTop: 14 }}>
-            {WIDGET_TYPES.map((item) => {
-              const alreadyAdded = existingTypes.includes(item.type);
+          {hiddenWidgets.length > 0 && (
+            <>
+              <div className="tag" style={{ marginTop: 16, marginBottom: 8 }}>
+                Hidden widgets
+              </div>
+              <div className="grid grid-12">
+                {hiddenWidgets.map((widget) => {
+                  const item = WIDGET_REGISTRY[widget.type];
+                  return (
+                    <button
+                      key={widget.id}
+                      className="card hover col-6"
+                      onClick={() => onRestore(widget.id)}
+                      style={{ textAlign: "left", cursor: "pointer" }}
+                    >
+                      <div className="card-title">
+                        {item.icon} {item.title}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
+                        Restore this widget to the grid.
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="tag" style={{ marginTop: 16, marginBottom: 8 }}>
+            Add another widget
+          </div>
+          <div className="grid grid-12">
+            {addableTypes.map((type) => {
+              const item = WIDGET_REGISTRY[type];
               return (
                 <button
-                  key={item.type}
+                  key={type}
                   className="card hover col-6"
-                  onClick={() => !alreadyAdded && onAdd(item.type)}
-                  disabled={alreadyAdded}
-                  style={{
-                    textAlign: "left",
-                    cursor: alreadyAdded ? "default" : "pointer",
-                    opacity: alreadyAdded ? 0.55 : 1,
-                  }}
+                  onClick={() => onAdd(type)}
+                  style={{ textAlign: "left", cursor: "pointer" }}
                 >
                   <div className="card-title">
                     {item.icon} {item.title}
                   </div>
                   <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
-                    {alreadyAdded ? "Already added to this layout." : item.sub}
+                    {item.sub}
                   </div>
                 </button>
               );
@@ -797,13 +847,115 @@ function widgetIsVisible(widget, context) {
   return registry.condition ? registry.condition(context) : true;
 }
 
-function GoalWidgetShell({ widget, context }) {
+function WidgetEditControls({
+  widget,
+  index,
+  total,
+  onResize,
+  onHide,
+  onRemove,
+  onMove,
+  confirmBeforeDelete,
+}) {
+  const registry = WIDGET_REGISTRY[widget.type];
+  const allowedSizes = registry?.allowedSizes || WIDGET_SIZE_VARIANTS;
+  const removable = widget.source === "user" && !widget.locked;
+  const size = normalizeWidgetSize(widget.size, widget.type);
+
+  return (
+    <div className="goal-widget-editbar">
+      <span className="goal-widget-grip" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="tag" style={{ flex: "1 1 auto", minWidth: 80 }}>
+        {registry?.title || "Widget"}
+      </span>
+      {onMove && (
+        <span className="row" style={{ gap: 4, flex: "none" }}>
+          <button
+            className="btn ghost sm"
+            onClick={() => onMove(widget.id, -1)}
+            disabled={index === 0}
+            style={{ opacity: index === 0 ? 0.45 : 1 }}
+          >
+            Up
+          </button>
+          <button
+            className="btn ghost sm"
+            onClick={() => onMove(widget.id, 1)}
+            disabled={index === total - 1}
+            style={{ opacity: index === total - 1 ? 0.45 : 1 }}
+          >
+            Down
+          </button>
+        </span>
+      )}
+      <span className="seg goal-widget-size-control">
+        {allowedSizes.map((option) => (
+          <button
+            key={option}
+            className={option === size ? "active" : ""}
+            onClick={() => onResize(widget.id, option)}
+            title={`Set ${WIDGET_SIZE_LABELS[option] || option} size`}
+          >
+            {WIDGET_SIZE_LABELS[option] || option}
+          </button>
+        ))}
+      </span>
+      {removable ? (
+        <ConfirmButton
+          className="btn ghost sm"
+          confirmLabel="Remove?"
+          title="Remove widget"
+          onConfirm={() => onRemove(widget.id)}
+          requireConfirmation={confirmBeforeDelete}
+          style={{ color: "oklch(0.55 0.16 20)" }}
+          icon={<Icon.Trash width={13} height={13} />}
+        />
+      ) : (
+        <button className="btn ghost sm" onClick={() => onHide(widget.id)}>
+          Hide
+        </button>
+      )}
+    </div>
+  );
+}
+
+function GoalWidgetShell({
+  widget,
+  context,
+  editing,
+  index,
+  total,
+  onResize,
+  onHide,
+  onRemove,
+  onMove,
+}) {
   const registry = WIDGET_REGISTRY[widget.type];
   if (!registry) return null;
   const size = normalizeWidgetSize(widget.size, widget.type);
   const content = registry.render({ ...context, widget, widgetSize: size });
   return (
-    <div className={`goal-widget-shell goal-widget-size-${size}`} style={{ minWidth: 0 }}>
+    <div
+      className={`goal-widget-shell goal-widget-size-${size}${editing ? " is-editing" : ""}`}
+      style={{ minWidth: 0 }}
+    >
+      {editing && (
+        <WidgetEditControls
+          widget={widget}
+          index={index}
+          total={total}
+          onResize={onResize}
+          onHide={onHide}
+          onRemove={onRemove}
+          onMove={onMove}
+          confirmBeforeDelete={context.confirmBeforeDelete}
+        />
+      )}
       {content}
     </div>
   );
@@ -827,9 +979,62 @@ function GoalWidgetGrid({
   onReviseGoalDate,
   onArchiveGoal,
   onGoToPomodoro,
+  updateGoal,
   confirmBeforeDelete,
 }) {
+  const [editing, setEditing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const layout = useMemo(() => resolveWidgetLayoutV2(goal), [goal]);
+
+  const saveWidgets = (widgets) => {
+    updateGoal(goal.id, {
+      widgetLayoutV2: {
+        version: WIDGET_LAYOUT_VERSION,
+        widgets: normalizeWidgetOrders(widgets),
+      },
+    });
+  };
+
+  const addWidget = (type) => {
+    const registry = WIDGET_REGISTRY[type];
+    if (!registry) return;
+    const maxOrder = layout.widgets.reduce((max, widget) => Math.max(max, widget.order), 0);
+    saveWidgets([
+      ...layout.widgets,
+      {
+        id: widgetId(),
+        type,
+        size: registry.defaultSize,
+        order: maxOrder + 10,
+        hidden: false,
+        locked: false,
+        source: "user",
+      },
+    ]);
+    setPickerOpen(false);
+  };
+
+  const resizeWidget = (id, size) => {
+    saveWidgets(
+      layout.widgets.map((widget) =>
+        widget.id === id ? { ...widget, size: normalizeWidgetSize(size, widget.type) } : widget
+      )
+    );
+  };
+
+  const hideWidget = (id) => {
+    saveWidgets(layout.widgets.map((widget) => (widget.id === id ? { ...widget, hidden: true } : widget)));
+  };
+
+  const restoreWidget = (id) => {
+    saveWidgets(layout.widgets.map((widget) => (widget.id === id ? { ...widget, hidden: false } : widget)));
+    setPickerOpen(false);
+  };
+
+  const removeWidget = (id) => {
+    saveWidgets(layout.widgets.filter((widget) => widget.id !== id || widget.locked || widget.source !== "user"));
+  };
+
   const context = {
     goal,
     tasks,
@@ -851,13 +1056,71 @@ function GoalWidgetGrid({
     confirmBeforeDelete,
   };
   const visibleWidgets = layout.widgets.filter((widget) => widgetIsVisible(widget, context));
+  const hiddenWidgets = layout.widgets.filter((widget) => widget.hidden && WIDGET_REGISTRY[widget.type]);
 
   return (
-    <div className="goal-widget-grid">
-      {visibleWidgets.map((widget) => (
-        <GoalWidgetShell key={widget.id} widget={widget} context={context} />
-      ))}
-    </div>
+    <>
+      <div className="goal-layout-toolbar">
+        <div>
+          <div className="eyebrow">Goal dashboard</div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 2 }}>
+            Arrange the pieces that help this goal feel doable.
+          </div>
+        </div>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button className="btn" onClick={() => setPickerOpen(true)}>
+            <Icon.Plus /> Add widget
+          </button>
+          <button
+            className={editing ? "btn primary" : "btn"}
+            onClick={() => setEditing((value) => !value)}
+          >
+            {editing ? <Icon.Check /> : <Icon.More />} {editing ? "Done" : "Edit layout"}
+          </button>
+        </div>
+      </div>
+
+      <div className={`goal-widget-grid${editing ? " is-editing" : ""}`}>
+        {visibleWidgets.map((widget, index) => (
+          <GoalWidgetShell
+            key={widget.id}
+            widget={widget}
+            context={context}
+            editing={editing}
+            index={index}
+            total={visibleWidgets.length}
+            onResize={resizeWidget}
+            onHide={hideWidget}
+            onRemove={removeWidget}
+          />
+        ))}
+      </div>
+
+      {editing && hiddenWidgets.length > 0 && (
+        <div className="goal-hidden-widgets">
+          <span className="tag">Hidden widgets</span>
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            {hiddenWidgets.map((widget) => {
+              const item = WIDGET_REGISTRY[widget.type];
+              return (
+                <button key={widget.id} className="btn ghost sm" onClick={() => restoreWidget(widget.id)}>
+                  {item?.icon} Restore {item?.title || "widget"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {pickerOpen && (
+        <WidgetPicker
+          widgets={layout.widgets}
+          onAdd={addWidget}
+          onRestore={restoreWidget}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -1174,6 +1437,7 @@ export default function GoalTab({
         onSnoozeGoal={onSnoozeGoal}
         onReviseGoalDate={onReviseGoalDate}
         onArchiveGoal={onArchiveGoal}
+        updateGoal={updateGoal}
         confirmBeforeDelete={confirmBeforeDelete}
         onGoToPomodoro={onGoToPomodoro}
       />

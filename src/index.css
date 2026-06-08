@@ -410,13 +410,76 @@ button { font: inherit; color: inherit; }
   gap: 12px;
   align-items: start;
 }
+.goal-layout-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0 0 12px;
+}
 .goal-widget-shell {
   min-width: 0;
   transition: transform 0.2s var(--ease), filter 0.2s var(--ease);
 }
+.goal-widget-shell.is-editing {
+  transform: translateY(-1px);
+}
+.goal-widget-shell.is-editing > .card {
+  box-shadow: var(--shadow-pop);
+  outline: 1px solid var(--line-strong);
+}
 .goal-widget-shell > .card {
   height: 100%;
   margin-bottom: 0 !important;
+}
+.goal-widget-editbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  padding: 6px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--panel) 82%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+.goal-widget-grip {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(2, 4px);
+  grid-auto-rows: 4px;
+  gap: 3px;
+  justify-content: center;
+  align-content: center;
+  color: var(--ink-4);
+}
+.goal-widget-grip i {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.goal-widget-size-control {
+  flex: 1 1 170px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.goal-hidden-widgets {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-xl);
+  background: color-mix(in oklab, var(--panel) 58%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .goal-widget-size-compact { grid-column: span 1; }
 .goal-widget-size-medium { grid-column: span 2; }
