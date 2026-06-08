@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GOAL_TYPES, TASK_TERMS, goalTargetDate, isGoalOverdue } from "../lib/model.js";
+import {
+  GOAL_TYPES,
+  TASK_TERMS,
+  currentStreak,
+  daysBetween,
+  goalTargetDate,
+  isGoalOverdue,
+  todayKey,
+} from "../lib/model.js";
 import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
@@ -374,6 +382,65 @@ const WIDGET_REGISTRY = {
     locked: false,
     render: ({ onGoToPomodoro }) => <PomodoroQuickStart onGoToPomodoro={onGoToPomodoro} />,
   },
+  nextTinyStep: {
+    type: "nextTinyStep",
+    title: "Next tiny step",
+    sub: "Shows one small unfinished task.",
+    icon: <Icon.Arrow />,
+    defaultSize: "compact",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: false,
+    locked: false,
+    render: ({ goal, tasks, toggleTask, widgetSize }) => (
+      <NextTinyStepWidget goal={goal} tasks={tasks} toggleTask={toggleTask} widgetSize={widgetSize} />
+    ),
+  },
+  deadlineTimeline: {
+    type: "deadlineTimeline",
+    title: "Goal deadline",
+    sub: "A calm look at the target date.",
+    icon: <Icon.Calendar />,
+    defaultSize: "compact",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: false,
+    locked: false,
+    render: ({ goal, widgetSize }) => <DeadlineTimelineWidget goal={goal} widgetSize={widgetSize} />,
+  },
+  habitStreakSummary: {
+    type: "habitStreakSummary",
+    title: "Habit streak summary",
+    sub: "Shows current habit streaks without shame.",
+    icon: <Icon.Flame />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: false,
+    locked: false,
+    render: ({ goal, widgetSize }) => <HabitStreakSummaryWidget goal={goal} widgetSize={widgetSize} />,
+  },
+  recentWins: {
+    type: "recentWins",
+    title: "Recent wins",
+    sub: "Completed tasks and reflections for this goal.",
+    icon: <Icon.Trophy />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: false,
+    locked: false,
+    render: ({ goal, tasks, widgetSize }) => (
+      <RecentWinsWidget goal={goal} tasks={tasks} widgetSize={widgetSize} />
+    ),
+  },
+  aiSummaryPlaceholder: {
+    type: "aiSummaryPlaceholder",
+    title: "AI summary placeholder",
+    sub: "Reserved space for future local/free AI summaries.",
+    icon: <Icon.Wand />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: false,
+    locked: false,
+    render: ({ goal, tasks }) => <AiSummaryPlaceholderWidget goal={goal} tasks={tasks} />,
+  },
 };
 
 function normalizeWidgetType(type) {
@@ -702,14 +769,29 @@ function GoalTasks({
 
 function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
   const hiddenWidgets = widgets.filter((widget) => widget.hidden && WIDGET_REGISTRY[widget.type]);
-  const addableTypes = [
-    "habits",
-    "goalTasks",
-    "progress",
-    "countUp",
-    "reflections",
-    "encouragement",
-    "pomodoroQuickStart",
+  const pickerGroups = [
+    {
+      title: "Core widgets",
+      types: [
+        "habits",
+        "goalTasks",
+        "progress",
+        "countUp",
+        "reflections",
+        "encouragement",
+        "pomodoroQuickStart",
+      ],
+    },
+    {
+      title: "Helpful extras",
+      types: [
+        "nextTinyStep",
+        "deadlineTimeline",
+        "habitStreakSummary",
+        "recentWins",
+        "aiSummaryPlaceholder",
+      ],
+    },
   ];
 
   return (
@@ -766,29 +848,36 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
             </>
           )}
 
-          <div className="tag" style={{ marginTop: 16, marginBottom: 8 }}>
-            Add another widget
-          </div>
-          <div className="grid grid-12">
-            {addableTypes.map((type) => {
-              const item = WIDGET_REGISTRY[type];
-              return (
-                <button
-                  key={type}
-                  className="card hover col-6"
-                  onClick={() => onAdd(type)}
-                  style={{ textAlign: "left", cursor: "pointer" }}
-                >
-                  <div className="card-title">
-                    {item.icon} {item.title}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
-                    {item.sub}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {pickerGroups.map((group) => (
+            <div key={group.title}>
+              <div className="tag" style={{ marginTop: 16, marginBottom: 8 }}>
+                {group.title}
+              </div>
+              <div className="grid grid-12">
+                {group.types.map((type) => {
+                  const item = WIDGET_REGISTRY[type];
+                  return (
+                    <button
+                      key={type}
+                      className="widget-picker-card card hover col-6"
+                      onClick={() => onAdd(type)}
+                      style={{ textAlign: "left", cursor: "pointer" }}
+                    >
+                      <div className="card-title">
+                        {item.icon} {item.title}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
+                        {item.sub}
+                      </div>
+                      <div className="chip" style={{ marginTop: 10 }}>
+                        {WIDGET_SIZE_LABELS[item.defaultSize] || item.defaultSize}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -837,6 +926,180 @@ function PomodoroQuickStart({ onGoToPomodoro }) {
       <button className="btn primary" onClick={onGoToPomodoro}>
         <Icon.Play /> Open timer
       </button>
+    </div>
+  );
+}
+
+function NextTinyStepWidget({ goal, tasks, toggleTask, widgetSize }) {
+  const nextTask = tasks
+    .filter((task) => task.goalId === goal.id && !task.done)
+    .sort((a, b) => taskTerm(a).localeCompare(taskTerm(b)) || a.id.localeCompare(b.id))[0];
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Arrow /> Next tiny step
+        </div>
+      </div>
+      {nextTask ? (
+        <>
+          <div style={{ fontSize: widgetSize === "compact" ? 13 : 15, color: "var(--ink)", lineHeight: 1.45 }}>
+            {nextTask.text}
+          </div>
+          {widgetSize !== "compact" && (
+            <div style={{ marginTop: 8 }}>
+              <TermChip term={taskTerm(nextTask)} />
+            </div>
+          )}
+          <button className="btn primary" onClick={() => toggleTask(nextTask.id)} style={{ marginTop: 12 }}>
+            <Icon.Check /> Done
+          </button>
+        </>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45 }}>
+          Nothing urgent here. Add a tiny task when you know the next move.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeadlineTimelineWidget({ goal, widgetSize }) {
+  const target = goalTargetDate(goal);
+  const today = todayKey();
+  const delta = target ? daysBetween(today, target) : null;
+  const label = !target
+    ? "No target date"
+    : delta < 0
+    ? "Ready to review"
+    : delta === 0
+    ? "Today"
+    : `${delta} day${delta === 1 ? "" : "s"} left`;
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Calendar /> Goal deadline
+        </div>
+      </div>
+      <div className="mono" style={{ fontSize: widgetSize === "compact" ? 20 : 28, color: "var(--ink)" }}>
+        {label}
+      </div>
+      {widgetSize !== "compact" && (
+        <div style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.45, marginTop: 6 }}>
+          {target
+            ? `Target date: ${target}. Plans can move; this is here to help you choose, not to judge.`
+            : "SMART goals can have an optional target date. Older goals are fine without one."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HabitStreakSummaryWidget({ goal, widgetSize }) {
+  const habits = goal.habits || [];
+  const streaks = habits.map((habit) => ({ habit, streak: currentStreak(habit) }));
+  const best = streaks.reduce((max, item) => Math.max(max, item.streak), 0);
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Flame /> Habit streaks
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+          {habits.length || ""}
+        </span>
+      </div>
+      <div className="counter" style={{ fontSize: widgetSize === "compact" ? 30 : undefined }}>
+        {best}
+        <span className="unit">best streak</span>
+      </div>
+      {widgetSize !== "compact" && (
+        <div className="stack" style={{ gap: 6, marginTop: 10 }}>
+          {streaks.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
+              Add a habit when you're ready. Gaps do not count as failure.
+            </div>
+          ) : (
+            streaks.slice(0, 4).map(({ habit, streak }) => (
+              <div key={habit.id} className="row between">
+                <span style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{habit.name}</span>
+                <span className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                  {streak}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecentWinsWidget({ goal, tasks, widgetSize }) {
+  const doneTasks = tasks
+    .filter((task) => task.goalId === goal.id && task.done)
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  const reflections = goal.reflections || [];
+  const winCount = doneTasks.length + reflections.length;
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Trophy /> Recent wins
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+          {winCount || ""}
+        </span>
+      </div>
+      {winCount === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45 }}>
+          Wins will show up here as you finish tasks or leave reflections.
+        </div>
+      ) : widgetSize === "compact" ? (
+        <div className="counter" style={{ fontSize: 30 }}>
+          {winCount}
+          <span className="unit">wins</span>
+        </div>
+      ) : (
+        <div className="stack" style={{ gap: 7 }}>
+          {doneTasks.slice(0, 3).map((task) => (
+            <div key={task.id} className="row" style={{ gap: 7, color: "var(--ink-2)" }}>
+              <Icon.Check width={12} height={12} />
+              <span style={{ fontSize: 12.5 }}>{task.text}</span>
+            </div>
+          ))}
+          {reflections.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
+              {reflections.length} reflection{reflections.length === 1 ? "" : "s"} saved for this goal.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AiSummaryPlaceholderWidget({ goal, tasks }) {
+  const goalTasks = tasks.filter((task) => task.goalId === goal.id);
+  const done = goalTasks.filter((task) => task.done).length;
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Wand /> AI summary placeholder
+        </div>
+        <span className="chip lav">Later</span>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
+        Future AI can summarize this goal, suggest next steps, and help review progress.
+        For now, Ligand sees {done}/{goalTasks.length || 0} linked tasks complete.
+      </div>
     </div>
   );
 }

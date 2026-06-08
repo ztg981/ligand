@@ -481,6 +481,12 @@ button { font: inherit; color: inherit; }
   min-width: 0;
   flex-wrap: wrap;
 }
+.widget-picker-card {
+  min-height: 128px;
+}
+.widget-picker-card .chip {
+  pointer-events: none;
+}
 .goal-hidden-widgets {
   margin-top: 12px;
   padding: 10px;
