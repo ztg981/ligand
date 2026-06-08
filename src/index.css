@@ -406,7 +406,7 @@ button { font: inherit; color: inherit; }
 /* Goal widget dashboard */
 .goal-widget-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
 }
@@ -505,22 +505,29 @@ button { font: inherit; color: inherit; }
   gap: 10px;
   flex-wrap: wrap;
 }
-.goal-widget-size-compact { grid-column: span 1; }
-.goal-widget-size-medium { grid-column: span 2; }
-.goal-widget-size-wide { grid-column: span 4; }
-.goal-widget-size-tall { grid-column: span 2; }
-.goal-widget-size-large { grid-column: span 4; }
-.goal-widget-size-tall > .card,
-.goal-widget-size-large > .card { min-height: 360px; }
+.goal-widget-size-compact { grid-column: span 2; }
+.goal-widget-size-medium { grid-column: span 3; }
+.goal-widget-size-wide { grid-column: span 6; }
+.goal-widget-size-tall { grid-column: span 3; }
+.goal-widget-size-large { grid-column: span 6; }
+.goal-widget-size-compact > .card { min-height: 156px; }
+.goal-widget-size-medium > .card { min-height: 240px; }
+.goal-widget-size-wide > .card { min-height: 230px; }
+.goal-widget-size-tall > .card { min-height: 430px; }
+.goal-widget-size-large > .card { min-height: 460px; }
 
-@media (max-width: 900px) {
-  .goal-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 980px) {
+  .goal-widget-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .goal-widget-size-compact { grid-column: span 2; }
+  .goal-widget-size-medium,
+  .goal-widget-size-tall { grid-column: span 2; }
   .goal-widget-size-wide,
-  .goal-widget-size-large { grid-column: span 2; }
+  .goal-widget-size-large { grid-column: span 4; }
 }
 @media (max-width: 640px) {
   .goal-widget-grid { grid-template-columns: minmax(0, 1fr); }
   .goal-widget-shell { grid-column: span 1; }
+  .goal-widget-shell > .card { min-height: 0; }
 }
 
 /* ============================================================

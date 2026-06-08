@@ -32,7 +32,7 @@ function Bar({ pct, color }) {
   );
 }
 
-export default function GoalProgress({ goal, tasks }) {
+export default function GoalProgress({ goal, tasks, widgetSize = "medium" }) {
   const goalTasks = useMemo(
     () => tasks.filter((t) => t.goalId === goal.id),
     [tasks, goal.id]
@@ -50,6 +50,25 @@ export default function GoalProgress({ goal, tasks }) {
       0
     );
   }, [goal.habits]);
+
+  if (widgetSize === "compact") {
+    return (
+      <div className="card">
+        <div className="card-head">
+          <div className="card-title">
+            <Icon.Target /> Progress
+          </div>
+        </div>
+        <div className="counter" style={{ fontSize: 30 }}>
+          {pct}
+          <span className="unit">%</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 4 }}>
+          {total ? `${done}/${total} linked tasks done` : "No linked tasks yet"}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card">
@@ -79,6 +98,19 @@ export default function GoalProgress({ goal, tasks }) {
           {weekCheckIns}
         </span>
       </div>
+
+      {(widgetSize === "tall" || widgetSize === "large") && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+          <div className="tag" style={{ marginBottom: 6 }}>
+            Larger view
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.45 }}>
+            {done > 0
+              ? `${done} completed step${done === 1 ? "" : "s"} are already behind you.`
+              : "A larger progress card gives this goal a little more breathing room."}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,10 +17,14 @@ export default function Reflections({
   addReflection,
   removeReflection,
   confirmBeforeDelete = true,
+  widgetSize = "medium",
 }) {
   const prompt = useMemo(() => reflectionPrompt(), []);
   const [text, setText] = useState("");
   const reflections = goal.reflections || [];
+  const compact = widgetSize === "compact";
+  const roomy = widgetSize === "tall" || widgetSize === "large";
+  const visibleReflections = roomy ? reflections : reflections.slice(0, 3);
 
   const save = () => {
     const t = text.trim();
@@ -28,6 +32,32 @@ export default function Reflections({
     addReflection(goal.id, { text: t, prompt });
     setText("");
   };
+
+  if (compact) {
+    return (
+      <div className="card">
+        <div className="card-head">
+          <div className="card-title">
+            <Icon.Book /> Reflection
+          </div>
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            {reflections.length || ""}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 12.5,
+            color: "var(--accent-ink)",
+            background: "var(--accent-soft)",
+            padding: "8px 10px",
+            borderRadius: "var(--r-md)",
+          }}
+        >
+          {prompt}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card">
@@ -58,7 +88,7 @@ export default function Reflections({
         placeholder="A line or two — or skip it, no pressure."
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={3}
+        rows={roomy ? 5 : 3}
         style={{ resize: "vertical", width: "100%", lineHeight: 1.45 }}
       />
       <div className="row between" style={{ marginTop: 8 }}>
@@ -77,7 +107,7 @@ export default function Reflections({
 
       {reflections.length > 0 && (
         <div className="stack" style={{ gap: 8, marginTop: 12 }}>
-          {reflections.map((r) => (
+          {visibleReflections.map((r) => (
             <div
               key={r.id}
               style={{
@@ -114,6 +144,12 @@ export default function Reflections({
               </div>
             </div>
           ))}
+          {visibleReflections.length < reflections.length && (
+            <div style={{ fontSize: 11.5, color: "var(--ink-4)" }}>
+              {reflections.length - visibleReflections.length} more reflection
+              {reflections.length - visibleReflections.length === 1 ? "" : "s"} visible in a larger size.
+            </div>
+          )}
         </div>
       )}
     </div>

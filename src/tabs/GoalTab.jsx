@@ -255,7 +255,7 @@ const WIDGET_REGISTRY = {
     sub: "Keep, revise, or archive an overdue goal.",
     icon: <Icon.Heart />,
     defaultSize: "wide",
-    allowedSizes: ["wide", "large"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
     condition: ({ goal }) => isGoalOverdue(goal),
@@ -275,7 +275,7 @@ const WIDGET_REGISTRY = {
     sub: "Review the SMART notes for this goal.",
     icon: <Icon.Target />,
     defaultSize: "wide",
-    allowedSizes: ["medium", "wide", "large"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
     render: ({ goal }) => <GoalDetails key={goal.id} goal={goal} />,
@@ -286,16 +286,17 @@ const WIDGET_REGISTRY = {
     sub: "Track forgiving habits for this goal.",
     icon: <Icon.Check />,
     defaultSize: "medium",
-    allowedSizes: ["medium", "wide", "tall", "large"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete }) => (
+    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete, widgetSize }) => (
       <HabitChecker
         goal={goal}
         addHabit={addHabit}
         checkInHabit={checkInHabit}
         removeHabit={removeHabit}
         confirmBeforeDelete={confirmBeforeDelete}
+        widgetSize={widgetSize}
       />
     ),
   },
@@ -305,10 +306,10 @@ const WIDGET_REGISTRY = {
     sub: "Add and manage goal-linked tasks.",
     icon: <Icon.Pin />,
     defaultSize: "wide",
-    allowedSizes: ["medium", "wide", "tall", "large"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks, addTask, updateTask, toggleTask, removeTask, confirmBeforeDelete }) => (
+    render: ({ goal, tasks, addTask, updateTask, toggleTask, removeTask, confirmBeforeDelete, widgetSize }) => (
       <GoalTasks
         goal={goal}
         tasks={tasks}
@@ -317,6 +318,7 @@ const WIDGET_REGISTRY = {
         toggleTask={toggleTask}
         removeTask={removeTask}
         confirmBeforeDelete={confirmBeforeDelete}
+        widgetSize={widgetSize}
       />
     ),
   },
@@ -326,10 +328,10 @@ const WIDGET_REGISTRY = {
     sub: "See task progress and weekly check-ins.",
     icon: <Icon.Target />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks }) => <GoalProgress goal={goal} tasks={tasks} />,
+    render: ({ goal, tasks, widgetSize }) => <GoalProgress goal={goal} tasks={tasks} widgetSize={widgetSize} />,
   },
   countUp: {
     type: "countUp",
@@ -337,10 +339,10 @@ const WIDGET_REGISTRY = {
     sub: "A gentle count-up streak card.",
     icon: <Icon.Flame />,
     defaultSize: "compact",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ countUps }) => <CountUp countUp={countUps && countUps[0]} />,
+    render: ({ countUps, widgetSize }) => <CountUp countUp={countUps && countUps[0]} widgetSize={widgetSize} />,
   },
   reflections: {
     type: "reflections",
@@ -348,15 +350,16 @@ const WIDGET_REGISTRY = {
     sub: "Save notes and gentle reflections.",
     icon: <Icon.Book />,
     defaultSize: "medium",
-    allowedSizes: ["medium", "wide", "tall", "large"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, addReflection, removeReflection, confirmBeforeDelete }) => (
+    render: ({ goal, addReflection, removeReflection, confirmBeforeDelete, widgetSize }) => (
       <Reflections
         goal={goal}
         addReflection={addReflection}
         removeReflection={removeReflection}
         confirmBeforeDelete={confirmBeforeDelete}
+        widgetSize={widgetSize}
       />
     ),
   },
@@ -366,7 +369,7 @@ const WIDGET_REGISTRY = {
     sub: "A small supportive nudge.",
     icon: <Icon.Spark />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: false,
     render: ({ goal, tasks }) => <EncouragingWidget goal={goal} tasks={tasks} />,
@@ -377,7 +380,7 @@ const WIDGET_REGISTRY = {
     sub: "Jump to the focus timer.",
     icon: <Icon.Timer />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: false,
     render: ({ onGoToPomodoro }) => <PomodoroQuickStart onGoToPomodoro={onGoToPomodoro} />,
@@ -388,7 +391,7 @@ const WIDGET_REGISTRY = {
     sub: "Shows one small unfinished task.",
     icon: <Icon.Arrow />,
     defaultSize: "compact",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
     render: ({ goal, tasks, toggleTask, widgetSize }) => (
@@ -401,7 +404,7 @@ const WIDGET_REGISTRY = {
     sub: "A calm look at the target date.",
     icon: <Icon.Calendar />,
     defaultSize: "compact",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
     render: ({ goal, widgetSize }) => <DeadlineTimelineWidget goal={goal} widgetSize={widgetSize} />,
@@ -412,7 +415,7 @@ const WIDGET_REGISTRY = {
     sub: "Shows current habit streaks without shame.",
     icon: <Icon.Flame />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
     render: ({ goal, widgetSize }) => <HabitStreakSummaryWidget goal={goal} widgetSize={widgetSize} />,
@@ -423,7 +426,7 @@ const WIDGET_REGISTRY = {
     sub: "Completed tasks and reflections for this goal.",
     icon: <Icon.Trophy />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
     render: ({ goal, tasks, widgetSize }) => (
@@ -436,7 +439,7 @@ const WIDGET_REGISTRY = {
     sub: "Reserved space for future local/free AI summaries.",
     icon: <Icon.Wand />,
     defaultSize: "medium",
-    allowedSizes: ["compact", "medium", "wide"],
+    allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
     render: ({ goal, tasks }) => <AiSummaryPlaceholderWidget goal={goal} tasks={tasks} />,
@@ -585,6 +588,7 @@ function GoalTasks({
   toggleTask,
   removeTask,
   confirmBeforeDelete,
+  widgetSize = "medium",
 }) {
   const [text, setText] = useState("");
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
@@ -622,6 +626,16 @@ function GoalTasks({
 
   const renderTasks = (scope) => {
     const scoped = goalTasks.filter((task) => taskTerm(task) === scope);
+    const limit =
+      widgetSize === "compact"
+        ? 2
+        : widgetSize === "medium"
+        ? 3
+        : widgetSize === "wide"
+        ? 5
+        : scoped.length;
+    const visible = scoped.slice(0, limit);
+    const hiddenCount = Math.max(0, scoped.length - visible.length);
     if (scoped.length === 0) {
       return (
         <div style={{ fontSize: 12.5, color: "var(--ink-3)" }}>
@@ -632,7 +646,7 @@ function GoalTasks({
 
     return (
       <div className="stack" style={{ gap: 6 }}>
-        {scoped.map((task) => (
+        {visible.map((task) => (
           <div key={task.id} className={"taskrow" + (task.done ? " done" : "")}>
             <button
               className="checkbox"
@@ -702,6 +716,11 @@ function GoalTasks({
             />
           </div>
         ))}
+        {hiddenCount > 0 && (
+          <div style={{ fontSize: 11.5, color: "var(--ink-4)", paddingLeft: 2 }}>
+            {hiddenCount} more task{hiddenCount === 1 ? "" : "s"} visible in a larger size.
+          </div>
+        )}
       </div>
     );
   };
