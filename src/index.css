@@ -251,6 +251,20 @@ button { font: inherit; color: inherit; }
 }
 .tab svg { width: 13px; height: 13px; flex: none; opacity: 0.8; }
 
+/* Hover-reveal delete affordance on a goal pill. */
+.tab .tab-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 0; height: 14px; margin-left: 0;
+  border-radius: 5px;
+  overflow: hidden; opacity: 0;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: opacity 0.15s var(--ease), width 0.15s var(--ease), margin-left 0.15s var(--ease), background 0.15s var(--ease);
+}
+.tab:hover .tab-x { width: 14px; opacity: 0.75; margin-left: 2px; }
+.tab .tab-x:hover { opacity: 1; color: oklch(0.55 0.16 20); background: var(--panel-2); }
+.tab .tab-x svg { width: 10px; height: 10px; opacity: 1; }
+
 .tab-sep {
   width: 1px;
   height: 20px;

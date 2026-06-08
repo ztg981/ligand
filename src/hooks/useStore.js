@@ -169,6 +169,19 @@ export function useStore() {
     [setData]
   );
 
+  const removeReflection = useCallback(
+    (goalId, reflectionId) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id !== goalId
+            ? g
+            : { ...g, reflections: g.reflections.filter((r) => r.id !== reflectionId) }
+        ),
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -185,6 +198,7 @@ export function useStore() {
       checkInHabit,
       removeHabit,
       addReflection,
+      removeReflection,
       addJournalEntry,
       removeJournalEntry,
       resetData,
@@ -201,6 +215,7 @@ export function useStore() {
       checkInHabit,
       removeHabit,
       addReflection,
+      removeReflection,
       addJournalEntry,
       removeJournalEntry,
       resetData,

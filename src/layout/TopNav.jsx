@@ -13,7 +13,7 @@ const TOOLS = [
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
    element to it, so the highlight glides instead of snapping. */
-function Tabset({ items, activeId, onSelect, variant, trailing }) {
+function Tabset({ items, activeId, onSelect, variant, trailing, onDelete }) {
   const btnRefs = useRef({});
   const [ind, setInd] = useState({ x: 0, w: 0, visible: false });
 
@@ -54,6 +54,26 @@ function Tabset({ items, activeId, onSelect, variant, trailing }) {
             it.icon
           )}
           {it.label}
+          {onDelete && it.deletable && (
+            <span
+              className="tab-x"
+              role="button"
+              tabIndex={0}
+              title={`Delete ${it.label}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(it.id);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.stopPropagation();
+                  onDelete(it.id);
+                }
+              }}
+            >
+              <Icon.Close />
+            </span>
+          )}
         </button>
       ))}
       {trailing}
@@ -68,10 +88,17 @@ export default function TopNav({
   activeGoal,
   setActiveGoal,
   onAddGoal,
+  onDeleteGoal,
   theme,
   toggleTheme,
 }) {
-  const goalItems = goals.map((g) => ({ id: g.id, label: g.name, dot: g.color }));
+  const goalItems = goals.map((g) => ({
+    id: g.id,
+    label: g.name,
+    dot: g.color,
+    // The built-in Productivity goal is fixed; everything else can be removed.
+    deletable: g.type !== "built-in",
+  }));
 
   return (
     <div className="topbar">
@@ -99,6 +126,7 @@ export default function TopNav({
             setActiveGoal(id);
             setTab("goal");
           }}
+          onDelete={onDeleteGoal}
           trailing={
             <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
               <Icon.Plus />

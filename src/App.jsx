@@ -30,6 +30,18 @@ export default function App() {
     setTab("goal");
   };
 
+  // Delete a goal (and its tasks/habits) after a confirmation. The built-in
+  // Productivity goal is never offered for deletion, so this only hits custom ones.
+  const handleDeleteGoal = (id) => {
+    const goal = goals.find((g) => g.id === id);
+    if (!goal || goal.type === "built-in") return;
+    if (!window.confirm(`Delete "${goal.name}" and all its data? This can't be undone.`)) return;
+    store.removeGoal(id);
+    // If we were viewing the deleted goal, step back to a safe screen.
+    if (activeGoal === id) setActiveGoal("productivity");
+    if (tab === "goal" && activeGoal === id) setTab("home");
+  };
+
   const screen = (() => {
     switch (tab) {
       case "home":
@@ -53,10 +65,13 @@ export default function App() {
             goal={goal}
             tasks={store.tasks}
             countUps={store.countUps}
+            updateGoal={store.updateGoal}
+            onDeleteGoal={handleDeleteGoal}
             addHabit={store.addHabit}
             checkInHabit={store.checkInHabit}
             removeHabit={store.removeHabit}
             addReflection={store.addReflection}
+            removeReflection={store.removeReflection}
           />
         );
       }
@@ -114,6 +129,7 @@ export default function App() {
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
           onAddGoal={handleAddGoal}
+          onDeleteGoal={handleDeleteGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
         />

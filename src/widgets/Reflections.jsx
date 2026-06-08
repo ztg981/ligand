@@ -11,7 +11,7 @@ function whenLabel(iso) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export default function Reflections({ goal, addReflection }) {
+export default function Reflections({ goal, addReflection, removeReflection }) {
   const prompt = useMemo(() => reflectionPrompt(), []);
   const [text, setText] = useState("");
   const reflections = goal.reflections || [];
@@ -79,16 +79,28 @@ export default function Reflections({ goal, addReflection }) {
                 paddingTop: 8,
               }}
             >
-              <div className="row between" style={{ marginBottom: 2 }}>
+              <div className="row between" style={{ marginBottom: 2, gap: 8 }}>
                 {r.prompt ? (
-                  <span style={{ fontSize: 11, color: "var(--ink-4)", fontStyle: "italic" }}>
+                  <span style={{ fontSize: 11, color: "var(--ink-4)", fontStyle: "italic", minWidth: 0 }}>
                     {r.prompt}
                   </span>
                 ) : (
                   <span />
                 )}
-                <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
-                  {whenLabel(r.createdAt)}
+                <span className="row" style={{ gap: 6, flex: "none", alignItems: "center" }}>
+                  <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+                    {whenLabel(r.createdAt)}
+                  </span>
+                  {removeReflection && (
+                    <button
+                      className="iconbtn"
+                      title="Delete reflection"
+                      onClick={() => removeReflection(goal.id, r.id)}
+                      style={{ width: 22, height: 22, color: "var(--ink-4)" }}
+                    >
+                      <Icon.Trash width={12} height={12} />
+                    </button>
+                  )}
                 </span>
               </div>
               <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.45, whiteSpace: "pre-wrap" }}>
