@@ -59,9 +59,11 @@ It should help users build habits, reach goals, track progress, journal, use Pom
   - Preset widgets include overdue review, goal details, habits, goal tasks, progress, count-up, reflections, encouragement, and Pomodoro quick-start.
   - Existing v1 `goal.widgetLayout` custom widgets are migrated/fallback-appended into the v2 grid and are not deleted.
   - Per-goal `widgetLayoutV2` persists widget order, size, hidden state, lock state, source, and settings.
-  - Edit layout mode supports resizing, hiding core widgets, restoring hidden widgets, removing user-added widgets, and reliable move up/down reordering.
-  - Real size variants: compact, medium, wide, tall, and large.
-  - Add Widget picker supports core widgets and safe extra widgets.
+  - Edit layout mode supports resizing, hiding core widgets, restoring hidden widgets, removing user-added widgets, native drag-handle reordering, and move up/down fallback controls.
+  - Real size variants: compact, medium, wide, tall, and large. The desktop grid uses six columns so width/height changes are visible.
+  - Add Widget picker supports core widgets and safe extra widgets, scrolls internally, closes with Escape/outside click, and locks background scrolling while open.
+  - Existing visible widget types cannot be duplicated from the picker. Hidden widgets are restored instead.
+  - Edit layout recovery controls include reset to default, restore hidden defaults, and Default / Focus / Journal / Minimal / Dashboard presets.
 - Extra low-risk widgets currently implemented:
   - Next tiny step
   - Goal deadline
@@ -236,7 +238,8 @@ Future ideas:
 
 ## Known Gaps / Missing Features
 
-- Widget V2 uses reliable move up/down reordering, not freeform drag-and-drop. `dnd-kit` has not been added.
+- Widget V2 uses native HTML5 drag-handle reordering plus move up/down fallback controls. `dnd-kit` has not been added.
+- Drag is intentionally simple and handle-based. It is not yet a full physics-style drag system with animated insertion previews.
 - User-added widget-specific storage/settings are minimal. Add this carefully if widgets like Brain dump or Milestone checklist need their own data.
 - Count-up widget is seeded but there is no full UI for adding, editing, removing, or having multiple count-ups.
 - Browser/desktop notifications are not implemented.
@@ -256,8 +259,29 @@ Future ideas:
 - AI, notifications, and wallpaper/sound systems are placeholders.
 - `goal.widgetLayout` is legacy v1 widget layout data. Do not delete it until there is a deliberate migration/cleanup step.
 - `goal.widgetLayoutV2` is generated as a fallback if missing and persisted once the user edits the layout.
+- Reset/preset layout controls change only layout metadata. They do not delete tasks, habits, reflections, count-up data, or journal content.
+- `npm.cmd run lint` currently fails on pre-existing repo-wide React lint rules in `src/components/Icons.jsx`, `src/hooks/useLocalStorage.js`, and `src/hooks/usePomodoro.js`. Widget build verification still passes.
 - The app currently depends on localStorage shape. Preserve the shape or write careful migrations when changing persisted data.
 - PowerShell may block `npm run build`; use `npm.cmd run build`.
+
+## Widget Manual Test Checklist
+
+- Open a goal tab.
+- Enter Edit layout.
+- Reorder widgets using the drag handle.
+- Reorder widgets using Up/Down fallback controls.
+- Resize widgets to compact, medium, wide, tall, and large.
+- Open Add Widget and confirm the modal scrolls internally without the page behind it scrolling.
+- Add a widget.
+- Hide a default widget.
+- Restore a hidden widget.
+- Remove a user-added widget.
+- Reset the layout to default.
+- Try Default, Focus, Journal, Minimal, and Dashboard presets.
+- Refresh and confirm the layout persists.
+- Switch to another goal and confirm it has a separate layout.
+- Confirm SMART details, tasks, habits, reflections, count-up, and overdue review still work.
+- Confirm Home, Tasks, Pomodoro, Journal, and Settings still open normally.
 
 ## Development Rules
 
