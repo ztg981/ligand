@@ -590,7 +590,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 
 /* progress ring inline rendering */
-.ring { transform: rotate(-90deg); }
+.ring { transform: rotate(-90deg); box-shadow: none; outline: none; }
+.pomo-window svg { box-shadow: none; outline: none; }
 
 /* ambient glow behind central pomodoro */
 .glow-pad { position: relative; }

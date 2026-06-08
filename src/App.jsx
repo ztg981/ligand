@@ -6,6 +6,7 @@ import { useStore } from "./hooks/useStore.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
+import GoalTab from "./tabs/GoalTab.jsx";
 import { Icon } from "./components/Icons.jsx";
 
 // Placeholder screen — real tab content arrives in later build steps.
@@ -39,8 +40,6 @@ export default function App() {
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
 
-  const activeGoalName = goals.find((g) => g.id === activeGoal)?.name || "Goal";
-
   // Temporary add-goal flow (a proper dialog arrives with the goal UI later).
   const handleAddGoal = () => {
     const name = window.prompt("Name your new goal:");
@@ -63,21 +62,21 @@ export default function App() {
           />
         );
       case "productivity":
+      case "goal": {
+        const id = tab === "productivity" ? "productivity" : activeGoal;
+        const goal = store.goals.find((g) => g.id === id);
         return (
-          <Placeholder
-            eyebrow="Built-in goal"
-            title="Productivity"
-            sub="Forgiving habits, goal progress, and reflection."
+          <GoalTab
+            goal={goal}
+            tasks={store.tasks}
+            countUps={store.countUps}
+            addHabit={store.addHabit}
+            checkInHabit={store.checkInHabit}
+            removeHabit={store.removeHabit}
+            addReflection={store.addReflection}
           />
         );
-      case "goal":
-        return (
-          <Placeholder
-            eyebrow="Goal tab"
-            title={activeGoalName}
-            sub="Habits, tasks, and progress for this goal."
-          />
-        );
+      }
       case "tasks":
         return (
           <Tasks

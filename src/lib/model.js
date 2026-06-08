@@ -40,7 +40,7 @@ export function daysBetween(aKey, bKey) {
   const b = new Date(bKey + "T00:00:00");
   return Math.round((b - a) / 86400000);
 }
-function shiftDay(dayKey, delta) {
+export function shiftDay(dayKey, delta) {
   const d = new Date(dayKey + "T00:00:00");
   d.setDate(d.getDate() + delta);
   return todayKey(d);

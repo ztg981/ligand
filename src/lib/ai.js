@@ -74,4 +74,21 @@ export function reentryMessage(daysAway = 0) {
   return "Welcome back. You didn't lose any progress while you were away — pick up wherever feels easy.";
 }
 
-export default { encouragingMessage, summarizeProgress, reentryMessage };
+/* A gentle reflection prompt. Rotates daily; salt lets callers vary it. */
+export function reflectionPrompt(salt = 0) {
+  // TODO(ai): swap for a model that proposes a prompt tuned to recent activity.
+  return pickByDay(
+    [
+      "What's one small thing that went okay today?",
+      "What felt heavier than it needed to — and could it be lighter tomorrow?",
+      "What are you quietly proud of right now?",
+      "If today was a 2/10 day, what would still make it count?",
+      "What's one kind thing you could do for tomorrow-you?",
+      "What drained your energy, and what gave a little back?",
+      "What would 'enough' look like for the rest of today?",
+    ],
+    salt
+  );
+}
+
+export default { encouragingMessage, summarizeProgress, reentryMessage, reflectionPrompt };
