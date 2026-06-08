@@ -3,6 +3,7 @@ import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
+import Tasks from "./tabs/Tasks.jsx";
 import { Icon } from "./components/Icons.jsx";
 
 // Placeholder screen — real tab content arrives in later build steps.
@@ -30,7 +31,8 @@ function Placeholder({ eyebrow, title, sub }) {
 
 export default function App() {
   const { tweaks, set } = useTweaks();
-  const { goals, addGoal } = useStore();
+  const store = useStore();
+  const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
@@ -74,10 +76,13 @@ export default function App() {
         );
       case "tasks":
         return (
-          <Placeholder
-            eyebrow="To-do"
-            title="Tasks"
-            sub="Everything you want to get to — labelled and filterable."
+          <Tasks
+            tasks={store.tasks}
+            goals={store.goals}
+            addTask={store.addTask}
+            updateTask={store.updateTask}
+            toggleTask={store.toggleTask}
+            removeTask={store.removeTask}
           />
         );
       case "pomodoro":
