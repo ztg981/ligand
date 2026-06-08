@@ -27,7 +27,7 @@ function GoalDetails({ goal }) {
   const [open, setOpen] = useState(hasDetails);
 
   return (
-    <div className="card" style={{ marginBottom: 12 }}>
+    <div className="card">
       <div className="row between" style={{ gap: 12 }}>
         <div>
           <div className="card-title">
@@ -78,7 +78,6 @@ function OverdueGoalBanner({
     <div
       className="card"
       style={{
-        marginBottom: 12,
         background: "var(--accent-soft)",
         borderColor: "transparent",
       }}
@@ -792,6 +791,76 @@ function PomodoroQuickStart({ onGoToPomodoro }) {
   );
 }
 
+function widgetIsVisible(widget, context) {
+  const registry = WIDGET_REGISTRY[widget.type];
+  if (!registry || widget.hidden) return false;
+  return registry.condition ? registry.condition(context) : true;
+}
+
+function GoalWidgetShell({ widget, context }) {
+  const registry = WIDGET_REGISTRY[widget.type];
+  if (!registry) return null;
+  const size = normalizeWidgetSize(widget.size, widget.type);
+  const content = registry.render({ ...context, widget, widgetSize: size });
+  return (
+    <div className={`goal-widget-shell goal-widget-size-${size}`} style={{ minWidth: 0 }}>
+      {content}
+    </div>
+  );
+}
+
+function GoalWidgetGrid({
+  goal,
+  tasks,
+  countUps,
+  builtIn,
+  addTask,
+  updateTask,
+  toggleTask,
+  removeTask,
+  addHabit,
+  checkInHabit,
+  removeHabit,
+  addReflection,
+  removeReflection,
+  onSnoozeGoal,
+  onReviseGoalDate,
+  onArchiveGoal,
+  onGoToPomodoro,
+  confirmBeforeDelete,
+}) {
+  const layout = useMemo(() => resolveWidgetLayoutV2(goal), [goal]);
+  const context = {
+    goal,
+    tasks,
+    countUps,
+    builtIn,
+    addTask,
+    updateTask,
+    toggleTask,
+    removeTask,
+    addHabit,
+    checkInHabit,
+    removeHabit,
+    addReflection,
+    removeReflection,
+    onSnoozeGoal,
+    onReviseGoalDate,
+    onArchiveGoal,
+    onGoToPomodoro,
+    confirmBeforeDelete,
+  };
+  const visibleWidgets = layout.widgets.filter((widget) => widgetIsVisible(widget, context));
+
+  return (
+    <div className="goal-widget-grid">
+      {visibleWidgets.map((widget) => (
+        <GoalWidgetShell key={widget.id} widget={widget} context={context} />
+      ))}
+    </div>
+  );
+}
+
 function GoalWidgets({
   goal,
   tasks,
@@ -1088,55 +1157,11 @@ export default function GoalTab({
         </div>
       </div>
 
-      <OverdueGoalBanner
-        goal={goal}
-        onSnoozeGoal={onSnoozeGoal}
-        onReviseGoalDate={onReviseGoalDate}
-        onArchiveGoal={onArchiveGoal}
-        canArchive={!builtIn}
-      />
-
-      <GoalDetails key={goal.id} goal={goal} />
-
-      <div className="grid grid-12">
-        {/* Left: do & track */}
-        <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
-          <HabitChecker
-            goal={goal}
-            addHabit={addHabit}
-            checkInHabit={checkInHabit}
-            removeHabit={removeHabit}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-          <GoalProgress goal={goal} tasks={tasks} />
-          <GoalTasks
-            goal={goal}
-            tasks={tasks}
-            addTask={addTask}
-            updateTask={updateTask}
-            toggleTask={toggleTask}
-            removeTask={removeTask}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-        </div>
-
-        {/* Right: feel & reflect */}
-        <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
-          <CountUp countUp={countUps && countUps[0]} />
-          <Reflections
-            goal={goal}
-            addReflection={addReflection}
-            removeReflection={removeReflection}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-        </div>
-      </div>
-
-      <GoalWidgets
+      <GoalWidgetGrid
         goal={goal}
         tasks={tasks}
         countUps={countUps}
-        updateGoal={updateGoal}
+        builtIn={builtIn}
         addTask={addTask}
         updateTask={updateTask}
         toggleTask={toggleTask}
@@ -1146,6 +1171,9 @@ export default function GoalTab({
         removeHabit={removeHabit}
         addReflection={addReflection}
         removeReflection={removeReflection}
+        onSnoozeGoal={onSnoozeGoal}
+        onReviseGoalDate={onReviseGoalDate}
+        onArchiveGoal={onArchiveGoal}
         confirmBeforeDelete={confirmBeforeDelete}
         onGoToPomodoro={onGoToPomodoro}
       />

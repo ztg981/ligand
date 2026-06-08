@@ -403,6 +403,39 @@ button { font: inherit; color: inherit; }
 .col-9 { grid-column: span 9; }
 .col-12 { grid-column: span 12; }
 
+/* Goal widget dashboard */
+.goal-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.goal-widget-shell {
+  min-width: 0;
+  transition: transform 0.2s var(--ease), filter 0.2s var(--ease);
+}
+.goal-widget-shell > .card {
+  height: 100%;
+  margin-bottom: 0 !important;
+}
+.goal-widget-size-compact { grid-column: span 1; }
+.goal-widget-size-medium { grid-column: span 2; }
+.goal-widget-size-wide { grid-column: span 4; }
+.goal-widget-size-tall { grid-column: span 2; }
+.goal-widget-size-large { grid-column: span 4; }
+.goal-widget-size-tall > .card,
+.goal-widget-size-large > .card { min-height: 360px; }
+
+@media (max-width: 900px) {
+  .goal-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .goal-widget-size-wide,
+  .goal-widget-size-large { grid-column: span 2; }
+}
+@media (max-width: 640px) {
+  .goal-widget-grid { grid-template-columns: minmax(0, 1fr); }
+  .goal-widget-shell { grid-column: span 1; }
+}
+
 /* ============================================================
    Buttons
    ============================================================ */
