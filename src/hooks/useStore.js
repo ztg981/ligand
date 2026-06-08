@@ -25,7 +25,15 @@ export function useStore() {
   // -- goals -----------------------------------------------------
   const addGoal = useCallback(
     (opts) => {
-      const goal = createGoal(opts);
+      const { starterHabits = [], ...goalOpts } = opts || {};
+      const goal = {
+        ...createGoal(goalOpts),
+        habits: starterHabits
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .slice(0, 3)
+          .map((name) => createHabit({ name })),
+      };
       setData((d) => ({ ...d, goals: [...d.goals, goal] }));
       return goal;
     },

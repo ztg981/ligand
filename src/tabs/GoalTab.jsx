@@ -6,6 +6,61 @@ import Reflections from "../widgets/Reflections.jsx";
 import CountUp from "../widgets/CountUp.jsx";
 import { Icon } from "../components/Icons.jsx";
 
+function niceAchievable(value) {
+  if (value === "easy") return "Easy";
+  if (value === "stretch") return "Stretch";
+  if (value === "balanced") return "Balanced";
+  return "Not chosen yet";
+}
+
+function GoalDetails({ goal }) {
+  const smart = goal.smartFields || {};
+  const details = [
+    ["Specific", smart.specific],
+    ["Measurable", smart.measurable],
+    ["Achievable", niceAchievable(smart.achievable)],
+    ["Relevant", smart.relevant],
+    ["Time-bound", smart.timeBound || goal.deadline],
+  ];
+  const hasDetails = details.some(([, value]) => value && value !== "Not chosen yet");
+  const [open, setOpen] = useState(hasDetails);
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="row between" style={{ gap: 12 }}>
+        <div>
+          <div className="card-title">
+            <Icon.Target /> Goal details
+          </div>
+          <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 3 }}>
+            {hasDetails
+              ? "Your SMART notes are saved here. You can adjust this later."
+              : "No SMART details yet. Older goals still work normally."}
+          </div>
+        </div>
+        <button className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
+          {open ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {open && (
+        <div className="grid grid-12" style={{ marginTop: 12 }}>
+          {details.map(([label, value]) => (
+            <div key={label} className={label === "Relevant" ? "col-12" : "col-6"}>
+              <div className="tag" style={{ marginBottom: 4 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.45 }}>
+                {value || "Not filled in yet."}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* GoalTab — the preset layout shown for any goal.
    The built-in "Productivity" goal uses the very same layout; it just
    can't be deleted or renamed. Composition (left = do/track, right =
@@ -114,6 +169,8 @@ export default function GoalTab({
           </p>
         </div>
       </div>
+
+      <GoalDetails key={goal.id} goal={goal} />
 
       <div className="grid grid-12">
         {/* Left: do & track */}
