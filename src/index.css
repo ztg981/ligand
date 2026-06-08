@@ -154,10 +154,16 @@ button { font: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  padding: 10px 8px 10px 0;
   margin-bottom: 18px;
-  background: linear-gradient(to bottom, var(--bg) 60%, transparent);
-  backdrop-filter: blur(8px);
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--bg) 70%, transparent) 0%,
+    color-mix(in oklab, var(--bg) 40%, transparent) 55%,
+    transparent 100%
+  );
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
 }
 .brand {
   display: flex;
