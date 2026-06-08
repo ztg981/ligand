@@ -523,9 +523,7 @@ function resolveWidgetLayoutV2(goal) {
 }
 
 function normalizeWidgetOrders(widgets) {
-  return [...widgets]
-    .sort((a, b) => a.order - b.order)
-    .map((widget, index) => ({ ...widget, order: (index + 1) * 10 }));
+  return widgets.map((widget, index) => ({ ...widget, order: (index + 1) * 10 }));
 }
 
 const WIDGET_SIZES = ["small", "medium", "large"];
@@ -1139,6 +1137,7 @@ function WidgetEditControls({
       {onMove && (
         <span className="row" style={{ gap: 4, flex: "none" }}>
           <button
+            type="button"
             className="btn ghost sm"
             onClick={() => onMove(widget.id, -1)}
             disabled={index === 0}
@@ -1147,6 +1146,7 @@ function WidgetEditControls({
             Up
           </button>
           <button
+            type="button"
             className="btn ghost sm"
             onClick={() => onMove(widget.id, 1)}
             disabled={index === total - 1}
@@ -1159,6 +1159,7 @@ function WidgetEditControls({
       <span className="seg goal-widget-size-control">
         {allowedSizes.map((option) => (
           <button
+            type="button"
             key={option}
             className={option === size ? "active" : ""}
             onClick={() => onResize(widget.id, option)}
@@ -1179,7 +1180,7 @@ function WidgetEditControls({
           icon={<Icon.Trash width={13} height={13} />}
         />
       ) : (
-        <button className="btn ghost sm" onClick={() => onHide(widget.id)}>
+        <button type="button" className="btn ghost sm" onClick={() => onHide(widget.id)}>
           Hide
         </button>
       )}
@@ -1346,10 +1347,11 @@ function GoalWidgetGrid({
           </div>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button className="btn" onClick={() => setPickerOpen(true)}>
+          <button type="button" className="btn" onClick={() => setPickerOpen(true)}>
             <Icon.Plus /> Add widget
           </button>
           <button
+            type="button"
             className={editing ? "btn primary" : "btn"}
             onClick={() => setEditing((value) => !value)}
           >
@@ -1382,7 +1384,7 @@ function GoalWidgetGrid({
             {hiddenWidgets.map((widget) => {
               const item = WIDGET_REGISTRY[widget.type];
               return (
-                <button key={widget.id} className="btn ghost sm" onClick={() => restoreWidget(widget.id)}>
+                <button type="button" key={widget.id} className="btn ghost sm" onClick={() => restoreWidget(widget.id)}>
                   {item?.icon} Restore {item?.title || "widget"}
                 </button>
               );
