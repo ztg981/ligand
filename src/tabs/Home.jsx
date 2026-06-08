@@ -7,8 +7,6 @@ import CountUp from "../widgets/CountUp.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
 import { Icon } from "../components/Icons.jsx";
 
-const USER_NAME = "Maya"; // TODO: move to settings once the Settings tab lands.
-
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -24,7 +22,15 @@ function prettyDate() {
   });
 }
 
-export default function Home({ goals, tasks, countUps, toggleTask, onGoToTasks }) {
+export default function Home({
+  goals,
+  tasks,
+  countUps,
+  toggleTask,
+  onGoToTasks,
+  userName = "friend",
+  showEncouragement = true,
+}) {
   // --- gentle re-entry detection ---
   const [lastVisit, setLastVisit] = useLocalStorage("ligand.lastVisit", null);
   // Capture the gap ONCE, before we overwrite lastVisit below.
@@ -63,9 +69,9 @@ export default function Home({ goals, tasks, countUps, toggleTask, onGoToTasks }
         <div>
           <div className="eyebrow">Dashboard · {prettyDate()}</div>
           <h1 className="page-title">
-            {greeting()}, {USER_NAME}.
+            {greeting()}, {userName}.
           </h1>
-          <p className="page-sub">{message}</p>
+          <p className="page-sub">{showEncouragement ? message : prettyDate()}</p>
         </div>
       </div>
 
@@ -170,7 +176,7 @@ export default function Home({ goals, tasks, countUps, toggleTask, onGoToTasks }
         {/* Right column */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           <CountUp countUp={countUps && countUps[0]} />
-          <EncouragingMsg message={message} sub={summary} />
+          {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
         </div>
       </div>
     </>

@@ -3,39 +3,19 @@ import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
+import { useSettings } from "./hooks/useSettings.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
 import GoalTab from "./tabs/GoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
+import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
-
-// Placeholder screen — real tab content arrives in later build steps.
-function Placeholder({ eyebrow, title, sub }) {
-  return (
-    <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">{eyebrow}</div>
-          <h1 className="page-title">{title}</h1>
-          <p className="page-sub">{sub}</p>
-        </div>
-      </div>
-      <div
-        className="card"
-        style={{ padding: 40, textAlign: "center", color: "var(--ink-3)" }}
-      >
-        <div className="mono" style={{ fontSize: 12 }}>
-          Coming in a later build step.
-        </div>
-      </div>
-    </>
-  );
-}
 
 export default function App() {
   const { tweaks, set } = useTweaks();
   const store = useStore();
+  const { settings, setSection, reset: resetSettings } = useSettings();
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
@@ -60,6 +40,8 @@ export default function App() {
             countUps={store.countUps}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
+            userName={settings.profile.name}
+            showEncouragement={settings.assistant.encouragement}
           />
         );
       case "productivity":
@@ -101,10 +83,13 @@ export default function App() {
         );
       case "settings":
         return (
-          <Placeholder
-            eyebrow="Preferences"
-            title="Settings"
-            sub="Notifications, themes, Pomodoro, habits, and more."
+          <Settings
+            tweaks={tweaks}
+            setTweak={set}
+            settings={settings}
+            setSection={setSection}
+            resetSettings={resetSettings}
+            resetData={store.resetData}
           />
         );
       default:
