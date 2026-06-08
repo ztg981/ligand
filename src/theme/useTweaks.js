@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
 
 /* Tweaks = the visual personalization state from the floating panel.
    theme | accent (hue) | ambient glow % | corner radius | density.
 
-   For now this persists with a tiny inline localStorage read/write. In Step 2
-   this will be swapped to the shared useLocalStorage hook with zero change to
-   how components consume it. */
+   Persistence now goes through the shared useLocalStorage hook (Step 2),
+   with no change to how components consume `{ tweaks, set }`. */
 
 const STORAGE_KEY = "ligand.tweaks";
 
@@ -26,18 +26,11 @@ export const ACCENTS = [
   { id: 20, color: "oklch(0.65 0.13 20)" },
 ];
 
-function readInitial() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...TWEAK_DEFAULTS, ...JSON.parse(raw) };
-  } catch {
-    /* ignore corrupt/blocked storage */
-  }
-  return TWEAK_DEFAULTS;
-}
-
 export function useTweaks() {
-  const [tweaks, setTweaks] = useState(readInitial);
+  // Persisted via the shared hook. Spread defaults under the stored value so
+  // any newly added tweak keys get sensible fallbacks.
+  const [stored, setTweaks] = useLocalStorage(STORAGE_KEY, TWEAK_DEFAULTS);
+  const tweaks = { ...TWEAK_DEFAULTS, ...stored };
 
   // Apply tweaks to the document root as CSS variables / data attributes.
   useEffect(() => {
@@ -50,16 +43,7 @@ export function useTweaks() {
     root.style.setProperty("--r-lg", tweaks.radius + "px");
     root.style.setProperty("--r-xl", tweaks.radius + 2 + "px");
     root.style.setProperty("--r-2xl", tweaks.radius + 4 + "px");
-  }, [tweaks]);
-
-  // Persist on change.
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tweaks));
-    } catch {
-      /* ignore */
-    }
-  }, [tweaks]);
+  }, [tweaks.theme, tweaks.density, tweaks.accent, tweaks.ambient, tweaks.radius]);
 
   // Patch one or more keys at once.
   const set = (patch) => setTweaks((prev) => ({ ...prev, ...patch }));

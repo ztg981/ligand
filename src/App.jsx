@@ -2,15 +2,8 @@ import { useState } from "react";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
+import { useStore } from "./hooks/useStore.js";
 import { Icon } from "./components/Icons.jsx";
-
-/* Static goal tabs for now — these become real, user-created goals in Step 2
-   (data model) and Step 6 (built-in Productivity goal tab). */
-const GOALS = [
-  { id: "productivity", name: "Productivity", color: "oklch(0.62 0.10 245)" },
-  { id: "side-hustles", name: "Side Hustles", color: "oklch(0.7 0.12 165)" },
-  { id: "college", name: "College Planning", color: "oklch(0.62 0.10 290)" },
-];
 
 // Placeholder screen — real tab content arrives in later build steps.
 function Placeholder({ eyebrow, title, sub }) {
@@ -37,11 +30,21 @@ function Placeholder({ eyebrow, title, sub }) {
 
 export default function App() {
   const { tweaks, set } = useTweaks();
+  const { goals, addGoal } = useStore();
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
 
-  const activeGoalName = GOALS.find((g) => g.id === activeGoal)?.name || "Goal";
+  const activeGoalName = goals.find((g) => g.id === activeGoal)?.name || "Goal";
+
+  // Temporary add-goal flow (a proper dialog arrives with the goal UI later).
+  const handleAddGoal = () => {
+    const name = window.prompt("Name your new goal:");
+    if (!name || !name.trim()) return;
+    const goal = addGoal({ name: name.trim() });
+    setActiveGoal(goal.id);
+    setTab("goal");
+  };
 
   const screen = (() => {
     switch (tab) {
@@ -119,10 +122,10 @@ export default function App() {
         <TopNav
           tab={tab}
           setTab={setTab}
-          goals={GOALS}
+          goals={goals}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
-          onAddGoal={() => alert("New goal flow — coming in a later step.")}
+          onAddGoal={handleAddGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
         />
