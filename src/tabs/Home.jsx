@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
-import { todayKey, daysBetween } from "../lib/model.js";
+import { todayKey, daysBetween, goalTargetDate, isGoalOverdue } from "../lib/model.js";
 import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai.js";
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import CountUp from "../widgets/CountUp.jsx";
@@ -28,6 +28,10 @@ export default function Home({
   countUps,
   toggleTask,
   onGoToTasks,
+  onSnoozeGoal,
+  onReviseGoalDate,
+  onArchiveGoal,
+  onOpenGoal,
   userName = "friend",
   showEncouragement = true,
 }) {
@@ -39,6 +43,7 @@ export default function Home({
     setLastVisit(todayKey());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const [reviewDates, setReviewDates] = useState({});
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);
   const doneCount = tasks.length - activeTasks.length;
@@ -53,10 +58,7 @@ export default function Home({
 
   const urgent = useMemo(() => activeTasks.filter((t) => t.label === "Urgent"), [activeTasks]);
   const overdueGoals = useMemo(
-    () =>
-      goals.filter(
-        (g) => g.deadline && g.status === "active" && g.deadline < todayKey()
-      ),
+    () => goals.filter((g) => isGoalOverdue(g)),
     [goals]
   );
 
@@ -128,33 +130,98 @@ export default function Home({
             )}
           </div>
 
-          {/* Urgent / overdue */}
+          {overdueGoals.length > 0 && (
+            <div className="card">
+              <div className="card-head">
+                <div className="card-title">
+                  <Icon.Calendar /> Goals to review
+                </div>
+                <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  {overdueGoals.length}
+                </span>
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.45 }}>
+                Plans change. Want to clean this up? You can keep it, revise it, or let it go.
+              </p>
+              <div className="stack" style={{ gap: 10 }}>
+                {overdueGoals.map((g) => {
+                  const target = goalTargetDate(g);
+                  const draft = reviewDates[g.id] ?? target ?? todayKey();
+                  return (
+                    <div
+                      key={g.id}
+                      style={{
+                        borderTop: "1px solid var(--line)",
+                        paddingTop: 10,
+                      }}
+                    >
+                      <div className="row between" style={{ gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="row" style={{ gap: 6, fontSize: 13, flexWrap: "wrap" }}>
+                            <span className="chip rose">Review</span>
+                            <strong>{g.name}</strong>
+                          </div>
+                          <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 3 }}>
+                            Target date: {target}
+                          </div>
+                        </div>
+                        <button className="btn ghost sm" onClick={() => onOpenGoal?.(g.id)}>
+                          Open
+                        </button>
+                      </div>
+
+                      <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                        <button className="btn ghost sm" onClick={() => onSnoozeGoal?.(g.id)}>
+                          Keep goal
+                        </button>
+                        <input
+                          type="date"
+                          className="input"
+                          value={draft}
+                          onChange={(e) =>
+                            setReviewDates((dates) => ({ ...dates, [g.id]: e.target.value }))
+                          }
+                          style={{ width: 140, flex: "none" }}
+                        />
+                        <button
+                          className="btn ghost sm"
+                          onClick={() => draft && onReviseGoalDate?.(g.id, draft)}
+                        >
+                          Revise target date
+                        </button>
+                        {g.type !== "built-in" && (
+                          <button
+                            className="btn ghost sm"
+                            onClick={() => onArchiveGoal?.(g.id)}
+                            style={{ color: "oklch(0.55 0.16 20)" }}
+                          >
+                            Archive goal
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Urgent */}
           <div className="card">
             <div className="card-head">
               <div className="card-title">
                 <Icon.Bell /> Needs attention
               </div>
               <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                {urgent.length + overdueGoals.length || ""}
+                {urgent.length || ""}
               </span>
             </div>
-            {urgent.length === 0 && overdueGoals.length === 0 ? (
+            {urgent.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
                 Nothing urgent right now. Take a breath.
               </div>
             ) : (
               <div className="stack" style={{ gap: 8 }}>
-                {overdueGoals.map((g) => (
-                  <div key={g.id} className="row between">
-                    <span className="row" style={{ gap: 6, fontSize: 13 }}>
-                      <span className="chip rose">Overdue</span>
-                      {g.name}
-                    </span>
-                    <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {g.deadline}
-                    </span>
-                  </div>
-                ))}
                 {urgent.map((t) => (
                   <div key={t.id} className="row between">
                     <span className="row" style={{ gap: 6, fontSize: 13 }}>

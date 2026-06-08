@@ -6,6 +6,8 @@ import {
   createTask,
   createHabit,
   createReflection,
+  shiftDay,
+  todayKey,
   toggleCheckIn,
 } from "../lib/model.js";
 
@@ -45,6 +47,38 @@ export function useStore() {
       setData((d) => ({
         ...d,
         goals: d.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+      })),
+    [setData]
+  );
+
+  const snoozeGoalReview = useCallback(
+    (id, days = 7) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id ? { ...g, overdueSnoozedUntil: shiftDay(todayKey(), days) } : g
+        ),
+      })),
+    [setData]
+  );
+
+  const reviseGoalTargetDate = useCallback(
+    (id, targetDate) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id
+            ? {
+                ...g,
+                deadline: targetDate || null,
+                overdueSnoozedUntil: null,
+                smartFields: {
+                  ...(g.smartFields || {}),
+                  timeBound: targetDate || "",
+                },
+              }
+            : g
+        ),
       })),
     [setData]
   );
@@ -222,6 +256,8 @@ export function useStore() {
     () => ({
       addGoal,
       updateGoal,
+      snoozeGoalReview,
+      reviseGoalTargetDate,
       archiveGoal,
       restoreGoal,
       removeGoal,
@@ -241,6 +277,8 @@ export function useStore() {
     [
       addGoal,
       updateGoal,
+      snoozeGoalReview,
+      reviseGoalTargetDate,
       archiveGoal,
       restoreGoal,
       removeGoal,

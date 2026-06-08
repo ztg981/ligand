@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GOAL_TYPES, TASK_TERMS } from "../lib/model.js";
+import { GOAL_TYPES, TASK_TERMS, goalTargetDate, isGoalOverdue } from "../lib/model.js";
 import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
@@ -21,7 +21,7 @@ function GoalDetails({ goal }) {
     ["Measurable", smart.measurable],
     ["Achievable", niceAchievable(smart.achievable)],
     ["Relevant", smart.relevant],
-    ["Time-bound", smart.timeBound || goal.deadline],
+    ["Time-bound", goalTargetDate(goal)],
   ];
   const hasDetails = details.some(([, value]) => value && value !== "Not chosen yet");
   const [open, setOpen] = useState(hasDetails);
@@ -58,6 +58,72 @@ function GoalDetails({ goal }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function OverdueGoalBanner({
+  goal,
+  onSnoozeGoal,
+  onReviseGoalDate,
+  onArchiveGoal,
+  canArchive,
+}) {
+  const target = goalTargetDate(goal);
+  const [draft, setDraft] = useState(target || "");
+
+  if (!isGoalOverdue(goal)) return null;
+
+  return (
+    <div
+      className="card"
+      style={{
+        marginBottom: 12,
+        background: "var(--accent-soft)",
+        borderColor: "transparent",
+      }}
+    >
+      <div className="row" style={{ gap: 10, alignItems: "flex-start" }}>
+        <span style={{ color: "var(--accent-ink)", flex: "none", marginTop: 1 }}>
+          <Icon.Heart />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "var(--accent-ink)", fontSize: 13.5, lineHeight: 1.45 }}>
+            Plans change. Want to clean this up? You can keep it, revise it, or let it go.
+          </div>
+          <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
+            Target date: {target}
+          </div>
+
+          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button className="btn ghost sm" onClick={() => onSnoozeGoal?.(goal.id)}>
+              Keep goal
+            </button>
+            <input
+              type="date"
+              className="input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              style={{ width: 140, flex: "none" }}
+            />
+            <button
+              className="btn ghost sm"
+              onClick={() => draft && onReviseGoalDate?.(goal.id, draft)}
+            >
+              Revise target date
+            </button>
+            {canArchive && (
+              <button
+                className="btn ghost sm"
+                onClick={() => onArchiveGoal?.(goal.id)}
+                style={{ color: "oklch(0.55 0.16 20)" }}
+              >
+                Archive goal
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -279,6 +345,8 @@ export default function GoalTab({
   removeHabit,
   addReflection,
   removeReflection,
+  onSnoozeGoal,
+  onReviseGoalDate,
   confirmBeforeDelete = true,
 }) {
   const [editing, setEditing] = useState(false);
@@ -371,6 +439,14 @@ export default function GoalTab({
           </p>
         </div>
       </div>
+
+      <OverdueGoalBanner
+        goal={goal}
+        onSnoozeGoal={onSnoozeGoal}
+        onReviseGoalDate={onReviseGoalDate}
+        onArchiveGoal={onArchiveGoal}
+        canArchive={!builtIn}
+      />
 
       <GoalDetails key={goal.id} goal={goal} />
 

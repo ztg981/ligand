@@ -64,6 +64,13 @@ export default function App() {
             countUps={store.countUps}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
+            onSnoozeGoal={store.snoozeGoalReview}
+            onReviseGoalDate={store.reviseGoalTargetDate}
+            onArchiveGoal={handleArchiveGoal}
+            onOpenGoal={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
             userName={settings.profile.name}
             showEncouragement={settings.assistant.encouragement}
           />
@@ -88,6 +95,8 @@ export default function App() {
             removeHabit={store.removeHabit}
             addReflection={store.addReflection}
             removeReflection={store.removeReflection}
+            onSnoozeGoal={store.snoozeGoalReview}
+            onReviseGoalDate={store.reviseGoalTargetDate}
             confirmBeforeDelete={confirmBeforeDelete}
           />
         );
