@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import { TASK_TERMS } from "../lib/model.js";
 
 /* ============================================================
    Tasks tab
@@ -26,6 +27,15 @@ function LabelChip({ task, goals }) {
   return <span className={cls}>{task.label}</span>;
 }
 
+function taskTerm(task) {
+  return task.term || task.taskScope || TASK_TERMS.SHORT;
+}
+
+function TermChip({ term }) {
+  const long = term === TASK_TERMS.LONG || term === "long";
+  return <span className={long ? "chip lav" : "chip mint"}>{long ? "Long-term" : "Short-term"}</span>;
+}
+
 export default function Tasks({
   tasks,
   goals,
@@ -38,6 +48,7 @@ export default function Tasks({
   // --- add bar state ---
   const [text, setText] = useState("");
   const [pick, setPick] = useState("label:General"); // encodes label or goal
+  const [term, setTerm] = useState(TASK_TERMS.SHORT);
 
   // --- filter state ---
   const [status, setStatus] = useState("active"); // all | active | done
@@ -53,9 +64,9 @@ export default function Tasks({
     if (pick.startsWith("goal:")) {
       const id = pick.slice(5);
       const goal = goals.find((g) => g.id === id);
-      addTask({ text: t, label: goal ? goal.name : "General", goalId: id });
+      addTask({ text: t, label: goal ? goal.name : "General", goalId: id, term });
     } else {
-      addTask({ text: t, label: pick.slice(6) });
+      addTask({ text: t, label: pick.slice(6), term });
     }
     setText("");
   };
@@ -139,6 +150,20 @@ export default function Tasks({
               </optgroup>
             )}
           </select>
+          <div className="seg" style={{ flex: "none" }}>
+            <button
+              className={term === TASK_TERMS.SHORT ? "active" : ""}
+              onClick={() => setTerm(TASK_TERMS.SHORT)}
+            >
+              Short
+            </button>
+            <button
+              className={term === TASK_TERMS.LONG ? "active" : ""}
+              onClick={() => setTerm(TASK_TERMS.LONG)}
+            >
+              Long
+            </button>
+          </div>
           <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
             <Icon.Plus />
             Add
@@ -237,7 +262,10 @@ export default function Tasks({
                 </span>
               )}
 
-              <LabelChip task={task} goals={goals} />
+              <span className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <LabelChip task={task} goals={goals} />
+                <TermChip term={taskTerm(task)} />
+              </span>
 
               <button
                 onClick={() => startEdit(task)}
