@@ -3,6 +3,7 @@ import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
+import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -53,10 +54,12 @@ export default function App() {
     switch (tab) {
       case "home":
         return (
-          <Placeholder
-            eyebrow="Dashboard · Sun · May 10"
-            title="Good afternoon, Maya."
-            sub="Small steps still count. Pick one thing — momentum follows."
+          <Home
+            goals={store.goals}
+            tasks={store.tasks}
+            countUps={store.countUps}
+            toggleTask={store.toggleTask}
+            onGoToTasks={() => setTab("tasks")}
           />
         );
       case "productivity":
