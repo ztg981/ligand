@@ -17,7 +17,13 @@ function last7() {
   return Array.from({ length: 7 }, (_, i) => shiftDay(today, -(6 - i)));
 }
 
-export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit }) {
+export default function HabitChecker({
+  goal,
+  addHabit,
+  checkInHabit,
+  removeHabit,
+  confirmBeforeDelete = true,
+}) {
   const [name, setName] = useState("");
   const days = useMemo(() => last7(), []);
   const today = todayKey();
@@ -91,6 +97,7 @@ export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit
                       className="iconbtn sm"
                       title="Remove habit"
                       onConfirm={() => removeHabit(goal.id, h.id)}
+                      requireConfirmation={confirmBeforeDelete}
                       style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                       icon={<Icon.Trash width={12} height={12} />}
                     />

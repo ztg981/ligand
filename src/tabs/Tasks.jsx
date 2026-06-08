@@ -26,7 +26,15 @@ function LabelChip({ task, goals }) {
   return <span className={cls}>{task.label}</span>;
 }
 
-export default function Tasks({ tasks, goals, addTask, updateTask, toggleTask, removeTask }) {
+export default function Tasks({
+  tasks,
+  goals,
+  addTask,
+  updateTask,
+  toggleTask,
+  removeTask,
+  confirmBeforeDelete = true,
+}) {
   // --- add bar state ---
   const [text, setText] = useState("");
   const [pick, setPick] = useState("label:General"); // encodes label or goal
@@ -241,6 +249,7 @@ export default function Tasks({ tasks, goals, addTask, updateTask, toggleTask, r
 
               <ConfirmButton
                 onConfirm={() => removeTask(task.id)}
+                requireConfirmation={confirmBeforeDelete}
                 title="Delete"
                 className=""
                 style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}

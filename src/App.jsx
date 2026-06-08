@@ -20,6 +20,7 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
+  const confirmBeforeDelete = settings.behavior.confirmBeforeDelete;
 
   // Archived goals are tucked away in a recycle bin (Settings) and hidden from
   // the nav, pickers and dashboards until restored or permanently deleted.
@@ -41,6 +42,12 @@ export default function App() {
   const handleArchiveGoal = (id) => {
     const goal = goals.find((g) => g.id === id);
     if (!goal || goal.type === "built-in") return;
+    if (
+      confirmBeforeDelete &&
+      !window.confirm(`Archive "${goal.name}"? You can restore it from Settings.`)
+    ) {
+      return;
+    }
     store.archiveGoal(id);
     // If we were viewing it, step back to a safe screen.
     if (activeGoal === id) setActiveGoal("productivity");
@@ -77,6 +84,7 @@ export default function App() {
             removeHabit={store.removeHabit}
             addReflection={store.addReflection}
             removeReflection={store.removeReflection}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       }
@@ -89,6 +97,7 @@ export default function App() {
             updateTask={store.updateTask}
             toggleTask={store.toggleTask}
             removeTask={store.removeTask}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       case "pomodoro":
@@ -99,6 +108,7 @@ export default function App() {
             journal={store.journal}
             addJournalEntry={store.addJournalEntry}
             removeJournalEntry={store.removeJournalEntry}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       case "settings":
@@ -113,6 +123,7 @@ export default function App() {
             archivedGoals={archivedGoals}
             restoreGoal={store.restoreGoal}
             removeGoal={store.removeGoal}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       default:

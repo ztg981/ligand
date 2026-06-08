@@ -8,6 +8,7 @@ export default function ConfirmButton({
   onConfirm,
   icon,
   title,
+  requireConfirmation = true,
   confirmLabel = "Sure?",
   className = "iconbtn",
   style,
@@ -25,6 +26,10 @@ export default function ConfirmButton({
   };
   const arm = (e) => {
     e.stopPropagation();
+    if (!requireConfirmation) {
+      onConfirm();
+      return;
+    }
     setArmed(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setArmed(false), timeout);

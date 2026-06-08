@@ -22,6 +22,7 @@ export default function GoalTab({
   removeHabit,
   addReflection,
   removeReflection,
+  confirmBeforeDelete = true,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -122,6 +123,7 @@ export default function GoalTab({
             addHabit={addHabit}
             checkInHabit={checkInHabit}
             removeHabit={removeHabit}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
           <GoalProgress goal={goal} tasks={tasks} />
         </div>
@@ -133,6 +135,7 @@ export default function GoalTab({
             goal={goal}
             addReflection={addReflection}
             removeReflection={removeReflection}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         </div>
       </div>

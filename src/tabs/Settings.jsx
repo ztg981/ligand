@@ -58,6 +58,7 @@ export default function Settings({
   archivedGoals = [],
   restoreGoal,
   removeGoal,
+  confirmBeforeDelete = true,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -338,6 +339,7 @@ export default function Settings({
                       title="Delete permanently"
                       confirmLabel="Delete?"
                       onConfirm={() => removeGoal(g.id)}
+                      requireConfirmation={confirmBeforeDelete}
                       style={{ color: "oklch(0.55 0.16 20)" }}
                       icon={<Icon.Trash width={13} height={13} />}
                     />

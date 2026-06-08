@@ -12,7 +12,12 @@ function whenLabel(iso) {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export default function Reflections({ goal, addReflection, removeReflection }) {
+export default function Reflections({
+  goal,
+  addReflection,
+  removeReflection,
+  confirmBeforeDelete = true,
+}) {
   const prompt = useMemo(() => reflectionPrompt(), []);
   const [text, setText] = useState("");
   const reflections = goal.reflections || [];
@@ -97,6 +102,7 @@ export default function Reflections({ goal, addReflection, removeReflection }) {
                       className="iconbtn"
                       title="Delete reflection"
                       onConfirm={() => removeReflection(goal.id, r.id)}
+                      requireConfirmation={confirmBeforeDelete}
                       style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                       icon={<Icon.Trash width={12} height={12} />}
                     />
