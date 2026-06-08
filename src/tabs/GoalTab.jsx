@@ -47,7 +47,7 @@ function GoalDetails({ goal }) {
               : "No SMART details yet. Older goals still work normally."}
           </div>
         </div>
-        <button className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
+        <button type="button" className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
           {open ? "Hide" : "Show"}
         </button>
       </div>
@@ -103,7 +103,7 @@ function OverdueGoalBanner({
           </div>
 
           <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-            <button className="btn ghost sm" onClick={() => onSnoozeGoal?.(goal.id)}>
+            <button type="button" className="btn ghost sm" onClick={() => onSnoozeGoal?.(goal.id)}>
               Keep goal
             </button>
             <input
@@ -114,6 +114,7 @@ function OverdueGoalBanner({
               style={{ width: 140, flex: "none" }}
             />
             <button
+              type="button"
               className="btn ghost sm"
               onClick={() => draft && onReviseGoalDate?.(goal.id, draft)}
             >
@@ -121,6 +122,7 @@ function OverdueGoalBanner({
             </button>
             {canArchive && (
               <button
+                type="button"
                 className="btn ghost sm"
                 onClick={() => onArchiveGoal?.(goal.id)}
                 style={{ color: "oklch(0.55 0.16 20)" }}
@@ -652,53 +654,6 @@ function normalizeWidgetOrders(widgets) {
   return widgets.map((widget, index) => ({ ...widget, order: (index + 1) * 10 }));
 }
 
-const WIDGET_SIZES = ["small", "medium", "large"];
-const WIDGET_COLS = { small: "col-4", medium: "col-6", large: "col-12" };
-const WIDGET_TYPES = [
-  {
-    type: "habits",
-    title: "Habit checker",
-    sub: "Track forgiving habits for this goal.",
-    icon: <Icon.Check />,
-  },
-  {
-    type: "tasks",
-    title: "Task list",
-    sub: "Add and manage goal-linked tasks.",
-    icon: <Icon.Pin />,
-  },
-  {
-    type: "progress",
-    title: "Progress tracker",
-    sub: "See task progress and weekly check-ins.",
-    icon: <Icon.Target />,
-  },
-  {
-    type: "countup",
-    title: "What I'm proud of",
-    sub: "A gentle count-up streak card.",
-    icon: <Icon.Flame />,
-  },
-  {
-    type: "reflections",
-    title: "Journal/reflection",
-    sub: "Save notes and gentle reflections.",
-    icon: <Icon.Book />,
-  },
-  {
-    type: "encouragement",
-    title: "Encouraging message",
-    sub: "A small supportive nudge.",
-    icon: <Icon.Spark />,
-  },
-  {
-    type: "pomodoro",
-    title: "Pomodoro quick-start",
-    sub: "Jump to the focus timer.",
-    icon: <Icon.Timer />,
-  },
-];
-
 function widgetId() {
   return `widget_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -772,6 +727,7 @@ function GoalTasks({
         {visible.map((task) => (
           <div key={task.id} className={"taskrow" + (task.done ? " done" : "")}>
             <button
+              type="button"
               className="checkbox"
               onClick={() => toggleTask(task.id)}
               title={task.done ? "Mark not done" : "Mark done"}
@@ -808,6 +764,7 @@ function GoalTasks({
             <TermChip term={taskTerm(task)} />
 
             <button
+              type="button"
               onClick={() => startEdit(task)}
               title="Edit"
               style={{
@@ -870,19 +827,21 @@ function GoalTasks({
         />
         <div className="seg" style={{ flex: "none" }}>
           <button
+            type="button"
             className={term === TASK_TERMS.SHORT ? "active" : ""}
             onClick={() => setTerm(TASK_TERMS.SHORT)}
           >
             Short
           </button>
           <button
+            type="button"
             className={term === TASK_TERMS.LONG ? "active" : ""}
             onClick={() => setTerm(TASK_TERMS.LONG)}
           >
             Long
           </button>
         </div>
-        <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
+        <button type="button" className="btn primary" onClick={submit} style={{ flex: "none" }}>
           <Icon.Plus /> Add
         </button>
       </div>
@@ -1011,19 +970,31 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
               <div className="grid grid-12">
                 {group.types.map((type) => {
                   const item = WIDGET_REGISTRY[type];
+                  const visibleWidget = widgets.find((widget) => widget.type === type && !widget.hidden);
+                  const hiddenWidget = widgets.find((widget) => widget.type === type && widget.hidden);
+                  const disabled = Boolean(visibleWidget);
                   return (
                     <button
                       type="button"
                       key={type}
                       className="widget-picker-card card hover col-6"
-                      onClick={() => onAdd(type)}
-                      style={{ textAlign: "left", cursor: "pointer" }}
+                      onClick={() => (hiddenWidget ? onRestore(hiddenWidget.id) : !disabled && onAdd(type))}
+                      disabled={disabled}
+                      style={{
+                        textAlign: "left",
+                        cursor: disabled ? "default" : "pointer",
+                        opacity: disabled ? 0.55 : 1,
+                      }}
                     >
                       <div className="card-title">
                         {item.icon} {item.title}
                       </div>
                       <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5, lineHeight: 1.45 }}>
-                        {item.sub}
+                        {disabled
+                          ? "Already visible in this layout."
+                          : hiddenWidget
+                          ? "Hidden right now. Click to restore it."
+                          : item.sub}
                       </div>
                       <div className="chip" style={{ marginTop: 10 }}>
                         {WIDGET_SIZE_LABELS[item.defaultSize] || item.defaultSize}
@@ -1079,7 +1050,7 @@ function PomodoroQuickStart({ onGoToPomodoro }) {
       <div style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.45, marginBottom: 10 }}>
         Ready for a focus block? Open the timer and do one gentle round.
       </div>
-      <button className="btn primary" onClick={onGoToPomodoro}>
+      <button type="button" className="btn primary" onClick={onGoToPomodoro}>
         <Icon.Play /> Open timer
       </button>
     </div>
@@ -1108,7 +1079,7 @@ function NextTinyStepWidget({ goal, tasks, toggleTask, widgetSize }) {
               <TermChip term={taskTerm(nextTask)} />
             </div>
           )}
-          <button className="btn primary" onClick={() => toggleTask(nextTask.id)} style={{ marginTop: 12 }}>
+          <button type="button" className="btn primary" onClick={() => toggleTask(nextTask.id)} style={{ marginTop: 12 }}>
             <Icon.Check /> Done
           </button>
         </>
@@ -1695,186 +1666,6 @@ function GoalWidgetGrid({
   );
 }
 
-function GoalWidgets({
-  goal,
-  tasks,
-  countUps,
-  updateGoal,
-  addTask,
-  updateTask,
-  toggleTask,
-  removeTask,
-  addHabit,
-  checkInHabit,
-  removeHabit,
-  addReflection,
-  removeReflection,
-  confirmBeforeDelete,
-  onGoToPomodoro,
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const widgets = Array.isArray(goal.widgetLayout)
-    ? goal.widgetLayout.filter((w) => WIDGET_TYPES.some((item) => item.type === w.type))
-    : [];
-
-  const saveWidgets = (next) => updateGoal(goal.id, { widgetLayout: next });
-  const addWidget = (type) => {
-    saveWidgets([...widgets, { id: widgetId(), type, size: "medium" }]);
-    setPickerOpen(false);
-  };
-  const removeWidget = (id) => saveWidgets(widgets.filter((w) => w.id !== id));
-  const moveWidget = (index, delta) => {
-    const nextIndex = index + delta;
-    if (nextIndex < 0 || nextIndex >= widgets.length) return;
-    const next = [...widgets];
-    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    saveWidgets(next);
-  };
-  const resizeWidget = (id) =>
-    saveWidgets(
-      widgets.map((w) => {
-        if (w.id !== id) return w;
-        const current = WIDGET_SIZES.includes(w.size) ? w.size : "medium";
-        const size = WIDGET_SIZES[(WIDGET_SIZES.indexOf(current) + 1) % WIDGET_SIZES.length];
-        return { ...w, size };
-      })
-    );
-
-  const renderWidget = (widget) => {
-    switch (widget.type) {
-      case "habits":
-        return (
-          <HabitChecker
-            goal={goal}
-            addHabit={addHabit}
-            checkInHabit={checkInHabit}
-            removeHabit={removeHabit}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-        );
-      case "tasks":
-        return (
-          <GoalTasks
-            goal={goal}
-            tasks={tasks}
-            addTask={addTask}
-            updateTask={updateTask}
-            toggleTask={toggleTask}
-            removeTask={removeTask}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-        );
-      case "progress":
-        return <GoalProgress goal={goal} tasks={tasks} />;
-      case "countup":
-        return <CountUp countUp={countUps && countUps[0]} />;
-      case "reflections":
-        return (
-          <Reflections
-            goal={goal}
-            addReflection={addReflection}
-            removeReflection={removeReflection}
-            confirmBeforeDelete={confirmBeforeDelete}
-          />
-        );
-      case "encouragement":
-        return <EncouragingWidget goal={goal} tasks={tasks} />;
-      case "pomodoro":
-        return <PomodoroQuickStart onGoToPomodoro={onGoToPomodoro} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div className="row between" style={{ marginBottom: 10, gap: 12, alignItems: "flex-end" }}>
-        <div>
-          <div className="eyebrow">Custom widgets</div>
-          <h2 className="page-title" style={{ fontSize: 18 }}>
-            Add what helps
-          </h2>
-        </div>
-        <button className="btn primary" onClick={() => setPickerOpen(true)}>
-          <Icon.Plus /> Add widget
-        </button>
-      </div>
-
-      {widgets.length === 0 ? (
-        <div className="card" style={{ color: "var(--ink-3)" }}>
-          Add optional widgets here without changing the main layout above.
-        </div>
-      ) : (
-        <div className="grid grid-12">
-          {widgets.map((widget, index) => {
-            const size = WIDGET_SIZES.includes(widget.size) ? widget.size : "medium";
-            return (
-              <div
-                key={widget.id}
-                className={WIDGET_COLS[size]}
-                style={{ minWidth: 0 }}
-              >
-                <div
-                  className="row between"
-                  style={{
-                    gap: 8,
-                    marginBottom: 5,
-                    padding: "0 4px",
-                    color: "var(--ink-3)",
-                  }}
-                >
-                  <span className="tag">
-                    {(WIDGET_TYPES.find((item) => item.type === widget.type)?.title || "Widget")} · {size}
-                  </span>
-                  <span className="row" style={{ gap: 4, flex: "none" }}>
-                    <button
-                      className="btn ghost sm"
-                      onClick={() => moveWidget(index, -1)}
-                      disabled={index === 0}
-                      style={{ opacity: index === 0 ? 0.45 : 1 }}
-                    >
-                      Up
-                    </button>
-                    <button
-                      className="btn ghost sm"
-                      onClick={() => moveWidget(index, 1)}
-                      disabled={index === widgets.length - 1}
-                      style={{ opacity: index === widgets.length - 1 ? 0.45 : 1 }}
-                    >
-                      Down
-                    </button>
-                    <button className="btn ghost sm" onClick={() => resizeWidget(widget.id)}>
-                      Size
-                    </button>
-                    <ConfirmButton
-                      className="btn ghost sm"
-                      confirmLabel="Remove?"
-                      title="Remove widget"
-                      onConfirm={() => removeWidget(widget.id)}
-                      requireConfirmation={confirmBeforeDelete}
-                      style={{ color: "oklch(0.55 0.16 20)" }}
-                      icon={<Icon.Trash width={13} height={13} />}
-                    />
-                  </span>
-                </div>
-                {renderWidget(widget)}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {pickerOpen && (
-        <WidgetPicker
-          existingTypes={widgets.map((w) => w.type)}
-          onAdd={addWidget}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
-
 /* GoalTab — the preset layout shown for any goal.
    The built-in "Productivity" goal uses the very same layout; it just
    can't be deleted or renamed. Composition (left = do/track, right =
@@ -1963,6 +1754,7 @@ export default function GoalTab({
               {!builtIn && (
                 <span className="row" style={{ gap: 2 }}>
                   <button
+                    type="button"
                     className="iconbtn"
                     title="Rename goal"
                     onClick={startRename}
@@ -1971,6 +1763,7 @@ export default function GoalTab({
                     <Icon.Edit />
                   </button>
                   <button
+                    type="button"
                     className="iconbtn"
                     title="Archive goal"
                     onClick={() => onArchiveGoal(goal.id)}

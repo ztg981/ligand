@@ -57,7 +57,7 @@ export default function HabitChecker({
           onKeyDown={(e) => e.key === "Enter" && submit()}
           style={{ flex: 1 }}
         />
-        <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
+        <button type="button" className="btn primary" onClick={submit} style={{ flex: "none" }}>
           <Icon.Plus /> Add
         </button>
       </div>
@@ -113,6 +113,7 @@ export default function HabitChecker({
                   const isToday = d === today;
                   return (
                     <button
+                      type="button"
                       key={d}
                       className={[
                         "habit-cell",

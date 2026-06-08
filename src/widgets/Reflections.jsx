@@ -96,6 +96,7 @@ export default function Reflections({
           Saved privately on this device.
         </span>
         <button
+          type="button"
           className="btn primary"
           onClick={save}
           disabled={!text.trim()}
