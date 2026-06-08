@@ -80,29 +80,32 @@ export default function TopNav({
         <span>Ligand</span>
       </div>
 
-      {/* Main app tabs */}
-      <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
+      {/* Scrollable middle: main app tabs + goal tabs. This region can shrink
+         and scroll horizontally on narrow screens, so the brand (left) and the
+         tools group (right, with the avatar) are never pushed off-screen. */}
+      <div className="topbar-scroll">
+        {/* Main app tabs */}
+        <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
 
-      {/* Divider between app tabs and goal tabs */}
-      <div className="tab-sep" />
+        {/* Divider between app tabs and goal tabs */}
+        <div className="tab-sep" />
 
-      {/* Goal tabs — active only when we're on the "goal" screen */}
-      <Tabset
-        variant="goals"
-        items={goalItems}
-        activeId={tab === "goal" ? activeGoal : null}
-        onSelect={(id) => {
-          setActiveGoal(id);
-          setTab("goal");
-        }}
-        trailing={
-          <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
-            <Icon.Plus />
-          </button>
-        }
-      />
-
-      <div className="topbar-spacer" />
+        {/* Goal tabs — active only when we're on the "goal" screen */}
+        <Tabset
+          variant="goals"
+          items={goalItems}
+          activeId={tab === "goal" ? activeGoal : null}
+          onSelect={(id) => {
+            setActiveGoal(id);
+            setTab("goal");
+          }}
+          trailing={
+            <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
+              <Icon.Plus />
+            </button>
+          }
+        />
+      </div>
 
       <div className="topbar-tools">
         <button className="iconbtn" title="Search">

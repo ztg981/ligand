@@ -173,6 +173,7 @@ button { font: inherit; color: inherit; }
   font-weight: 600;
   letter-spacing: -0.01em;
   font-size: 14px;
+  flex-shrink: 0;
 }
 .brand-dot {
   width: 18px; height: 18px;
@@ -258,8 +259,24 @@ button { font: inherit; color: inherit; }
   margin: 0 6px;
 }
 
+/* Scrollable middle region: takes the leftover space (pushing tools to the
+   right), but can shrink and scroll horizontally on narrow screens instead of
+   pushing the tools group off-screen. */
+.topbar-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none; /* Firefox */
+}
+.topbar-scroll::-webkit-scrollbar { display: none; } /* WebKit */
+.topbar-scroll > * { flex-shrink: 0; } /* keep tab labels intact; scroll instead */
+
 .topbar-spacer { flex: 1; }
-.topbar-tools { display: flex; align-items: center; gap: 8px; }
+.topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .iconbtn {
   width: 30px; height: 30px;
