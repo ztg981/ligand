@@ -1057,6 +1057,21 @@ function GoalWidgetGrid({
   };
   const visibleWidgets = layout.widgets.filter((widget) => widgetIsVisible(widget, context));
   const hiddenWidgets = layout.widgets.filter((widget) => widget.hidden && WIDGET_REGISTRY[widget.type]);
+  const moveWidget = (id, delta) => {
+    const ordered = normalizeWidgetOrders(layout.widgets);
+    const orderedVisible = ordered.filter((widget) => widgetIsVisible(widget, context));
+    const visibleIndex = orderedVisible.findIndex((widget) => widget.id === id);
+    const targetVisible = orderedVisible[visibleIndex + delta];
+    if (visibleIndex < 0 || !targetVisible) return;
+
+    const currentIndex = ordered.findIndex((widget) => widget.id === id);
+    const targetIndex = ordered.findIndex((widget) => widget.id === targetVisible.id);
+    if (currentIndex < 0 || targetIndex < 0) return;
+
+    const next = [...ordered];
+    [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
+    saveWidgets(next);
+  };
 
   return (
     <>
@@ -1092,6 +1107,7 @@ function GoalWidgetGrid({
             onResize={resizeWidget}
             onHide={hideWidget}
             onRemove={removeWidget}
+            onMove={moveWidget}
           />
         ))}
       </div>

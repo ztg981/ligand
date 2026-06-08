@@ -423,10 +423,22 @@ button { font: inherit; color: inherit; }
 }
 .goal-widget-shell.is-editing {
   transform: translateY(-1px);
+  animation: widgetEditFloat 3.4s var(--ease) infinite;
+}
+.goal-widget-grid.is-editing .goal-widget-shell:nth-child(2n) {
+  animation-delay: -1.4s;
+}
+.goal-widget-grid.is-editing .goal-widget-shell:nth-child(3n) {
+  animation-delay: -2.1s;
 }
 .goal-widget-shell.is-editing > .card {
   box-shadow: var(--shadow-pop);
   outline: 1px solid var(--line-strong);
+}
+@keyframes widgetEditFloat {
+  0%, 100% { transform: translateY(-1px) rotate(0deg); }
+  35% { transform: translateY(-2px) rotate(0.16deg); }
+  70% { transform: translateY(-1px) rotate(-0.12deg); }
 }
 .goal-widget-shell > .card {
   height: 100%;
