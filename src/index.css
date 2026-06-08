@@ -417,6 +417,19 @@ button { font: inherit; color: inherit; }
   gap: 12px;
   margin: 0 0 12px;
 }
+.goal-layout-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -2px 0 12px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  box-shadow: var(--shadow-card);
+}
 .goal-widget-shell {
   min-width: 0;
   transition: transform 0.2s var(--ease), filter 0.2s var(--ease);

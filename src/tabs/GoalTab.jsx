@@ -248,6 +248,129 @@ const PRESET_WIDGETS = [
   },
 ];
 
+const LAYOUT_PRESETS = [
+  {
+    key: "default",
+    label: "Default",
+    order: [
+      "overdueReview",
+      "goalDetails",
+      "habits",
+      "progress",
+      "goalTasks",
+      "countUp",
+      "reflections",
+      "encouragement",
+      "pomodoroQuickStart",
+    ],
+    sizes: {},
+    hidden: {},
+  },
+  {
+    key: "focus",
+    label: "Focus",
+    order: [
+      "overdueReview",
+      "goalTasks",
+      "progress",
+      "habits",
+      "pomodoroQuickStart",
+      "encouragement",
+      "goalDetails",
+      "countUp",
+      "reflections",
+    ],
+    sizes: {
+      goalTasks: "large",
+      progress: "medium",
+      habits: "medium",
+      pomodoroQuickStart: "compact",
+      encouragement: "compact",
+      goalDetails: "compact",
+    },
+    hidden: { countUp: true, reflections: true },
+  },
+  {
+    key: "journal",
+    label: "Journal",
+    order: [
+      "overdueReview",
+      "goalDetails",
+      "reflections",
+      "countUp",
+      "encouragement",
+      "habits",
+      "progress",
+      "goalTasks",
+      "pomodoroQuickStart",
+    ],
+    sizes: {
+      goalDetails: "wide",
+      reflections: "large",
+      countUp: "medium",
+      encouragement: "medium",
+      habits: "medium",
+      progress: "compact",
+      goalTasks: "medium",
+    },
+    hidden: { pomodoroQuickStart: true },
+  },
+  {
+    key: "minimal",
+    label: "Minimal",
+    order: [
+      "overdueReview",
+      "goalDetails",
+      "progress",
+      "goalTasks",
+      "habits",
+      "countUp",
+      "reflections",
+      "encouragement",
+      "pomodoroQuickStart",
+    ],
+    sizes: {
+      goalDetails: "compact",
+      progress: "compact",
+      goalTasks: "medium",
+    },
+    hidden: {
+      habits: true,
+      countUp: true,
+      reflections: true,
+      encouragement: true,
+      pomodoroQuickStart: true,
+    },
+  },
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    order: [
+      "overdueReview",
+      "goalDetails",
+      "progress",
+      "countUp",
+      "habits",
+      "goalTasks",
+      "reflections",
+      "encouragement",
+      "pomodoroQuickStart",
+    ],
+    sizes: {
+      overdueReview: "large",
+      goalDetails: "wide",
+      progress: "medium",
+      countUp: "compact",
+      habits: "medium",
+      goalTasks: "wide",
+      reflections: "medium",
+      encouragement: "medium",
+      pomodoroQuickStart: "medium",
+    },
+    hidden: {},
+  },
+];
+
 const WIDGET_REGISTRY = {
   overdueReview: {
     type: "overdueReview",
@@ -1359,6 +1482,42 @@ function GoalWidgetGrid({
   const removeWidget = (id) => {
     saveWidgets(layout.widgets.filter((widget) => widget.id !== id || widget.locked || widget.source !== "user"));
   };
+  const resetLayout = () => saveWidgets(defaultWidgetLayout());
+  const restoreDefaultWidgets = () => {
+    const presetIds = new Set(PRESET_WIDGETS.map((widget) => widget.id));
+    saveWidgets(
+      layout.widgets.map((widget) =>
+        presetIds.has(widget.id) || widget.source === "preset" ? { ...widget, hidden: false } : widget
+      )
+    );
+  };
+  const applyLayoutPreset = (presetKey) => {
+    const preset = LAYOUT_PRESETS.find((item) => item.key === presetKey);
+    if (!preset) return;
+
+    const userWidgets = layout.widgets.filter((widget) => widget.source === "user");
+    const defaultWidgets = defaultWidgetLayout();
+    const orderedPresetWidgets = preset.order
+      .map((type, index) => {
+        const existing =
+          layout.widgets.find((widget) => widget.type === type && widget.source !== "user") ||
+          defaultWidgets.find((widget) => widget.type === type);
+        if (!existing) return null;
+        return {
+          ...existing,
+          size: normalizeWidgetSize(preset.sizes[type] || existing.size, type),
+          hidden: Boolean(preset.hidden[type]),
+          order: (index + 1) * 10,
+        };
+      })
+      .filter(Boolean);
+    const presetIds = new Set(orderedPresetWidgets.map((widget) => widget.id));
+    const remainingPresetWidgets = layout.widgets
+      .filter((widget) => widget.source !== "user" && !presetIds.has(widget.id))
+      .map((widget) => ({ ...widget, hidden: Boolean(preset.hidden[widget.type]) }));
+
+    saveWidgets([...orderedPresetWidgets, ...remainingPresetWidgets, ...userWidgets]);
+  };
 
   const context = {
     goal,
@@ -1450,6 +1609,41 @@ function GoalWidgetGrid({
           </button>
         </div>
       </div>
+
+      {editing && (
+        <div className="goal-layout-tools">
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            <ConfirmButton
+              className="btn ghost sm"
+              confirmLabel="Reset?"
+              title="Reset this goal layout"
+              onConfirm={resetLayout}
+              requireConfirmation={confirmBeforeDelete}
+              icon={
+                <>
+                  <Icon.Reset width={13} height={13} /> Reset default
+                </>
+              }
+            />
+            <button type="button" className="btn ghost sm" onClick={restoreDefaultWidgets}>
+              <Icon.Plus /> Restore defaults
+            </button>
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            <span className="tag">Preset</span>
+            {LAYOUT_PRESETS.map((preset) => (
+              <button
+                type="button"
+                key={preset.key}
+                className="btn ghost sm"
+                onClick={() => applyLayoutPreset(preset.key)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className={`goal-widget-grid${editing ? " is-editing" : ""}`}>
         {visibleWidgets.map((widget, index) => (
