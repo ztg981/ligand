@@ -137,6 +137,318 @@ function TermChip({ term }) {
   return <span className={long ? "chip lav" : "chip mint"}>{long ? "Long-term" : "Short-term"}</span>;
 }
 
+const WIDGET_LAYOUT_VERSION = 2;
+const WIDGET_SIZE_VARIANTS = ["compact", "medium", "wide", "tall", "large"];
+const LEGACY_WIDGET_SIZE_MAP = { small: "compact", medium: "medium", large: "wide" };
+const LEGACY_WIDGET_TYPE_MAP = {
+  habits: "habits",
+  tasks: "goalTasks",
+  progress: "progress",
+  countup: "countUp",
+  reflections: "reflections",
+  encouragement: "encouragement",
+  pomodoro: "pomodoroQuickStart",
+};
+
+const PRESET_WIDGETS = [
+  {
+    id: "core-overdue-review",
+    type: "overdueReview",
+    size: "wide",
+    order: 0,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-goal-details",
+    type: "goalDetails",
+    size: "wide",
+    order: 10,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-habits",
+    type: "habits",
+    size: "medium",
+    order: 20,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-progress",
+    type: "progress",
+    size: "medium",
+    order: 30,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-goal-tasks",
+    type: "goalTasks",
+    size: "wide",
+    order: 40,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-count-up",
+    type: "countUp",
+    size: "compact",
+    order: 50,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-reflections",
+    type: "reflections",
+    size: "medium",
+    order: 60,
+    hidden: false,
+    locked: true,
+    source: "preset",
+  },
+  {
+    id: "core-encouragement",
+    type: "encouragement",
+    size: "medium",
+    order: 70,
+    hidden: false,
+    locked: false,
+    source: "preset",
+  },
+  {
+    id: "core-pomodoro",
+    type: "pomodoroQuickStart",
+    size: "medium",
+    order: 80,
+    hidden: false,
+    locked: false,
+    source: "preset",
+  },
+];
+
+const WIDGET_REGISTRY = {
+  overdueReview: {
+    type: "overdueReview",
+    title: "Goals to review",
+    sub: "Keep, revise, or archive an overdue goal.",
+    icon: <Icon.Heart />,
+    defaultSize: "wide",
+    allowedSizes: ["wide", "large"],
+    preset: true,
+    locked: true,
+    condition: ({ goal }) => isGoalOverdue(goal),
+    render: ({ goal, onSnoozeGoal, onReviseGoalDate, onArchiveGoal, builtIn }) => (
+      <OverdueGoalBanner
+        goal={goal}
+        onSnoozeGoal={onSnoozeGoal}
+        onReviseGoalDate={onReviseGoalDate}
+        onArchiveGoal={onArchiveGoal}
+        canArchive={!builtIn}
+      />
+    ),
+  },
+  goalDetails: {
+    type: "goalDetails",
+    title: "Goal details",
+    sub: "Review the SMART notes for this goal.",
+    icon: <Icon.Target />,
+    defaultSize: "wide",
+    allowedSizes: ["medium", "wide", "large"],
+    preset: true,
+    locked: true,
+    render: ({ goal }) => <GoalDetails key={goal.id} goal={goal} />,
+  },
+  habits: {
+    type: "habits",
+    title: "Habit checker",
+    sub: "Track forgiving habits for this goal.",
+    icon: <Icon.Check />,
+    defaultSize: "medium",
+    allowedSizes: ["medium", "wide", "tall", "large"],
+    preset: true,
+    locked: true,
+    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete }) => (
+      <HabitChecker
+        goal={goal}
+        addHabit={addHabit}
+        checkInHabit={checkInHabit}
+        removeHabit={removeHabit}
+        confirmBeforeDelete={confirmBeforeDelete}
+      />
+    ),
+  },
+  goalTasks: {
+    type: "goalTasks",
+    title: "Goal tasks",
+    sub: "Add and manage goal-linked tasks.",
+    icon: <Icon.Pin />,
+    defaultSize: "wide",
+    allowedSizes: ["medium", "wide", "tall", "large"],
+    preset: true,
+    locked: true,
+    render: ({ goal, tasks, addTask, updateTask, toggleTask, removeTask, confirmBeforeDelete }) => (
+      <GoalTasks
+        goal={goal}
+        tasks={tasks}
+        addTask={addTask}
+        updateTask={updateTask}
+        toggleTask={toggleTask}
+        removeTask={removeTask}
+        confirmBeforeDelete={confirmBeforeDelete}
+      />
+    ),
+  },
+  progress: {
+    type: "progress",
+    title: "Progress tracker",
+    sub: "See task progress and weekly check-ins.",
+    icon: <Icon.Target />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: true,
+    locked: true,
+    render: ({ goal, tasks }) => <GoalProgress goal={goal} tasks={tasks} />,
+  },
+  countUp: {
+    type: "countUp",
+    title: "What I'm proud of",
+    sub: "A gentle count-up streak card.",
+    icon: <Icon.Flame />,
+    defaultSize: "compact",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: true,
+    locked: true,
+    render: ({ countUps }) => <CountUp countUp={countUps && countUps[0]} />,
+  },
+  reflections: {
+    type: "reflections",
+    title: "Journal/reflection",
+    sub: "Save notes and gentle reflections.",
+    icon: <Icon.Book />,
+    defaultSize: "medium",
+    allowedSizes: ["medium", "wide", "tall", "large"],
+    preset: true,
+    locked: true,
+    render: ({ goal, addReflection, removeReflection, confirmBeforeDelete }) => (
+      <Reflections
+        goal={goal}
+        addReflection={addReflection}
+        removeReflection={removeReflection}
+        confirmBeforeDelete={confirmBeforeDelete}
+      />
+    ),
+  },
+  encouragement: {
+    type: "encouragement",
+    title: "Encouraging message",
+    sub: "A small supportive nudge.",
+    icon: <Icon.Spark />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: true,
+    locked: false,
+    render: ({ goal, tasks }) => <EncouragingWidget goal={goal} tasks={tasks} />,
+  },
+  pomodoroQuickStart: {
+    type: "pomodoroQuickStart",
+    title: "Pomodoro quick-start",
+    sub: "Jump to the focus timer.",
+    icon: <Icon.Timer />,
+    defaultSize: "medium",
+    allowedSizes: ["compact", "medium", "wide"],
+    preset: true,
+    locked: false,
+    render: ({ onGoToPomodoro }) => <PomodoroQuickStart onGoToPomodoro={onGoToPomodoro} />,
+  },
+};
+
+function normalizeWidgetType(type) {
+  return LEGACY_WIDGET_TYPE_MAP[type] || type;
+}
+
+function normalizeWidgetSize(size, type) {
+  const registry = WIDGET_REGISTRY[type];
+  const mapped = LEGACY_WIDGET_SIZE_MAP[size] || size || registry?.defaultSize || "medium";
+  const allowed = registry?.allowedSizes || WIDGET_SIZE_VARIANTS;
+  return allowed.includes(mapped) ? mapped : registry?.defaultSize || "medium";
+}
+
+function normalizeWidgetOrder(widget, fallbackOrder) {
+  return Number.isFinite(widget?.order) ? widget.order : fallbackOrder;
+}
+
+function normalizeWidget(widget, fallbackOrder = 100, fallbackSource = "user") {
+  const type = normalizeWidgetType(widget?.type);
+  const registry = WIDGET_REGISTRY[type];
+  if (!registry) return null;
+  return {
+    id: widget.id || widgetId(),
+    type,
+    size: normalizeWidgetSize(widget.size, type),
+    order: normalizeWidgetOrder(widget, fallbackOrder),
+    hidden: Boolean(widget.hidden),
+    locked: widget.locked ?? registry.locked ?? false,
+    source: widget.source || fallbackSource,
+    settings: widget.settings || undefined,
+  };
+}
+
+function defaultWidgetLayout() {
+  return PRESET_WIDGETS.map((widget) => normalizeWidget(widget, widget.order, "preset")).filter(Boolean);
+}
+
+function legacyWidgetsForV2(goal) {
+  if (!Array.isArray(goal?.widgetLayout)) return [];
+  return goal.widgetLayout
+    .map((widget, index) =>
+      normalizeWidget(
+        {
+          ...widget,
+          id: widget.id || `legacy-widget-${index}`,
+          type: normalizeWidgetType(widget.type),
+          order: 100 + index * 10,
+          locked: false,
+          source: "user",
+        },
+        100 + index * 10,
+        "user"
+      )
+    )
+    .filter(Boolean);
+}
+
+function resolveWidgetLayoutV2(goal) {
+  const presets = defaultWidgetLayout();
+  const stored = goal?.widgetLayoutV2;
+  const storedWidgets = Array.isArray(stored?.widgets)
+    ? stored.widgets
+        .map((widget, index) => normalizeWidget(widget, (index + 1) * 10, widget.source || "user"))
+        .filter(Boolean)
+    : null;
+
+  if (storedWidgets) {
+    const ids = new Set(storedWidgets.map((widget) => widget.id));
+    const missingPresets = presets.filter((widget) => !ids.has(widget.id));
+    return {
+      version: WIDGET_LAYOUT_VERSION,
+      widgets: [...storedWidgets, ...missingPresets].sort((a, b) => a.order - b.order),
+    };
+  }
+
+  return {
+    version: WIDGET_LAYOUT_VERSION,
+    widgets: [...presets, ...legacyWidgetsForV2(goal)].sort((a, b) => a.order - b.order),
+  };
+}
+
 const WIDGET_SIZES = ["small", "medium", "large"];
 const WIDGET_COLS = { small: "col-4", medium: "col-6", large: "col-12" };
 const WIDGET_TYPES = [
