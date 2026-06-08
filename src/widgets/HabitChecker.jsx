@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { todayKey, shiftDay, isCheckedOn, currentStreak } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
+import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* HabitChecker — a FORGIVING habit tracker.
    - Shows the last 7 days as toggleable cells.
@@ -86,14 +87,13 @@ export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit
                 <div className="habit-name">
                   <span className="row" style={{ gap: 6, alignItems: "center" }}>
                     {h.name}
-                    <button
+                    <ConfirmButton
                       className="iconbtn sm"
                       title="Remove habit"
-                      onClick={() => removeHabit(goal.id, h.id)}
+                      onConfirm={() => removeHabit(goal.id, h.id)}
                       style={{ width: 22, height: 22, color: "var(--ink-4)" }}
-                    >
-                      <Icon.Trash width={12} height={12} />
-                    </button>
+                      icon={<Icon.Trash width={12} height={12} />}
+                    />
                   </span>
                   <span className="sub">
                     {streak > 0

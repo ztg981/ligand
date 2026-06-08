@@ -13,7 +13,7 @@ const TOOLS = [
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
    element to it, so the highlight glides instead of snapping. */
-function Tabset({ items, activeId, onSelect, variant, trailing, onDelete }) {
+function Tabset({ items, activeId, onSelect, variant, trailing, onArchive }) {
   const btnRefs = useRef({});
   const [ind, setInd] = useState({ x: 0, w: 0, visible: false });
 
@@ -54,20 +54,20 @@ function Tabset({ items, activeId, onSelect, variant, trailing, onDelete }) {
             it.icon
           )}
           {it.label}
-          {onDelete && it.deletable && (
+          {onArchive && it.deletable && (
             <span
               className="tab-x"
               role="button"
               tabIndex={0}
-              title={`Delete ${it.label}`}
+              title={`Archive ${it.label}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(it.id);
+                onArchive(it.id);
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.stopPropagation();
-                  onDelete(it.id);
+                  onArchive(it.id);
                 }
               }}
             >
@@ -88,7 +88,7 @@ export default function TopNav({
   activeGoal,
   setActiveGoal,
   onAddGoal,
-  onDeleteGoal,
+  onArchiveGoal,
   theme,
   toggleTheme,
 }) {
@@ -96,7 +96,7 @@ export default function TopNav({
     id: g.id,
     label: g.name,
     dot: g.color,
-    // The built-in Productivity goal is fixed; everything else can be removed.
+    // The built-in Productivity goal is fixed; everything else can be archived.
     deletable: g.type !== "built-in",
   }));
 
@@ -126,7 +126,7 @@ export default function TopNav({
             setActiveGoal(id);
             setTab("goal");
           }}
-          onDelete={onDeleteGoal}
+          onArchive={onArchiveGoal}
           trailing={
             <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
               <Icon.Plus />

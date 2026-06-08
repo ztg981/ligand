@@ -41,12 +41,37 @@ export function useStore() {
     [setData]
   );
 
+  // Soft-delete: move a goal to the archive (recycle bin). Reversible.
+  const archiveGoal = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id ? { ...g, status: "archived" } : g
+        ),
+      })),
+    [setData]
+  );
+
+  // Bring a goal back from the archive.
+  const restoreGoal = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id ? { ...g, status: "active" } : g
+        ),
+      })),
+    [setData]
+  );
+
+  // Permanent delete (used from the archive). Also drops the goal's tasks;
+  // its habits live inside the goal object, so they go with it.
   const removeGoal = useCallback(
     (id) =>
       setData((d) => ({
         ...d,
         goals: d.goals.filter((g) => g.id !== id),
-        // also drop tasks that belonged to that goal
         tasks: d.tasks.filter((t) => t.goalId !== id),
       })),
     [setData]
@@ -189,6 +214,8 @@ export function useStore() {
     () => ({
       addGoal,
       updateGoal,
+      archiveGoal,
+      restoreGoal,
       removeGoal,
       addTask,
       updateTask,
@@ -206,6 +233,8 @@ export function useStore() {
     [
       addGoal,
       updateGoal,
+      archiveGoal,
+      restoreGoal,
       removeGoal,
       addTask,
       updateTask,

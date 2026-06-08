@@ -21,6 +21,11 @@ export default function App() {
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
 
+  // Archived goals are tucked away in a recycle bin (Settings) and hidden from
+  // the nav, pickers and dashboards until restored or permanently deleted.
+  const activeGoals = goals.filter((g) => g.status !== "archived");
+  const archivedGoals = goals.filter((g) => g.status === "archived");
+
   // Temporary add-goal flow (a proper dialog arrives with the goal UI later).
   const handleAddGoal = () => {
     const name = window.prompt("Name your new goal:");
@@ -30,14 +35,14 @@ export default function App() {
     setTab("goal");
   };
 
-  // Delete a goal (and its tasks/habits) after a confirmation. The built-in
-  // Productivity goal is never offered for deletion, so this only hits custom ones.
-  const handleDeleteGoal = (id) => {
+  // "Deleting" a custom goal moves it to the archive (recycle bin) — reversible,
+  // so no scary prompt. Permanent removal happens from the archive in Settings.
+  // The built-in Productivity goal is never offered for archiving.
+  const handleArchiveGoal = (id) => {
     const goal = goals.find((g) => g.id === id);
     if (!goal || goal.type === "built-in") return;
-    if (!window.confirm(`Delete "${goal.name}" and all its data? This can't be undone.`)) return;
-    store.removeGoal(id);
-    // If we were viewing the deleted goal, step back to a safe screen.
+    store.archiveGoal(id);
+    // If we were viewing it, step back to a safe screen.
     if (activeGoal === id) setActiveGoal("productivity");
     if (tab === "goal" && activeGoal === id) setTab("home");
   };
@@ -47,7 +52,7 @@ export default function App() {
       case "home":
         return (
           <Home
-            goals={store.goals}
+            goals={activeGoals}
             tasks={store.tasks}
             countUps={store.countUps}
             toggleTask={store.toggleTask}
@@ -66,7 +71,7 @@ export default function App() {
             tasks={store.tasks}
             countUps={store.countUps}
             updateGoal={store.updateGoal}
-            onDeleteGoal={handleDeleteGoal}
+            onArchiveGoal={handleArchiveGoal}
             addHabit={store.addHabit}
             checkInHabit={store.checkInHabit}
             removeHabit={store.removeHabit}
@@ -79,7 +84,7 @@ export default function App() {
         return (
           <Tasks
             tasks={store.tasks}
-            goals={store.goals}
+            goals={activeGoals}
             addTask={store.addTask}
             updateTask={store.updateTask}
             toggleTask={store.toggleTask}
@@ -105,6 +110,9 @@ export default function App() {
             setSection={setSection}
             resetSettings={resetSettings}
             resetData={store.resetData}
+            archivedGoals={archivedGoals}
+            restoreGoal={store.restoreGoal}
+            removeGoal={store.removeGoal}
           />
         );
       default:
@@ -125,11 +133,11 @@ export default function App() {
         <TopNav
           tab={tab}
           setTab={setTab}
-          goals={goals}
+          goals={activeGoals}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
           onAddGoal={handleAddGoal}
-          onDeleteGoal={handleDeleteGoal}
+          onArchiveGoal={handleArchiveGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
         />

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
+import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* ============================================================
    Tasks tab
@@ -238,13 +239,13 @@ export default function Tasks({ tasks, goals, addTask, updateTask, toggleTask, r
                 <Icon.Edit width={14} height={14} />
               </button>
 
-              <button
-                onClick={() => removeTask(task.id)}
+              <ConfirmButton
+                onConfirm={() => removeTask(task.id)}
                 title="Delete"
+                className=""
                 style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
-              >
-                <Icon.Trash width={14} height={14} />
-              </button>
+                icon={<Icon.Trash width={14} height={14} />}
+              />
             </div>
           ))}
         </div>

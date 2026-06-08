@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
+import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* Journal — app-wide reflection.
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
@@ -159,14 +160,13 @@ export default function Journal({ journal, addJournalEntry, removeJournalEntry }
                         </span>
                         {e.mood && <span className="chip">{moodLabel(e.mood)}</span>}
                       </span>
-                      <button
+                      <ConfirmButton
                         className="iconbtn"
                         title="Delete entry"
-                        onClick={() => removeJournalEntry(e.id)}
+                        onConfirm={() => removeJournalEntry(e.id)}
                         style={{ width: 24, height: 24, color: "var(--ink-4)" }}
-                      >
-                        <Icon.Trash width={13} height={13} />
-                      </button>
+                        icon={<Icon.Trash width={13} height={13} />}
+                      />
                     </div>
                     {e.prompt && (
                       <div style={{ fontSize: 11, color: "var(--ink-4)", fontStyle: "italic", marginBottom: 3 }}>

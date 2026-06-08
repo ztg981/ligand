@@ -16,7 +16,7 @@ export default function GoalTab({
   tasks,
   countUps,
   updateGoal,
-  onDeleteGoal,
+  onArchiveGoal,
   addHabit,
   checkInHabit,
   removeHabit,
@@ -95,8 +95,8 @@ export default function GoalTab({
                   </button>
                   <button
                     className="iconbtn"
-                    title="Delete goal"
-                    onClick={() => onDeleteGoal(goal.id)}
+                    title="Archive goal"
+                    onClick={() => onArchiveGoal(goal.id)}
                     style={{ width: 26, height: 26, color: "var(--ink-3)" }}
                   >
                     <Icon.Trash />

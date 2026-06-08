@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
+import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* Reflections — a light journal scoped to one goal.
    A rotating gentle prompt + a place to jot a few lines. Past notes
@@ -92,14 +93,13 @@ export default function Reflections({ goal, addReflection, removeReflection }) {
                     {whenLabel(r.createdAt)}
                   </span>
                   {removeReflection && (
-                    <button
+                    <ConfirmButton
                       className="iconbtn"
                       title="Delete reflection"
-                      onClick={() => removeReflection(goal.id, r.id)}
+                      onConfirm={() => removeReflection(goal.id, r.id)}
                       style={{ width: 22, height: 22, color: "var(--ink-4)" }}
-                    >
-                      <Icon.Trash width={12} height={12} />
-                    </button>
+                      icon={<Icon.Trash width={12} height={12} />}
+                    />
                   )}
                 </span>
               </div>

@@ -947,6 +947,26 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   }
 }
 
+/* Inline "Sure?" confirm pill (ConfirmButton) */
+.confirm-armed {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 9px; border-radius: 999px;
+  border: 1px solid transparent;
+  background: oklch(0.94 0.04 var(--hue-rose));
+  color: oklch(0.45 0.10 var(--hue-rose));
+  cursor: pointer; white-space: nowrap; line-height: 1.7;
+  transition: filter 0.15s var(--ease);
+}
+[data-theme="dark"] .confirm-armed {
+  background: oklch(0.30 0.05 var(--hue-rose));
+  color: oklch(0.88 0.10 var(--hue-rose));
+}
+.confirm-armed:hover { filter: brightness(1.04); }
+
+/* Archived goals (recycle bin) rows in Settings */
+.archive-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; }
+.archive-row + .archive-row { border-top: 1px solid var(--line); }
+
 /* Settings tab helpers */
 .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-items: start; }
 @media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }

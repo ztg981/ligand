@@ -4,6 +4,7 @@ import { ACCENTS } from "../theme/useTweaks.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
+import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* Settings — the full preferences screen.
    Mirrors the floating Tweaks (appearance), plus Pomodoro timings,
@@ -54,6 +55,9 @@ export default function Settings({
   setSection,
   resetSettings,
   resetData,
+  archivedGoals = [],
+  restoreGoal,
+  removeGoal,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -296,6 +300,52 @@ export default function Settings({
               ]}
             />
           </Row>
+        </Section>
+
+        {/* Archived goals (recycle bin) */}
+        <Section
+          icon={<Icon.Trash />}
+          title="Archived goals"
+          sub="Goals you've removed wait here. Restore them anytime, or delete one for good — that part can't be undone."
+        >
+          {archivedGoals.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--ink-4)", margin: 0 }}>
+              Nothing archived. Removed goals will land here as a safety net.
+            </p>
+          ) : (
+            <div>
+              {archivedGoals.map((g) => (
+                <div key={g.id} className="archive-row">
+                  <span className="row" style={{ gap: 8, alignItems: "center", minWidth: 0 }}>
+                    <span
+                      className="swatch"
+                      style={{ background: g.color, boxShadow: "none", flex: "none" }}
+                    />
+                    <span style={{ fontSize: 13, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {g.name}
+                    </span>
+                  </span>
+                  <span className="row" style={{ gap: 6, flex: "none" }}>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => restoreGoal(g.id)}
+                      title="Restore goal"
+                    >
+                      <Icon.Reset width={13} height={13} /> Restore
+                    </button>
+                    <ConfirmButton
+                      className="btn ghost sm"
+                      title="Delete permanently"
+                      confirmLabel="Delete?"
+                      onConfirm={() => removeGoal(g.id)}
+                      style={{ color: "oklch(0.55 0.16 20)" }}
+                      icon={<Icon.Trash width={13} height={13} />}
+                    />
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </Section>
 
         {/* Data & behavior */}
