@@ -1116,6 +1116,8 @@ function WidgetEditControls({
   onHide,
   onRemove,
   onMove,
+  onDragStart,
+  onDragEnd,
   confirmBeforeDelete,
 }) {
   const registry = WIDGET_REGISTRY[widget.type];
@@ -1125,7 +1127,14 @@ function WidgetEditControls({
 
   return (
     <div className="goal-widget-editbar">
-      <span className="goal-widget-grip" aria-hidden="true">
+      <span
+        className="goal-widget-grip"
+        draggable={Boolean(onDragStart)}
+        title="Drag to reorder"
+        aria-label="Drag to reorder widget"
+        onDragStart={(e) => onDragStart?.(e, widget.id)}
+        onDragEnd={onDragEnd}
+      >
         <i />
         <i />
         <i />
@@ -1198,6 +1207,11 @@ function GoalWidgetShell({
   onHide,
   onRemove,
   onMove,
+  dragging,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
 }) {
   const registry = WIDGET_REGISTRY[widget.type];
   if (!registry) return null;
@@ -1205,8 +1219,17 @@ function GoalWidgetShell({
   const content = registry.render({ ...context, widget, widgetSize: size });
   return (
     <div
-      className={`goal-widget-shell goal-widget-size-${size}${editing ? " is-editing" : ""}`}
+      className={[
+        "goal-widget-shell",
+        `goal-widget-size-${size}`,
+        editing && "is-editing",
+        dragging && "is-dragging",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{ minWidth: 0 }}
+      onDragOver={editing ? onDragOver : undefined}
+      onDrop={editing ? (e) => onDrop?.(e, widget.id) : undefined}
     >
       {editing && (
         <WidgetEditControls
@@ -1217,6 +1240,8 @@ function GoalWidgetShell({
           onHide={onHide}
           onRemove={onRemove}
           onMove={onMove}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
           confirmBeforeDelete={context.confirmBeforeDelete}
         />
       )}
@@ -1248,6 +1273,7 @@ function GoalWidgetGrid({
 }) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [draggingId, setDraggingId] = useState(null);
   const layout = useMemo(() => resolveWidgetLayoutV2(goal), [goal]);
 
   const saveWidgets = (widgets) => {
@@ -1336,6 +1362,36 @@ function GoalWidgetGrid({
     [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
     saveWidgets(next);
   };
+  const moveWidgetTo = (id, targetId) => {
+    if (!id || !targetId || id === targetId) return;
+    const ordered = normalizeWidgetOrders(layout.widgets);
+    const fromIndex = ordered.findIndex((widget) => widget.id === id);
+    const toIndex = ordered.findIndex((widget) => widget.id === targetId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const next = [...ordered];
+    const [moved] = next.splice(fromIndex, 1);
+    const targetIndex = next.findIndex((widget) => widget.id === targetId);
+    if (targetIndex < 0) return;
+    next.splice(fromIndex < toIndex ? targetIndex + 1 : targetIndex, 0, moved);
+    saveWidgets(next);
+  };
+  const startDrag = (event, id) => {
+    setDraggingId(id);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  };
+  const endDrag = () => setDraggingId(null);
+  const dragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+  const dropWidget = (event, targetId) => {
+    event.preventDefault();
+    const id = draggingId || event.dataTransfer.getData("text/plain");
+    moveWidgetTo(id, targetId);
+    setDraggingId(null);
+  };
 
   return (
     <>
@@ -1373,6 +1429,11 @@ function GoalWidgetGrid({
             onHide={hideWidget}
             onRemove={removeWidget}
             onMove={moveWidget}
+            dragging={draggingId === widget.id}
+            onDragStart={startDrag}
+            onDragEnd={endDrag}
+            onDragOver={dragOver}
+            onDrop={dropWidget}
           />
         ))}
       </div>

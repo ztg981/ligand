@@ -435,6 +435,10 @@ button { font: inherit; color: inherit; }
   box-shadow: var(--shadow-pop);
   outline: 1px solid var(--line-strong);
 }
+.goal-widget-shell.is-dragging {
+  opacity: 0.58;
+  filter: saturate(0.85);
+}
 @keyframes widgetEditFloat {
   0%, 100% { transform: translateY(-1px) rotate(0deg); }
   35% { transform: translateY(-2px) rotate(0.16deg); }
@@ -469,6 +473,11 @@ button { font: inherit; color: inherit; }
   justify-content: center;
   align-content: center;
   color: var(--ink-4);
+  cursor: grab;
+  border-radius: 6px;
+}
+.goal-widget-grip:active {
+  cursor: grabbing;
 }
 .goal-widget-grip i {
   width: 4px;
