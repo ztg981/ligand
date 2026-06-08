@@ -4,6 +4,7 @@ import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
 import Tasks from "./tabs/Tasks.jsx";
+import Pomodoro from "./tabs/Pomodoro.jsx";
 import { Icon } from "./components/Icons.jsx";
 
 // Placeholder screen — real tab content arrives in later build steps.
@@ -86,13 +87,7 @@ export default function App() {
           />
         );
       case "pomodoro":
-        return (
-          <Placeholder
-            eyebrow="Focus"
-            title="Pomodoro"
-            sub="Immersive focus timer with adjustable sessions."
-          />
-        );
+        return <Pomodoro />;
       case "journal":
         return (
           <Placeholder

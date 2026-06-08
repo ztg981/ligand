@@ -803,3 +803,107 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   text-transform: uppercase;
   color: var(--ink-3);
 }
+
+/* ============================================================
+   Pomodoro
+   ============================================================ */
+.pomo-stage { display: grid; gap: 18px; justify-items: center; }
+
+/* The focus "window" — an immersive scene framed like a porthole. */
+.pomo-window {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 16 / 11;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #0a1230;
+  box-shadow: var(--shadow-pop), inset 0 0 0 10px rgba(255, 255, 255, 0.5),
+    inset 0 0 70px rgba(0, 0, 0, 0.28);
+}
+.pomo-window .scene { position: absolute; inset: 0; }
+
+/* Airplane — the one fully-rendered theme: a daytime sky out the window. */
+.scene.airplane {
+  background:
+    radial-gradient(120% 80% at 50% 112%, oklch(0.96 0.06 85) 0%, transparent 55%),
+    linear-gradient(180deg, oklch(0.45 0.13 258) 0%, oklch(0.68 0.10 240) 44%,
+      oklch(0.86 0.06 220) 76%, oklch(0.95 0.05 92) 100%);
+}
+.scene .sun {
+  position: absolute; left: 50%; bottom: -10%;
+  width: 180px; height: 180px; transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.99 0.05 92) 0%,
+    oklch(0.95 0.10 85 / 0.55) 42%, transparent 70%);
+  filter: blur(2px);
+}
+.scene .cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  filter: blur(7px);
+  animation: cloudDrift linear infinite;
+}
+@keyframes cloudDrift {
+  from { transform: translateX(-120px); }
+  to { transform: translateX(620px); }
+}
+
+/* Placeholder scenes for themes not yet built. */
+.scene.placeholder {
+  background:
+    repeating-linear-gradient(135deg, rgba(0,0,0,0.18) 0 10px, rgba(0,0,0,0.10) 10px 20px),
+    linear-gradient(180deg, oklch(0.4 0.04 260), oklch(0.28 0.03 260));
+}
+
+.pomo-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+.pomo-center .gauge-num .v { color: #fff; font-size: 42px; }
+.pomo-center .gauge-num .l { color: rgba(255, 255, 255, 0.85); font-size: 12px; }
+.pomo-soon {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.28);
+  padding: 4px 10px; border-radius: 999px;
+}
+
+/* Session dots — focus blocks completed this cycle. */
+.pomo-dots { display: inline-flex; gap: 7px; align-items: center; }
+.pomo-dots i {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--panel-3); border: 1px solid var(--line);
+}
+.pomo-dots i.on { background: var(--accent); border-color: transparent; box-shadow: 0 0 8px var(--accent-glow); }
+
+/* Theme picker tiles. */
+.theme-pick {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.theme-tile {
+  position: relative;
+  height: 56px; border-radius: var(--r-md);
+  border: 1px solid var(--line); cursor: pointer;
+  overflow: hidden; padding: 0;
+  color: #fff; font-size: 11.5px; font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  display: flex; align-items: flex-end; justify-content: flex-start;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.14s var(--ease);
+}
+.theme-tile:hover { transform: translateY(-1px); }
+.theme-tile > span { position: relative; padding: 6px 8px; }
+.theme-tile.active { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.theme-tile .soon-tag {
+  position: absolute; top: 5px; right: 5px;
+  font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.05em;
+  background: rgba(0,0,0,0.4); color: #fff; padding: 1px 5px; border-radius: 999px;
+  text-shadow: none;
+}
