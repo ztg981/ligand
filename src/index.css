@@ -809,17 +809,25 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    ============================================================ */
 .pomo-stage { display: grid; gap: 18px; justify-items: center; }
 
-/* The focus "window" — an immersive scene framed like a porthole. */
+/* The focus "window" — an immersive scene framed like an airplane porthole:
+   a tall, heavily-rounded (near-oval) pane set into a cabin-coloured frame. */
 .pomo-window {
   position: relative;
   width: 100%;
-  max-width: 520px;
-  aspect-ratio: 16 / 11;
-  border-radius: 28px;
+  max-width: 340px;
+  aspect-ratio: 5 / 7; /* portrait, like a real cabin window */
+  margin: 0 auto;
+  /* asymmetric radius -> rounded-rectangle that reads as an oval window */
+  border-radius: 46% / 34%;
   overflow: hidden;
   background: #0a1230;
-  box-shadow: var(--shadow-pop), inset 0 0 0 10px rgba(255, 255, 255, 0.5),
-    inset 0 0 70px rgba(0, 0, 0, 0.28);
+  /* the cabin wall around the pane */
+  border: 14px solid var(--panel-2);
+  box-shadow:
+    var(--shadow-pop),
+    0 0 0 1px var(--line),                 /* crisp outer edge of the frame */
+    inset 0 0 0 2px rgba(0, 0, 0, 0.18),   /* inner lip of the pane */
+    inset 0 10px 34px rgba(0, 0, 0, 0.34); /* recessed depth */
 }
 .pomo-window .scene { position: absolute; inset: 0; }
 
