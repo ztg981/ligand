@@ -792,17 +792,29 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
     },
   ];
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
   return (
-    <div className="scrim" role="presentation" onMouseDown={onClose}>
+    <div className="scrim widget-picker-scrim" role="presentation" onMouseDown={onClose}>
       <div
-        className="modal"
+        className="modal widget-picker-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="widget-picker-title"
         onMouseDown={(e) => e.stopPropagation()}
-        style={{ width: 560 }}
       >
-        <div style={{ padding: 18 }}>
+        <div className="widget-picker-head">
           <div className="row between" style={{ alignItems: "flex-start", gap: 12 }}>
             <div>
               <div className="eyebrow">Customize this goal</div>
@@ -813,11 +825,13 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
                 Choose one helpful piece. You can resize, hide, or move it after.
               </p>
             </div>
-            <button className="iconbtn" title="Close" onClick={onClose}>
+            <button type="button" className="iconbtn" title="Close" onClick={onClose}>
               <Icon.Close />
             </button>
           </div>
+        </div>
 
+        <div className="widget-picker-body">
           {hiddenWidgets.length > 0 && (
             <>
               <div className="tag" style={{ marginTop: 16, marginBottom: 8 }}>
@@ -828,6 +842,7 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
                   const item = WIDGET_REGISTRY[widget.type];
                   return (
                     <button
+                      type="button"
                       key={widget.id}
                       className="card hover col-6"
                       onClick={() => onRestore(widget.id)}
@@ -856,6 +871,7 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
                   const item = WIDGET_REGISTRY[type];
                   return (
                     <button
+                      type="button"
                       key={type}
                       className="widget-picker-card card hover col-6"
                       onClick={() => onAdd(type)}

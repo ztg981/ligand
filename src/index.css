@@ -490,9 +490,6 @@ button { font: inherit; color: inherit; }
   min-width: 0;
   flex-wrap: wrap;
 }
-.widget-picker-card {
-  min-height: 128px;
-}
 .widget-picker-card .chip {
   pointer-events: none;
 }
@@ -751,7 +748,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   -webkit-backdrop-filter: blur(8px) saturate(130%);
   z-index: 60;
   display: flex; align-items: center; justify-content: center;
-  padding: 40px;
+  padding: clamp(12px, 4vh, 40px);
+  overflow: hidden;
   animation: fadeIn 0.22s var(--ease);
 }
 [data-theme="dark"] .scrim { background: rgba(0,0,0,0.5); }
@@ -766,6 +764,40 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+.widget-picker-modal {
+  width: min(640px, 100%);
+  max-height: min(82vh, 760px);
+  display: flex;
+  flex-direction: column;
+}
+.widget-picker-head {
+  flex: none;
+  padding: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.widget-picker-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 18px 18px;
+}
+.widget-picker-body .grid-12 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.widget-picker-card {
+  min-height: 116px;
+}
+
+@media (max-height: 640px) {
+  .widget-picker-modal { max-height: 88vh; }
+  .widget-picker-head { padding: 14px; }
+  .widget-picker-body { padding: 0 14px 14px; }
+  .widget-picker-card { min-height: 96px; }
+}
+@media (max-width: 560px) {
+  .widget-picker-body .grid-12 { grid-template-columns: 1fr; }
+}
 
 /* drag-able look */
 .drag-handle {
