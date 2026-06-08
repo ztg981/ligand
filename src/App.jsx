@@ -7,6 +7,7 @@ import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
 import GoalTab from "./tabs/GoalTab.jsx";
+import Journal from "./tabs/Journal.jsx";
 import { Icon } from "./components/Icons.jsx";
 
 // Placeholder screen — real tab content arrives in later build steps.
@@ -92,10 +93,10 @@ export default function App() {
         return <Pomodoro />;
       case "journal":
         return (
-          <Placeholder
-            eyebrow="Reflect"
-            title="Journal"
-            sub="Gentle prompts and a record of how things are going."
+          <Journal
+            journal={store.journal}
+            addJournalEntry={store.addJournalEntry}
+            removeJournalEntry={store.removeJournalEntry}
           />
         );
       case "settings":

@@ -172,5 +172,6 @@ export function seedData() {
     goals: [productivity, side, college],
     tasks: [],
     countUps: [createCountUp({ label: "Days showing up", startDate: todayKey() })],
+    journal: [], // app-wide reflections (per-goal reflections live on each goal)
   };
 }

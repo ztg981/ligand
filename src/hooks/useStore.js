@@ -150,6 +150,25 @@ export function useStore() {
     [setData]
   );
 
+  // -- journal (app-wide reflections) ----------------------------
+  const addJournalEntry = useCallback(
+    (opts) => {
+      const entry = createReflection(opts);
+      setData((d) => ({ ...d, journal: [entry, ...(d.journal || [])] }));
+      return entry;
+    },
+    [setData]
+  );
+
+  const removeJournalEntry = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        journal: (d.journal || []).filter((e) => e.id !== id),
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -166,6 +185,8 @@ export function useStore() {
       checkInHabit,
       removeHabit,
       addReflection,
+      addJournalEntry,
+      removeJournalEntry,
       resetData,
     }),
     [
@@ -180,6 +201,8 @@ export function useStore() {
       checkInHabit,
       removeHabit,
       addReflection,
+      addJournalEntry,
+      removeJournalEntry,
       resetData,
     ]
   );
@@ -189,6 +212,7 @@ export function useStore() {
     goals: data.goals,
     tasks: data.tasks,
     countUps: data.countUps,
+    journal: data.journal || [],
     ...actions,
   };
 }
