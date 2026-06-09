@@ -109,11 +109,19 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     setPhase(p);
   }, []);
 
-  // Skip the current phase without counting it as completed.
+  // Skip the current phase. Skipping a focus block advances the cycle the
+  // same way finishing it would, so a Long break still lands on every
+  // `longEvery`-th block instead of always dropping to a Short break.
   const skip = useCallback(() => {
     setRunning(false);
-    setPhase((p) => (p === PHASES.WORK ? PHASES.SHORT : PHASES.WORK));
-  }, []);
+    if (phase === PHASES.WORK) {
+      const done = completed + 1;
+      setCompleted(done);
+      setPhase(done % settings.longEvery === 0 ? PHASES.LONG : PHASES.SHORT);
+    } else {
+      setPhase(PHASES.WORK);
+    }
+  }, [phase, completed, settings.longEvery]);
 
   const total = phaseSeconds(phase);
   const progress = total > 0 ? 1 - remaining / total : 0;
