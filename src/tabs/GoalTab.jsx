@@ -28,7 +28,7 @@ import {
 import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
-import CountUp from "../widgets/CountUp.jsx";
+import CountUps from "../widgets/CountUps.jsx";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
@@ -480,13 +480,21 @@ const WIDGET_REGISTRY = {
   countUp: {
     type: "countUp",
     title: "What I'm proud of",
-    sub: "A gentle count-up streak card.",
+    sub: "Gentle count-up trackers you can add, rename, and reset.",
     icon: <Icon.Flame />,
     defaultSize: "compact",
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ countUps, widgetSize }) => <CountUp countUp={countUps && countUps[0]} widgetSize={widgetSize} />,
+    render: ({ countUps, addCountUp, updateCountUp, removeCountUp, confirmBeforeDelete }) => (
+      <CountUps
+        countUps={countUps}
+        addCountUp={addCountUp}
+        updateCountUp={updateCountUp}
+        removeCountUp={removeCountUp}
+        confirmBeforeDelete={confirmBeforeDelete}
+      />
+    ),
   },
   reflections: {
     type: "reflections",
@@ -1428,6 +1436,9 @@ function GoalWidgetGrid({
   goal,
   tasks,
   countUps,
+  addCountUp,
+  updateCountUp,
+  removeCountUp,
   builtIn,
   addTask,
   updateTask,
@@ -1549,6 +1560,9 @@ function GoalWidgetGrid({
     goal,
     tasks,
     countUps,
+    addCountUp,
+    updateCountUp,
+    removeCountUp,
     builtIn,
     addTask,
     updateTask,
@@ -1739,6 +1753,9 @@ export default function GoalTab({
   goal,
   tasks,
   countUps,
+  addCountUp,
+  updateCountUp,
+  removeCountUp,
   updateGoal,
   onArchiveGoal,
   addTask,
@@ -1854,6 +1871,9 @@ export default function GoalTab({
         goal={goal}
         tasks={tasks}
         countUps={countUps}
+        addCountUp={addCountUp}
+        updateCountUp={updateCountUp}
+        removeCountUp={removeCountUp}
         builtIn={builtIn}
         addTask={addTask}
         updateTask={updateTask}

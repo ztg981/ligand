@@ -85,6 +85,9 @@ export default function App() {
             goal={goal}
             tasks={store.tasks}
             countUps={store.countUps}
+            addCountUp={store.addCountUp}
+            updateCountUp={store.updateCountUp}
+            removeCountUp={store.removeCountUp}
             updateGoal={store.updateGoal}
             onArchiveGoal={handleArchiveGoal}
             addTask={store.addTask}

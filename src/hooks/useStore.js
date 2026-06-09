@@ -6,6 +6,7 @@ import {
   createTask,
   createHabit,
   createReflection,
+  createCountUp,
   shiftDay,
   todayKey,
   toggleCheckIn,
@@ -249,6 +250,34 @@ export function useStore() {
     [setData]
   );
 
+  // -- count-ups (app-wide "what I'm proud of" trackers) ---------
+  const addCountUp = useCallback(
+    (opts) => {
+      const countUp = createCountUp(opts);
+      setData((d) => ({ ...d, countUps: [...(d.countUps || []), countUp] }));
+      return countUp;
+    },
+    [setData]
+  );
+
+  const updateCountUp = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        countUps: (d.countUps || []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      })),
+    [setData]
+  );
+
+  const removeCountUp = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        countUps: (d.countUps || []).filter((c) => c.id !== id),
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -272,6 +301,9 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addCountUp,
+      updateCountUp,
+      removeCountUp,
       resetData,
     }),
     [
@@ -293,6 +325,9 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addCountUp,
+      updateCountUp,
+      removeCountUp,
       resetData,
     ]
   );
