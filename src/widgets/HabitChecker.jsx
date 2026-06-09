@@ -23,6 +23,7 @@ export default function HabitChecker({
   checkInHabit,
   removeHabit,
   confirmBeforeDelete = true,
+  showStreaks = true,
 }) {
   const [name, setName] = useState("");
   const days = useMemo(() => last7(), []);
@@ -103,7 +104,9 @@ export default function HabitChecker({
                     />
                   </span>
                   <span className="sub">
-                    {streak > 0
+                    {!showStreaks
+                      ? "Tracking quietly"
+                      : streak > 0
                       ? `${streak}-day streak${streak >= 3 ? " — lovely" : ""}`
                       : "Ready when you are"}
                   </span>

@@ -73,6 +73,7 @@ export default function App() {
             }}
             userName={settings.profile.name}
             showEncouragement={settings.assistant.encouragement}
+            tone={settings.assistant.tone}
           />
         );
       case "productivity":
@@ -99,6 +100,8 @@ export default function App() {
             onReviseGoalDate={store.reviseGoalTargetDate}
             onGoToPomodoro={() => setTab("pomodoro")}
             confirmBeforeDelete={confirmBeforeDelete}
+            showStreaks={settings.habits.showStreaks}
+            weekStartsMonday={settings.habits.weekStartsMonday}
           />
         );
       }
@@ -115,7 +118,7 @@ export default function App() {
           />
         );
       case "pomodoro":
-        return <Pomodoro />;
+        return <Pomodoro chimeEnabled={settings.notifications.pomodoroChime} />;
       case "journal":
         return (
           <Journal

@@ -18,36 +18,77 @@ function pickByDay(arr, salt = 0) {
   return arr[seed % arr.length];
 }
 
-/* A short encouraging line for the dashboard. */
-export function encouragingMessage({ doneCount = 0, activeCount = 0, streak = 0 } = {}) {
-  // TODO(ai): replace with a real model call that takes recent activity
-  // and returns one warm sentence. Keep it returning a string (or a
-  // Promise<string>) so the Home widget doesn't change.
-  if (doneCount > 0) {
-    return pickByDay([
-      `That's ${doneCount} done already — proof you're moving.`,
-      `${doneCount} finished. Momentum doesn't have to be loud to count.`,
-      `Nice — ${doneCount} off your plate. Rest is allowed too.`,
-    ]);
-  }
-  if (streak > 1) {
-    return pickByDay([
-      `You've shown up ${streak} days in a row. Gently does it.`,
-      `${streak} days of showing up. That's the whole game.`,
-    ]);
-  }
-  if (activeCount === 0) {
-    return pickByDay([
+/* Tone-flavored dashboard lines. The Assistant "tone" setting
+   (warm | plain | cheerful) picks which voice these speak in.
+   Each category has a couple of options so pickByDay can rotate. */
+const ENCOURAGEMENT = {
+  warm: {
+    done: (n) => [
+      `That's ${n} done already — proof you're moving.`,
+      `${n} finished. Momentum doesn't have to be loud to count.`,
+      `Nice — ${n} off your plate. Rest is allowed too.`,
+    ],
+    streak: (s) => [
+      `You've shown up ${s} days in a row. Gently does it.`,
+      `${s} days of showing up. That's the whole game.`,
+    ],
+    clear: () => [
       "A clear list is a fine place to be. Add one thing when you're ready.",
       "Nothing pressing right now — that's okay to enjoy.",
-    ]);
-  }
-  return pickByDay([
-    "Small steps still count. Pick one thing — momentum follows.",
-    "You don't have to do it all. Just the next small piece.",
-    "Start tiny. Finishing one little thing is a real win.",
-    "Be kind to today's version of you. One step is enough.",
-  ]);
+    ],
+    nudge: () => [
+      "Small steps still count. Pick one thing — momentum follows.",
+      "You don't have to do it all. Just the next small piece.",
+      "Be kind to today's version of you. One step is enough.",
+    ],
+  },
+  plain: {
+    done: (n) => [
+      `${n} task${n === 1 ? "" : "s"} done so far today.`,
+      `You've completed ${n}. Keep going at your own pace.`,
+    ],
+    streak: (s) => [
+      `Current streak: ${s} days.`,
+      `${s} days in a row. Streaks pause, they don't reset.`,
+    ],
+    clear: () => [
+      "Your list is clear. Add a task whenever you're ready.",
+      "Nothing scheduled right now.",
+    ],
+    nudge: () => [
+      "Pick one task to start with.",
+      "One small step is enough to begin.",
+    ],
+  },
+  cheerful: {
+    done: (n) => [
+      `Woohoo — ${n} done already! You're on a roll! 🎉`,
+      `${n} knocked out! Look at you go! ✨`,
+    ],
+    streak: (s) => [
+      `${s} days strong — you're unstoppable! 🔥`,
+      `${s}-day streak! That's seriously awesome.`,
+    ],
+    clear: () => [
+      "All clear — enjoy the breathing room! 🌿",
+      "Clean slate! A perfect moment to relax or dream up something new.",
+    ],
+    nudge: () => [
+      "Let's pick one fun little thing to kick things off! 💪",
+      "One tiny step and you're moving — you've got this!",
+    ],
+  },
+};
+
+/* A short encouraging line for the dashboard, in the chosen tone. */
+export function encouragingMessage({ doneCount = 0, activeCount = 0, streak = 0, tone = "warm" } = {}) {
+  // TODO(ai): replace with a real model call that takes recent activity + tone
+  // and returns one sentence. Keep it returning a string (or Promise<string>).
+  const voice = ENCOURAGEMENT[tone] || ENCOURAGEMENT.warm;
+  if (doneCount > 0) return pickByDay(voice.done(doneCount));
+  if (streak > 1) return pickByDay(voice.streak(streak));
+  if (activeCount === 0) return pickByDay(voice.clear());
+  return pickByDay(voice.nudge());
 }
 
 /* A one-line summary of where things stand. */

@@ -33,11 +33,44 @@ export function notify(title, body = "") {
   return false; // nothing was actually shown
 }
 
-// Placeholder chime for the Pomodoro phase change.
+// A soft two-note chime for the Pomodoro phase change. Uses the Web Audio
+// API directly — no files, no network, no permissions. Created lazily and
+// resumed on demand (the user's Start click unlocks audio autoplay).
+let _audioCtx = null;
+
+function getAudioContext() {
+  if (typeof window === "undefined") return null;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!_audioCtx) _audioCtx = new Ctx();
+  return _audioCtx;
+}
+
 export function chime() {
-  // TODO(notifications): play a soft sound via the Web Audio API / <audio>.
-  if (typeof console !== "undefined") {
-    console.debug("[notifications:placeholder] chime");
+  // Breadcrumb first, so the call is observable even if audio is blocked.
+  if (typeof console !== "undefined") console.debug("[notifications] chime");
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return false;
+    if (ctx.state === "suspended") ctx.resume();
+    const now = ctx.currentTime;
+    // Two gentle sine notes (a soft rising "ding-ding").
+    [660, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t = now + i * 0.16;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.16, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 

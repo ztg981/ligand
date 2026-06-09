@@ -25,9 +25,14 @@ export const POMO_DEFAULTS = {
 
 const clampMin = (m) => Math.max(1, Math.round(m * 60)); // minutes -> seconds, >=1s
 
-export function usePomodoro() {
+export function usePomodoro({ onPhaseEnd } = {}) {
   const [stored, setSettings] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
   const settings = { ...POMO_DEFAULTS, ...stored };
+
+  // Keep the latest callback in a ref so the completion effect always calls
+  // the current one without needing it in its dependency list.
+  const onPhaseEndRef = useRef(onPhaseEnd);
+  onPhaseEndRef.current = onPhaseEnd;
 
   const phaseSeconds = useCallback(
     (phase) => {
@@ -80,7 +85,8 @@ export function usePomodoro() {
     } else {
       setPhase(PHASES.WORK);
     }
-    // TODO(notifications): play a soft chime / fire a notification here.
+    // Let the caller react to a natural phase end (e.g. play a chime).
+    onPhaseEndRef.current?.({ endedPhase: phase });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, remaining]);
 

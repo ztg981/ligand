@@ -34,6 +34,7 @@ export default function Home({
   onOpenGoal,
   userName = "friend",
   showEncouragement = true,
+  tone = "warm",
 }) {
   // --- gentle re-entry detection ---
   const [lastVisit, setLastVisit] = useLocalStorage("ligand.lastVisit", null);
@@ -62,7 +63,7 @@ export default function Home({
     [goals]
   );
 
-  const message = encouragingMessage({ doneCount, activeCount: activeTasks.length });
+  const message = encouragingMessage({ doneCount, activeCount: activeTasks.length, tone });
   const summary = summarizeProgress({ goals, tasks });
 
   return (

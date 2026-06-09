@@ -431,14 +431,14 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete, widgetSize }) => (
+    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete, showStreaks }) => (
       <HabitChecker
         goal={goal}
         addHabit={addHabit}
         checkInHabit={checkInHabit}
         removeHabit={removeHabit}
         confirmBeforeDelete={confirmBeforeDelete}
-        widgetSize={widgetSize}
+        showStreaks={showStreaks}
       />
     ),
   },
@@ -473,7 +473,9 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks, widgetSize }) => <GoalProgress goal={goal} tasks={tasks} widgetSize={widgetSize} />,
+    render: ({ goal, tasks, widgetSize, weekStartsMonday }) => (
+      <GoalProgress goal={goal} tasks={tasks} widgetSize={widgetSize} weekStartsMonday={weekStartsMonday} />
+    ),
   },
   countUp: {
     type: "countUp",
@@ -1442,6 +1444,8 @@ function GoalWidgetGrid({
   onGoToPomodoro,
   updateGoal,
   confirmBeforeDelete,
+  showStreaks = true,
+  weekStartsMonday = false,
 }) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1560,6 +1564,8 @@ function GoalWidgetGrid({
     onArchiveGoal,
     onGoToPomodoro,
     confirmBeforeDelete,
+    showStreaks,
+    weekStartsMonday,
   };
   const visibleWidgets = layout.widgets.filter((widget) => widgetIsVisible(widget, context));
   const hiddenWidgets = layout.widgets.filter((widget) => widget.hidden && WIDGET_REGISTRY[widget.type]);
@@ -1748,6 +1754,8 @@ export default function GoalTab({
   onReviseGoalDate,
   onGoToPomodoro,
   confirmBeforeDelete = true,
+  showStreaks = true,
+  weekStartsMonday = false,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -1862,6 +1870,8 @@ export default function GoalTab({
         updateGoal={updateGoal}
         confirmBeforeDelete={confirmBeforeDelete}
         onGoToPomodoro={onGoToPomodoro}
+        showStreaks={showStreaks}
+        weekStartsMonday={weekStartsMonday}
       />
     </>
   );
