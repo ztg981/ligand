@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   GOAL_TYPES,
   TASK_TERMS,
   currentStreak,
@@ -1245,8 +1262,8 @@ function WidgetEditControls({
   onHide,
   onRemove,
   onMove,
-  onDragStart,
-  onDragEnd,
+  dragHandleProps,
+  setActivatorNodeRef,
   confirmBeforeDelete,
 }) {
   const registry = WIDGET_REGISTRY[widget.type];
@@ -1257,12 +1274,11 @@ function WidgetEditControls({
   return (
     <div className="goal-widget-editbar">
       <span
+        ref={setActivatorNodeRef}
         className="goal-widget-grip"
-        draggable={Boolean(onDragStart)}
         title="Drag to reorder"
         aria-label="Drag to reorder widget"
-        onDragStart={(e) => onDragStart?.(e, widget.id)}
-        onDragEnd={onDragEnd}
+        {...(dragHandleProps || {})}
       >
         <i />
         <i />
@@ -1336,29 +1352,38 @@ function GoalWidgetShell({
   onHide,
   onRemove,
   onMove,
-  dragging,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: widget.id, disabled: !editing });
+
   const registry = WIDGET_REGISTRY[widget.type];
   if (!registry) return null;
   const size = normalizeWidgetSize(widget.size, widget.type);
   const content = registry.render({ ...context, widget, widgetSize: size });
+
   return (
     <div
+      ref={setNodeRef}
       className={[
         "goal-widget-shell",
         `goal-widget-size-${size}`,
         editing && "is-editing",
-        dragging && "is-dragging",
+        isDragging && "is-dragging",
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{ minWidth: 0 }}
-      onDragOver={editing ? onDragOver : undefined}
-      onDrop={editing ? (e) => onDrop?.(e, widget.id) : undefined}
+      style={{
+        minWidth: 0,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
     >
       {editing && (
         <WidgetEditControls
@@ -1369,11 +1394,29 @@ function GoalWidgetShell({
           onHide={onHide}
           onRemove={onRemove}
           onMove={onMove}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
+          dragHandleProps={{ ...attributes, ...listeners }}
+          setActivatorNodeRef={setActivatorNodeRef}
           confirmBeforeDelete={context.confirmBeforeDelete}
         />
       )}
+      {content}
+    </div>
+  );
+}
+
+/* The card that floats under the cursor while dragging. dnd-kit's
+   DragOverlay measures the source node and sizes this to match, so it
+   lines up exactly — we just add the lift (scale + shadow). */
+function WidgetOverlayCard({ widget, context }) {
+  const registry = widget ? WIDGET_REGISTRY[widget.type] : null;
+  if (!registry) return null;
+  const size = normalizeWidgetSize(widget.size, widget.type);
+  const content = registry.render({ ...context, widget, widgetSize: size });
+  return (
+    <div
+      className={["goal-widget-shell", `goal-widget-size-${size}`, "goal-widget-overlay"].join(" ")}
+      style={{ minWidth: 0 }}
+    >
       {content}
     </div>
   );
@@ -1402,8 +1445,16 @@ function GoalWidgetGrid({
 }) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [draggingId, setDraggingId] = useState(null);
+  const [activeDragId, setActiveDragId] = useState(null);
   const layout = useMemo(() => resolveWidgetLayoutV2(goal), [goal]);
+
+  // Pointer drag needs a little movement before it kicks in, so taps on the
+  // grip's neighbouring buttons still register as clicks. Keyboard sensor
+  // lets the grip be focused and reordered with arrow keys.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const saveWidgets = (widgets) => {
     updateGoal(goal.id, {
@@ -1527,35 +1578,21 @@ function GoalWidgetGrid({
     [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
     saveWidgets(next);
   };
-  const moveWidgetTo = (id, targetId) => {
-    if (!id || !targetId || id === targetId) return;
+  const handleDragStart = (event) => {
+    setActiveDragId(event.active.id);
+  };
+  const handleDragCancel = () => setActiveDragId(null);
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+    if (!over || active.id === over.id) return;
+    // Reorder the full (normalized) list by the dragged & target ids. Both are
+    // visible widgets; hidden widgets keep their relative spots via arrayMove.
     const ordered = normalizeWidgetOrders(layout.widgets);
-    const fromIndex = ordered.findIndex((widget) => widget.id === id);
-    const toIndex = ordered.findIndex((widget) => widget.id === targetId);
-    if (fromIndex < 0 || toIndex < 0) return;
-
-    const next = [...ordered];
-    const [moved] = next.splice(fromIndex, 1);
-    const targetIndex = next.findIndex((widget) => widget.id === targetId);
-    if (targetIndex < 0) return;
-    next.splice(fromIndex < toIndex ? targetIndex + 1 : targetIndex, 0, moved);
-    saveWidgets(next);
-  };
-  const startDrag = (event, id) => {
-    setDraggingId(id);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", id);
-  };
-  const endDrag = () => setDraggingId(null);
-  const dragOver = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  };
-  const dropWidget = (event, targetId) => {
-    event.preventDefault();
-    const id = draggingId || event.dataTransfer.getData("text/plain");
-    moveWidgetTo(id, targetId);
-    setDraggingId(null);
+    const oldIndex = ordered.findIndex((widget) => widget.id === active.id);
+    const newIndex = ordered.findIndex((widget) => widget.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    saveWidgets(arrayMove(ordered, oldIndex, newIndex));
   };
 
   return (
@@ -1616,27 +1653,48 @@ function GoalWidgetGrid({
         </div>
       )}
 
-      <div className={`goal-widget-grid${editing ? " is-editing" : ""}`}>
-        {visibleWidgets.map((widget, index) => (
-          <GoalWidgetShell
-            key={widget.id}
-            widget={widget}
-            context={context}
-            editing={editing}
-            index={index}
-            total={visibleWidgets.length}
-            onResize={resizeWidget}
-            onHide={hideWidget}
-            onRemove={removeWidget}
-            onMove={moveWidget}
-            dragging={draggingId === widget.id}
-            onDragStart={startDrag}
-            onDragEnd={endDrag}
-            onDragOver={dragOver}
-            onDrop={dropWidget}
-          />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <SortableContext items={visibleWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
+          <div
+            className={[
+              "goal-widget-grid",
+              editing && "is-editing",
+              activeDragId && "is-reordering",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {visibleWidgets.map((widget, index) => (
+              <GoalWidgetShell
+                key={widget.id}
+                widget={widget}
+                context={context}
+                editing={editing}
+                index={index}
+                total={visibleWidgets.length}
+                onResize={resizeWidget}
+                onHide={hideWidget}
+                onRemove={removeWidget}
+                onMove={moveWidget}
+              />
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
+          {activeDragId ? (
+            <WidgetOverlayCard
+              widget={layout.widgets.find((widget) => widget.id === activeDragId)}
+              context={context}
+            />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {editing && hiddenWidgets.length > 0 && (
         <div className="goal-hidden-widgets">

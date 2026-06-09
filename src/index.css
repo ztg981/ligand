@@ -448,9 +448,30 @@ button { font: inherit; color: inherit; }
   box-shadow: var(--shadow-pop);
   outline: 1px solid var(--line-strong);
 }
+/* The source slot the dragged card left behind — dimmed so the lifted
+   DragOverlay copy reads as the "real" one. */
 .goal-widget-shell.is-dragging {
-  opacity: 0.58;
-  filter: saturate(0.85);
+  opacity: 0.4;
+}
+.goal-widget-shell.is-dragging > .card {
+  outline: 1px dashed var(--line-strong);
+  box-shadow: none;
+}
+/* While a drag is in flight, freeze the idle iOS jiggle so dnd-kit's inline
+   transforms (the smooth slide-into-place) aren't overridden by the keyframe
+   animation, which would otherwise win over inline styles. */
+.goal-widget-grid.is-reordering .goal-widget-shell.is-editing {
+  animation: none;
+}
+/* The floating card under the cursor: lifted with a subtle scale + shadow. */
+.goal-widget-overlay {
+  cursor: grabbing;
+  transform: scale(1.03);
+  animation: none;
+}
+.goal-widget-overlay > .card {
+  box-shadow: var(--shadow-pop), 0 22px 48px -16px oklch(0 0 0 / 0.4);
+  outline: 1px solid var(--line-strong);
 }
 @keyframes widgetEditFloat {
   0%, 100% { transform: translateY(-1px) rotate(0deg); }
