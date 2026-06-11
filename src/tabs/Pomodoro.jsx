@@ -4,25 +4,28 @@ import { Icon } from "../components/Icons.jsx";
 import { chime } from "../lib/notifications.js";
 
 /* ============================================================
-   Pomodoro tab
-   A real countdown timer with adjustable work / break durations.
-   "Airplane" is the one fully-rendered theme; the others are
-   picker-only placeholders for a later step.
+   Pomodoro tab — immersive focus timer with CSS scene themes.
+   Each theme is a pure-CSS + React-elements scene that fills
+   the porthole window. Café / Library / Airport switch between
+   day (6 am–8 pm) and night variants automatically. Subway is
+   always underground — no day/night.
    ============================================================ */
 
 const THEMES = [
-  { id: "airplane", name: "Airplane", ready: true, swatch: "linear-gradient(180deg,#3a5bd0,#bfe0ff)" },
-  { id: "rain", name: "Rainy window", swatch: "linear-gradient(180deg,#4a5568,#9aa6b2)" },
-  { id: "forest", name: "Forest", swatch: "linear-gradient(180deg,#2f6b43,#9bd0a3)" },
-  { id: "cafe", name: "Café", swatch: "linear-gradient(180deg,#7a4a2b,#d9b08c)" },
-  { id: "fireplace", name: "Fireplace", swatch: "linear-gradient(180deg,#7a2b2b,#e0a06c)" },
-  { id: "void", name: "Deep focus", swatch: "linear-gradient(180deg,#1b1d2a,#3a3d52)" },
+  { id: "airplane", name: "Airplane",   ready: true,  swatch: "linear-gradient(180deg,#3a5bd0,#bfe0ff)" },
+  { id: "cafe",     name: "Café",       ready: true,  swatch: "linear-gradient(180deg,#7a4a2b,#d9b08c)" },
+  { id: "library",  name: "Library",    ready: true,  swatch: "linear-gradient(180deg,#3d2610,#8b6845)" },
+  { id: "subway",   name: "NYC Subway", ready: true,  swatch: "linear-gradient(180deg,#16161e,#3a3a5c)" },
+  { id: "airport",  name: "Airport",    ready: true,  swatch: "linear-gradient(180deg,#3a6fd0,#cce4ff)" },
+  { id: "forest",   name: "Forest",     ready: false, swatch: "linear-gradient(180deg,#2f6b43,#9bd0a3)" },
+  { id: "fireplace",name: "Fireplace",  ready: false, swatch: "linear-gradient(180deg,#7a2b2b,#e0a06c)" },
+  { id: "void",     name: "Deep focus", ready: false, swatch: "linear-gradient(180deg,#1b1d2a,#3a3d52)" },
 ];
 
 const PHASE_LABEL = {
-  [PHASES.WORK]: "Focus",
+  [PHASES.WORK]:  "Focus",
   [PHASES.SHORT]: "Short break",
-  [PHASES.LONG]: "Long break",
+  [PHASES.LONG]:  "Long break",
 };
 
 function mmss(total) {
@@ -31,20 +34,247 @@ function mmss(total) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-// A few drifting clouds for the airplane scene (varied size/speed/offset).
+/** Returns true between 06:00 and 19:59 (daytime). */
+function isDay() {
+  const h = new Date().getHours();
+  return h >= 6 && h < 20;
+}
+
+/* ============================================================
+   Per-scene element data  (defined once at module scope so
+   React doesn't re-create them on every render)
+   ============================================================ */
+
+// Airplane — drifting clouds
 const CLOUDS = [
-  { w: 120, h: 34, top: "22%", dur: 34, delay: 0 },
-  { w: 80, h: 24, top: "44%", dur: 26, delay: -8 },
-  { w: 150, h: 40, top: "63%", dur: 42, delay: -18 },
-  { w: 70, h: 20, top: "33%", dur: 30, delay: -24 },
+  { w: 120, h: 34, top: "22%", dur: 34, delay:  0   },
+  { w:  80, h: 24, top: "44%", dur: 26, delay: -8   },
+  { w: 150, h: 40, top: "63%", dur: 42, delay: -18  },
+  { w:  70, h: 20, top: "33%", dur: 30, delay: -24  },
 ];
 
+// Café — coffee steam wisps (left positions relative to scene width)
+const STEAM = [
+  { left: "43%", dur: 3.1, delay:  0   },
+  { left: "51%", dur: 2.7, delay: -1.1 },
+  { left: "47%", dur: 3.5, delay: -2.0 },
+];
+
+// Café night — rain drops (positions within window element)
+const RAIN = Array.from({ length: 20 }, (_, i) => ({
+  left:   `${(i * 5.1) % 96}%`,
+  height: 8 + (i % 5) * 3,
+  dur:    0.55 + (i % 4) * 0.12,
+  delay:  -(i * 0.14),
+}));
+
+// Library day — floating dust motes
+const DUST = Array.from({ length: 12 }, (_, i) => ({
+  left:  `${16 + (i * 5.9) % 62}%`,
+  top:   `${30 + (i * 6.4) % 52}%`,
+  dur:   10 + (i % 5) * 3.5,
+  delay: -(i * 2.3),
+  size:  1.5 + (i % 3) * 0.5,
+}));
+
+// Subway — horizontal light streaks sweeping right-to-left
+const STREAKS = [
+  { top: "17%", w:  72, dur: 1.55, delay:  0,    opacity: 0.85 },
+  { top: "31%", w:  46, dur: 1.95, delay: -0.52, opacity: 0.60 },
+  { top: "49%", w:  92, dur: 1.30, delay: -1.00, opacity: 0.78 },
+  { top: "64%", w:  56, dur: 1.70, delay: -0.30, opacity: 0.55 },
+  { top: "79%", w:  36, dur: 2.20, delay: -1.50, opacity: 0.65 },
+  { top:  "9%", w:  62, dur: 1.85, delay: -0.80, opacity: 0.45 },
+];
+
+// Airport night — runway lights
+const RUNWAY = Array.from({ length: 8 }, (_, i) => ({
+  left:  `${7 + i * 12}%`,
+  delay: -(i * 0.19),
+}));
+
+/* ============================================================
+   Scene components
+   ============================================================ */
+
+function AirplaneScene() {
+  return (
+    <div className="scene airplane">
+      <div className="sun" />
+      {CLOUDS.map((c, i) => (
+        <span key={i} className="cloud" style={{
+          width: c.w, height: c.h, top: c.top,
+          animationDuration: `${c.dur}s`,
+          animationDelay:    `${c.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function CafeScene() {
+  const day = isDay();
+  return (
+    <div className={`scene cafe ${day ? "day" : "night"}`}>
+      {/* Window — bright day or rainy night */}
+      <div className="cafe-window">
+        {!day && RAIN.map((r, i) => (
+          <span key={i} className="cafe-raindrop" style={{
+            left:              r.left,
+            height:            r.height,
+            animationDuration: `${r.dur}s`,
+            animationDelay:    `${r.delay}s`,
+          }} />
+        ))}
+      </div>
+
+      {/* Light shaft from window (day only) */}
+      {day && <div className="cafe-shaft" />}
+
+      {/* Table surface, cup, and steam */}
+      <div className="cafe-table" />
+      <div className="cafe-cup" />
+      {STEAM.map((s, i) => (
+        <span key={i} className="cafe-wisp" style={{
+          left:              s.left,
+          animationDuration: `${s.dur}s`,
+          animationDelay:    `${s.delay}s`,
+        }} />
+      ))}
+
+      {/* Candle (night only) */}
+      {!day && (
+        <>
+          <div className="cafe-candle">
+            <div className="cafe-flame" />
+          </div>
+          <div className="cafe-candle-glow" />
+        </>
+      )}
+    </div>
+  );
+}
+
+function LibraryScene() {
+  const day = isDay();
+  return (
+    <div className={`scene library ${day ? "day" : "night"}`}>
+      {/* Bookshelf row lines — always visible */}
+      <div className="lib-shelves" />
+
+      {day ? (
+        <>
+          {/* Tall window column with light shaft and dust motes */}
+          <div className="lib-window" />
+          <div className="lib-shaft" />
+          {DUST.map((d, i) => (
+            <span key={i} className="lib-mote" style={{
+              left:              d.left,
+              top:               d.top,
+              width:             d.size,
+              height:            d.size,
+              animationDuration: `${d.dur}s`,
+              animationDelay:    `${d.delay}s`,
+            }} />
+          ))}
+        </>
+      ) : (
+        <>
+          {/* Desk lamp with green cone of light */}
+          <div className="lib-lamp" />
+          <div className="lib-cone" />
+          <div className="lib-desk-glow" />
+        </>
+      )}
+    </div>
+  );
+}
+
+function SubwayScene() {
+  return (
+    <div className="scene subway">
+      {/* Tunnel structure */}
+      <div className="subway-ceiling" />
+      <div className="subway-wall-l" />
+      <div className="subway-wall-r" />
+      <div className="subway-floor" />
+
+      {/* Fluorescent strips overhead */}
+      <div className="subway-fl-l" />
+      <div className="subway-fl-r" />
+
+      {/* Tunnel light streaks flying past */}
+      {STREAKS.map((s, i) => (
+        <span key={i} className="subway-streak" style={{
+          top:               s.top,
+          width:             s.w,
+          opacity:           s.opacity,
+          animationDuration: `${s.dur}s`,
+          animationDelay:    `${s.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function AirportScene() {
+  const day = isDay();
+  return (
+    <div className={`scene airport ${day ? "day" : "night"}`}>
+      {/* Large window bank at top */}
+      <div className="airport-windows">
+        {day
+          ? <div className="airport-sky" />
+          : <div className="airport-night-sky" />
+        }
+        {/* Runway lights (night only, shown low in the window) */}
+        {!day && (
+          <div className="airport-runway-row">
+            {RUNWAY.map((r, i) => (
+              <span key={i} className="airport-rdot" style={{
+                left:           r.left,
+                animationDelay: `${r.delay}s`,
+              }} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Terminal interior wall */}
+      <div className="airport-wall" />
+
+      {/* Polished floor */}
+      <div className="airport-floor" />
+
+      {/* Distant plane silhouette (day only) */}
+      {day && <div className="airport-plane" />}
+    </div>
+  );
+}
+
+/** Dispatch the right scene, falling back to a placeholder. */
+function SceneContent({ themeId, themeName }) {
+  switch (themeId) {
+    case "airplane": return <AirplaneScene />;
+    case "cafe":     return <CafeScene />;
+    case "library":  return <LibraryScene />;
+    case "subway":   return <SubwayScene />;
+    case "airport":  return <AirportScene />;
+    default:
+      return (
+        <div className="scene placeholder">
+          <div className="pomo-soon">"{themeName}" scene — coming soon</div>
+        </div>
+      );
+  }
+}
+
+/* ============================================================
+   Main component
+   ============================================================ */
 export default function Pomodoro({ chimeEnabled = true }) {
-  // Play a soft chime when a focus block or break ends, if the setting is on.
   const pomo = usePomodoro({
-    onPhaseEnd: () => {
-      if (chimeEnabled) chime();
-    },
+    onPhaseEnd: () => { if (chimeEnabled) chime(); },
   });
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
@@ -63,31 +293,9 @@ export default function Pomodoro({ chimeEnabled = true }) {
       </div>
 
       <div className="pomo-stage">
-        {/* The scene + timer */}
+        {/* The scene window */}
         <div className="pomo-window">
-          {theme.ready ? (
-            <div className="scene airplane">
-              <div className="sun" />
-              {CLOUDS.map((c, i) => (
-                <span
-                  key={i}
-                  className="cloud"
-                  style={{
-                    width: c.w,
-                    height: c.h,
-                    top: c.top,
-                    animationDuration: `${c.dur}s`,
-                    animationDelay: `${c.delay}s`,
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="scene placeholder">
-              <div className="pomo-soon">“{theme.name}” scene — coming soon</div>
-            </div>
-          )}
-
+          <SceneContent themeId={settings.theme} themeName={theme.name} />
           <div className="pomo-center">
             <Ring
               size={210}
@@ -119,15 +327,15 @@ export default function Pomodoro({ chimeEnabled = true }) {
           </button>
         </div>
 
-        {/* Phase switch + session dots */}
+        {/* Phase segmented control + session dots */}
         <div className="row" style={{ gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
           <Segmented
             value={pomo.phase}
             onChange={pomo.goToPhase}
             options={[
-              { value: PHASES.WORK, label: "Focus" },
+              { value: PHASES.WORK,  label: "Focus" },
               { value: PHASES.SHORT, label: "Short" },
-              { value: PHASES.LONG, label: "Long" },
+              { value: PHASES.LONG,  label: "Long"  },
             ]}
           />
           <div className="row" style={{ gap: 8 }}>
@@ -145,6 +353,7 @@ export default function Pomodoro({ chimeEnabled = true }) {
 
       {/* Settings */}
       <div className="grid grid-12" style={{ marginTop: 20 }}>
+        {/* Session lengths */}
         <div className="card col-7" style={{ minWidth: 0 }}>
           <div className="card-head">
             <div className="card-title">
@@ -154,40 +363,22 @@ export default function Pomodoro({ chimeEnabled = true }) {
           <div className="setting-row">
             <div className="name">Focus block</div>
             <div className="ctrl" style={{ minWidth: 180 }}>
-              <Slider
-                value={settings.work}
-                min={5}
-                max={60}
-                step={5}
-                onChange={(v) => setSettings({ work: v })}
-                format={(v) => v + "m"}
-              />
+              <Slider value={settings.work} min={5} max={60} step={5}
+                onChange={(v) => setSettings({ work: v })} format={(v) => v + "m"} />
             </div>
           </div>
           <div className="setting-row">
             <div className="name">Short break</div>
             <div className="ctrl" style={{ minWidth: 180 }}>
-              <Slider
-                value={settings.shortBreak}
-                min={1}
-                max={20}
-                step={1}
-                onChange={(v) => setSettings({ shortBreak: v })}
-                format={(v) => v + "m"}
-              />
+              <Slider value={settings.shortBreak} min={1} max={20} step={1}
+                onChange={(v) => setSettings({ shortBreak: v })} format={(v) => v + "m"} />
             </div>
           </div>
           <div className="setting-row">
             <div className="name">Long break</div>
             <div className="ctrl" style={{ minWidth: 180 }}>
-              <Slider
-                value={settings.longBreak}
-                min={5}
-                max={45}
-                step={5}
-                onChange={(v) => setSettings({ longBreak: v })}
-                format={(v) => v + "m"}
-              />
+              <Slider value={settings.longBreak} min={5} max={45} step={5}
+                onChange={(v) => setSettings({ longBreak: v })} format={(v) => v + "m"} />
             </div>
           </div>
           <div className="setting-row">
@@ -196,19 +387,13 @@ export default function Pomodoro({ chimeEnabled = true }) {
               <div className="sub">How many focus blocks before a long break</div>
             </div>
             <div className="ctrl" style={{ minWidth: 180 }}>
-              <Slider
-                value={settings.longEvery}
-                min={2}
-                max={8}
-                step={1}
-                onChange={(v) => setSettings({ longEvery: v })}
-                format={(v) => v + "×"}
-              />
+              <Slider value={settings.longEvery} min={2} max={8} step={1}
+                onChange={(v) => setSettings({ longEvery: v })} format={(v) => v + "×"} />
             </div>
           </div>
         </div>
 
-        {/* Theme picker */}
+        {/* Scene picker */}
         <div className="card col-5" style={{ minWidth: 0 }}>
           <div className="card-head">
             <div className="card-title">
@@ -230,8 +415,8 @@ export default function Pomodoro({ chimeEnabled = true }) {
             ))}
           </div>
           <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
-            Airplane is ready now. The other scenes (and their ambient sounds)
-            arrive in a later step.
+            Five scenes are live now — Café, Library, and Airport switch between
+            day and night at 6 am / 8 pm. Ambient sounds arrive in a later step.
           </p>
         </div>
       </div>

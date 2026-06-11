@@ -1127,6 +1127,514 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   text-shadow: none;
 }
 
+/* ============================================================
+   Pomodoro scenes — Café, Library, NYC Subway, Airport
+   All built with CSS gradients + shapes + keyframe animations.
+   Day/night variants are applied via .day / .night classes
+   added by the React components (based on current hour).
+   ============================================================ */
+
+/* ---- Café -------------------------------------------------- */
+.scene.cafe {
+  background: linear-gradient(180deg,
+    oklch(0.68 0.10 62) 0%,
+    oklch(0.74 0.11 65) 50%,
+    oklch(0.60 0.10 52) 100%);
+}
+.scene.cafe.night {
+  background: linear-gradient(180deg,
+    oklch(0.16 0.04 44) 0%,
+    oklch(0.22 0.06 50) 55%,
+    oklch(0.27 0.07 52) 100%);
+}
+
+/* Window pane */
+.cafe-window {
+  position: absolute;
+  top: 7%; left: 22%; right: 22%;
+  height: 38%;
+  border-radius: 3px 3px 0 0;
+  border: 2px solid oklch(0.42 0.06 50);
+  overflow: hidden;
+}
+.scene.cafe.day .cafe-window {
+  background: radial-gradient(ellipse 140% 70% at 50% -5%,
+    oklch(0.99 0.03 96) 0%,
+    oklch(0.95 0.07 84) 55%,
+    oklch(0.88 0.09 75) 100%);
+  box-shadow: 0 0 44px 16px oklch(0.93 0.08 84 / 0.55);
+  border-color: oklch(0.55 0.07 56);
+}
+.scene.cafe.night .cafe-window {
+  background: oklch(0.11 0.02 240);
+  border-color: oklch(0.26 0.02 220);
+}
+
+/* Diagonal light shaft from window (day) */
+.cafe-shaft {
+  position: absolute;
+  top: 45%; left: 24%; width: 52%; height: 32%;
+  background: linear-gradient(180deg, oklch(0.95 0.07 85 / 0.20), transparent);
+  clip-path: polygon(18% 0%, 82% 0%, 100% 100%, 0% 100%);
+  pointer-events: none;
+}
+
+/* Rain drops inside the night window */
+.cafe-raindrop {
+  position: absolute;
+  width: 1.5px;
+  background: oklch(0.62 0.04 230 / 0.55);
+  border-radius: 999px;
+  animation: cafeRainFall linear infinite;
+}
+@keyframes cafeRainFall {
+  from { top: -6%; opacity: 0.9; }
+  to   { top: 106%; opacity: 0.2; }
+}
+
+/* Dark wood table surface */
+.cafe-table {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 22%;
+  background: linear-gradient(180deg,
+    oklch(0.36 0.09 42) 0%,
+    oklch(0.28 0.07 38) 100%);
+  border-top: 2px solid oklch(0.46 0.08 47);
+}
+.scene.cafe.night .cafe-table {
+  background: linear-gradient(180deg,
+    oklch(0.20 0.05 40) 0%,
+    oklch(0.15 0.04 37) 100%);
+  border-top-color: oklch(0.26 0.05 41);
+}
+
+/* Coffee cup body */
+.cafe-cup {
+  position: absolute;
+  bottom: 22%; left: 50%; transform: translateX(-50%);
+  width: 26px; height: 20px;
+  background: oklch(0.20 0.04 37);
+  border-radius: 2px 2px 5px 5px;
+  border: 1.5px solid oklch(0.33 0.05 44);
+  z-index: 2;
+}
+/* Cup handle */
+.cafe-cup::before {
+  content: ""; position: absolute;
+  top: 3px; left: 100%;
+  width: 8px; height: 11px;
+  border: 1.5px solid oklch(0.33 0.05 44);
+  border-left: none;
+  border-radius: 0 5px 5px 0;
+}
+/* Saucer */
+.cafe-cup::after {
+  content: ""; position: absolute;
+  bottom: 100%; left: 50%; transform: translateX(-50%);
+  width: 34px; height: 3px;
+  background: oklch(0.46 0.06 49);
+  border-radius: 50%;
+  margin-bottom: 1px;
+}
+
+/* Steam wisps */
+.cafe-wisp {
+  position: absolute;
+  bottom: 43%;
+  width: 5px; height: 18px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 999px;
+  filter: blur(3px);
+  animation: cafeWisp ease-in infinite;
+  transform-origin: bottom center;
+  z-index: 2;
+}
+@keyframes cafeWisp {
+  0%   { transform: translateY(0)     scaleX(1);   opacity: 0.5; }
+  60%  { opacity: 0.3; }
+  100% { transform: translateY(-48px) scaleX(0.4) skewX(6deg); opacity: 0; }
+}
+
+/* Candle body (night) */
+.cafe-candle {
+  position: absolute;
+  bottom: 23%; left: 30%;
+  width: 8px; height: 22px;
+  background: oklch(0.88 0.07 88);
+  border-radius: 2px 2px 1px 1px;
+  z-index: 2;
+}
+/* Candle flame */
+.cafe-flame {
+  position: absolute;
+  bottom: 100%; left: 50%; transform: translateX(-50%);
+  width: 6px; height: 10px;
+  background: radial-gradient(ellipse at 50% 80%,
+    oklch(0.98 0.06 96) 0%,
+    oklch(0.88 0.18 70) 50%,
+    oklch(0.72 0.22 46) 100%);
+  border-radius: 50% 50% 40% 40%;
+  filter: blur(0.5px);
+  animation: candleFlicker 2.3s ease-in-out infinite;
+}
+@keyframes candleFlicker {
+  0%,100% { transform: translateX(-50%) scaleX(1)    scaleY(1);    opacity: 0.90; }
+  25%      { transform: translateX(-52%) scaleX(0.85) scaleY(1.10); opacity: 0.75; }
+  50%      { transform: translateX(-50%) scaleX(1.10) scaleY(0.92); opacity: 0.95; }
+  75%      { transform: translateX(-48%) scaleX(0.92) scaleY(1.05); opacity: 0.80; }
+}
+
+/* Warm ambient glow from candle (night) */
+.cafe-candle-glow {
+  position: absolute;
+  bottom: 24%; left: 8%;
+  width: 140px; height: 110px;
+  background: radial-gradient(ellipse at 28% 78%,
+    oklch(0.78 0.16 72 / 0.32) 0%,
+    transparent 62%);
+  pointer-events: none;
+}
+
+/* ---- Library ----------------------------------------------- */
+.scene.library {
+  background: linear-gradient(180deg,
+    oklch(0.34 0.07 48) 0%,
+    oklch(0.42 0.08 52) 100%);
+}
+.scene.library.night {
+  background: linear-gradient(180deg,
+    oklch(0.11 0.03 44) 0%,
+    oklch(0.17 0.04 48) 100%);
+}
+
+/* Book-shelf row lines */
+.lib-shelves {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent       0px,
+    transparent       36px,
+    oklch(0.22 0.05 43) 36px,
+    oklch(0.22 0.05 43) 40px
+  );
+  opacity: 0.55;
+}
+.scene.library.night .lib-shelves { opacity: 0.85; }
+
+/* Tall window column (day) */
+.lib-window {
+  position: absolute;
+  top: 0; left: 30%; width: 40%; height: 54%;
+  background: radial-gradient(ellipse 100% 80% at 50% 0%,
+    oklch(0.98 0.04 94) 0%,
+    oklch(0.93 0.07 86) 55%,
+    oklch(0.80 0.08 76) 100%);
+  border-left:  2px solid oklch(0.44 0.06 50);
+  border-right: 2px solid oklch(0.44 0.06 50);
+  box-shadow: 0 0 60px 22px oklch(0.92 0.07 86 / 0.48);
+}
+
+/* Light shaft expanding downward from window */
+.lib-shaft {
+  position: absolute;
+  top: 54%; left: 27%; width: 46%; height: 36%;
+  background: linear-gradient(180deg,
+    oklch(0.92 0.07 86 / 0.20) 0%,
+    transparent 100%);
+  clip-path: polygon(5% 0%, 95% 0%, 100% 100%, 0% 100%);
+  pointer-events: none;
+}
+
+/* Floating dust motes */
+.lib-mote {
+  position: absolute;
+  border-radius: 50%;
+  background: oklch(0.95 0.04 88 / 0.75);
+  animation: libDust ease-in-out infinite;
+}
+@keyframes libDust {
+  0%   { transform: translate(0,  0px); opacity: 0;   }
+  15%  { opacity: 0.85; }
+  80%  { opacity: 0.55; }
+  100% { transform: translate(16px, -72px); opacity: 0; }
+}
+
+/* Desk lamp — narrow post + shade (night) */
+.lib-lamp {
+  position: absolute;
+  bottom: 18%; right: 22%;
+  width: 5px; height: 44px;
+  background: oklch(0.26 0.03 148);
+  border-radius: 2px;
+  z-index: 2;
+}
+/* Lamp shade */
+.lib-lamp::before {
+  content: ""; position: absolute;
+  bottom: 100%; left: 50%; transform: translateX(-50%);
+  width: 30px; height: 14px;
+  background: oklch(0.30 0.08 150);
+  border-radius: 4px 4px 3px 3px;
+}
+
+/* Green cone of light from lamp */
+.lib-cone {
+  position: absolute;
+  bottom: 12%; right: 4%;
+  width: 160px; height: 130px;
+  background: radial-gradient(ellipse 80% 100% at 88% 2%,
+    oklch(0.68 0.14 152 / 0.45) 0%,
+    oklch(0.55 0.11 148 / 0.22) 42%,
+    transparent 68%);
+  clip-path: polygon(88% 0%, 100% 0%, 100% 100%, 54% 100%);
+  pointer-events: none;
+}
+
+/* Greenish desk-surface glow */
+.lib-desk-glow {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28%;
+  background: linear-gradient(180deg,
+    oklch(0.42 0.10 150 / 0.14) 0%,
+    oklch(0.28 0.07 148 / 0.22) 100%);
+  pointer-events: none;
+}
+
+/* ---- NYC Subway -------------------------------------------- */
+.scene.subway {
+  background: oklch(0.10 0.01 248);
+}
+
+/* Lighter band at top — the tunnel ceiling */
+.subway-ceiling {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 22%;
+  background: linear-gradient(180deg,
+    oklch(0.52 0.01 242) 0%,
+    oklch(0.28 0.01 248) 55%,
+    transparent 100%);
+}
+
+/* Fluorescent strip fixtures */
+.subway-fl-l,
+.subway-fl-r {
+  position: absolute;
+  top: 2%;
+  width: 34%; height: 4px;
+  background: oklch(0.94 0.02 200 / 0.88);
+  border-radius: 2px;
+  box-shadow: 0 0 14px 5px oklch(0.90 0.04 200 / 0.45);
+}
+.subway-fl-l { left:  8%; }
+.subway-fl-r { right: 8%; }
+
+/* Tunnel side walls — fade edges to black */
+.subway-wall-l {
+  position: absolute;
+  top: 0; left: 0;
+  width: 22%; height: 100%;
+  background: linear-gradient(90deg,
+    oklch(0.20 0.02 248) 0%,
+    oklch(0.26 0.02 248) 42%,
+    transparent 100%);
+}
+.subway-wall-r {
+  position: absolute;
+  top: 0; right: 0;
+  width: 22%; height: 100%;
+  background: linear-gradient(270deg,
+    oklch(0.20 0.02 248) 0%,
+    oklch(0.26 0.02 248) 42%,
+    transparent 100%);
+}
+
+/* Tunnel floor */
+.subway-floor {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 18%;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    oklch(0.22 0.01 248) 50%,
+    oklch(0.28 0.01 245) 100%);
+}
+
+/* Faint tile grid on tunnel walls */
+.scene.subway::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 18px,
+      oklch(0.16 0.01 248 / 0.45) 18px, oklch(0.16 0.01 248 / 0.45) 19px),
+    repeating-linear-gradient(0deg,
+      transparent 0px, transparent 14px,
+      oklch(0.16 0.01 248 / 0.45) 14px, oklch(0.16 0.01 248 / 0.45) 15px);
+  opacity: 0.40;
+}
+
+/* Horizontal light streaks sweeping right → left */
+.subway-streak {
+  position: absolute;
+  height: 3px;
+  background: linear-gradient(90deg,
+    transparent,
+    oklch(0.92 0.04 200 / 0.92),
+    transparent);
+  border-radius: 999px;
+  filter: blur(1px);
+  animation: subwayStreak linear infinite;
+}
+@keyframes subwayStreak {
+  from { transform: translateX(360px); }
+  to   { transform: translateX(-200px); opacity: 0; }
+}
+
+/* ---- Airport ----------------------------------------------- */
+.scene.airport {
+  background: linear-gradient(180deg,
+    oklch(0.90 0.02 228) 0%,
+    oklch(0.84 0.02 225) 45%,
+    oklch(0.88 0.01 220) 100%);
+}
+.scene.airport.night {
+  background: linear-gradient(180deg,
+    oklch(0.56 0.02 232) 0%,
+    oklch(0.64 0.02 228) 45%,
+    oklch(0.72 0.02 222) 100%);
+}
+
+/* Large window bank spanning the upper portion */
+.airport-windows {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 48%;
+  overflow: hidden;
+  border-bottom: 3px solid oklch(0.72 0.03 228);
+}
+.scene.airport.night .airport-windows {
+  border-bottom-color: oklch(0.52 0.03 230);
+}
+
+/* Vertical window-frame dividers */
+.airport-windows::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg,
+    transparent 0px, transparent 34px,
+    oklch(0.68 0.02 228 / 0.40) 34px, oklch(0.68 0.02 228 / 0.40) 36px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Daytime sky (blue gradient + horizon haze) */
+.airport-sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    oklch(0.52 0.14 252) 0%,
+    oklch(0.72 0.10 238) 50%,
+    oklch(0.88 0.05 216) 100%);
+}
+
+/* Nighttime sky */
+.airport-night-sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    oklch(0.08 0.04 282) 0%,
+    oklch(0.13 0.03 272) 100%);
+}
+
+/* Runway light strip (night — sits in the lower window area) */
+.airport-runway-row {
+  position: absolute;
+  bottom: 12%; left: 0; right: 0;
+  height: 20px;
+  z-index: 2;
+}
+.airport-rdot {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: oklch(0.90 0.14 88);
+  box-shadow: 0 0 8px 3px oklch(0.88 0.14 88 / 0.65);
+  top: 50%; transform: translateY(-50%);
+  animation: runwayBlink 1.6s ease-in-out infinite;
+}
+@keyframes runwayBlink {
+  0%, 100% { opacity: 1.0; }
+  50%       { opacity: 0.35; }
+}
+
+/* Terminal interior wall (between windows and floor) */
+.airport-wall {
+  position: absolute;
+  top: 48%; left: 0; right: 0; bottom: 18%;
+  background: linear-gradient(180deg,
+    oklch(0.87 0.02 228) 0%,
+    oklch(0.82 0.02 224) 100%);
+}
+.scene.airport.night .airport-wall {
+  background: linear-gradient(180deg,
+    oklch(0.68 0.02 228) 0%,
+    oklch(0.62 0.02 224) 100%);
+}
+
+/* Polished terminal floor with reflection stripes */
+.airport-floor {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 20%;
+  background: linear-gradient(180deg,
+    oklch(0.80 0.02 222) 0%,
+    oklch(0.86 0.01 218) 100%);
+  border-top: 1px solid oklch(0.72 0.02 224);
+}
+.airport-floor::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg,
+    transparent 0px, transparent 58px,
+    oklch(0.94 0.01 218 / 0.35) 58px, oklch(0.94 0.01 218 / 0.35) 60px);
+}
+.scene.airport.night .airport-floor {
+  background: linear-gradient(180deg,
+    oklch(0.58 0.02 224) 0%,
+    oklch(0.65 0.02 220) 100%);
+  border-top-color: oklch(0.50 0.02 226);
+}
+
+/* Distant plane silhouette (day only) */
+.airport-plane {
+  position: absolute;
+  top: 20%; right: 14%;
+  width: 44px; height: 10px;
+  background: oklch(0.48 0.07 248);
+  border-radius: 999px 5px 3px 999px;
+  opacity: 0.72;
+  z-index: 2;
+}
+/* Wing */
+.airport-plane::before {
+  content: ""; position: absolute;
+  top: -7px; left: 26%;
+  width: 0; height: 0;
+  border-left:  7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 8px solid oklch(0.48 0.07 248);
+}
+/* Tail fin */
+.airport-plane::after {
+  content: ""; position: absolute;
+  top: -4px; right: 4px;
+  width: 0; height: 0;
+  border-left:  3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 5px solid oklch(0.48 0.07 248);
+}
+
 /* Honor the Settings "reduce motion" preference (also respects the OS setting). */
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
