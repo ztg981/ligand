@@ -1,6 +1,7 @@
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
 import { Ring, Slider, Segmented } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
+import { chime } from "../lib/notifications.js";
 
 /* ============================================================
    Pomodoro tab
@@ -38,8 +39,13 @@ const CLOUDS = [
   { w: 70, h: 20, top: "33%", dur: 30, delay: -24 },
 ];
 
-export default function Pomodoro() {
-  const pomo = usePomodoro();
+export default function Pomodoro({ chimeEnabled = true }) {
+  // Play a soft chime when a focus block or break ends, if the setting is on.
+  const pomo = usePomodoro({
+    onPhaseEnd: () => {
+      if (chimeEnabled) chime();
+    },
+  });
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
 

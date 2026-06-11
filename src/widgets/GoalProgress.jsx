@@ -32,7 +32,7 @@ function Bar({ pct, color }) {
   );
 }
 
-export default function GoalProgress({ goal, tasks }) {
+export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekStartsMonday = false }) {
   const goalTasks = useMemo(
     () => tasks.filter((t) => t.goalId === goal.id),
     [tasks, goal.id]
@@ -41,15 +41,37 @@ export default function GoalProgress({ goal, tasks }) {
   const total = goalTasks.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
-  // Habit check-ins recorded in the last 7 days (a gentle count of showing up).
+  // Habit check-ins recorded so far this calendar week (a gentle count of
+  // showing up). The week boundary honors the "Week starts on" setting.
   const weekCheckIns = useMemo(() => {
     const today = todayKey();
-    const week = Array.from({ length: 7 }, (_, i) => shiftDay(today, -i));
+    const dow = new Date(today + "T00:00:00").getDay(); // 0=Sun … 6=Sat
+    const back = weekStartsMonday ? (dow === 0 ? 6 : dow - 1) : dow;
+    const week = Array.from({ length: back + 1 }, (_, i) => shiftDay(today, -i));
     return (goal.habits || []).reduce(
       (sum, h) => sum + week.filter((d) => isCheckedOn(h, d)).length,
       0
     );
-  }, [goal.habits]);
+  }, [goal.habits, weekStartsMonday]);
+
+  if (widgetSize === "compact") {
+    return (
+      <div className="card">
+        <div className="card-head">
+          <div className="card-title">
+            <Icon.Target /> Progress
+          </div>
+        </div>
+        <div className="counter" style={{ fontSize: 30 }}>
+          {pct}
+          <span className="unit">%</span>
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 4 }}>
+          {total ? `${done}/${total} linked tasks done` : "No linked tasks yet"}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card">
@@ -79,6 +101,19 @@ export default function GoalProgress({ goal, tasks }) {
           {weekCheckIns}
         </span>
       </div>
+
+      {(widgetSize === "tall" || widgetSize === "large") && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+          <div className="tag" style={{ marginBottom: 6 }}>
+            Larger view
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.45 }}>
+            {done > 0
+              ? `${done} completed step${done === 1 ? "" : "s"} are already behind you.`
+              : "A larger progress card gives this goal a little more breathing room."}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

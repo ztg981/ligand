@@ -17,7 +17,14 @@ function last7() {
   return Array.from({ length: 7 }, (_, i) => shiftDay(today, -(6 - i)));
 }
 
-export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit }) {
+export default function HabitChecker({
+  goal,
+  addHabit,
+  checkInHabit,
+  removeHabit,
+  confirmBeforeDelete = true,
+  showStreaks = true,
+}) {
   const [name, setName] = useState("");
   const days = useMemo(() => last7(), []);
   const today = todayKey();
@@ -51,7 +58,7 @@ export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit
           onKeyDown={(e) => e.key === "Enter" && submit()}
           style={{ flex: 1 }}
         />
-        <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
+        <button type="button" className="btn primary" onClick={submit} style={{ flex: "none" }}>
           <Icon.Plus /> Add
         </button>
       </div>
@@ -91,12 +98,15 @@ export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit
                       className="iconbtn sm"
                       title="Remove habit"
                       onConfirm={() => removeHabit(goal.id, h.id)}
+                      requireConfirmation={confirmBeforeDelete}
                       style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                       icon={<Icon.Trash width={12} height={12} />}
                     />
                   </span>
                   <span className="sub">
-                    {streak > 0
+                    {!showStreaks
+                      ? "Tracking quietly"
+                      : streak > 0
                       ? `${streak}-day streak${streak >= 3 ? " — lovely" : ""}`
                       : "Ready when you are"}
                   </span>
@@ -106,6 +116,7 @@ export default function HabitChecker({ goal, addHabit, checkInHabit, removeHabit
                   const isToday = d === today;
                   return (
                     <button
+                      type="button"
                       key={d}
                       className={[
                         "habit-cell",

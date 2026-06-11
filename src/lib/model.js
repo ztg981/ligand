@@ -46,6 +46,17 @@ export function shiftDay(dayKey, delta) {
   return todayKey(d);
 }
 
+export function goalTargetDate(goal) {
+  return goal?.smartFields?.timeBound || goal?.deadline || null;
+}
+
+export function isGoalOverdue(goal, refKey = todayKey()) {
+  const target = goalTargetDate(goal);
+  if (!target || goal?.status === GOAL_STATUS.ARCHIVED) return false;
+  if (goal.overdueSnoozedUntil && goal.overdueSnoozedUntil >= refKey) return false;
+  return target < refKey;
+}
+
 // ---- factories -------------------------------------------------
 export function createGoal({
   name,

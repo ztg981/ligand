@@ -11,6 +11,7 @@ import GoalTab from "./tabs/GoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
+import SmartGoalModal from "./components/SmartGoalModal.jsx";
 
 export default function App() {
   const { tweaks, set } = useTweaks();
@@ -20,17 +21,17 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const confirmBeforeDelete = settings.behavior.confirmBeforeDelete;
 
   // Archived goals are tucked away in a recycle bin (Settings) and hidden from
   // the nav, pickers and dashboards until restored or permanently deleted.
   const activeGoals = goals.filter((g) => g.status !== "archived");
   const archivedGoals = goals.filter((g) => g.status === "archived");
 
-  // Temporary add-goal flow (a proper dialog arrives with the goal UI later).
-  const handleAddGoal = () => {
-    const name = window.prompt("Name your new goal:");
-    if (!name || !name.trim()) return;
-    const goal = addGoal({ name: name.trim() });
+  const handleCreateGoal = (goalInput) => {
+    const goal = addGoal(goalInput);
+    setShowGoalModal(false);
     setActiveGoal(goal.id);
     setTab("goal");
   };
@@ -41,6 +42,12 @@ export default function App() {
   const handleArchiveGoal = (id) => {
     const goal = goals.find((g) => g.id === id);
     if (!goal || goal.type === "built-in") return;
+    if (
+      confirmBeforeDelete &&
+      !window.confirm(`Archive "${goal.name}"? You can restore it from Settings.`)
+    ) {
+      return;
+    }
     store.archiveGoal(id);
     // If we were viewing it, step back to a safe screen.
     if (activeGoal === id) setActiveGoal("productivity");
@@ -57,8 +64,16 @@ export default function App() {
             countUps={store.countUps}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
+            onSnoozeGoal={store.snoozeGoalReview}
+            onReviseGoalDate={store.reviseGoalTargetDate}
+            onArchiveGoal={handleArchiveGoal}
+            onOpenGoal={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
             userName={settings.profile.name}
             showEncouragement={settings.assistant.encouragement}
+            tone={settings.assistant.tone}
           />
         );
       case "productivity":
@@ -70,13 +85,26 @@ export default function App() {
             goal={goal}
             tasks={store.tasks}
             countUps={store.countUps}
+            addCountUp={store.addCountUp}
+            updateCountUp={store.updateCountUp}
+            removeCountUp={store.removeCountUp}
             updateGoal={store.updateGoal}
             onArchiveGoal={handleArchiveGoal}
+            addTask={store.addTask}
+            updateTask={store.updateTask}
+            toggleTask={store.toggleTask}
+            removeTask={store.removeTask}
             addHabit={store.addHabit}
             checkInHabit={store.checkInHabit}
             removeHabit={store.removeHabit}
             addReflection={store.addReflection}
             removeReflection={store.removeReflection}
+            onSnoozeGoal={store.snoozeGoalReview}
+            onReviseGoalDate={store.reviseGoalTargetDate}
+            onGoToPomodoro={() => setTab("pomodoro")}
+            confirmBeforeDelete={confirmBeforeDelete}
+            showStreaks={settings.habits.showStreaks}
+            weekStartsMonday={settings.habits.weekStartsMonday}
           />
         );
       }
@@ -89,16 +117,18 @@ export default function App() {
             updateTask={store.updateTask}
             toggleTask={store.toggleTask}
             removeTask={store.removeTask}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       case "pomodoro":
-        return <Pomodoro />;
+        return <Pomodoro chimeEnabled={settings.notifications.pomodoroChime} />;
       case "journal":
         return (
           <Journal
             journal={store.journal}
             addJournalEntry={store.addJournalEntry}
             removeJournalEntry={store.removeJournalEntry}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       case "settings":
@@ -113,6 +143,7 @@ export default function App() {
             archivedGoals={archivedGoals}
             restoreGoal={store.restoreGoal}
             removeGoal={store.removeGoal}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       default:
@@ -136,7 +167,7 @@ export default function App() {
           goals={activeGoals}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
-          onAddGoal={handleAddGoal}
+          onAddGoal={() => setShowGoalModal(true)}
           onArchiveGoal={handleArchiveGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
@@ -166,6 +197,13 @@ export default function App() {
 
       {showTweaks && (
         <TweaksPanel tweaks={tweaks} set={set} onClose={() => setShowTweaks(false)} />
+      )}
+
+      {showGoalModal && (
+        <SmartGoalModal
+          onCreate={handleCreateGoal}
+          onClose={() => setShowGoalModal(false)}
+        />
       )}
     </div>
   );

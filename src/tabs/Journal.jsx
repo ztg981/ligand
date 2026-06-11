@@ -29,7 +29,12 @@ function whenLabel(iso) {
   });
 }
 
-export default function Journal({ journal, addJournalEntry, removeJournalEntry }) {
+export default function Journal({
+  journal,
+  addJournalEntry,
+  removeJournalEntry,
+  confirmBeforeDelete = true,
+}) {
   const [salt, setSalt] = useState(0);
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
   const [text, setText] = useState("");
@@ -164,6 +169,7 @@ export default function Journal({ journal, addJournalEntry, removeJournalEntry }
                         className="iconbtn"
                         title="Delete entry"
                         onConfirm={() => removeJournalEntry(e.id)}
+                        requireConfirmation={confirmBeforeDelete}
                         style={{ width: 24, height: 24, color: "var(--ink-4)" }}
                         icon={<Icon.Trash width={13} height={13} />}
                       />

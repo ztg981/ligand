@@ -6,6 +6,9 @@ import {
   createTask,
   createHabit,
   createReflection,
+  createCountUp,
+  shiftDay,
+  todayKey,
   toggleCheckIn,
 } from "../lib/model.js";
 
@@ -25,7 +28,15 @@ export function useStore() {
   // -- goals -----------------------------------------------------
   const addGoal = useCallback(
     (opts) => {
-      const goal = createGoal(opts);
+      const { starterHabits = [], ...goalOpts } = opts || {};
+      const goal = {
+        ...createGoal(goalOpts),
+        habits: starterHabits
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .slice(0, 3)
+          .map((name) => createHabit({ name })),
+      };
       setData((d) => ({ ...d, goals: [...d.goals, goal] }));
       return goal;
     },
@@ -37,6 +48,38 @@ export function useStore() {
       setData((d) => ({
         ...d,
         goals: d.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+      })),
+    [setData]
+  );
+
+  const snoozeGoalReview = useCallback(
+    (id, days = 7) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id ? { ...g, overdueSnoozedUntil: shiftDay(todayKey(), days) } : g
+        ),
+      })),
+    [setData]
+  );
+
+  const reviseGoalTargetDate = useCallback(
+    (id, targetDate) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id === id
+            ? {
+                ...g,
+                deadline: targetDate || null,
+                overdueSnoozedUntil: null,
+                smartFields: {
+                  ...(g.smartFields || {}),
+                  timeBound: targetDate || "",
+                },
+              }
+            : g
+        ),
       })),
     [setData]
   );
@@ -207,6 +250,34 @@ export function useStore() {
     [setData]
   );
 
+  // -- count-ups (app-wide "what I'm proud of" trackers) ---------
+  const addCountUp = useCallback(
+    (opts) => {
+      const countUp = createCountUp(opts);
+      setData((d) => ({ ...d, countUps: [...(d.countUps || []), countUp] }));
+      return countUp;
+    },
+    [setData]
+  );
+
+  const updateCountUp = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        countUps: (d.countUps || []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      })),
+    [setData]
+  );
+
+  const removeCountUp = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        countUps: (d.countUps || []).filter((c) => c.id !== id),
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -214,6 +285,8 @@ export function useStore() {
     () => ({
       addGoal,
       updateGoal,
+      snoozeGoalReview,
+      reviseGoalTargetDate,
       archiveGoal,
       restoreGoal,
       removeGoal,
@@ -228,11 +301,16 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addCountUp,
+      updateCountUp,
+      removeCountUp,
       resetData,
     }),
     [
       addGoal,
       updateGoal,
+      snoozeGoalReview,
+      reviseGoalTargetDate,
       archiveGoal,
       restoreGoal,
       removeGoal,
@@ -247,6 +325,9 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addCountUp,
+      updateCountUp,
+      removeCountUp,
       resetData,
     ]
   );

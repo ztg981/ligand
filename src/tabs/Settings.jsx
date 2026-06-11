@@ -58,6 +58,7 @@ export default function Settings({
   archivedGoals = [],
   restoreGoal,
   removeGoal,
+  confirmBeforeDelete = true,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -179,9 +180,9 @@ export default function Settings({
         <Section
           icon={<Icon.Bell />}
           title="Notifications"
-          sub="Saved as preferences for now — delivery is coming in a later update."
+          sub="The Pomodoro chime works now. System notifications and daily reminders are coming in a later update."
         >
-          <Row name="Enable notifications">
+          <Row name="Enable notifications" hint="System (browser) notifications">
             <div className="row" style={{ gap: 8 }}>
               <SoonTag />
               <Switch
@@ -190,17 +191,20 @@ export default function Settings({
               />
             </div>
           </Row>
-          <Row name="Pomodoro chime" hint="Soft sound when a focus block ends">
+          <Row name="Pomodoro chime" hint="Soft sound when a focus block or break ends">
             <Switch
               checked={notifications.pomodoroChime}
               onChange={(v) => setSection("notifications", { pomodoroChime: v })}
             />
           </Row>
           <Row name="Daily reminder" hint="One gentle nudge a day">
-            <Switch
-              checked={notifications.dailyReminder}
-              onChange={(v) => setSection("notifications", { dailyReminder: v })}
-            />
+            <div className="row" style={{ gap: 8 }}>
+              <SoonTag />
+              <Switch
+                checked={notifications.dailyReminder}
+                onChange={(v) => setSection("notifications", { dailyReminder: v })}
+              />
+            </div>
           </Row>
           {notifications.dailyReminder && (
             <Row name="Reminder time">
@@ -338,6 +342,7 @@ export default function Settings({
                       title="Delete permanently"
                       confirmLabel="Delete?"
                       onConfirm={() => removeGoal(g.id)}
+                      requireConfirmation={confirmBeforeDelete}
                       style={{ color: "oklch(0.55 0.16 20)" }}
                       icon={<Icon.Trash width={13} height={13} />}
                     />
