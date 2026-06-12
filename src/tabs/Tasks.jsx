@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { TASK_TERMS } from "../lib/model.js";
+import { flashElement } from "../lib/scrollFlash.js";
 
 /* ============================================================
    Tasks tab
@@ -44,6 +45,7 @@ export default function Tasks({
   toggleTask,
   removeTask,
   confirmBeforeDelete = true,
+  scrollTo = null,
 }) {
   // --- add bar state ---
   const [text, setText] = useState("");
@@ -53,6 +55,15 @@ export default function Tasks({
   // --- filter state ---
   const [status, setStatus] = useState("active"); // all | active | done
   const [filter, setFilter] = useState("all"); // all | label:* | goal:*
+
+  // When search sends us to a specific task, clear the filters so it's
+  // guaranteed visible, then scroll to and flash it.
+  useEffect(() => {
+    if (!scrollTo?.id) return;
+    setStatus("all");
+    setFilter("all");
+    flashElement("task-" + scrollTo.id);
+  }, [scrollTo?.nonce, scrollTo?.id]);
 
   // --- inline edit state ---
   const [editingId, setEditingId] = useState(null);
@@ -227,7 +238,11 @@ export default function Tasks({
       ) : (
         <div>
           {visible.map((task) => (
-            <div key={task.id} className={"taskrow" + (task.done ? " done" : "")}>
+            <div
+              key={task.id}
+              id={"task-" + task.id}
+              className={"taskrow" + (task.done ? " done" : "")}
+            >
               <button
                 className="checkbox"
                 onClick={() => toggleTask(task.id)}

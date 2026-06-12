@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import { flashElement } from "../lib/scrollFlash.js";
 
 /* Journal — app-wide reflection.
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
@@ -34,11 +35,18 @@ export default function Journal({
   addJournalEntry,
   removeJournalEntry,
   confirmBeforeDelete = true,
+  scrollTo = null,
 }) {
   const [salt, setSalt] = useState(0);
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
   const [text, setText] = useState("");
   const [mood, setMood] = useState(null);
+
+  // Scroll to and flash a journal entry a search result pointed us at.
+  useEffect(() => {
+    if (!scrollTo?.id) return;
+    flashElement("journal-" + scrollTo.id);
+  }, [scrollTo?.nonce, scrollTo?.id]);
 
   const save = () => {
     const t = text.trim();
@@ -156,6 +164,7 @@ export default function Journal({
                 {journal.map((e) => (
                   <div
                     key={e.id}
+                    id={"journal-" + e.id}
                     style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}
                   >
                     <div className="row between" style={{ marginBottom: 4 }}>

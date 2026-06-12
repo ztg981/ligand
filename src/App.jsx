@@ -16,6 +16,7 @@ import Journal from "./tabs/Journal.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
+import SearchModal from "./components/SearchModal.jsx";
 
 export default function App() {
   const { tweaks, set } = useTweaks();
@@ -27,6 +28,10 @@ export default function App() {
   const [activeGoal, setActiveGoal] = useState("productivity");
   const [showTweaks, setShowTweaks] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  // When a search result wants us to scroll to a specific row, we stash a
+  // { tab, id, nonce } here; the destination tab flashes the matching element.
+  const [scrollTarget, setScrollTarget] = useState(null);
   const confirmBeforeDelete = settings.behavior.confirmBeforeDelete;
 
   // Archived goals are tucked away in a recycle bin (Settings) and hidden from
@@ -82,6 +87,42 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cmd/Ctrl+K opens search from anywhere.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Escape closes search (works even when focus has left the input).
+  useEffect(() => {
+    if (!showSearch) return;
+    const onEsc = (e) => {
+      if (e.key === "Escape") setShowSearch(false);
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [showSearch]);
+
+  // Navigate to a chosen search result: switch tab (and goal), and — for the
+  // flat list tabs — set a scroll target so the row flashes into view.
+  const handleSearchNavigate = (item) => {
+    const nav = item?.nav;
+    if (!nav) return;
+    if (nav.goalId) setActiveGoal(nav.goalId);
+    setTab(nav.tab);
+    if (nav.id && (nav.tab === "tasks" || nav.tab === "journal")) {
+      setScrollTarget({ tab: nav.tab, id: nav.id, nonce: Date.now() });
+    } else {
+      setScrollTarget(null);
+    }
+  };
 
   const handleCreateGoal = (goalInput) => {
     const goal = addGoal(goalInput);
@@ -173,6 +214,7 @@ export default function App() {
             toggleTask={store.toggleTask}
             removeTask={store.removeTask}
             confirmBeforeDelete={confirmBeforeDelete}
+            scrollTo={scrollTarget?.tab === "tasks" ? scrollTarget : null}
           />
         );
       case "pomodoro":
@@ -196,6 +238,7 @@ export default function App() {
             addJournalEntry={store.addJournalEntry}
             removeJournalEntry={store.removeJournalEntry}
             confirmBeforeDelete={confirmBeforeDelete}
+            scrollTo={scrollTarget?.tab === "journal" ? scrollTarget : null}
           />
         );
       case "settings":
@@ -240,6 +283,7 @@ export default function App() {
           onArchiveGoal={handleArchiveGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
+          onOpenSearch={() => setShowSearch(true)}
           notifications={notif.items}
           unreadCount={notif.unreadCount}
           onOpenNotifications={notif.markAllRead}
@@ -278,6 +322,16 @@ export default function App() {
           onClose={() => setShowGoalModal(false)}
         />
       )}
+
+      <SearchModal
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        goals={activeGoals}
+        tasks={store.tasks}
+        journal={store.journal}
+        countUps={store.countUps}
+        onNavigate={handleSearchNavigate}
+      />
     </div>
   );
 }

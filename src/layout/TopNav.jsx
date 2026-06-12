@@ -189,6 +189,7 @@ export default function TopNav({
   onArchiveGoal,
   theme,
   toggleTheme,
+  onOpenSearch,
   notifications = [],
   unreadCount = 0,
   onOpenNotifications,
@@ -238,7 +239,7 @@ export default function TopNav({
       </div>
 
       <div className="topbar-tools">
-        <button className="iconbtn" title="Search">
+        <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
           <Icon.Search />
         </button>
         <NotificationBell
