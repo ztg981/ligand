@@ -1,36 +1,63 @@
 /* ============================================================
-   Notifications — PLACEHOLDER / no-op system.
+   Notifications — real browser Notification API + Web Audio chime.
    ------------------------------------------------------------
-   The brief calls for notifications to be stubbed for now. Nothing
-   here touches the real browser Notification API yet, so we never
-   trigger a permission prompt. Preferences are just remembered; the
-   actual delivery is wired later.
+   The OS-notification layer is thin and best-effort: it only ever
+   shows a notification when the user has explicitly granted browser
+   permission. Everything degrades silently if unsupported or denied,
+   so callers never need to special-case it.
 
-   The function SIGNATURES are the contract — swap the bodies for a
-   real implementation (Notification API, service worker, chime audio)
-   without changing callers.
+   The richer state (the in-app feed, unread badge, once-per-day
+   dedup, master-toggle gating) lives in useNotifications.js — this
+   file is just the low-level browser plumbing.
    ============================================================ */
 
-// Whether the environment *could* support notifications (informational only).
+// Whether this environment supports the Notification API at all.
 export function isSupported() {
   return typeof window !== "undefined" && "Notification" in window;
 }
 
-// Placeholder: we do NOT call Notification.requestPermission() yet, because
-// that would pop a real browser prompt. We just record the user's intent.
-export async function requestPermission() {
-  // TODO(notifications): call Notification.requestPermission() and return the
-  // real result once notifications are actually implemented.
-  return "default";
+// The current permission: "default" (not yet asked), "granted", or "denied".
+export function permissionStatus() {
+  if (!isSupported()) return "unsupported";
+  return Notification.permission;
 }
 
-// Placeholder send. No-op beyond a console breadcrumb in dev.
-export function notify(title, body = "") {
-  // TODO(notifications): create a real Notification (or in-app toast) here.
-  if (typeof console !== "undefined") {
-    console.debug("[notifications:placeholder]", title, body);
+// Ask the browser for permission — ONCE. If we've already been answered
+// (granted or denied), we return that answer without re-prompting, so the
+// user is never nagged. Should be called from a user gesture (e.g. flipping
+// the Settings toggle) so every browser honours it.
+export async function requestPermission() {
+  if (!isSupported()) return "unsupported";
+  if (Notification.permission !== "default") return Notification.permission;
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    // Older Safari used a callback signature; fall back to the live value.
+    return Notification.permission;
   }
-  return false; // nothing was actually shown
+}
+
+// Show an OS notification. Returns true only if one was actually shown.
+// No-ops (returning false) when unsupported or not granted — callers rely
+// on this to "fall back silently".
+export function notify(title, body = "") {
+  if (!isSupported() || Notification.permission !== "granted") return false;
+  try {
+    new Notification(title, {
+      body,
+      // A tiny inline dot keeps the OS chrome from showing a broken-image icon
+      // without shipping an asset. Optional — browsers fall back gracefully.
+      icon:
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="16" fill="%236b8cff"/></svg>'
+        ),
+      tag: "ligand",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // A soft two-note chime for the Pomodoro phase change. Uses the Web Audio
@@ -74,4 +101,4 @@ export function chime() {
   }
 }
 
-export default { isSupported, requestPermission, notify, chime };
+export default { isSupported, permissionStatus, requestPermission, notify, chime };

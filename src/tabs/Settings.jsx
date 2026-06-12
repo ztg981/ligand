@@ -59,6 +59,8 @@ export default function Settings({
   restoreGoal,
   removeGoal,
   confirmBeforeDelete = true,
+  requestNotifyPermission,
+  notifyPermission = "default",
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -176,20 +178,31 @@ export default function Settings({
           </Row>
         </Section>
 
-        {/* Notifications (placeholder) */}
+        {/* Notifications */}
         <Section
           icon={<Icon.Bell />}
           title="Notifications"
-          sub="The Pomodoro chime works now. System notifications and daily reminders are coming in a later update."
+          sub="Gentle nudges for finished focus blocks, overdue goals, urgent tasks, and welcome-backs. They also collect in the bell up top."
         >
-          <Row name="Enable notifications" hint="System (browser) notifications">
-            <div className="row" style={{ gap: 8 }}>
-              <SoonTag />
-              <Switch
-                checked={notifications.enabled}
-                onChange={(v) => setSection("notifications", { enabled: v })}
-              />
-            </div>
+          <Row
+            name="Enable notifications"
+            hint={
+              notifyPermission === "denied"
+                ? "Your browser is blocking notifications — enable them in site settings"
+                : notifyPermission === "unsupported"
+                ? "This browser doesn't support system notifications"
+                : "System (browser) notifications + the in-app bell"
+            }
+          >
+            <Switch
+              checked={notifications.enabled}
+              onChange={(v) => {
+                setSection("notifications", { enabled: v });
+                // Ask the browser the first time the user turns this on. If
+                // they've already answered, this is a silent no-op.
+                if (v) requestNotifyPermission?.();
+              }}
+            />
           </Row>
           <Row name="Pomodoro chime" hint="Soft sound when a focus block or break ends">
             <Switch
@@ -197,7 +210,7 @@ export default function Settings({
               onChange={(v) => setSection("notifications", { pomodoroChime: v })}
             />
           </Row>
-          <Row name="Daily reminder" hint="One gentle nudge a day">
+          <Row name="Daily reminder" hint="A nudge at a set time each day">
             <div className="row" style={{ gap: 8 }}>
               <SoonTag />
               <Switch

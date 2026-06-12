@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocalStorage } from "../hooks/useLocalStorage.js";
-import { todayKey, daysBetween, goalTargetDate, isGoalOverdue } from "../lib/model.js";
+import { useMemo, useState } from "react";
+import { todayKey, goalTargetDate, isGoalOverdue } from "../lib/model.js";
 import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai.js";
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import CountUp from "../widgets/CountUp.jsx";
@@ -35,15 +34,8 @@ export default function Home({
   userName = "friend",
   showEncouragement = true,
   tone = "warm",
+  daysAway = 0,
 }) {
-  // --- gentle re-entry detection ---
-  const [lastVisit, setLastVisit] = useLocalStorage("ligand.lastVisit", null);
-  // Capture the gap ONCE, before we overwrite lastVisit below.
-  const [daysAway] = useState(() => (lastVisit ? daysBetween(lastVisit, todayKey()) : 0));
-  useEffect(() => {
-    setLastVisit(todayKey());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const [reviewDates, setReviewDates] = useState({});
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);

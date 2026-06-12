@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
+import { useNotifications } from "./hooks/useNotifications.js";
+import { useLocalStorage } from "./hooks/useLocalStorage.js";
+import { todayKey, daysBetween, isGoalOverdue } from "./lib/model.js";
+import { PHASES } from "./hooks/usePomodoro.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
@@ -17,6 +21,7 @@ export default function App() {
   const { tweaks, set } = useTweaks();
   const store = useStore();
   const { settings, setSection, reset: resetSettings } = useSettings();
+  const notif = useNotifications({ enabled: settings.notifications.enabled });
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
@@ -28,6 +33,55 @@ export default function App() {
   // the nav, pickers and dashboards until restored or permanently deleted.
   const activeGoals = goals.filter((g) => g.status !== "archived");
   const archivedGoals = goals.filter((g) => g.status === "archived");
+
+  // --- gentle re-entry detection (centralised here so the value is captured
+  // before anything overwrites it; passed down to Home for its banner) ---
+  const [lastVisit, setLastVisit] = useLocalStorage("ligand.lastVisit", null);
+  const [daysAway] = useState(() =>
+    lastVisit ? daysBetween(lastVisit, todayKey()) : 0
+  );
+  useEffect(() => {
+    setLastVisit(todayKey());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Counts that drive the load-time notification triggers.
+  const overdueGoals = useMemo(
+    () => activeGoals.filter((g) => isGoalOverdue(g)),
+    [activeGoals]
+  );
+  const urgentCount = useMemo(
+    () => store.tasks.filter((t) => !t.done && t.label === "Urgent").length,
+    [store.tasks]
+  );
+
+  // Fire the on-load notification triggers exactly once per mount. The
+  // once-per-day dedup lives inside push(); this guard just stops React
+  // StrictMode's double-invoke from firing twice in dev.
+  const firedLoadTriggers = useRef(false);
+  useEffect(() => {
+    if (firedLoadTriggers.current) return;
+    firedLoadTriggers.current = true;
+    if (daysAway >= 3) {
+      notif.push(
+        "reentry",
+        "Hey, no pressure",
+        "Ligand is here when you're ready.",
+        { oncePerDay: true }
+      );
+    }
+    if (overdueGoals.length > 0) {
+      notif.push("overdue", "Goals to review", "You have overdue goals to review.", {
+        oncePerDay: true,
+      });
+    }
+    if (urgentCount > 0) {
+      notif.push("urgent", "Urgent tasks", "You have urgent tasks waiting.", {
+        oncePerDay: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateGoal = (goalInput) => {
     const goal = addGoal(goalInput);
@@ -74,6 +128,7 @@ export default function App() {
             userName={settings.profile.name}
             showEncouragement={settings.assistant.encouragement}
             tone={settings.assistant.tone}
+            daysAway={daysAway}
           />
         );
       case "productivity":
@@ -121,7 +176,19 @@ export default function App() {
           />
         );
       case "pomodoro":
-        return <Pomodoro chimeEnabled={settings.notifications.pomodoroChime} />;
+        return (
+          <Pomodoro
+            chimeEnabled={settings.notifications.pomodoroChime}
+            onPhaseComplete={({ endedPhase }) => {
+              const wasFocus = endedPhase === PHASES.WORK;
+              notif.push(
+                "pomodoro",
+                wasFocus ? "Focus block done" : "Break over",
+                wasFocus ? "Time for a break." : "Ready to focus?"
+              );
+            }}
+          />
+        );
       case "journal":
         return (
           <Journal
@@ -144,6 +211,8 @@ export default function App() {
             restoreGoal={store.restoreGoal}
             removeGoal={store.removeGoal}
             confirmBeforeDelete={confirmBeforeDelete}
+            requestNotifyPermission={notif.requestPermission}
+            notifyPermission={notif.permission}
           />
         );
       default:
@@ -171,6 +240,10 @@ export default function App() {
           onArchiveGoal={handleArchiveGoal}
           theme={tweaks.theme}
           toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
+          notifications={notif.items}
+          unreadCount={notif.unreadCount}
+          onOpenNotifications={notif.markAllRead}
+          onClearNotifications={notif.clearAll}
         />
 
         {screen}

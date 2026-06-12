@@ -272,9 +272,15 @@ function SceneContent({ themeId, themeName }) {
 /* ============================================================
    Main component
    ============================================================ */
-export default function Pomodoro({ chimeEnabled = true }) {
+export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
   const pomo = usePomodoro({
-    onPhaseEnd: () => { if (chimeEnabled) chime(); },
+    onPhaseEnd: ({ endedPhase }) => {
+      // Sound and system notification fire independently: the chime is gated
+      // by its own setting, the notification by the master toggle (handled by
+      // the caller). Either, both, or neither may be active.
+      if (chimeEnabled) chime();
+      onPhaseComplete?.({ endedPhase });
+    },
   });
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
