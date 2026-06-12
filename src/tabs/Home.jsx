@@ -4,6 +4,7 @@ import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import CountUp from "../widgets/CountUp.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
+import DidYouKnow from "../widgets/DidYouKnow.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 function greeting() {
@@ -237,6 +238,7 @@ export default function Home({
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           <CountUp countUp={countUps && countUps[0]} />
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
+          <DidYouKnow />
         </div>
       </div>
     </>
