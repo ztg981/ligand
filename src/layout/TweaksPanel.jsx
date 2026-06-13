@@ -5,7 +5,7 @@ import { ACCENTS } from "../theme/useTweaks.js";
 /* Floating Tweaks panel — theme / accent / ambient glow / corner radius /
    density. Every control is wired to the live tweaks state, so the whole app
    re-themes instantly. */
-export default function TweaksPanel({ tweaks, set, onClose }) {
+export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = false }) {
   return (
     <div
       style={{
@@ -31,17 +31,40 @@ export default function TweaksPanel({ tweaks, set, onClose }) {
         </button>
       </div>
 
-      <div className="setting-row" style={{ padding: "6px 0" }}>
+      <div
+        className="setting-row"
+        style={{ padding: "6px 0", borderBottom: wallpaperActive ? "none" : undefined }}
+      >
         <div className="name">Theme</div>
-        <Segmented
-          value={tweaks.theme}
-          onChange={(v) => set({ theme: v })}
-          options={[
-            { value: "light", label: "Light" },
-            { value: "dark", label: "Dark" },
-          ]}
-        />
+        <div
+          style={{
+            opacity: wallpaperActive ? 0.45 : 1,
+            pointerEvents: wallpaperActive ? "none" : "auto",
+          }}
+          title={wallpaperActive ? "Wallpaper controls the theme while active" : undefined}
+        >
+          <Segmented
+            value={tweaks.theme}
+            onChange={(v) => set({ theme: v })}
+            options={[
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+          />
+        </div>
       </div>
+      {wallpaperActive && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--ink-4)",
+            margin: "-2px 0 6px",
+            lineHeight: 1.4,
+          }}
+        >
+          Wallpaper controls the theme while active.
+        </div>
+      )}
 
       <div className="setting-row" style={{ padding: "6px 0" }}>
         <div className="name">Accent</div>

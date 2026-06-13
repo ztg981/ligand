@@ -335,7 +335,12 @@ export default function App() {
       </button>
 
       {showTweaks && (
-        <TweaksPanel tweaks={tweaks} set={set} onClose={() => setShowTweaks(false)} />
+        <TweaksPanel
+          tweaks={tweaks}
+          set={set}
+          onClose={() => setShowTweaks(false)}
+          wallpaperActive={settings.wallpaper.id !== "none"}
+        />
       )}
 
       {showGoalModal && (
