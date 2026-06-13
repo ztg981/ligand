@@ -99,6 +99,98 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
   );
 }
 
+const AVATAR_BG =
+  "linear-gradient(140deg, oklch(0.78 0.10 var(--accent-h)), oklch(0.65 0.12 var(--hue-lav)))";
+
+/* The profile avatar + dropdown: shows the user's name, a jump to Settings,
+   and a two-step "Clear all data" with inline confirmation. */
+function AvatarMenu({ userName = "You", onOpenSettings, onClearData }) {
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const initial = ((userName || "").trim()[0] || "Y").toUpperCase();
+
+  const close = () => {
+    setOpen(false);
+    setConfirming(false);
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        className="iconbtn avatar-btn"
+        title="You"
+        onClick={() => (open ? close() : setOpen(true))}
+        style={{
+          background: AVATAR_BG,
+          color: "white",
+          border: "none",
+          fontSize: 11,
+          fontWeight: 600,
+        }}
+      >
+        {initial}
+      </button>
+
+      {open && (
+        <>
+          <div onClick={close} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
+          <div className="avatar-pop">
+            <div className="avatar-pop-head">
+              <span className="avatar-pop-ic" style={{ background: AVATAR_BG }}>
+                {initial}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div className="avatar-pop-name">{userName || "You"}</div>
+                <div className="avatar-pop-sub">Local profile · this device</div>
+              </div>
+            </div>
+
+            <button
+              className="avatar-menu-item"
+              onClick={() => {
+                onOpenSettings?.();
+                close();
+              }}
+            >
+              <Icon.Gear /> Settings
+            </button>
+
+            {!confirming ? (
+              <button
+                className="avatar-menu-item danger"
+                onClick={() => setConfirming(true)}
+              >
+                <Icon.Trash /> Clear all data
+              </button>
+            ) : (
+              <div className="avatar-confirm">
+                <div className="avatar-confirm-text">
+                  Erase all goals, tasks, habits and journal entries? This can't be
+                  undone.
+                </div>
+                <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
+                  <button className="btn ghost sm" onClick={() => setConfirming(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="btn sm avatar-erase"
+                    onClick={() => {
+                      onClearData?.();
+                      close();
+                    }}
+                  >
+                    Erase
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
   { id: "productivity", label: "Productivity", icon: <Icon.Bolt /> },
@@ -194,6 +286,9 @@ export default function TopNav({
   unreadCount = 0,
   onOpenNotifications,
   onClearNotifications,
+  userName = "You",
+  onOpenSettings,
+  onClearData,
 }) {
   const goalItems = goals.map((g) => ({
     id: g.id,
@@ -252,20 +347,11 @@ export default function TopNav({
           {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
         </button>
         <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 4px" }} />
-        <button
-          className="iconbtn"
-          title="You"
-          style={{
-            background:
-              "linear-gradient(140deg, oklch(0.78 0.10 var(--accent-h)), oklch(0.65 0.12 var(--hue-lav)))",
-            color: "white",
-            border: "none",
-            fontSize: 11,
-            fontWeight: 600,
-          }}
-        >
-          M
-        </button>
+        <AvatarMenu
+          userName={userName}
+          onOpenSettings={onOpenSettings}
+          onClearData={onClearData}
+        />
       </div>
     </div>
   );

@@ -307,6 +307,9 @@ export default function App() {
           unreadCount={notif.unreadCount}
           onOpenNotifications={notif.markAllRead}
           onClearNotifications={notif.clearAll}
+          userName={settings.profile.name}
+          onOpenSettings={() => setTab("settings")}
+          onClearData={store.resetData}
         />
 
         {screen}
