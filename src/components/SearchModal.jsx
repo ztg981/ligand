@@ -112,7 +112,9 @@ function buildResults(query, { goals, tasks, journal, countUps }) {
     }
   }
 
-  // Count-ups
+  // Count-ups. These are app-wide, but the manager widget lives on goal tabs;
+  // the built-in Productivity goal always has it, so we open there and flash
+  // the specific tracker row.
   for (const c of countUps || []) {
     if (match(c.label)) {
       groups.tracker.push({
@@ -121,7 +123,7 @@ function buildResults(query, { goals, tasks, journal, countUps }) {
         label: c.label,
         sub: "Tracker",
         icon: GROUP_META.tracker.icon,
-        nav: { tab: "home" },
+        nav: { tab: "goal", goalId: "productivity", id: c.id },
       });
     }
   }

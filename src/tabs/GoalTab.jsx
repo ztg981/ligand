@@ -31,6 +31,7 @@ import Reflections from "../widgets/Reflections.jsx";
 import CountUps from "../widgets/CountUps.jsx";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import { flashElement } from "../lib/scrollFlash.js";
 
 function niceAchievable(value) {
   if (value === "easy") return "Easy";
@@ -1773,6 +1774,7 @@ export default function GoalTab({
   confirmBeforeDelete = true,
   showStreaks = true,
   weekStartsMonday = false,
+  scrollTo = null,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -1784,6 +1786,13 @@ export default function GoalTab({
       inputRef.current.select();
     }
   }, [editing]);
+
+  // A count-up search result lands here; scroll to and flash that tracker row
+  // (rendered by the "What I'm proud of" widget).
+  useEffect(() => {
+    if (!scrollTo?.id) return;
+    flashElement("countup-" + scrollTo.id);
+  }, [scrollTo?.nonce, scrollTo?.id]);
 
   if (!goal) return null;
   const builtIn = goal.type === GOAL_TYPES.BUILT_IN;

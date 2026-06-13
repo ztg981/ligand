@@ -59,7 +59,11 @@ export default function CountUps({
           {countUps.map((cu) => {
             const days = daysSince(cu.startDate);
             return (
-              <div key={cu.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+              <div
+                key={cu.id}
+                id={"countup-" + cu.id}
+                style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}
+              >
                 <div className="row between" style={{ gap: 8 }}>
                   <div className="row" style={{ gap: 6, alignItems: "baseline", minWidth: 0 }}>
                     <span

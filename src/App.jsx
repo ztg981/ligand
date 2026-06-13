@@ -134,7 +134,8 @@ export default function App() {
     if (!nav) return;
     if (nav.goalId) setActiveGoal(nav.goalId);
     setTab(nav.tab);
-    if (nav.id && (nav.tab === "tasks" || nav.tab === "journal")) {
+    // Tasks, journal entries, and count-ups carry a row id to scroll/flash.
+    if (nav.id) {
       setScrollTarget({ tab: nav.tab, id: nav.id, nonce: Date.now() });
     } else {
       setScrollTarget(null);
@@ -218,6 +219,7 @@ export default function App() {
             confirmBeforeDelete={confirmBeforeDelete}
             showStreaks={settings.habits.showStreaks}
             weekStartsMonday={settings.habits.weekStartsMonday}
+            scrollTo={scrollTarget?.tab === "goal" ? scrollTarget : null}
           />
         );
       }
