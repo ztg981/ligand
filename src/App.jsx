@@ -216,6 +216,7 @@ export default function App() {
             onSnoozeGoal={store.snoozeGoalReview}
             onReviseGoalDate={store.reviseGoalTargetDate}
             onGoToPomodoro={() => setTab("pomodoro")}
+            onGoToTasks={() => setTab("tasks")}
             confirmBeforeDelete={confirmBeforeDelete}
             showStreaks={settings.habits.showStreaks}
             weekStartsMonday={settings.habits.weekStartsMonday}

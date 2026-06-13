@@ -452,7 +452,7 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks, addTask, updateTask, toggleTask, removeTask, confirmBeforeDelete, widgetSize }) => (
+    render: ({ goal, tasks, addTask, updateTask, toggleTask, removeTask, confirmBeforeDelete, widgetSize, onGoToTasks }) => (
       <GoalTasks
         goal={goal}
         tasks={tasks}
@@ -462,6 +462,7 @@ const WIDGET_REGISTRY = {
         removeTask={removeTask}
         confirmBeforeDelete={confirmBeforeDelete}
         widgetSize={widgetSize}
+        onGoToTasks={onGoToTasks}
       />
     ),
   },
@@ -695,6 +696,7 @@ function GoalTasks({
   removeTask,
   confirmBeforeDelete,
   widgetSize = "medium",
+  onGoToTasks,
 }) {
   const [text, setText] = useState("");
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
@@ -888,6 +890,17 @@ function GoalTasks({
             <div className="tag">Long-term</div>
             {renderTasks(TASK_TERMS.LONG)}
           </div>
+        </div>
+      )}
+
+      {onGoToTasks && (
+        <div
+          className="row"
+          style={{ justifyContent: "flex-end", marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line)" }}
+        >
+          <button type="button" className="btn ghost sm" onClick={onGoToTasks}>
+            See all in Tasks tab <Icon.Arrow width={13} height={13} />
+          </button>
         </div>
       )}
     </div>
@@ -1454,6 +1467,7 @@ function GoalWidgetGrid({
   onReviseGoalDate,
   onArchiveGoal,
   onGoToPomodoro,
+  onGoToTasks,
   updateGoal,
   confirmBeforeDelete,
   showStreaks = true,
@@ -1578,6 +1592,7 @@ function GoalWidgetGrid({
     onReviseGoalDate,
     onArchiveGoal,
     onGoToPomodoro,
+    onGoToTasks,
     confirmBeforeDelete,
     showStreaks,
     weekStartsMonday,
@@ -1771,6 +1786,7 @@ export default function GoalTab({
   onSnoozeGoal,
   onReviseGoalDate,
   onGoToPomodoro,
+  onGoToTasks,
   confirmBeforeDelete = true,
   showStreaks = true,
   weekStartsMonday = false,
@@ -1899,6 +1915,7 @@ export default function GoalTab({
         updateGoal={updateGoal}
         confirmBeforeDelete={confirmBeforeDelete}
         onGoToPomodoro={onGoToPomodoro}
+        onGoToTasks={onGoToTasks}
         showStreaks={showStreaks}
         weekStartsMonday={weekStartsMonday}
       />
