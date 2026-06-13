@@ -8,6 +8,7 @@ import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { todayKey, daysBetween, isGoalOverdue } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
+import { wallpaperById } from "./lib/wallpaper.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
@@ -87,6 +88,22 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Apply the chosen wallpaper. The gradient is painted behind the ambient
+  // blobs via --app-bg; the wallpaper's tone drives the effective light/dark
+  // token set so text stays readable on top. "none" hands control back to the
+  // user's theme toggle and the flat themed background.
+  useEffect(() => {
+    const root = document.documentElement;
+    const wp = wallpaperById(settings.wallpaper.id);
+    const hasWallpaper = wp.id !== "none";
+    root.dataset.theme = hasWallpaper ? wp.tone : tweaks.theme;
+    if (hasWallpaper) {
+      root.style.setProperty("--app-bg", wp.bg);
+    } else {
+      root.style.removeProperty("--app-bg");
+    }
+  }, [settings.wallpaper.id, tweaks.theme]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {

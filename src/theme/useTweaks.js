@@ -33,9 +33,11 @@ export function useTweaks() {
   const tweaks = { ...TWEAK_DEFAULTS, ...stored };
 
   // Apply tweaks to the document root as CSS variables / data attributes.
+  // NOTE: data-theme is owned by App, because the chosen wallpaper's tone can
+  // override the light/dark token set (so text stays readable on it). We set
+  // everything else here.
   useEffect(() => {
     const root = document.documentElement;
-    root.dataset.theme = tweaks.theme;
     root.dataset.density = tweaks.density;
     root.style.setProperty("--accent-h", tweaks.accent);
     root.style.setProperty("--ambient-opacity", tweaks.ambient / 100);
@@ -43,7 +45,7 @@ export function useTweaks() {
     root.style.setProperty("--r-lg", tweaks.radius + "px");
     root.style.setProperty("--r-xl", tweaks.radius + 2 + "px");
     root.style.setProperty("--r-2xl", tweaks.radius + 4 + "px");
-  }, [tweaks.theme, tweaks.density, tweaks.accent, tweaks.ambient, tweaks.radius]);
+  }, [tweaks.density, tweaks.accent, tweaks.ambient, tweaks.radius]);
 
   // Patch one or more keys at once.
   const set = (patch) => setTweaks((prev) => ({ ...prev, ...patch }));

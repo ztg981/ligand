@@ -91,7 +91,10 @@ body {
   font-size: 13px;
   line-height: 1.45;
   color: var(--ink);
-  background: var(--bg);
+  /* --app-bg is set when a wallpaper is chosen; otherwise the themed flat bg.
+     Fixed attachment keeps a gradient covering the viewport while scrolling. */
+  background: var(--app-bg, var(--bg));
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-feature-settings: "ss01", "cv11";

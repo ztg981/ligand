@@ -232,20 +232,20 @@ export default function Settings({
           )}
         </Section>
 
-        {/* Wallpaper & sound (placeholder) */}
+        {/* Wallpaper & sound */}
         <Section
           icon={<Icon.Sun />}
           title="Wallpaper & sound"
-          sub="Pick a vibe now; the live backgrounds and ambient audio arrive later."
+          sub="Set the backdrop behind everything. Each wallpaper brings its own light or dark mood so text stays easy to read."
         >
           <div style={{ marginBottom: 6 }}>
-            <div className="name" style={{ marginBottom: 6 }}>Wallpaper <SoonTag /></div>
+            <div className="name" style={{ marginBottom: 6 }}>Wallpaper</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {WALLPAPERS.map((w) => (
                 <button
                   key={w.id}
                   className={"wp-tile " + (wallpaper.id === w.id ? "active" : "")}
-                  style={{ background: w.preview }}
+                  style={{ background: w.bg }}
                   onClick={() => setSection("wallpaper", { id: w.id })}
                   title={w.name}
                 >
@@ -253,23 +253,24 @@ export default function Settings({
                 </button>
               ))}
             </div>
+            <p className="set-note">
+              Custom wallpapers (your own colors and images) are coming soon.
+            </p>
           </div>
           <Row name="Ambient sound">
-            <select
-              className="input"
-              value={wallpaper.sound}
-              onChange={(e) => setSection("wallpaper", { sound: e.target.value })}
-              style={{ maxWidth: 140 }}
-            >
-              {SOUNDS.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </Row>
-          <Row name="Volume" hint={`${wallpaper.volume}%`}>
-            <div style={{ width: 140 }}>
-              <Slider value={wallpaper.volume} min={0} max={100} step={5}
-                onChange={(v) => setSection("wallpaper", { volume: v })} format={(v) => v + "%"} />
+            <div className="row" style={{ gap: 8 }}>
+              <SoonTag />
+              <select
+                className="input"
+                value={wallpaper.sound}
+                onChange={(e) => setSection("wallpaper", { sound: e.target.value })}
+                style={{ maxWidth: 140 }}
+                disabled
+              >
+                {SOUNDS.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
           </Row>
         </Section>
