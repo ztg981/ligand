@@ -21,6 +21,8 @@ export const POMO_DEFAULTS = {
   longBreak: 15,
   longEvery: 4, // a long break after this many focus blocks
   theme: "airplane",
+  ambientSound: true, // soft hum while the timer runs (the mute toggle flips this)
+  ambientVolume: 35, // 0–100
 };
 
 const clampMin = (m) => Math.max(1, Math.round(m * 60)); // minutes -> seconds, >=1s

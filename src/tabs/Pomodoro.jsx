@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
-import { Ring, Slider, Segmented } from "../components/Controls.jsx";
+import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { chime } from "../lib/notifications.js";
+import { chime, startAmbient, setAmbientVolume, stopAmbient } from "../lib/notifications.js";
 
 /* ============================================================
    Pomodoro tab — immersive focus timer with CSS scene themes.
@@ -285,6 +286,29 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
 
+  const ambientOn = settings.ambientSound;
+  const ambientVolume = settings.ambientVolume ?? 35;
+
+  // Start/stop the ambient hum with the timer (and the mute toggle). It only
+  // ever sounds while a block is actively running.
+  useEffect(() => {
+    if (pomo.running && ambientOn) {
+      startAmbient(ambientVolume / 100);
+    } else {
+      stopAmbient();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pomo.running, ambientOn]);
+
+  // Live-update the level while it's playing.
+  useEffect(() => {
+    if (pomo.running && ambientOn) setAmbientVolume(ambientVolume / 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ambientVolume]);
+
+  // Always silence the hum when leaving the Pomodoro tab.
+  useEffect(() => () => stopAmbient(), []);
+
   return (
     <>
       <div className="page-head">
@@ -420,9 +444,39 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
               </button>
             ))}
           </div>
+          <div className="divider" style={{ margin: "12px 0" }} />
+
+          {/* Ambient sound */}
+          <div className="setting-row" style={{ padding: "2px 0", border: "none" }}>
+            <div className="name">
+              Ambient hum
+              <div className="sub">A soft tone while the timer runs</div>
+            </div>
+            <Switch
+              checked={ambientOn}
+              onChange={(v) => setSettings({ ambientSound: v })}
+            />
+          </div>
+          <div className="setting-row" style={{ padding: "2px 0", border: "none" }}>
+            <div className="name" style={{ opacity: ambientOn ? 1 : 0.45 }}>Volume</div>
+            <div
+              className="ctrl"
+              style={{ minWidth: 150, opacity: ambientOn ? 1 : 0.45, pointerEvents: ambientOn ? "auto" : "none" }}
+            >
+              <Slider
+                value={ambientVolume}
+                min={0}
+                max={100}
+                step={5}
+                onChange={(v) => setSettings({ ambientVolume: v })}
+                format={(v) => v + "%"}
+              />
+            </div>
+          </div>
+
           <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
-            Five scenes are live now — Café, Library, and Airport switch between
-            day and night at 6 am / 8 pm. Ambient sounds arrive in a later step.
+            Some scenes shift between day and night automatically. The hum is
+            generated live — no files, and it never plays unless the timer is running.
           </p>
         </div>
       </div>
