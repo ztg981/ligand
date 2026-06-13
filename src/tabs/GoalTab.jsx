@@ -589,14 +589,14 @@ const WIDGET_REGISTRY = {
   },
   aiSummaryPlaceholder: {
     type: "aiSummaryPlaceholder",
-    title: "AI summary placeholder",
-    sub: "Reserved space for future local/free AI summaries.",
-    icon: <Icon.Wand />,
+    title: "At a glance",
+    sub: "A quick, plain-language read on where this goal stands.",
+    icon: <Icon.Target />,
     defaultSize: "medium",
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: false,
     locked: false,
-    render: ({ goal, tasks }) => <AiSummaryPlaceholderWidget goal={goal} tasks={tasks} />,
+    render: ({ goal, tasks }) => <GoalSummaryWidget goal={goal} tasks={tasks} />,
   },
 };
 
@@ -1252,22 +1252,41 @@ function RecentWinsWidget({ goal, tasks, widgetSize }) {
   );
 }
 
-function AiSummaryPlaceholderWidget({ goal, tasks }) {
+function GoalSummaryWidget({ goal, tasks }) {
   const goalTasks = tasks.filter((task) => task.goalId === goal.id);
   const done = goalTasks.filter((task) => task.done).length;
+  const habits = goal.habits || [];
+  const bestStreak = habits.reduce((m, h) => Math.max(m, currentStreak(h)), 0);
+  const target = goalTargetDate(goal);
+  const daysActive = goal.createdAt ? daysBetween(goal.createdAt, todayKey()) : 0;
+
+  const lines = [];
+  lines.push(
+    goalTasks.length
+      ? `${done} of ${goalTasks.length} linked task${goalTasks.length === 1 ? "" : "s"} complete`
+      : "No linked tasks yet — add one below to get rolling."
+  );
+  if (habits.length) {
+    lines.push(
+      `${habits.length} habit${habits.length === 1 ? "" : "s"} in motion` +
+        (bestStreak > 0 ? `, best streak ${bestStreak} day${bestStreak === 1 ? "" : "s"}` : "")
+    );
+  }
+  if (target) lines.push(`Target date ${target}`);
+  if (daysActive > 0) lines.push(`This goal has been in view for ${daysActive} day${daysActive === 1 ? "" : "s"}`);
 
   return (
     <div className="card">
       <div className="card-head">
         <div className="card-title">
-          <Icon.Wand /> AI summary placeholder
+          <Icon.Target /> At a glance
         </div>
-        <span className="chip lav">Later</span>
       </div>
-      <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
-        Future AI can summarize this goal, suggest next steps, and help review progress.
-        For now, Ligand sees {done}/{goalTasks.length || 0} linked tasks complete.
-      </div>
+      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--ink-2)", lineHeight: 1.7 }}>
+        {lines.map((l, i) => (
+          <li key={i}>{l}</li>
+        ))}
+      </ul>
     </div>
   );
 }
