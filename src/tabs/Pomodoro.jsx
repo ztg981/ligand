@@ -18,9 +18,9 @@ const THEMES = [
   { id: "library",  name: "Library",    ready: true,  swatch: "linear-gradient(180deg,#3d2610,#8b6845)" },
   { id: "subway",   name: "NYC Subway", ready: true,  swatch: "linear-gradient(180deg,#16161e,#3a3a5c)" },
   { id: "airport",  name: "Airport",    ready: true,  swatch: "linear-gradient(180deg,#3a6fd0,#cce4ff)" },
-  { id: "forest",   name: "Forest",     ready: false, swatch: "linear-gradient(180deg,#2f6b43,#9bd0a3)" },
-  { id: "fireplace",name: "Fireplace",  ready: false, swatch: "linear-gradient(180deg,#7a2b2b,#e0a06c)" },
-  { id: "void",     name: "Deep focus", ready: false, swatch: "linear-gradient(180deg,#1b1d2a,#3a3d52)" },
+  { id: "forest",   name: "Forest",     ready: true,  swatch: "linear-gradient(180deg,#2f6b43,#9bd0a3)" },
+  { id: "fireplace",name: "Fireplace",  ready: true,  swatch: "linear-gradient(180deg,#7a2b2b,#e0a06c)" },
+  { id: "void",     name: "Deep focus", ready: true,  swatch: "linear-gradient(180deg,#1b1d2a,#3a3d52)" },
 ];
 
 const PHASE_LABEL = {
@@ -92,6 +92,43 @@ const STREAKS = [
 const RUNWAY = Array.from({ length: 8 }, (_, i) => ({
   left:  `${7 + i * 12}%`,
   delay: -(i * 0.19),
+}));
+
+// Forest — drifting leaves
+const LEAVES = Array.from({ length: 6 }, (_, i) => ({
+  left: `${10 + ((i * 15) % 80)}%`,
+  dur:  7 + (i % 4) * 2.5,
+  delay: -(i * 1.8),
+  size: 6 + (i % 3) * 2,
+}));
+
+// Forest day — birds drifting across
+const BIRDS = [
+  { top: "18%", dur: 15, delay: 0 },
+  { top: "27%", dur: 19, delay: -8 },
+];
+
+// Forest night — fireflies
+const FIREFLIES = Array.from({ length: 9 }, (_, i) => ({
+  left: `${8 + ((i * 11) % 84)}%`,
+  top:  `${32 + ((i * 7) % 52)}%`,
+  dur:  3 + (i % 4),
+  delay: -(i * 0.9),
+}));
+
+// Fireplace — flame tongues (clustered centre)
+const FLAMES = [
+  { left: "33%", w: 26, h: 52, dur: 0.95, delay: 0 },
+  { left: "42%", w: 34, h: 76, dur: 1.15, delay: -0.3 },
+  { left: "50%", w: 30, h: 64, dur: 0.8,  delay: -0.6 },
+  { left: "58%", w: 24, h: 50, dur: 1.05, delay: -0.15 },
+];
+
+// Fireplace — rising embers
+const EMBERS = Array.from({ length: 7 }, (_, i) => ({
+  left: `${36 + ((i * 6) % 30)}%`,
+  dur:  2.4 + (i % 3) * 0.8,
+  delay: -(i * 0.7),
 }));
 
 /* ============================================================
@@ -253,6 +290,75 @@ function AirportScene() {
   );
 }
 
+function ForestScene() {
+  const day = isDay();
+  return (
+    <div className={`scene forest ${day ? "day" : "night"}`}>
+      <div className="forest-canopy" />
+      {day && (
+        <>
+          <div className="forest-ray r1" />
+          <div className="forest-ray r2" />
+          <div className="forest-ray r3" />
+        </>
+      )}
+      <div className="forest-trunk t1" />
+      <div className="forest-trunk t2" />
+      <div className="forest-trunk t3" />
+      <div className="forest-floor" />
+      {LEAVES.map((l, i) => (
+        <span key={i} className="forest-leaf" style={{
+          left: l.left, width: l.size, height: l.size,
+          animationDuration: `${l.dur}s`, animationDelay: `${l.delay}s`,
+        }} />
+      ))}
+      {day
+        ? BIRDS.map((b, i) => (
+            <span key={i} className="forest-bird" style={{
+              top: b.top, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s`,
+            }} />
+          ))
+        : FIREFLIES.map((f, i) => (
+            <span key={i} className="forest-firefly" style={{
+              left: f.left, top: f.top,
+              animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s`,
+            }} />
+          ))}
+    </div>
+  );
+}
+
+function FireplaceScene() {
+  return (
+    <div className="scene fireplace">
+      <div className="fire-glow" />
+      <div className="fire-hearth" />
+      <div className="fire-cluster">
+        {FLAMES.map((f, i) => (
+          <span key={i} className="fire-flame" style={{
+            left: f.left, width: f.w, height: f.h,
+            animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s`,
+          }} />
+        ))}
+      </div>
+      <div className="fire-logs" />
+      {EMBERS.map((e, i) => (
+        <span key={i} className="fire-ember" style={{
+          left: e.left, animationDuration: `${e.dur}s`, animationDelay: `${e.delay}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function DeepFocusScene() {
+  return (
+    <div className="scene void">
+      <div className="void-core" />
+    </div>
+  );
+}
+
 /** Dispatch the right scene, falling back to a placeholder. */
 function SceneContent({ themeId, themeName }) {
   switch (themeId) {
@@ -261,6 +367,9 @@ function SceneContent({ themeId, themeName }) {
     case "library":  return <LibraryScene />;
     case "subway":   return <SubwayScene />;
     case "airport":  return <AirportScene />;
+    case "forest":   return <ForestScene />;
+    case "fireplace":return <FireplaceScene />;
+    case "void":     return <DeepFocusScene />;
     default:
       return (
         <div className="scene placeholder">
@@ -475,8 +584,9 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
           </div>
 
           <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
-            Some scenes shift between day and night automatically. The hum is
-            generated live — no files, and it never plays unless the timer is running.
+            All eight scenes are live. Café, Library, Airport, and Forest shift
+            between day and night automatically. The hum is generated live and
+            only plays while the timer is running.
           </p>
         </div>
       </div>

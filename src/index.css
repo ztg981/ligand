@@ -1940,6 +1940,180 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   border-bottom: 5px solid oklch(0.48 0.07 248);
 }
 
+/* ---- Forest ------------------------------------------------ */
+.scene.forest {
+  background: linear-gradient(180deg,
+    oklch(0.72 0.10 150) 0%, oklch(0.58 0.11 152) 45%, oklch(0.42 0.10 155) 100%);
+}
+.scene.forest.night {
+  background: linear-gradient(180deg,
+    oklch(0.20 0.05 210) 0%, oklch(0.17 0.05 170) 50%, oklch(0.12 0.04 160) 100%);
+}
+/* Canopy leaf masses at the top */
+.forest-canopy {
+  position: absolute; top: 0; left: 0; right: 0; height: 46%;
+  background:
+    radial-gradient(50% 70% at 12% 0%, oklch(0.40 0.10 150 / 0.9), transparent 70%),
+    radial-gradient(55% 75% at 38% -8%, oklch(0.34 0.09 152 / 0.92), transparent 72%),
+    radial-gradient(50% 70% at 66% -4%, oklch(0.40 0.10 148 / 0.9), transparent 70%),
+    radial-gradient(55% 75% at 90% -8%, oklch(0.32 0.09 150 / 0.92), transparent 72%);
+}
+.scene.forest.night .forest-canopy {
+  background:
+    radial-gradient(50% 70% at 12% 0%, oklch(0.15 0.05 160 / 0.95), transparent 70%),
+    radial-gradient(55% 75% at 38% -8%, oklch(0.12 0.04 162 / 0.95), transparent 72%),
+    radial-gradient(50% 70% at 66% -4%, oklch(0.15 0.05 158 / 0.95), transparent 70%),
+    radial-gradient(55% 75% at 90% -8%, oklch(0.11 0.04 160 / 0.95), transparent 72%);
+}
+/* Light rays filtering through (day) */
+.forest-ray {
+  position: absolute; top: -10%; width: 56px; height: 92%;
+  background: linear-gradient(180deg, oklch(0.96 0.08 95 / 0.30), transparent 75%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  filter: blur(3px);
+  animation: forestRay 7s ease-in-out infinite;
+}
+.forest-ray.r1 { left: 18%; rotate: 8deg; animation-delay: 0s; }
+.forest-ray.r2 { left: 46%; rotate: 4deg; animation-delay: -2.5s; }
+.forest-ray.r3 { left: 70%; rotate: 10deg; animation-delay: -4s; }
+@keyframes forestRay { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+/* Tree trunks */
+.forest-trunk {
+  position: absolute; bottom: 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(90deg, oklch(0.26 0.05 50), oklch(0.34 0.06 52) 50%, oklch(0.22 0.04 48));
+}
+.scene.forest.night .forest-trunk {
+  background: linear-gradient(90deg, oklch(0.10 0.03 50), oklch(0.15 0.03 52) 50%, oklch(0.08 0.02 48));
+}
+.forest-trunk.t1 { left: 12%; width: 20px; height: 66%; }
+.forest-trunk.t2 { left: 47%; width: 14px; height: 54%; }
+.forest-trunk.t3 { right: 14%; width: 24px; height: 70%; }
+.forest-floor {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 14%;
+  background: linear-gradient(180deg, transparent, oklch(0.30 0.06 120 / 0.5));
+}
+.scene.forest.night .forest-floor {
+  background: linear-gradient(180deg, transparent, oklch(0.10 0.03 150 / 0.6));
+}
+/* Drifting leaves */
+.forest-leaf {
+  position: absolute; top: -6%;
+  background: oklch(0.55 0.12 130);
+  border-radius: 0 60% 0 60%;
+  opacity: 0.8;
+  animation: forestLeaf linear infinite;
+}
+.scene.forest.night .forest-leaf { background: oklch(0.30 0.07 150); opacity: 0.5; }
+@keyframes forestLeaf {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.85; }
+  100% { transform: translate(30px, 360px) rotate(220deg); opacity: 0; }
+}
+/* Birds drifting across (day) */
+.forest-bird { position: absolute; left: -8%; width: 16px; height: 8px; animation: forestBird linear infinite; }
+.forest-bird::before, .forest-bird::after {
+  content: ""; position: absolute; top: 0; width: 9px; height: 8px;
+  border-top: 1.6px solid oklch(0.28 0.03 250); border-radius: 50%;
+}
+.forest-bird::before { left: 0; transform: rotate(-18deg); }
+.forest-bird::after  { right: 0; transform: rotate(18deg); }
+@keyframes forestBird {
+  0%   { transform: translateX(0); opacity: 0; }
+  12%  { opacity: 0.65; }
+  88%  { opacity: 0.65; }
+  100% { transform: translateX(360px); opacity: 0; }
+}
+/* Fireflies (night) */
+.forest-firefly {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: oklch(0.92 0.16 110);
+  box-shadow: 0 0 8px 2px oklch(0.88 0.16 110 / 0.7);
+  animation: forestFirefly ease-in-out infinite;
+}
+@keyframes forestFirefly {
+  0%, 100% { opacity: 0; transform: translateY(0); }
+  50%      { opacity: 0.9; transform: translateY(-8px); }
+}
+
+/* ---- Fireplace --------------------------------------------- */
+.scene.fireplace {
+  background: radial-gradient(80% 60% at 50% 78%,
+    oklch(0.30 0.08 50) 0%, oklch(0.16 0.05 40) 45%, oklch(0.09 0.02 35) 100%);
+}
+.fire-glow {
+  position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
+  width: 78%; height: 70%;
+  background: radial-gradient(closest-side,
+    oklch(0.72 0.18 60 / 0.55), oklch(0.55 0.16 45 / 0.22) 55%, transparent 75%);
+  filter: blur(6px);
+  animation: fireGlow 3s ease-in-out infinite;
+}
+@keyframes fireGlow {
+  0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.06); }
+}
+.fire-hearth {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 66%; height: 30%;
+  background: linear-gradient(180deg, oklch(0.14 0.02 40), oklch(0.08 0.01 35));
+  border: 2px solid oklch(0.22 0.03 45); border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+.fire-logs {
+  position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
+  width: 50%; height: 13px; z-index: 3;
+  background: linear-gradient(180deg, oklch(0.30 0.05 45), oklch(0.18 0.03 40));
+  border-radius: 6px;
+  box-shadow: 0 4px 0 oklch(0.12 0.02 38);
+}
+.fire-cluster { position: absolute; left: 0; right: 0; bottom: 10%; height: 42%; z-index: 2; }
+.fire-flame {
+  position: absolute; bottom: 0;
+  background: linear-gradient(180deg,
+    oklch(0.96 0.10 95) 0%, oklch(0.82 0.20 70) 35%, oklch(0.62 0.22 40) 75%, oklch(0.45 0.18 30) 100%);
+  border-radius: 50% 50% 48% 48% / 70% 70% 32% 32%;
+  transform-origin: 50% 100%;
+  filter: blur(0.4px);
+  mix-blend-mode: screen;
+  animation: fireFlicker ease-in-out infinite;
+}
+@keyframes fireFlicker {
+  0%, 100% { transform: scaleY(1) scaleX(1) skewX(0deg); opacity: 0.92; }
+  25%      { transform: scaleY(1.12) scaleX(0.94) skewX(3deg); opacity: 1; }
+  50%      { transform: scaleY(0.9) scaleX(1.06) skewX(-2deg); opacity: 0.85; }
+  75%      { transform: scaleY(1.08) scaleX(0.96) skewX(2deg); opacity: 0.97; }
+}
+.fire-ember {
+  position: absolute; bottom: 16%; width: 3px; height: 3px; border-radius: 50%;
+  background: oklch(0.85 0.16 60);
+  box-shadow: 0 0 6px 1px oklch(0.80 0.18 55 / 0.8);
+  z-index: 3;
+  animation: fireEmber ease-in infinite;
+}
+@keyframes fireEmber {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%  { opacity: 0.9; }
+  100% { transform: translate(14px, -120px); opacity: 0; }
+}
+
+/* ---- Deep Focus -------------------------------------------- */
+.scene.void {
+  background: radial-gradient(circle at 50% 45%,
+    oklch(0.26 0.04 270) 0%, oklch(0.16 0.03 268) 45%, oklch(0.10 0.02 265) 100%);
+}
+.void-core {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 62%; height: 62%; border-radius: 50%;
+  background: radial-gradient(circle,
+    oklch(0.55 0.12 var(--accent-h, 250) / 0.35) 0%, transparent 68%);
+  filter: blur(8px);
+  animation: voidPulse 6s ease-in-out infinite;
+}
+@keyframes voidPulse {
+  0%, 100% { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.9); }
+  50%      { opacity: 0.85; transform: translate(-50%, -50%) scale(1.08); }
+}
+
 /* Honor the Settings "reduce motion" preference (also respects the OS setting). */
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
