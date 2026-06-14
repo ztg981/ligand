@@ -239,6 +239,29 @@ function AvatarMenu({
   );
 }
 
+/* Tiny cloud-sync status pill. Stays out of the way: nothing in guest mode
+   (idle) or once everything is saved (synced); a quiet "Syncing…" during a
+   push, and a clear "Offline" when the cloud can't be reached (data is still
+   safe in localStorage). */
+function SyncPill({ status }) {
+  if (status === "idle" || status === "synced") return null;
+  if (status === "offline") {
+    return (
+      <span className="sync-pill offline" title="Can't reach the cloud — your changes are saved on this device and will sync when you're back online.">
+        <span className="sync-dot" /> Offline
+      </span>
+    );
+  }
+  if (status === "syncing" || status === "loading") {
+    return (
+      <span className="sync-pill syncing" title="Saving to your account…">
+        <span className="sync-dot" /> Syncing…
+      </span>
+    );
+  }
+  return null;
+}
+
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
   { id: "productivity", label: "Productivity", icon: <Icon.Bolt /> },
@@ -340,6 +363,7 @@ export default function TopNav({
   accountEmail = null,
   onSignOut,
   onRequestAuth,
+  syncStatus = "idle",
 }) {
   const goalItems = goals.map((g) => ({
     id: g.id,
@@ -385,6 +409,7 @@ export default function TopNav({
       </div>
 
       <div className="topbar-tools">
+        <SyncPill status={syncStatus} />
         <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
           <Icon.Search />
         </button>

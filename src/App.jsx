@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { configure as configureUiSounds } from "./lib/uiSounds.js";
 import { useAuth } from "./hooks/useAuth.jsx";
+import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
 import AuthScreen from "./components/AuthScreen.jsx";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
@@ -36,6 +37,20 @@ export default function App() {
   useEffect(() => {
     if (session) setAuthRequested(false);
   }, [session]);
+
+  // --- cloud data sync (dormant in guest mode) -----------------------------
+  const {
+    status: syncStatus,
+    hydrating: syncHydrating,
+    needsMigration,
+    runMigration,
+  } = useSupabaseSync(session);
+
+  // PHASE 3 behavior: on first login with no cloud row, auto-import the
+  // existing local data. PHASE 4 replaces this with an explicit prompt.
+  useEffect(() => {
+    if (needsMigration) runMigration(true);
+  }, [needsMigration, runMigration]);
 
   const { tweaks, set } = useTweaks();
   const store = useStore();
@@ -372,13 +387,15 @@ export default function App() {
     }
   })();
 
-  // While Supabase resolves the initial session, show a brief loading veil so
-  // we don't flash the auth screen at someone who's already logged in.
-  if (authLoading) {
+  // While Supabase resolves the initial session — or fetches a logged-in
+  // user's cloud data — show a brief loading veil so we neither flash the auth
+  // screen at someone already logged in nor flash stale local data before the
+  // cloud copy arrives.
+  if (authLoading || syncHydrating) {
     return (
       <div className="app-loading">
         <div className="spinner" />
-        <div>Loading…</div>
+        <div>{syncHydrating ? "Syncing your data…" : "Loading…"}</div>
       </div>
     );
   }
@@ -428,6 +445,7 @@ export default function App() {
             await signOut();
           }}
           onRequestAuth={() => setAuthRequested(true)}
+          syncStatus={syncStatus}
         />
 
         {screen}

@@ -36,15 +36,47 @@ export function useLocalStorage(key, initialValue) {
 
   const [value, setValue] = useState(readValue);
 
-  // Persist on every change.
+  // Persist on every change. The `ligand:localwrite` event lets the optional
+  // Supabase sync layer notice changes and debounce a push to the cloud. It is
+  // inert in guest mode (nothing listens), so local-only behavior is unchanged.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
+      window.dispatchEvent(
+        new CustomEvent("ligand:localwrite", { detail: { key } })
+      );
     } catch (err) {
       console.warn(`useLocalStorage: could not write "${key}"`, err);
     }
   }, [key, value]);
+
+  // When the sync layer hydrates localStorage from the cloud, it fires a single
+  // `ligand:hydrate` event; every hook re-reads its own key so React state
+  // reflects the fetched data without a full page reload. Never fires in guest
+  // mode, so this is a no-op there.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onHydrate = () => {
+      try {
+        const raw = window.localStorage.getItem(key);
+        setValue((prev) => {
+          if (raw === null) return resolveInitial();
+          // Avoid a pointless re-render when nothing actually changed.
+          try {
+            if (JSON.stringify(prev) === raw) return prev;
+          } catch {
+            /* fall through to update */
+          }
+          return JSON.parse(raw);
+        });
+      } catch {
+        /* ignore malformed payload */
+      }
+    };
+    window.addEventListener("ligand:hydrate", onHydrate);
+    return () => window.removeEventListener("ligand:hydrate", onHydrate);
+  }, [key, resolveInitial]);
 
   // Reflect changes made in other tabs/windows.
   useEffect(() => {
