@@ -15,12 +15,14 @@ finish the job.
 - **The app still works exactly as before for guests** — verified in both the
   dev server and the production preview, zero console errors. Cloud features are
   100% dormant unless a user signs in, so nothing that worked before is at risk.
-- **Phases 3–5 logged-in behavior is UNVERIFIED.** I could not obtain a single
-  authenticated session in this environment (details below), and the database
-  table doesn't exist yet. The code is written and gated, but the cloud paths
-  have not been exercised end-to-end.
-- **You must do 2 things in the Supabase dashboard** (5 min total) to unblock
-  the rest — see **"What you need to do"** below.
+- **Phase 5 security check: PASSED (2026-06-14).** The table was created, email
+  confirmation turned off, and the full two-account isolation harness ran with
+  the anon key — **all six checks PASS**. Cross-user data isolation is proven
+  (see Phase 5 below).
+- **Still worth doing:** exercise the real logged-in flow in the UI (sign up →
+  migration prompt → add a goal → reload → second browser) to confirm the
+  fetch/hydrate/push cycle end-to-end. The data-layer guarantee is proven; this
+  just confirms the UI wiring around it.
 
 ---
 
@@ -117,26 +119,28 @@ with a real session (blocked — see below).
 forced; guest mode never shows it. **Not verified:** the actual import vs
 start-fresh outcome against a live row (blocked).
 
-### Phase 5 — Security verification ❗ BLOCKED (not run)
-**This is the most important check and it has NOT been performed.** Two hard
-blockers in this environment:
-1. `user_data` table doesn't exist yet (manual step #1).
-2. **No session could be created:** the project has **email confirmation ON**
-   and **anonymous sign-in OFF**. Signup creates the user but returns no session
-   (`confirmed_at: null`), and `signInWithPassword` returns **"Email not
-   confirmed."** So there is no way to get an authenticated client to test
-   user-to-user isolation from this environment.
+### Phase 5 — Security verification ✅ PASSED (2026-06-14)
+**The full isolation harness was run against the real table and all six checks
+PASSED.** The two earlier blockers were cleared: the `user_data` table was
+created via `schema.sql`, and email confirmation was turned OFF so real sessions
+could be obtained.
 
-I wrote a complete, copy-paste **verification harness** in
-[`supabase/verify-rls.md`](supabase/verify-rls.md). After the two manual steps,
-run it; it creates two accounts and asserts:
-- A reads only its own row; B reads only its own row.
-- **B cannot read A's row** (SELECT isolation).
-- **B cannot overwrite A's row** (UPDATE isolation).
-- A's data survives B's attempts; signed-out reads return nothing.
+Run with the **publishable/anon key** (the exact key the shipped app uses, so
+this reflects real production enforcement — not a privileged bypass):
 
-➡️ **Next session / you:** run that harness and confirm all six PASS. Until then,
-treat cross-user isolation as **unproven**.
+```
+✅ A can read its own row
+✅ B can read its own row
+✅ B CANNOT read A's row (RLS isolation)      — rows returned: 0
+✅ B CANNOT overwrite A's row                 — rows updated: 0
+✅ A's data still intact after B's attempts   — still ACCOUNT_A, not HIJACKED
+✅ Anonymous (signed-out) read returns nothing — rows: 0
+```
+
+Cross-user isolation is **proven**: SELECT and UPDATE are both locked to
+`auth.uid()`, A's data survived B's tamper attempts unchanged, and the anon key
+alone exposes no data. The reusable harness lives in
+[`supabase/verify-rls.md`](supabase/verify-rls.md) if you want to re-run it.
 
 ---
 
