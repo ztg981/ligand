@@ -50,8 +50,9 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, format }
         value={value}
         style={{ "--val": pct + "%" }}
         onChange={(e) => {
-          tick();
-          onChange && onChange(Number(e.target.value));
+          const num = Number(e.target.value);
+          tick((num - min) / (max - min)); // normalized 0–1 drives the dial pitch
+          onChange && onChange(num);
         }}
       />
       <span

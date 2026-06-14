@@ -174,21 +174,27 @@ export function useStore() {
   );
 
   // Forgiving check-in: toggles a day on/off, never records a miss.
+  // Ding only when a day is freshly checked ON (not when correcting it off).
   const checkInHabit = useCallback(
     (goalId, habitId, dayKey) =>
-      setData((d) => ({
-        ...d,
-        goals: d.goals.map((g) =>
+      setData((d) => {
+        let turnedOn = false;
+        const goals = d.goals.map((g) =>
           g.id !== goalId
             ? g
             : {
                 ...g,
-                habits: g.habits.map((h) =>
-                  h.id === habitId ? toggleCheckIn(h, dayKey) : h
-                ),
+                habits: g.habits.map((h) => {
+                  if (h.id !== habitId) return h;
+                  const wasOn = h.checkIns?.includes(dayKey);
+                  turnedOn = !wasOn;
+                  return toggleCheckIn(h, dayKey);
+                }),
               }
-        ),
-      })),
+        );
+        if (turnedOn) ding();
+        return { ...d, goals };
+      }),
     [setData]
   );
 
