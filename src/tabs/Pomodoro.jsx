@@ -401,7 +401,7 @@ function SceneContent({ themeId, themeName }) {
 /* ============================================================
    Main component
    ============================================================ */
-export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
+export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambientOverride = "none" }) {
   const pomo = usePomodoro({
     onPhaseEnd: ({ endedPhase }) => {
       // Sound and system notification fire independently: the chime is gated
@@ -416,17 +416,22 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
 
   const ambientOn = settings.ambientSound;
   const ambientVolume = settings.ambientVolume ?? 35;
+  // If the user has set a global ambient override in Settings > Wallpaper & sound,
+  // play that instead of the scene-default sound. "none" falls back to scene default.
+  const soundId = (ambientOverride && ambientOverride !== "none")
+    ? ambientOverride
+    : settings.theme;
 
   // Start/stop the per-scene ambient audio with the timer and mute toggle.
   // Uses real looping audio files from /public/sounds/ via ambientPlayer.
   useEffect(() => {
     if (pomo.running && ambientOn) {
-      playAmbient(settings.theme, ambientVolume / 100);
+      playAmbient(soundId, ambientVolume / 100);
     } else {
       stopAmbient();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pomo.running, ambientOn, settings.theme]);
+  }, [pomo.running, ambientOn, soundId]);
 
   // Live-update the volume level while a sound is playing.
   useEffect(() => {
@@ -616,8 +621,8 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
 
           <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
             All eight scenes are live. Café, Library, Airport, and Forest shift
-            between day and night automatically. The hum is generated live and
-            only plays while the timer is running.
+            between day and night automatically. Real CC0 audio loops per scene —
+            override the sound in Settings → Wallpaper &amp; sound.
           </p>
         </div>
       </div>

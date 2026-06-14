@@ -68,23 +68,19 @@ export function wallpaperById(id) {
   return WALLPAPERS.find((w) => w.id === id) || WALLPAPERS[0];
 }
 
-// Ambient sounds for focus. Still stubbed — no audio plays yet.
+// Ambient sound override options for the Settings panel.
+// When set to something other than "none", the Pomodoro timer uses
+// this sound instead of the scene-default sound.
+// All sounds are CC0/public-domain — see ambientPlayer.js for sources.
 export const SOUNDS = [
-  { id: "none", name: "None" },
-  { id: "rain", name: "Rain" },
-  { id: "waves", name: "Waves" },
-  { id: "cafe", name: "Café" },
-  { id: "forest", name: "Forest" },
-  { id: "brown", name: "Brown noise" },
+  { id: "none",      name: "Scene default" },
+  { id: "rain",      name: "Rain" },
+  { id: "waves",     name: "Ocean waves" },
+  { id: "cafe",      name: "Café" },
+  { id: "forest",    name: "Forest rain" },
+  { id: "fireplace", name: "Fireplace" },
+  { id: "stream",    name: "Hot tub / stream" },
+  { id: "wind",      name: "Wind" },
 ];
-
-// Placeholder: would start/stop an ambient loop at the given volume. No-op.
-export function playSound(/* id, volume */) {
-  // TODO(sound): stream/loop the selected ambient sound via Web Audio.
-}
-
-export function stopSound() {
-  // TODO(sound): stop any playing ambient loop.
-}
 
 export default { WALLPAPERS, wallpaperById, SOUNDS, playSound, stopSound };

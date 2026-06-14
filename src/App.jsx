@@ -247,6 +247,7 @@ export default function App() {
         return (
           <Pomodoro
             chimeEnabled={settings.notifications.pomodoroChime}
+            ambientOverride={settings.wallpaper?.sound ?? "none"}
             onPhaseComplete={({ endedPhase }) => {
               const wasFocus = endedPhase === PHASES.WORK;
               notif.push(

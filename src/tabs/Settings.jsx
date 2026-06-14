@@ -393,21 +393,17 @@ export default function Settings({
               Custom wallpapers (your own colors and images) are coming soon.
             </p>
           </div>
-          <Row name="Ambient sound">
-            <div className="row" style={{ gap: 8 }}>
-              <SoonTag />
-              <select
-                className="input"
-                value={wallpaper.sound}
-                onChange={(e) => setSection("wallpaper", { sound: e.target.value })}
-                style={{ maxWidth: 140 }}
-                disabled
-              >
-                {SOUNDS.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
+          <Row name="Ambient sound" hint="Override the scene's default sound during Pomodoro focus">
+            <select
+              className="input"
+              value={wallpaper.sound ?? "none"}
+              onChange={(e) => setSection("wallpaper", { sound: e.target.value })}
+              style={{ maxWidth: 160 }}
+            >
+              {SOUNDS.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </Row>
         </Section>
 

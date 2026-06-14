@@ -6,37 +6,45 @@
    the module; switching scenes cross-fades cleanly.
 
    File mapping (all CC0/public-domain):
-     airplane  → ambient-wind.ogg   (constant cabin-like wind)
-     cafe      → ambient-cafe.ogg   (coffee shop chatter, cups)
-     library   → ambient-rain.ogg   (gentle, quiet)
-     subway    → ambient-thunder.ogg (deep mechanical rumble)
-     airport   → ambient-wind.ogg   (terminal wind/bustle)
-     forest    → ambient-forest.ogg  (forest-rain ambience)
-     fireplace → ambient-fireplace.ogg (crackling fire)
-     void      → ambient-rain.ogg   (meditative dark rain)
-     — extra options —
+     airplane  → ambient-wind.ogg        (constant cabin-like wind)
+     cafe      → ambient-cafe.ogg        (coffee shop chatter, cups)
+     library   → ambient-rain.ogg        (gentle, quiet)
+     subway    → ambient-subway.mp3      (interior train station ambience)
+     airport   → ambient-airport.mp3     (small airport prop-plane ambience)
+     forest    → ambient-forest.ogg      (forest-rain ambience)
+     fireplace → ambient-fireplace.ogg   (crackling fire)
+     void      → ambient-rain.ogg        (meditative dark rain)
+     — standalone sound options —
      rain      → ambient-rain.ogg
-     stream    → ambient-stream.ogg  (flowing water / hot tub)
+     stream    → ambient-stream.ogg      (flowing water / hot tub)
+     waves     → ambient-waves.ogg       (ocean waves)
+     wind      → ambient-wind.ogg
 
    Sources:
    · fireplace, forest-rain, rain, stream, wind:
        github.com/Muges/ambientsounds (CC0)
    · cafe:
        archive.org/details/CoffeeShopVRec060 (CC0)
+   · subway (G17-32-Interior Train Station.mp3):
+       archive.org/details/GOLD_TAPE_16_17_18_Ambience (CC0 1.0)
+   · airport (G16-01-Small Airport Ambience.mp3):
+       archive.org/details/GOLD_TAPE_16_17_18_Ambience (CC0 1.0)
+   · waves: archive.org/details/Oceans1 (CC0 / public domain)
    ============================================================ */
 
 const SCENE_SOUND = {
   airplane:  "/sounds/ambient-wind.ogg",
   cafe:      "/sounds/ambient-cafe.ogg",
   library:   "/sounds/ambient-rain.ogg",
-  subway:    "/sounds/ambient-thunder.ogg",
-  airport:   "/sounds/ambient-wind.ogg",
+  subway:    "/sounds/ambient-subway.mp3",
+  airport:   "/sounds/ambient-airport.mp3",
   forest:    "/sounds/ambient-forest.ogg",
   fireplace: "/sounds/ambient-fireplace.ogg",
   void:      "/sounds/ambient-rain.ogg",
   // standalone extra options (not scene-id based)
   rain:      "/sounds/ambient-rain.ogg",
   stream:    "/sounds/ambient-stream.ogg",
+  waves:     "/sounds/ambient-waves.ogg",
   wind:      "/sounds/ambient-wind.ogg",
 };
 
