@@ -1184,7 +1184,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 /* table-ish task row */
 .taskrow {
   display: grid;
-  grid-template-columns: 22px 1fr auto auto auto;
+  grid-template-columns: 22px 1fr auto auto;
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
@@ -1211,6 +1211,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .taskrow.done .checkbox svg { width: 11px; height: 11px; }
 .taskrow.done .task-name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink-4); }
 .task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
 
 /* habit dots row */
@@ -2446,4 +2447,33 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   .goal-widget-editbar { gap: 8px; padding: 8px; }
   .goal-widget-editbar .btn.sm,
   .goal-widget-size-control button { min-height: 34px; }
+
+  /* Touch sizing for form controls across tabs. */
+  .input { height: 38px; font-size: 14px; }
+  .btn { height: 38px; }
+  .btn.sm { height: 32px; }
+  .seg button { height: 30px; }
+  .chip { min-height: 28px; }
+
+  /* Tasks — add bar wraps: text input on its own line, then label/term/add.
+     The children carry inline flex/width styles, so these need !important. */
+  .tasks-addbar { flex-wrap: wrap; }
+  .tasks-addbar > input.input { flex: 1 1 100% !important; }
+  .tasks-addbar > select.input { flex: 1 1 auto !important; width: auto !important; }
+  .tasks-addbar > .seg { flex: 1 1 auto !important; justify-content: center; }
+  .tasks-addbar > .btn.primary { flex: 1 1 auto !important; justify-content: center; }
+
+  /* Tasks — rows: checkbox + name + actions on the top line, chips below. */
+  .taskrow {
+    grid-template-columns: 22px 1fr auto;
+    grid-template-areas:
+      "check name  actions"
+      "chips chips chips";
+    gap: 6px 10px;
+  }
+  .taskrow > .checkbox { grid-area: check; }
+  .taskrow > .task-name,
+  .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
+  .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
+  .taskrow > .taskrow-actions { grid-area: actions; }
 }

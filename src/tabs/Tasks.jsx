@@ -131,7 +131,7 @@ export default function Tasks({
 
       {/* Add bar */}
       <div className="card" style={{ marginBottom: 14 }}>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row tasks-addbar" style={{ gap: 8 }}>
           <input
             className="input"
             placeholder="Add a task…"
@@ -277,27 +277,29 @@ export default function Tasks({
                 </span>
               )}
 
-              <span className="row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <LabelChip task={task} goals={goals} />
                 <TermChip term={taskTerm(task)} />
               </span>
 
-              <button
-                onClick={() => startEdit(task)}
-                title="Edit"
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
-              >
-                <Icon.Edit width={14} height={14} />
-              </button>
+              <span className="taskrow-actions">
+                <button
+                  onClick={() => startEdit(task)}
+                  title="Edit"
+                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
+                >
+                  <Icon.Edit width={14} height={14} />
+                </button>
 
-              <ConfirmButton
-                onConfirm={() => removeTask(task.id)}
-                requireConfirmation={confirmBeforeDelete}
-                title="Delete"
-                className=""
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
-                icon={<Icon.Trash width={14} height={14} />}
-              />
+                <ConfirmButton
+                  onConfirm={() => removeTask(task.id)}
+                  requireConfirmation={confirmBeforeDelete}
+                  title="Delete"
+                  className=""
+                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
+                  icon={<Icon.Trash width={14} height={14} />}
+                />
+              </span>
             </div>
           ))}
         </div>
