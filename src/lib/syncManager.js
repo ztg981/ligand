@@ -12,6 +12,9 @@
    completely untouched.
    ============================================================ */
 import { supabase } from "./supabaseClient.js";
+import { SEED_GOAL_IDS } from "./model.js";
+
+const SEED_GOAL_ID_SET = new Set(SEED_GOAL_IDS);
 
 // Device-local UI choice — NOT user data, so it never syncs.
 const GUEST_KEY = "ligand.guestMode";
@@ -39,9 +42,18 @@ export function collectLocalBlob() {
 
 /**
  * Has the user actually created something locally worth importing?
- * The fresh seed ships one built-in "productivity" goal and empty
- * lists, so we only count tasks / journal / count-ups, or goals that
- * go beyond that bare seed (custom goals, habits, or reflections).
+ *
+ * The fresh seed is NOT empty: it ships three sample goals (the built-in
+ * "Productivity" plus the "Side Hustles" and "College Planning" starters,
+ * which are type "custom") and one auto count-up. So we can't just check
+ * for "any custom goal" or "any count-up" — that's true on a pristine
+ * install and would pop the import prompt at every first sign-in.
+ *
+ * Instead we count only content that goes BEYOND the bare seed:
+ *   - any task or journal entry (the seed has none),
+ *   - more than the single seeded count-up,
+ *   - a goal the user added (id not in the seed set), or
+ *   - a seed goal they fleshed out with habits or reflections.
  * This decides whether the first-login import prompt is worth showing.
  */
 export function hasMeaningfulLocalData() {
@@ -59,11 +71,12 @@ export function hasMeaningfulLocalData() {
   const goals = Array.isArray(core.goals) ? core.goals : [];
   const richGoals = goals.some(
     (g) =>
-      g.type !== "built-in" ||
+      !SEED_GOAL_ID_SET.has(g.id) ||
       (Array.isArray(g.habits) && g.habits.length > 0) ||
       (Array.isArray(g.reflections) && g.reflections.length > 0)
   );
-  return tasks > 0 || journal > 0 || countUps > 0 || richGoals;
+  // The seed ships exactly one count-up, so only extras count as user data.
+  return tasks > 0 || journal > 0 || countUps > 1 || richGoals;
 }
 
 /**

@@ -19,10 +19,12 @@ finish the job.
   confirmation turned off, and the full two-account isolation harness ran with
   the anon key — **all six checks PASS**. Cross-user data isolation is proven
   (see Phase 5 below).
-- **Still worth doing:** exercise the real logged-in flow in the UI (sign up →
-  migration prompt → add a goal → reload → second browser) to confirm the
-  fetch/hydrate/push cycle end-to-end. The data-layer guarantee is proven; this
-  just confirms the UI wiring around it.
+- **End-to-end UI walkthrough: PASSED (2026-06-14).** Drove the full logged-in
+  flow in the browser — sign up, migration import & start-fresh, add-task sync,
+  reload-from-cloud, second-device, offline pill + recovery, and logout. All
+  green, zero console errors. Found and fixed one real bug along the way (the
+  migration prompt fired for brand-new users — see below). Details in the
+  "End-to-end UI walkthrough" section.
 
 ---
 
@@ -144,6 +146,53 @@ alone exposes no data. The reusable harness lives in
 
 ---
 
+## End-to-end UI walkthrough ✅ PASSED (2026-06-14)
+
+Drove the entire logged-in experience through the running app in the browser
+(not just the data layer). Every step verified against both localStorage and an
+independent cloud read. **Zero console errors** the whole way.
+
+| # | Scenario | Result |
+|---|----------|--------|
+| 1 | Pristine seed → sign up | **No** migration prompt; silent cloud row created with the seed blob (`ligand.guestMode` correctly excluded) |
+| 2 | Add a task while logged in | Debounced ~1.5s push; task appears in cloud, `updated_at` advances |
+| 3 | Delete task locally, then reload | Task **reappears** — proves load hydrates from cloud, not localStorage |
+| 4 | "Second device" (clear all local, sign in fresh) | Task arrives from cloud; no prompt (row exists); data follows the account |
+| 5 | New account + guest data → **Import** | Migration modal shows; both guest tasks pushed into the new account's row |
+| 6 | New account + guest data → **Start fresh** | Local resets to seed; **no guest tasks leak** into the new account's cloud row |
+| 7 | Sync pill | "Offline" shown on forced push failure (local write **not** lost); clears to synced on recovery and the queued write flushes up. "Synced" state is intentionally pill-less. |
+| 8 | Logout | Returns to auth screen (→ guest), session cleared, **guest local data preserved** |
+
+### Bug found & fixed during the walkthrough
+
+**The first-login migration prompt fired for every brand-new user**, even ones
+who'd created nothing. `hasMeaningfulLocalData()` was meant to suppress the
+prompt on a bare seed, but its checks didn't match the real seed:
+
+- `createGoal` defaults `type: "custom"`, so the seed's two starter goals
+  ("Side Hustles", "College Planning") tripped the "any custom goal" check.
+- The seed also ships **one** count-up, which tripped the "any count-up" check.
+
+Fix: the goal check now ignores the known seed goal ids (`SEED_GOAL_IDS`,
+exported from `model.js`) unless the user fleshed them out with habits or
+reflections, and only **extra** count-ups (beyond the seeded one) count. Tasks
+and journal entries still count as before. Result: a pristine install signs up
+silently (verified in scenario 1), while real user data still triggers the
+prompt (scenarios 5 & 6). Files: `src/lib/model.js`, `src/lib/syncManager.js`.
+
+### Notes / minor observations (not bugs)
+
+- **"Start fresh" cloud row holds the fresh seed, not a literal `{}`.** After
+  `runMigration(false)` clears local and pushes an empty blob, the
+  `useLocalStorage` hooks immediately re-seed defaults, and the next debounced
+  push sends that seed. Net effect matches what the user sees (a clean app), and
+  no prior guest data carries over — confirmed in scenario 6.
+- **"Multiple GoTrueClient instances" console warning during testing** comes
+  only from the verification harness spinning up a *second* Supabase client in
+  the same tab. The shipped app has a single client, so users never see it.
+
+---
+
 ## How the sync works (architecture)
 
 ```
@@ -164,9 +213,13 @@ the existing local model. Cloud wins on login; local writes flow up debounced.
 
 ## Notes / housekeeping
 
-- **Test users created during Phase 1 probing** (unconfirmed, harmless — delete
-  from Authentication → Users if you like):
-  `ligand.qa.alpha@gmail.com`, and a couple `ligand.qa.<timestamp>@gmail.com`.
+- **Test accounts created during verification** (all harmless — delete from
+  Authentication → Users, and their rows from the `user_data` table, if you like):
+  - Phase 1 probing: `ligand.qa.alpha@gmail.com`, a couple
+    `ligand.qa.<timestamp>@gmail.com`.
+  - Phase 5 RLS harness: `ligand.rls.a@gmail.com`, `ligand.rls.b@gmail.com`.
+  - UI walkthrough: `ligand.e2e.a.<ts>@gmail.com`, `ligand.e2e.b.<ts>@gmail.com`,
+    `ligand.e2e.c.<ts>@gmail.com` (all with password `TestPass123!`).
   `test1@example.com` was **rejected** by Supabase (it blocks `example.com`) —
   use real-domain emails (e.g. gmail) for test accounts.
 - **Bundle size:** adding supabase-js pushed the JS bundle to ~590 KB (gzip

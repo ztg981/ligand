@@ -161,6 +161,9 @@ export function daysSince(startDate, refKey = todayKey()) {
 // ---- seed ------------------------------------------------------
 // First-run data: the built-in Productivity goal plus two starter goals.
 // Stable ids keep the nav goal-pills consistent across reloads.
+// Exposed so the sync layer can tell pristine sample goals apart from
+// goals the user actually created (see hasMeaningfulLocalData).
+export const SEED_GOAL_IDS = ["productivity", "side-hustles", "college"];
 export function seedData() {
   const productivity = {
     ...createGoal({
