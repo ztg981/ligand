@@ -141,15 +141,18 @@ export function useStore() {
   );
 
   const toggleTask = useCallback(
-    (id) =>
-      setData((d) => {
-        const next = d.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
-        // Ding when a task is freshly completed (not un-completed)
-        const wasUndone = d.tasks.find((t) => t.id === id && !t.done);
-        if (wasUndone) ding();
-        return { ...d, tasks: next };
-      }),
-    [setData]
+    (id) => {
+      // Ding when a task is freshly completed (not un-completed). Decided from
+      // the current snapshot and fired OUTSIDE the updater — state updaters must
+      // stay pure (StrictMode invokes them twice, which double-fired the sound).
+      const wasUndone = data.tasks.some((t) => t.id === id && !t.done);
+      if (wasUndone) ding();
+      setData((d) => ({
+        ...d,
+        tasks: d.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      }));
+    },
+    [data.tasks, setData]
   );
 
   const removeTask = useCallback(
@@ -176,26 +179,30 @@ export function useStore() {
   // Forgiving check-in: toggles a day on/off, never records a miss.
   // Ding only when a day is freshly checked ON (not when correcting it off).
   const checkInHabit = useCallback(
-    (goalId, habitId, dayKey) =>
-      setData((d) => {
-        let turnedOn = false;
-        const goals = d.goals.map((g) =>
+    (goalId, habitId, dayKey) => {
+      // Ding only when a day is freshly checked ON. Decided from the current
+      // snapshot and fired OUTSIDE the updater — keeping the updater pure avoids
+      // the double-fire StrictMode caused by calling ding() inside it.
+      const habit = data.goals
+        .find((g) => g.id === goalId)
+        ?.habits.find((h) => h.id === habitId);
+      const turnedOn = habit ? !habit.checkIns?.includes(dayKey) : false;
+      if (turnedOn) ding();
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
           g.id !== goalId
             ? g
             : {
                 ...g,
-                habits: g.habits.map((h) => {
-                  if (h.id !== habitId) return h;
-                  const wasOn = h.checkIns?.includes(dayKey);
-                  turnedOn = !wasOn;
-                  return toggleCheckIn(h, dayKey);
-                }),
+                habits: g.habits.map((h) =>
+                  h.id !== habitId ? h : toggleCheckIn(h, dayKey)
+                ),
               }
-        );
-        if (turnedOn) ding();
-        return { ...d, goals };
-      }),
-    [setData]
+        ),
+      }));
+    },
+    [data.goals, setData]
   );
 
   const removeHabit = useCallback(
