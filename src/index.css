@@ -2430,4 +2430,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   /* Multi-column dashboards collapse to a single column. */
   .grid-12 { grid-template-columns: 1fr; }
   .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9, .col-12 { grid-column: 1 / -1; }
+
+  /* Page headers: let title + any action buttons wrap instead of colliding. */
+  .page-head { flex-wrap: wrap; align-items: flex-start; margin-bottom: 14px; }
+  .page-title { font-size: 22px; }
 }
