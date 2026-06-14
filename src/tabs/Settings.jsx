@@ -84,6 +84,8 @@ export default function Settings({
   confirmBeforeDelete = true,
   requestNotifyPermission,
   notifyPermission = "default",
+  customWallpaper = null,
+  setCustomWallpaper,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -312,7 +314,7 @@ export default function Settings({
         <Section
           icon={<Icon.Bell />}
           title="Notifications"
-          sub="Gentle nudges for finished focus blocks, overdue goals, urgent tasks, and welcome-backs. They also collect in the bell up top."
+          sub="Gentle nudges for focus blocks, overdue goals, urgent tasks, open habits, and daily check-ins. They also collect in the bell up top."
         >
           <Row
             name="Enable notifications"
@@ -346,14 +348,14 @@ export default function Settings({
               onChange={(v) => setSection("uiSounds", { enabled: v })}
             />
           </Row>
-          <Row name="Daily reminder" hint="A nudge at a set time each day">
-            <div className="row" style={{ gap: 8 }}>
-              <SoonTag />
-              <Switch
-                checked={notifications.dailyReminder}
-                onChange={(v) => setSection("notifications", { dailyReminder: v })}
-              />
-            </div>
+          <Row
+            name="Daily reminder"
+            hint="Nudges you when you open the app after the set time — not a background alarm"
+          >
+            <Switch
+              checked={notifications.dailyReminder}
+              onChange={(v) => setSection("notifications", { dailyReminder: v })}
+            />
           </Row>
           {notifications.dailyReminder && (
             <Row name="Reminder time">
@@ -389,9 +391,64 @@ export default function Settings({
                 </button>
               ))}
             </div>
-            <p className="set-note">
-              Custom wallpapers (your own colors and images) are coming soon.
-            </p>
+
+            {/* Custom photo upload */}
+            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {customWallpaper && (
+                <button
+                  className={"wp-tile " + (wallpaper.id === "custom" ? "active" : "")}
+                  style={{
+                    backgroundImage: `url(${customWallpaper})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    width: 80,
+                    flex: "none",
+                  }}
+                  onClick={() => setSection("wallpaper", { id: "custom" })}
+                  title="My photo"
+                >
+                  <span className="wp-name">My photo</span>
+                </button>
+              )}
+              <label className="btn ghost sm" style={{ cursor: "pointer" }}>
+                {customWallpaper ? "Replace photo" : "Upload a photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 1.5 * 1024 * 1024) {
+                      // Still allow it but warn — browser storage is typically 5–10 MB
+                      alert(
+                        `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
+                        "For best results use an image under 1.5 MB — large files may not " +
+                        "save reliably in browser storage. Try resizing or compressing it first."
+                      );
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setCustomWallpaper?.(ev.target.result);
+                      setSection("wallpaper", { id: "custom" });
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = ""; // allow re-picking same file
+                  }}
+                />
+              </label>
+              {customWallpaper && (
+                <button
+                  className="btn ghost sm"
+                  onClick={() => {
+                    setCustomWallpaper?.(null);
+                    if (wallpaper.id === "custom") setSection("wallpaper", { id: "none" });
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
           <Row name="Ambient sound" hint="Override the scene's default sound during Pomodoro focus">
             <select

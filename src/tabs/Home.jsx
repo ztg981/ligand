@@ -36,6 +36,7 @@ export default function Home({
   showEncouragement = true,
   tone = "warm",
   daysAway = 0,
+  weekVisits = 0,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -238,6 +239,32 @@ export default function Home({
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           <CountUp countUp={countUps && countUps[0]} />
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
+
+          {/* Visit streak stat — gentle, framed as "showing up" not performance */}
+          {weekVisits > 0 && (
+            <div className="card" style={{ textAlign: "center", padding: "14px 16px" }}>
+              <div
+                style={{
+                  fontSize: 30,
+                  fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  color: "var(--accent)",
+                  lineHeight: 1,
+                }}
+              >
+                {weekVisits}
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-2)", fontWeight: 500, marginTop: 4 }}>
+                {weekVisits === 7
+                  ? "every day this week"
+                  : `day${weekVisits > 1 ? "s" : ""} this week`}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3 }}>
+                showing up
+              </div>
+            </div>
+          )}
+
           <DidYouKnow />
         </div>
       </div>
