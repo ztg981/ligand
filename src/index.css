@@ -2448,8 +2448,11 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   .goal-widget-editbar .btn.sm,
   .goal-widget-size-control button { min-height: 34px; }
 
-  /* Touch sizing for form controls across tabs. */
-  .input { height: 38px; font-size: 14px; }
+  /* Touch sizing for form controls across tabs. Height only applies to
+     single-line inputs/selects — textareas keep their rows-based height. */
+  .input { font-size: 14px; }
+  input.input, select.input { height: 38px; }
+  textarea.input { min-height: 96px; }
   .btn { height: 38px; }
   .btn.sm { height: 32px; }
   .seg button { height: 30px; }
