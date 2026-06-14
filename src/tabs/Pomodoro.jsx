@@ -2,7 +2,12 @@ import { useEffect } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { chime, startAmbient, setAmbientVolume, stopAmbient } from "../lib/notifications.js";
+import { chime } from "../lib/notifications.js";
+import {
+  playAmbient,
+  stopAmbient,
+  setAmbientVolume,
+} from "../lib/ambientPlayer.js";
 
 /* ============================================================
    Pomodoro tab — immersive focus timer with CSS scene themes.
@@ -11,6 +16,20 @@ import { chime, startAmbient, setAmbientVolume, stopAmbient } from "../lib/notif
    day (6 am–8 pm) and night variants automatically. Subway is
    always underground — no day/night.
    ============================================================ */
+
+/* Real background photos (CC0/Pexels — bundled in /public/images/).
+   Each scene photo is loaded lazily as a CSS background-image so the
+   network cost is zero until the user opens the Pomodoro tab. */
+const SCENE_PHOTO = {
+  airplane:  "/images/scene-airplane.jpg",
+  cafe:      "/images/scene-cafe.jpg",
+  library:   "/images/scene-library.jpg",
+  subway:    "/images/scene-subway.jpg",
+  airport:   "/images/scene-airport.jpg",
+  forest:    "/images/scene-forest.jpg",
+  fireplace: "/images/scene-fireplace.jpg",
+  void:      "/images/scene-void.jpg",
+};
 
 const THEMES = [
   { id: "airplane", name: "Airplane",   ready: true,  swatch: "linear-gradient(180deg,#3a5bd0,#bfe0ff)" },
@@ -398,24 +417,24 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
   const ambientOn = settings.ambientSound;
   const ambientVolume = settings.ambientVolume ?? 35;
 
-  // Start/stop the ambient hum with the timer (and the mute toggle). It only
-  // ever sounds while a block is actively running.
+  // Start/stop the per-scene ambient audio with the timer and mute toggle.
+  // Uses real looping audio files from /public/sounds/ via ambientPlayer.
   useEffect(() => {
     if (pomo.running && ambientOn) {
-      startAmbient(ambientVolume / 100);
+      playAmbient(settings.theme, ambientVolume / 100);
     } else {
       stopAmbient();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pomo.running, ambientOn]);
+  }, [pomo.running, ambientOn, settings.theme]);
 
-  // Live-update the level while it's playing.
+  // Live-update the volume level while a sound is playing.
   useEffect(() => {
     if (pomo.running && ambientOn) setAmbientVolume(ambientVolume / 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ambientVolume]);
 
-  // Always silence the hum when leaving the Pomodoro tab.
+  // Always silence the audio when leaving the Pomodoro tab.
   useEffect(() => () => stopAmbient(), []);
 
   return (
@@ -432,8 +451,17 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
       </div>
 
       <div className="pomo-stage">
-        {/* The scene window */}
-        <div className="pomo-window">
+        {/* The scene window — real photo + CSS animations layered on top */}
+        <div
+          className="pomo-window"
+          style={SCENE_PHOTO[settings.theme] ? {
+            backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          } : undefined}
+        >
+          {/* Dark overlay so CSS animations + timer remain legible over photo */}
+          <div className="pomo-photo-veil" />
           <SceneContent themeId={settings.theme} themeName={theme.name} />
           <div className="pomo-center">
             <Ring
@@ -544,7 +572,10 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete }) {
               <button
                 key={t.id}
                 className={"theme-tile" + (settings.theme === t.id ? " active" : "")}
-                style={{ background: t.swatch }}
+                style={SCENE_PHOTO[t.id]
+                  ? { backgroundImage: `url(${SCENE_PHOTO[t.id]})`, backgroundSize: "cover", backgroundPosition: "center" }
+                  : { background: t.swatch }
+                }
                 onClick={() => setSettings({ theme: t.id })}
                 title={t.ready ? t.name : `${t.name} (coming soon)`}
               >
