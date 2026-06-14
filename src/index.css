@@ -2463,6 +2463,11 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   .tasks-addbar > .seg { flex: 1 1 auto !important; justify-content: center; }
   .tasks-addbar > .btn.primary { flex: 1 1 auto !important; justify-content: center; }
 
+  /* Pomodoro — taller window so the 210px timer ring has breathing room
+     and the scene photo frames better in a narrow viewport. */
+  .pomo-window { aspect-ratio: 4 / 3; }
+  .pomo-stage { gap: 14px; }
+
   /* Tasks — rows: checkbox + name + actions on the top line, chips below. */
   .taskrow {
     grid-template-columns: 22px 1fr auto;
