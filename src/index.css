@@ -652,6 +652,9 @@ button { font: inherit; color: inherit; }
   color: var(--ink-4);
   cursor: grab;
   border-radius: 6px;
+  /* Let dnd-kit's pointer sensor own touch gestures on the handle so a
+     drag starts instead of the browser scrolling the page. */
+  touch-action: none;
 }
 .goal-widget-grip:active {
   cursor: grabbing;
@@ -2434,4 +2437,13 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   /* Page headers: let title + any action buttons wrap instead of colliding. */
   .page-head { flex-wrap: wrap; align-items: flex-start; margin-bottom: 14px; }
   .page-title { font-size: 22px; }
+
+  /* Widget edit mode: bigger drag grip + tappable controls on touch. */
+  .goal-widget-grip {
+    width: 32px; height: 32px;
+    background: var(--panel-3);
+  }
+  .goal-widget-editbar { gap: 8px; padding: 8px; }
+  .goal-widget-editbar .btn.sm,
+  .goal-widget-size-control button { min-height: 34px; }
 }
