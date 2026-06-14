@@ -1,13 +1,15 @@
 /* ============================================================
-   Wallpaper catalog + ambient sound (sound still a placeholder).
+   Wallpaper catalog + ambient sound options.
    ------------------------------------------------------------
-   Wallpapers are real now: each one is a CSS gradient applied as the
-   app background, plus a `tone` (light | dark) that tells the UI which
-   token set keeps text readable on top of it. Applying the gradient and
-   tone is done in App; this module just holds the catalog + a lookup.
+   Wallpapers are CSS gradients applied as the app background.
+   Each has a `tone` (light | dark) so text stays readable on top.
+   Applying the gradient and tone is done in App; this module
+   just holds the catalog + a lookup.
 
-   Sound is intentionally still stubbed for this pass (no audio, no file
-   picking) — the catalog stays so the UI can show what's coming.
+   SOUNDS is the list of standalone ambient-sound options shown
+   in Settings > Wallpaper & sound. Actual playback is handled by
+   ambientPlayer.js; the Pomodoro reads the saved selection via
+   the `ambientOverride` prop.
    ============================================================ */
 
 // Each wallpaper: a gradient `bg` (used both for the picker swatch and the
@@ -83,4 +85,4 @@ export const SOUNDS = [
   { id: "wind",      name: "Wind" },
 ];
 
-export default { WALLPAPERS, wallpaperById, SOUNDS, playSound, stopSound };
+export default { WALLPAPERS, wallpaperById, SOUNDS };
