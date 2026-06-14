@@ -34,6 +34,9 @@ export const SETTINGS_DEFAULTS = {
     reduceMotion: false,
     confirmBeforeDelete: true,
   },
+  uiSounds: {
+    enabled: true, // subtle click/pop/ding feedback on interactions
+  },
 };
 
 // Deep-ish merge so newly added nested keys get defaults.

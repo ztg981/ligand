@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { configure as configureUiSounds } from "./lib/uiSounds.js";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
@@ -50,6 +51,11 @@ export default function App() {
     setLastVisit(todayKey());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the uiSounds module in sync with the setting.
+  useEffect(() => {
+    configureUiSounds({ enabled: settings.uiSounds?.enabled ?? true });
+  }, [settings.uiSounds?.enabled]);
 
   // Counts that drive the load-time notification triggers.
   const overdueGoals = useMemo(

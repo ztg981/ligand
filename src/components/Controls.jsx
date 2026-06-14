@@ -1,5 +1,6 @@
 /* Reusable tactile controls — ported from the Claude Design bundle (controls.jsx).
    These are the physical-feeling switches/sliders/segments the design calls for. */
+import { tick, pop } from "../lib/uiSounds.js";
 
 export function Switch({ checked, onChange }) {
   return (
@@ -7,7 +8,10 @@ export function Switch({ checked, onChange }) {
       className="tswitch"
       role="switch"
       aria-checked={checked}
-      onClick={() => onChange && onChange(!checked)}
+      onClick={() => {
+        pop();
+        onChange && onChange(!checked);
+      }}
     />
   );
 }
@@ -45,7 +49,10 @@ export function Slider({ value, min = 0, max = 100, step = 1, onChange, format }
         step={step}
         value={value}
         style={{ "--val": pct + "%" }}
-        onChange={(e) => onChange && onChange(Number(e.target.value))}
+        onChange={(e) => {
+          tick();
+          onChange && onChange(Number(e.target.value));
+        }}
       />
       <span
         className="mono"

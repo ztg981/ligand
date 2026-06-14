@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
+import { ding } from "../lib/uiSounds.js";
 import {
   seedData,
   createGoal,
@@ -141,10 +142,13 @@ export function useStore() {
 
   const toggleTask = useCallback(
     (id) =>
-      setData((d) => ({
-        ...d,
-        tasks: d.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-      })),
+      setData((d) => {
+        const next = d.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t));
+        // Ding when a task is freshly completed (not un-completed)
+        const wasUndone = d.tasks.find((t) => t.id === id && !t.done);
+        if (wasUndone) ding();
+        return { ...d, tasks: next };
+      }),
     [setData]
   );
 

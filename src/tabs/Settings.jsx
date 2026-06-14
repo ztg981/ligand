@@ -1,10 +1,33 @@
+import { useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { ACCENTS } from "../theme/useTweaks.js";
+import { ACCENTS, TWEAK_DEFAULTS } from "../theme/useTweaks.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+
+/* Built-in one-click appearance presets */
+const BUILT_IN_PRESETS = [
+  {
+    id: "calm",
+    name: "Calm",
+    desc: "Light · low glow · sage",
+    tweaks: { theme: "light", accent: 165, ambient: 25, radius: 16, density: "comfy" },
+  },
+  {
+    id: "focus",
+    name: "Focus",
+    desc: "Dark · minimal glow · blue",
+    tweaks: { theme: "dark", accent: 245, ambient: 15, radius: 8, density: "compact" },
+  },
+  {
+    id: "cozy",
+    name: "Cozy",
+    desc: "Light · warm glow · amber",
+    tweaks: { theme: "light", accent: 70, ambient: 65, radius: 18, density: "comfy" },
+  },
+];
 
 /* Settings — the full preferences screen.
    Mirrors the floating Tweaks (appearance), plus Pomodoro timings,
@@ -67,7 +90,23 @@ export default function Settings({
   const pomo = { ...POMO_DEFAULTS, ...pomoStored };
   const patchPomo = (patch) => setPomo((p) => ({ ...p, ...patch }));
 
-  const { notifications, habits, assistant, wallpaper, behavior, profile } = settings;
+  // User presets — stored separately so they survive a Settings reset.
+  const [userPresets, setUserPresets] = useLocalStorage("ligand.userPresets", []);
+  const [savingPresetName, setSavingPresetName] = useState("");
+  const [showSavePreset, setShowSavePreset] = useState(false);
+
+  const saveUserPreset = () => {
+    const name = savingPresetName.trim();
+    if (!name) return;
+    const preset = { id: `user-${Date.now()}`, name, tweaks: { ...tweaks } };
+    setUserPresets((prev) => [...prev, preset]);
+    setSavingPresetName("");
+    setShowSavePreset(false);
+  };
+  const deleteUserPreset = (id) =>
+    setUserPresets((prev) => prev.filter((p) => p.id !== id));
+
+  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {} } = settings;
 
   return (
     <>
@@ -148,6 +187,97 @@ export default function Settings({
               onChange={(v) => setSection("behavior", { reduceMotion: v })}
             />
           </Row>
+
+          {/* ── Presets ──────────────────────────────────────── */}
+          <div style={{ marginTop: 10 }}>
+            <div className="name" style={{ marginBottom: 8 }}>
+              Presets
+              <span style={{ fontSize: 11, color: "var(--ink-4)", marginLeft: 6 }}>
+                One click to apply a curated look
+              </span>
+            </div>
+            <div className="preset-row">
+              {BUILT_IN_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  className="preset-tile"
+                  onClick={() => setTweak(p.tweaks)}
+                  title={p.desc}
+                >
+                  <span className="preset-swatch" style={{
+                    background: p.id === "focus"
+                      ? "linear-gradient(135deg,#1b1d2a,#3a3d52)"
+                      : p.id === "calm"
+                        ? "linear-gradient(135deg,#e8f5ec,#c5e4cd)"
+                        : "linear-gradient(135deg,#fff3e0,#ffe0a3)",
+                  }} />
+                  <span className="preset-name">{p.name}</span>
+                  <span className="preset-desc">{p.desc}</span>
+                </button>
+              ))}
+              {userPresets.map((p) => (
+                <div key={p.id} className="preset-tile preset-user">
+                  <button
+                    style={{ flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
+                    onClick={() => setTweak(p.tweaks)}
+                  >
+                    <span className="preset-swatch" style={{ background: "var(--panel-2)" }} />
+                    <span className="preset-name">{p.name}</span>
+                    <span className="preset-desc">Your preset</span>
+                  </button>
+                  <button
+                    className="btn ghost sm"
+                    style={{ position: "absolute", top: 4, right: 4, padding: "2px 4px", minWidth: 0 }}
+                    onClick={() => deleteUserPreset(p.id)}
+                    title="Delete preset"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Save current as preset */}
+            {showSavePreset ? (
+              <div className="row" style={{ gap: 6, marginTop: 8 }}>
+                <input
+                  className="input"
+                  placeholder="Preset name…"
+                  value={savingPresetName}
+                  onChange={(e) => setSavingPresetName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveUserPreset(); if (e.key === "Escape") setShowSavePreset(false); }}
+                  autoFocus
+                  style={{ flex: 1, maxWidth: 180 }}
+                />
+                <button className="btn sm" onClick={saveUserPreset} disabled={!savingPresetName.trim()}>
+                  Save
+                </button>
+                <button className="btn ghost sm" onClick={() => setShowSavePreset(false)}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="btn ghost sm"
+                style={{ marginTop: 8 }}
+                onClick={() => setShowSavePreset(true)}
+              >
+                + Save current as preset
+              </button>
+            )}
+
+            {/* Reset tweaks to defaults */}
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+              <button
+                className="btn ghost sm"
+                onClick={() => {
+                  if (window.confirm("Reset appearance to defaults?")) {
+                    setTweak(TWEAK_DEFAULTS);
+                  }
+                }}
+              >
+                <Icon.Reset width={13} height={13} /> Reset to defaults
+              </button>
+            </div>
+          </div>
         </Section>
 
         {/* Focus timer */}
@@ -208,6 +338,12 @@ export default function Settings({
             <Switch
               checked={notifications.pomodoroChime}
               onChange={(v) => setSection("notifications", { pomodoroChime: v })}
+            />
+          </Row>
+          <Row name="UI sounds" hint="Subtle click/ding when toggling switches, moving sliders, completing tasks">
+            <Switch
+              checked={uiSounds.enabled ?? true}
+              onChange={(v) => setSection("uiSounds", { enabled: v })}
             />
           </Row>
           <Row name="Daily reminder" hint="A nudge at a set time each day">
@@ -374,6 +510,55 @@ export default function Settings({
               checked={behavior.confirmBeforeDelete}
               onChange={(v) => setSection("behavior", { confirmBeforeDelete: v })}
             />
+          </Row>
+          <Row name="Export data" hint="Download all your goals, tasks and journal as JSON">
+            <button
+              className="btn ghost sm"
+              onClick={() => {
+                const keys = ["ligand.data", "ligand.settings", "ligand.tweaks", "ligand.pomodoro", "ligand.userPresets"];
+                const dump = {};
+                keys.forEach((k) => {
+                  const v = localStorage.getItem(k);
+                  if (v) dump[k] = JSON.parse(v);
+                });
+                const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url; a.download = `ligand-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click(); URL.revokeObjectURL(url);
+              }}
+            >
+              ↓ Export
+            </button>
+          </Row>
+          <Row name="Import data" hint="Restore a previously exported JSON backup">
+            <label className="btn ghost sm" style={{ cursor: "pointer" }}>
+              ↑ Import
+              <input
+                type="file"
+                accept=".json,application/json"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    try {
+                      const data = JSON.parse(ev.target.result);
+                      if (!window.confirm("Import will overwrite your current data. Continue?")) return;
+                      Object.entries(data).forEach(([k, v]) =>
+                        localStorage.setItem(k, JSON.stringify(v))
+                      );
+                      window.location.reload();
+                    } catch {
+                      alert("Couldn't read the backup file — is it a valid Ligand JSON export?");
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = ""; // allow re-picking same file
+                }}
+              />
+            </label>
           </Row>
           <Row name="Reset preferences" hint="Theme, notifications, etc. — keeps your data">
             <button
