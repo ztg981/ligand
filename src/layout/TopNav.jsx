@@ -374,64 +374,85 @@ export default function TopNav({
   }));
 
   return (
-    <div className="topbar">
-      <div className="brand">
-        <span className="brand-dot" />
-        <span>Ligand</span>
+    <>
+      <div className="topbar">
+        <div className="brand">
+          <span className="brand-dot" />
+          <span className="brand-name">Ligand</span>
+        </div>
+
+        {/* Scrollable middle: main app tabs + goal tabs. This region can shrink
+           and scroll horizontally on narrow screens, so the brand (left) and the
+           tools group (right, with the avatar) are never pushed off-screen.
+           On phones the main app tabs move to a bottom tab bar, so only the goal
+           pills remain here. */}
+        <div className="topbar-scroll">
+          {/* Main app tabs (hidden on phone — see .bottom-nav) */}
+          <div className="topbar-main-tabs">
+            <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
+            {/* Divider between app tabs and goal tabs */}
+            <div className="tab-sep" />
+          </div>
+
+          {/* Goal tabs — active only when we're on the "goal" screen */}
+          <Tabset
+            variant="goals"
+            items={goalItems}
+            activeId={tab === "goal" ? activeGoal : null}
+            onSelect={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
+            onArchive={onArchiveGoal}
+            trailing={
+              <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
+                <Icon.Plus />
+              </button>
+            }
+          />
+        </div>
+
+        <div className="topbar-tools">
+          <SyncPill status={syncStatus} />
+          <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
+            <Icon.Search />
+          </button>
+          <NotificationBell
+            items={notifications}
+            unreadCount={unreadCount}
+            onOpen={onOpenNotifications}
+            onClear={onClearNotifications}
+          />
+          <button className="iconbtn" title="Toggle theme" onClick={toggleTheme}>
+            {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
+          </button>
+          <div className="topbar-tools-sep" />
+          <AvatarMenu
+            userName={userName}
+            onOpenSettings={onOpenSettings}
+            onClearData={onClearData}
+            accountEmail={accountEmail}
+            onSignOut={onSignOut}
+            onRequestAuth={onRequestAuth}
+          />
+        </div>
       </div>
 
-      {/* Scrollable middle: main app tabs + goal tabs. This region can shrink
-         and scroll horizontally on narrow screens, so the brand (left) and the
-         tools group (right, with the avatar) are never pushed off-screen. */}
-      <div className="topbar-scroll">
-        {/* Main app tabs */}
-        <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
-
-        {/* Divider between app tabs and goal tabs */}
-        <div className="tab-sep" />
-
-        {/* Goal tabs — active only when we're on the "goal" screen */}
-        <Tabset
-          variant="goals"
-          items={goalItems}
-          activeId={tab === "goal" ? activeGoal : null}
-          onSelect={(id) => {
-            setActiveGoal(id);
-            setTab("goal");
-          }}
-          onArchive={onArchiveGoal}
-          trailing={
-            <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
-              <Icon.Plus />
-            </button>
-          }
-        />
-      </div>
-
-      <div className="topbar-tools">
-        <SyncPill status={syncStatus} />
-        <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
-          <Icon.Search />
-        </button>
-        <NotificationBell
-          items={notifications}
-          unreadCount={unreadCount}
-          onOpen={onOpenNotifications}
-          onClear={onClearNotifications}
-        />
-        <button className="iconbtn" title="Toggle theme" onClick={toggleTheme}>
-          {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
-        </button>
-        <div style={{ width: 1, height: 20, background: "var(--line)", margin: "0 4px" }} />
-        <AvatarMenu
-          userName={userName}
-          onOpenSettings={onOpenSettings}
-          onClearData={onClearData}
-          accountEmail={accountEmail}
-          onSignOut={onSignOut}
-          onRequestAuth={onRequestAuth}
-        />
-      </div>
-    </div>
+      {/* Bottom tab bar — phone only (CSS-gated). Mirrors the 6 main tabs that
+         live in the top bar on larger screens, with big tappable targets. */}
+      <nav className="bottom-nav" aria-label="Main">
+        {TOOLS.map((it) => (
+          <button
+            key={it.id}
+            className={"bottom-nav-item " + (tab === it.id ? "active" : "")}
+            onClick={() => setTab(it.id)}
+            aria-current={tab === it.id ? "page" : undefined}
+          >
+            <span className="bottom-nav-ic">{it.icon}</span>
+            <span className="bottom-nav-label">{it.label}</span>
+          </button>
+        ))}
+      </nav>
+    </>
   );
 }

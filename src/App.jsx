@@ -465,19 +465,9 @@ export default function App() {
 
       {/* Floating Tweaks toggle */}
       <button
-        className="iconbtn"
+        className="iconbtn tweaks-fab"
         title="Tweaks"
         onClick={() => setShowTweaks((s) => !s)}
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          width: 44,
-          height: 44,
-          borderRadius: 12,
-          zIndex: 70,
-          boxShadow: "var(--shadow-pop)",
-        }}
       >
         <Icon.Wand />
       </button>
