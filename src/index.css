@@ -1356,31 +1356,31 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    ============================================================ */
 .pomo-stage { display: grid; gap: 18px; justify-items: center; }
 
-/* The focus "window" — an immersive scene framed like an airplane porthole:
-   a tall, heavily-rounded (near-oval) pane set into a cabin-coloured frame. */
+/* The focus "backdrop" — a large rounded-rectangle card that holds the
+   scene photo, with the timer ring + text sitting directly on top. */
 .pomo-window {
   position: relative;
   width: 100%;
-  max-width: 340px;
-  aspect-ratio: 5 / 7; /* portrait, like a real cabin window */
+  max-width: 620px;
+  aspect-ratio: 16 / 10; /* wide, immersive backdrop */
   margin: 0 auto;
-  /* asymmetric radius -> rounded-rectangle that reads as an oval window */
-  border-radius: 46% / 34%;
+  border-radius: 24px;
   overflow: hidden;
   background: #0a1230;
-  /* the cabin wall around the pane */
-  border: 14px solid var(--panel-2);
+  border: 1px solid var(--line);
   box-shadow:
     var(--shadow-pop),
-    0 0 0 1px var(--line),                 /* crisp outer edge of the frame */
-    inset 0 0 0 2px rgba(0, 0, 0, 0.18),   /* inner lip of the pane */
-    inset 0 10px 34px rgba(0, 0, 0, 0.34); /* recessed depth */
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04); /* faint inner edge for depth */
 }
 /* Semi-transparent veil over the real photo — keeps CSS scene
-   animations and the timer ring legible against any photo content. */
+   animations and the timer ring legible against any photo content.
+   A soft vignette + centre darken gives the ring/text a readable bed
+   over every scene, in both light and dark mode. */
 .pomo-photo-veil {
   position: absolute; inset: 0; z-index: 0;
-  background: rgba(0, 0, 0, 0.28);
+  background:
+    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(0, 0, 0, 0.42) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0.34) 100%);
   border-radius: inherit;
   pointer-events: none;
 }
