@@ -102,12 +102,22 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
 const AVATAR_BG =
   "linear-gradient(140deg, oklch(0.78 0.10 var(--accent-h)), oklch(0.65 0.12 var(--hue-lav)))";
 
-/* The profile avatar + dropdown: shows the user's name, a jump to Settings,
-   and a two-step "Clear all data" with inline confirmation. */
-function AvatarMenu({ userName = "You", onOpenSettings, onClearData }) {
+/* The profile avatar + dropdown: shows the user's name, account status
+   (signed-in email or local/guest), a jump to Settings, and a two-step
+   "Clear all data" with inline confirmation. */
+function AvatarMenu({
+  userName = "You",
+  onOpenSettings,
+  onClearData,
+  accountEmail = null,
+  onSignOut,
+  onRequestAuth,
+}) {
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const initial = ((userName || "").trim()[0] || "Y").toUpperCase();
+  const loggedIn = Boolean(accountEmail);
 
   const close = () => {
     setOpen(false);
@@ -141,7 +151,17 @@ function AvatarMenu({ userName = "You", onOpenSettings, onClearData }) {
               </span>
               <div style={{ minWidth: 0 }}>
                 <div className="avatar-pop-name">{userName || "You"}</div>
-                <div className="avatar-pop-sub">Local profile · this device</div>
+                <div
+                  className="avatar-pop-sub"
+                  title={loggedIn ? accountEmail : undefined}
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {loggedIn ? accountEmail : "Local profile · this device"}
+                </div>
               </div>
             </div>
 
@@ -154,6 +174,34 @@ function AvatarMenu({ userName = "You", onOpenSettings, onClearData }) {
             >
               <Icon.Gear /> Settings
             </button>
+
+            {loggedIn ? (
+              <button
+                className="avatar-menu-item"
+                disabled={signingOut}
+                onClick={async () => {
+                  setSigningOut(true);
+                  try {
+                    await onSignOut?.();
+                  } finally {
+                    setSigningOut(false);
+                    close();
+                  }
+                }}
+              >
+                <Icon.Arrow /> {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            ) : (
+              <button
+                className="avatar-menu-item"
+                onClick={() => {
+                  onRequestAuth?.();
+                  close();
+                }}
+              >
+                <Icon.Cloud /> Sign in or create account
+              </button>
+            )}
 
             {!confirming ? (
               <button
@@ -289,6 +337,9 @@ export default function TopNav({
   userName = "You",
   onOpenSettings,
   onClearData,
+  accountEmail = null,
+  onSignOut,
+  onRequestAuth,
 }) {
   const goalItems = goals.map((g) => ({
     id: g.id,
@@ -351,6 +402,9 @@ export default function TopNav({
           userName={userName}
           onOpenSettings={onOpenSettings}
           onClearData={onClearData}
+          accountEmail={accountEmail}
+          onSignOut={onSignOut}
+          onRequestAuth={onRequestAuth}
         />
       </div>
     </div>

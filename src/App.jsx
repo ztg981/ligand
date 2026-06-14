@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { configure as configureUiSounds } from "./lib/uiSounds.js";
+import { useAuth } from "./hooks/useAuth.jsx";
+import AuthScreen from "./components/AuthScreen.jsx";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
@@ -21,6 +23,20 @@ import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 
 export default function App() {
+  // --- auth (Supabase) ---------------------------------------------------
+  // Guest mode is the default and keeps the original local-only behavior.
+  // The auth screen only appears when there's no session AND the user hasn't
+  // chosen to continue as a guest (or has explicitly asked to sign in).
+  const { session, user, loading: authLoading, signOut } = useAuth();
+  const [guestMode, setGuestMode] = useLocalStorage("ligand.guestMode", false);
+  const [authRequested, setAuthRequested] = useState(false);
+  const showAuthScreen = !authLoading && !session && (!guestMode || authRequested);
+
+  // Once a session exists, drop any pending "open auth" request.
+  useEffect(() => {
+    if (session) setAuthRequested(false);
+  }, [session]);
+
   const { tweaks, set } = useTweaks();
   const store = useStore();
   const { settings, setSection, reset: resetSettings } = useSettings();
@@ -356,6 +372,29 @@ export default function App() {
     }
   })();
 
+  // While Supabase resolves the initial session, show a brief loading veil so
+  // we don't flash the auth screen at someone who's already logged in.
+  if (authLoading) {
+    return (
+      <div className="app-loading">
+        <div className="spinner" />
+        <div>Loading…</div>
+      </div>
+    );
+  }
+
+  // Not logged in and hasn't chosen guest mode → the sign-in / sign-up gate.
+  if (showAuthScreen) {
+    return (
+      <AuthScreen
+        onContinueAsGuest={() => {
+          setGuestMode(true);
+          setAuthRequested(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       <div className="ambient">
@@ -384,6 +423,11 @@ export default function App() {
           userName={settings.profile.name}
           onOpenSettings={() => setTab("settings")}
           onClearData={store.resetData}
+          accountEmail={user?.email ?? null}
+          onSignOut={async () => {
+            await signOut();
+          }}
+          onRequestAuth={() => setAuthRequested(true)}
         />
 
         {screen}
