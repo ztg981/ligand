@@ -37,21 +37,33 @@ export function collectLocalBlob() {
   return blob;
 }
 
-/** Does the user have any meaningful local data worth importing? */
-export function hasLocalData() {
-  const blob = collectLocalBlob();
-  // ligand.data holds goals/tasks/journal — the heart of "their data".
-  const core = blob["ligand.data"];
-  if (core && (
-    (Array.isArray(core.goals) && core.goals.length) ||
-    (Array.isArray(core.tasks) && core.tasks.length) ||
-    (Array.isArray(core.journal) && core.journal.length) ||
-    (Array.isArray(core.countUps) && core.countUps.length)
-  )) {
-    return true;
+/**
+ * Has the user actually created something locally worth importing?
+ * The fresh seed ships one built-in "productivity" goal and empty
+ * lists, so we only count tasks / journal / count-ups, or goals that
+ * go beyond that bare seed (custom goals, habits, or reflections).
+ * This decides whether the first-login import prompt is worth showing.
+ */
+export function hasMeaningfulLocalData() {
+  if (typeof window === "undefined") return false;
+  let core;
+  try {
+    core = JSON.parse(window.localStorage.getItem("ligand.data") || "null");
+  } catch {
+    return false;
   }
-  // Otherwise, any non-trivial synced keys at all.
-  return Object.keys(blob).length > 1;
+  if (!core) return false;
+  const tasks = Array.isArray(core.tasks) ? core.tasks.length : 0;
+  const journal = Array.isArray(core.journal) ? core.journal.length : 0;
+  const countUps = Array.isArray(core.countUps) ? core.countUps.length : 0;
+  const goals = Array.isArray(core.goals) ? core.goals : [];
+  const richGoals = goals.some(
+    (g) =>
+      g.type !== "built-in" ||
+      (Array.isArray(g.habits) && g.habits.length > 0) ||
+      (Array.isArray(g.reflections) && g.reflections.length > 0)
+  );
+  return tasks > 0 || journal > 0 || countUps > 0 || richGoals;
 }
 
 /**

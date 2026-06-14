@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { configure as configureUiSounds } from "./lib/uiSounds.js";
 import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
+import { hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
+import MigrationModal from "./components/MigrationModal.jsx";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
@@ -46,10 +48,20 @@ export default function App() {
     runMigration,
   } = useSupabaseSync(session);
 
-  // PHASE 3 behavior: on first login with no cloud row, auto-import the
-  // existing local data. PHASE 4 replaces this with an explicit prompt.
+  // First login with no cloud row yet. If there's meaningful local (guest)
+  // data, ask whether to import it (modal below). If there's nothing worth
+  // importing, just create the empty cloud row and move on — no prompt.
+  const [showMigrate, setShowMigrate] = useState(false);
   useEffect(() => {
-    if (needsMigration) runMigration(true);
+    if (!needsMigration) {
+      setShowMigrate(false);
+      return;
+    }
+    if (hasMeaningfulLocalData()) {
+      setShowMigrate(true);
+    } else {
+      runMigration(true); // nothing to lose — seed an empty row silently
+    }
   }, [needsMigration, runMigration]);
 
   const { tweaks, set } = useTweaks();
@@ -483,6 +495,13 @@ export default function App() {
         <SmartGoalModal
           onCreate={handleCreateGoal}
           onClose={() => setShowGoalModal(false)}
+        />
+      )}
+
+      {showMigrate && (
+        <MigrationModal
+          onImport={() => runMigration(true)}
+          onFresh={() => runMigration(false)}
         />
       )}
 
