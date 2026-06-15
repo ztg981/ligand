@@ -31,6 +31,7 @@ import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
 import CountUps from "../widgets/CountUps.jsx";
 import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
+import HabitHeatmap from "../widgets/HabitHeatmap.jsx";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { flashElement } from "../lib/scrollFlash.js";
@@ -605,6 +606,17 @@ const WIDGET_REGISTRY = {
     locked: false,
     render: ({ goal, widgetSize }) => <HabitStreakSummaryWidget goal={goal} widgetSize={widgetSize} />,
   },
+  habitHeatmap: {
+    type: "habitHeatmap",
+    title: "Habit heatmap",
+    sub: "A calm 12-week grid of each habit's check-ins.",
+    icon: <Icon.Flame />,
+    defaultSize: "wide",
+    allowedSizes: WIDGET_SIZE_VARIANTS,
+    preset: false,
+    locked: false,
+    render: ({ goal, widgetSize }) => <HabitHeatmap goal={goal} widgetSize={widgetSize} />,
+  },
   recentWins: {
     type: "recentWins",
     title: "Recent wins",
@@ -960,6 +972,7 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
         "deadlineTimeline",
         "upcomingDeadlines",
         "habitStreakSummary",
+        "habitHeatmap",
         "recentWins",
         "aiSummaryPlaceholder",
       ],
