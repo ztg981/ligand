@@ -10,6 +10,34 @@ finish the job.
 > (mobile, forgot-password, and three feature tasks) is logged in
 > **"Later sessions"** immediately below.
 
+## Phase 1 Feature Session (2026-06-14)
+
+### PWA and Offline Support
+- Added `vite-plugin-pwa` configured for `autoUpdate` to prevent stale caches
+- Generated missing PWA icons (`pwa-192x192.png`, `pwa-512x512.png`, etc.)
+- Injected strict PWA metadata (`manifest.webmanifest`, theme-color, apple-touch-icon) into `index.html`
+- Wired `virtual:pwa-register` into `App.jsx`
+- Re-purposed the red `<OfflineBanner />` to only show on explicit connection loss
+
+### Background Music
+- Implemented app-wide background music singleton (`bgMusicPlayer.js`) distinct from Pomodoro ambient sound
+- Reuses existing CC0 ambient sounds (rain, stream, waves, birds, wind)
+- Global volume/track controls added to `Settings.jsx`
+- Starts only on explicit user interaction, persists across tabs
+
+### Pomodoro Focus Mode
+- Added fullscreen "Focus Mode" overlay to Pomodoro timer
+- Hides all tabs and widgets, showing only the background photo and the timer ring
+- Small frosted-glass "Exit focus" button and Escape key support
+- Auto-exits cleanly when the timer is paused or stopped
+- Uses an accessible fade-in transition and respects `prefers-reduced-motion`
+
+### Goal Tab Reordering
+- Added `goalOrder` property to data store without migrating old user data
+- Compute `orderedActiveGoals` in `App.jsx` with fallback to natural order
+- Swapped rigid Goal Tab mapping to use `@dnd-kit/sortable`
+- Persists user drag-and-drop tab order to `store.data.goalOrder`
+
 ---
 
 ## Later sessions (post-Supabase)
