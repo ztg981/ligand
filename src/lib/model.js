@@ -85,6 +85,7 @@ export function createTask({
   label = "General",
   goalId = null,
   term = TASK_TERMS.SHORT,
+  repeat = null, // null | { type: "daily" } | { type: "weekly", weekday: 0-6 }
 } = {}) {
   return {
     id: uid("task"),
@@ -92,9 +93,41 @@ export function createTask({
     label,
     goalId,
     term,
+    repeat,
     done: false,
+    completedOn: null, // YYYY-MM-DD a recurring task was last completed
     createdAt: todayKey(),
   };
+}
+
+// ---- recurring tasks -------------------------------------------
+// A recurring task never disappears: when its next occurrence arrives it
+// quietly flips back to not-done. The "anchor" is the start of the current
+// occurrence (today for daily; the most recent matching weekday for weekly).
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function recurringAnchor(repeat, refKey = todayKey()) {
+  if (!repeat || repeat.type === "daily") return refKey;
+  if (repeat.type === "weekly") {
+    const dow = new Date(refKey + "T00:00:00").getDay();
+    const back = (dow - repeat.weekday + 7) % 7;
+    return shiftDay(refKey, -back);
+  }
+  return refKey;
+}
+
+// True when a completed recurring task has rolled into a new occurrence and
+// should reset to not-done.
+export function recurringResetDue(task, refKey = todayKey()) {
+  if (!task?.repeat || !task.done || !task.completedOn) return false;
+  return task.completedOn < recurringAnchor(task.repeat, refKey);
+}
+
+export function repeatLabel(repeat) {
+  if (!repeat) return null;
+  if (repeat.type === "daily") return "Repeats daily";
+  if (repeat.type === "weekly") return `Repeats every ${WEEKDAY_SHORT[repeat.weekday]}`;
+  return null;
 }
 
 // Forgiving habit: checkIns holds only completed days. Never a "miss".

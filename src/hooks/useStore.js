@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
 import { ding } from "../lib/uiSounds.js";
 import {
@@ -11,6 +11,7 @@ import {
   shiftDay,
   todayKey,
   toggleCheckIn,
+  recurringResetDue,
 } from "../lib/model.js";
 
 const STORAGE_KEY = "ligand.data";
@@ -25,6 +26,26 @@ const STORAGE_KEY = "ligand.data";
    ============================================================ */
 export function useStore() {
   const [data, setData] = useLocalStorage(STORAGE_KEY, seedData);
+
+  // Recurring tasks: on load (and when the tab regains focus, e.g. across a
+  // day boundary) reset any whose next occurrence has arrived back to not-done.
+  // The updater returns the same object when nothing changed, so this is inert
+  // (no re-render, no sync echo) on the common path.
+  useEffect(() => {
+    const runReset = () =>
+      setData((d) => {
+        if (!d.tasks || !d.tasks.some((t) => recurringResetDue(t))) return d;
+        return {
+          ...d,
+          tasks: d.tasks.map((t) =>
+            recurringResetDue(t) ? { ...t, done: false, completedOn: null } : t
+          ),
+        };
+      });
+    runReset();
+    window.addEventListener("focus", runReset);
+    return () => window.removeEventListener("focus", runReset);
+  }, [setData]);
 
   // -- goals -----------------------------------------------------
   const addGoal = useCallback(
@@ -149,7 +170,17 @@ export function useStore() {
       if (wasUndone) ding();
       setData((d) => ({
         ...d,
-        tasks: d.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+        tasks: d.tasks.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                done: !t.done,
+                // Record when a recurring task was completed so it can reset on
+                // its next occurrence; clear it when un-completing.
+                completedOn: !t.done ? todayKey() : null,
+              }
+            : t
+        ),
       }));
     },
     [data.tasks, setData]

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
-import { TASK_TERMS } from "../lib/model.js";
+import { TASK_TERMS, repeatLabel } from "../lib/model.js";
 import { flashElement } from "../lib/scrollFlash.js";
 
 /* ============================================================
@@ -51,6 +51,7 @@ export default function Tasks({
   const [text, setText] = useState("");
   const [pick, setPick] = useState("label:General"); // encodes label or goal
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
+  const [repeat, setRepeat] = useState("none"); // none | daily | weekly:0..6
 
   // --- filter state ---
   const [status, setStatus] = useState("active"); // all | active | done
@@ -69,15 +70,22 @@ export default function Tasks({
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
 
+  const parseRepeat = (v) => {
+    if (v === "daily") return { type: "daily" };
+    if (v.startsWith("weekly:")) return { type: "weekly", weekday: Number(v.slice(7)) };
+    return null;
+  };
+
   const submit = () => {
     const t = text.trim();
     if (!t) return;
+    const rep = parseRepeat(repeat);
     if (pick.startsWith("goal:")) {
       const id = pick.slice(5);
       const goal = goals.find((g) => g.id === id);
-      addTask({ text: t, label: goal ? goal.name : "General", goalId: id, term });
+      addTask({ text: t, label: goal ? goal.name : "General", goalId: id, term, repeat: rep });
     } else {
-      addTask({ text: t, label: pick.slice(6), term });
+      addTask({ text: t, label: pick.slice(6), term, repeat: rep });
     }
     setText("");
   };
@@ -175,6 +183,21 @@ export default function Tasks({
               Long
             </button>
           </div>
+          <select
+            className="input"
+            value={repeat}
+            onChange={(e) => setRepeat(e.target.value)}
+            title="Repeat this task"
+            style={{ width: "auto", flex: "none" }}
+          >
+            <option value="none">No repeat</option>
+            <option value="daily">Every day</option>
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+              <option key={d} value={`weekly:${i}`}>
+                Every {d}
+              </option>
+            ))}
+          </select>
           <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
             <Icon.Plus />
             Add
@@ -278,6 +301,18 @@ export default function Tasks({
               )}
 
               <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {task.repeat && (
+                  <span
+                    className="chip"
+                    title={repeatLabel(task.repeat)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                  >
+                    <Icon.Reset width={11} height={11} />
+                    {task.repeat.type === "daily"
+                      ? "Daily"
+                      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
+                  </span>
+                )}
                 <LabelChip task={task} goals={goals} />
                 <TermChip term={taskTerm(task)} />
               </span>
