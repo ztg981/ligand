@@ -1397,6 +1397,35 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    ============================================================ */
 .pomo-stage { display: grid; gap: 18px; justify-items: center; }
 
+/* Saved Pomodoro presets — quick-select chips. */
+.pomo-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.pomo-preset {
+  display: inline-flex; align-items: center;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel); box-shadow: var(--shadow-card);
+  overflow: hidden; transition: border-color 0.15s var(--ease);
+}
+.pomo-preset.active { border-color: transparent; box-shadow: 0 0 0 1.5px var(--accent); }
+.pomo-preset-apply {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  border: none; background: transparent; cursor: pointer;
+  padding: 5px 4px 5px 11px; color: var(--ink); font: inherit; font-size: 12px; font-weight: 500;
+}
+.pomo-preset.active .pomo-preset-name { color: var(--accent-ink, var(--accent)); }
+.pomo-preset-sub { font-size: 10.5px; color: var(--ink-4); font-family: var(--font-mono); }
+.pomo-preset-actions { display: inline-flex; align-items: center; padding-right: 4px; gap: 1px; }
+.pomo-preset-icon {
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; cursor: pointer; color: var(--ink-4); border-radius: 5px;
+}
+.pomo-preset-icon:hover { color: var(--ink); background: var(--panel-3); }
+.pomo-preset-add {
+  gap: 5px; padding: 6px 12px; cursor: pointer; color: var(--ink-2);
+  border-style: dashed; font-size: 12px; font-weight: 500;
+}
+.pomo-preset-add:hover { color: var(--ink); border-color: var(--accent); }
+.pomo-preset-input { width: 140px; height: 32px; flex: none; }
+
 /* The focus "backdrop" — a large rounded-rectangle card that holds the
    scene photo, with the timer ring + text sitting directly on top. */
 .pomo-window {

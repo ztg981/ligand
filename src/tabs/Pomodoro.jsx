@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
+import PomodoroPresets from "../components/PomodoroPresets.jsx";
 import { chime } from "../lib/notifications.js";
 import {
   playAmbient,
@@ -622,6 +623,7 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambient
               <Icon.Timer /> Session lengths
             </div>
           </div>
+          <PomodoroPresets settings={settings} onApply={(cfg) => setSettings(cfg)} />
           <div className="setting-row">
             <div className="name">Focus block</div>
             <div className="ctrl" style={{ minWidth: 180 }}>
