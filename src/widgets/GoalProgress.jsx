@@ -146,9 +146,19 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
           <div className="row between" style={{ marginBottom: 4 }}>
             <div className="row" style={{ gap: 6, color: "var(--accent)", fontWeight: 550, fontSize: 11.5 }}>
               <Icon.Spark width={14} height={14} /> AI Insight
+              {insight.source === "ai" && (
+                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }}>
+                  (AI-generated)
+                </span>
+              )}
               {insight.source === "fallback" && (
-                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }} title="Standard fallback text">
-                  (Fallback)
+                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }}>
+                  (Using fallback)
+                </span>
+              )}
+              {insight.source === "logged-out" && (
+                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }}>
+                  (Sign in for AI)
                 </span>
               )}
             </div>
@@ -163,7 +173,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
               {isRefreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
-          <div style={{ opacity: isRefreshing ? 0.5 : 1, transition: "opacity 0.2s" }}>
+          <div style={{ opacity: isRefreshing ? 0.5 : 1, transition: "opacity 0.2s", whiteSpace: "normal", wordWrap: "break-word" }}>
             {insight.text}
           </div>
         </div>

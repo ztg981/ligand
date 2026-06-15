@@ -21,6 +21,13 @@ function getFallback(action) {
   }
 }
 
+function isValidInsight(text) {
+  if (!text || typeof text !== "string") return false;
+  if (text.length < 20) return false;
+  if (text.trim().split(/\s+/).length < 5) return false;
+  return true;
+}
+
 export function clearAiCache(goalId, action) {
   try {
     window.localStorage.removeItem(getCacheKey(goalId, action));
@@ -35,7 +42,12 @@ export async function fetchAiInsight(goalId, action, context) {
     if (cachedRaw) {
       const cached = JSON.parse(cachedRaw);
       if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return { text: cached.result, source: "ai" };
+        if (isValidInsight(cached.result)) {
+          return { text: cached.result, source: "ai" };
+        } else {
+          // Clear bad cache
+          window.localStorage.removeItem(cacheKey);
+        }
       }
     }
   } catch (err) {
@@ -44,15 +56,15 @@ export async function fetchAiInsight(goalId, action, context) {
 
   // 2. Fast-fail silently if Supabase is not configured
   if (!isSupabaseConfigured || !supabase) {
-    return { text: getFallback(action), source: "fallback" };
+    return { text: getFallback(action), source: "logged-out" };
   }
 
   // 3. Fetch from Supabase Edge Function
   try {
-    // Fast-fail silently if not logged in (guest mode) to avoid unnecessary network request
+    // Fast-fail silently if not logged in (guest mode)
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session) {
-      return { text: getFallback(action), source: "fallback" };
+      return { text: getFallback(action), source: "logged-out" };
     }
 
     const { data, error } = await supabase.functions.invoke("gemini-insights", {
@@ -64,6 +76,9 @@ export async function fetchAiInsight(goalId, action, context) {
     }
 
     if (data?.result) {
+      if (!isValidInsight(data.result)) {
+        throw new Error("AI returned truncated or invalid text");
+      }
       // 4. Update Cache
       try {
         window.localStorage.setItem(
@@ -71,7 +86,7 @@ export async function fetchAiInsight(goalId, action, context) {
           JSON.stringify({ result: data.result, timestamp: Date.now() })
         );
       } catch (err) {
-        // ignore cache write errors (e.g. quota exceeded)
+        // ignore cache write errors
       }
       return { text: data.result, source: "ai" };
     }
