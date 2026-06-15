@@ -102,9 +102,10 @@ function OverdueGoalBanner({
   const [insight, setInsight] = useState(null);
 
   useEffect(() => {
+    if (!goal?.id) return;
     let active = true;
     const context = {
-      name: goal.name,
+      name: goal?.name,
       targetDate: target,
       activitySummary: `Past target date by ${daysBetween(target, todayKey())} days.`
     };
@@ -112,7 +113,7 @@ function OverdueGoalBanner({
       if (active) setInsight(res);
     }).catch(() => {});
     return () => { active = false; };
-  }, [goal.id, goal.name, target]);
+  }, [goal?.id, goal?.name, target]);
 
   if (!isGoalOverdue(goal)) return null;
 

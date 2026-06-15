@@ -43,6 +43,10 @@ finish the job.
   - The Gemini API key is never exposed in the frontend code or committed to Git.
   - The Edge Function reads the API key strictly from the Supabase environment secrets variable (`GEMINI_API_KEY`).
 
+### Hotfix (2026-06-15)
+- **Fix Goal Tab React Crash (Error #130)**: Resolved an issue where navigating to a goal tab caused a white-screen crash due to an undefined component (`<Icon.Sparkles />` instead of `<Icon.Spark />`) being rendered in `GoalProgress.jsx`.
+- Added defensive null guards and optional chaining across AI API calls in `GoalProgress.jsx`, `GoalTab.jsx`, and `Reflections.jsx` to prevent runtime crashes if goal or task payloads are incomplete.
+
 ---
 
 ## Phase 1 Feature Session (2026-06-14)

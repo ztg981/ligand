@@ -25,16 +25,17 @@ export default function Reflections({
   const [prompt, setPrompt] = useState(defaultPrompt);
 
   useEffect(() => {
+    if (!goal?.id) return;
     let active = true;
     const context = {
-      name: goal.name,
-      tasks: tasks.slice(-5).map(t => ({ text: t.text, done: t.done }))
+      name: goal?.name,
+      tasks: (tasks || []).slice(-5).map(t => ({ text: t?.text, done: t?.done }))
     };
     fetchAiInsight(goal.id, "journal-prompt", context).then(res => {
       if (active && res) setPrompt(res);
     }).catch(() => {});
     return () => { active = false; };
-  }, [goal.id, goal.name, tasks]);
+  }, [goal?.id, goal?.name, tasks]);
 
   const [text, setText] = useState("");
   const reflections = goal.reflections || [];

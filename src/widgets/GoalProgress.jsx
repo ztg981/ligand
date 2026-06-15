@@ -35,8 +35,8 @@ function Bar({ pct, color }) {
 
 export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekStartsMonday = false }) {
   const goalTasks = useMemo(
-    () => tasks.filter((t) => t.goalId === goal.id),
-    [tasks, goal.id]
+    () => (tasks || []).filter((t) => t?.goalId === goal?.id),
+    [tasks, goal?.id]
   );
   const done = goalTasks.filter((t) => t.done).length;
   const total = goalTasks.length;
@@ -57,12 +57,13 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
 
   const [insight, setInsight] = useState(null);
   useEffect(() => {
+    if (!goal?.id) return;
     let active = true;
     const context = {
-      name: goal.name,
-      targetDate: goal.targetDate,
-      tasks: goalTasks.slice(-5).map(t => ({ text: t.text, done: t.done })),
-      habits: (goal.habits || []).map(h => h.name)
+      name: goal?.name,
+      targetDate: goal?.targetDate,
+      tasks: (goalTasks || []).slice(-5).map(t => ({ text: t?.text, done: t?.done })),
+      habits: (goal?.habits || []).map(h => h?.name)
     };
     fetchAiInsight(goal.id, "goal-summary", context).then(res => {
       if (active) setInsight(res);
@@ -70,7 +71,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
       // Handled internally by gracefully falling back
     });
     return () => { active = false; };
-  }, [goal.id, goal.name, goal.targetDate, goalTasks, goal.habits]);
+  }, [goal?.id, goal?.name, goal?.targetDate, goalTasks, goal?.habits]);
 
   if (widgetSize === "compact") {
     return (
@@ -123,7 +124,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
       {insight && (
         <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--panel-3)", borderRadius: "var(--r-md)", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
           <div className="row" style={{ gap: 6, marginBottom: 4, color: "var(--accent)", fontWeight: 550, fontSize: 11.5 }}>
-            <Icon.Sparkles /> AI Insight
+            <Icon.Spark /> AI Insight
           </div>
           {insight}
         </div>
