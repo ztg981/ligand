@@ -10,6 +10,41 @@ finish the job.
 > (mobile, forgot-password, and three feature tasks) is logged in
 > **"Later sessions"** immediately below.
 
+## Phase 2 — Gemini AI Integration Session (2026-06-15)
+
+### Files Touched
+- `supabase/functions/gemini-insights/index.ts` (Edge Function using Gemini API)
+- `src/lib/aiApi.js` (Frontend AI api handler, caching layer, silent fallbacks)
+- `src/widgets/GoalProgress.jsx` (Goal Summary AI Widget integration)
+- `src/tabs/GoalTab.jsx` (Overdue Goal Review Advice integration)
+- `src/widgets/Reflections.jsx` (Journal/Reflection prompt generation)
+- `PROGRESS.md` (Updated logs)
+
+### Features Added
+1. **At-a-glance goal summary widget**: Brief summary plus one gentle next-step suggestion using the goal's context (tasks, habits, progress).
+2. **Overdue goal review advice**: Gentle 1-2 sentence recommendation on whether to revise, archive, or keep going for overdue goals.
+3. **Journal prompt**: One contextual reflection prompt based on current goal context (recent tasks and activities).
+
+### Build & Verification Results
+- **Build Status**: Built successfully (`npm run build`) in 977ms with zero errors.
+- **Preview Server**: Verified working locally on `http://localhost:4175/` with `npm run preview`.
+- **Function Naming**: Verified that the frontend invokes the exact Edge Function name: `gemini-insights`.
+- **Git Cleanliness**: Run `git status` confirmed no temporary planning files (`implementation_plan.md`, `task.md`, `walkthrough.md`) or local environment variables (`.env.local`) are committed.
+- **AI Fallback Behavior**:
+  - The app remains completely functional when the Edge Function is not deployed or when the Gemini API key is missing.
+  - Guest mode degrades gracefully without breaking.
+  - Silent fallbacks are rendered instead of scary errors.
+  - The browser console is kept clean of spammy expected errors when logged out or when Supabase is not configured.
+- **Cache Behavior**:
+  - AI results are cached for 24 hours using `window.localStorage` (keys: `ligand.aiCache.[goalId].[action]`).
+  - Cache key names are stable and unique.
+  - Caching works seamlessly in localStorage for guest and logged-in mode without database schema or RLS policy changes.
+- **Security**:
+  - The Gemini API key is never exposed in the frontend code or committed to Git.
+  - The Edge Function reads the API key strictly from the Supabase environment secrets variable (`GEMINI_API_KEY`).
+
+---
+
 ## Phase 1 Feature Session (2026-06-14)
 
 ### PWA and Offline Support
