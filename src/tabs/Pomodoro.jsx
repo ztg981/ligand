@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
@@ -404,15 +404,22 @@ function SceneContent({ themeId, themeName }) {
 export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambientOverride = "none" }) {
   const pomo = usePomodoro({
     onPhaseEnd: ({ endedPhase }) => {
-      // Sound and system notification fire independently: the chime is gated
-      // by its own setting, the notification by the master toggle (handled by
-      // the caller). Either, both, or neither may be active.
       if (chimeEnabled) chime();
       onPhaseComplete?.({ endedPhase });
     },
   });
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
+
+  // Focus mode: hides all surrounding UI, leaving only the scene + timer.
+  // Only toggleable from within; exits cleanly on either the button or when
+  // the timer is paused/stopped.
+  const [focusMode, setFocusMode] = useState(false);
+
+  // Auto-exit focus mode if the timer stops.
+  useEffect(() => {
+    if (!pomo.running && focusMode) setFocusMode(false);
+  }, [pomo.running, focusMode]);
 
   const ambientOn = settings.ambientSound;
   const ambientVolume = settings.ambientVolume ?? 35;
@@ -442,8 +449,80 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambient
   // Always silence the audio when leaving the Pomodoro tab.
   useEffect(() => () => stopAmbient(), []);
 
+  // Escape key exits focus mode — never trap the user.
+  useEffect(() => {
+    if (!focusMode) return;
+    const onKey = (e) => { if (e.key === "Escape") setFocusMode(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode]);
+
   return (
     <>
+      {/* ── Focus mode overlay ──────────────────────────────────────────
+          Fixed fullscreen layer that hides all surrounding UI.
+          Only shown when focusMode is true. Auto-exits when timer stops.
+          ──────────────────────────────────────────────────────────────── */}
+      {focusMode && (
+        <div
+          className="pomo-focus-overlay"
+          aria-label="Focus mode — press Escape or click Exit to leave"
+        >
+          {/* Exit button — always visible, small, top-right */}
+          <button
+            className="pomo-focus-exit"
+            onClick={() => setFocusMode(false)}
+            title="Exit focus mode"
+            aria-label="Exit focus mode"
+          >
+            <Icon.Close /> <span>Exit focus</span>
+          </button>
+
+          {/* Scene window — expanded */}
+          <div
+            className="pomo-focus-window"
+            style={SCENE_PHOTO[settings.theme] ? {
+              backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : undefined}
+          >
+            <div className="pomo-photo-veil" />
+            <SceneContent themeId={settings.theme} themeName={theme.name} />
+
+            {/* Timer ring — centred */}
+            <div className="pomo-focus-center">
+              <Ring
+                size={240}
+                strokeWidth={8}
+                value={pomo.progress}
+                color="#fff"
+                label={mmss(pomo.remaining)}
+                sub={PHASE_LABEL[pomo.phase]}
+              />
+              {/* Minimal transport controls */}
+              <div className="pomo-focus-controls">
+                {pomo.running ? (
+                  <button className="btn" onClick={pomo.pause}>
+                    <Icon.Pause /> Pause
+                  </button>
+                ) : (
+                  <button className="btn primary" onClick={pomo.start}>
+                    <Icon.Play /> Start
+                  </button>
+                )}
+                <button className="btn ghost" onClick={pomo.reset} title="Reset">
+                  <Icon.Reset />
+                </button>
+                <button className="btn ghost" onClick={pomo.skip} title="Skip">
+                  <Icon.Arrow />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="page-head">
         <div>
           <div className="eyebrow">Focus</div>
@@ -453,6 +532,17 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambient
             it one stretch at a time — breaks are part of the work.
           </p>
         </div>
+        {/* Focus mode toggle — only shown when a session is running */}
+        {pomo.running && !focusMode && (
+          <button
+            className="btn ghost"
+            onClick={() => setFocusMode(true)}
+            title="Enter focus mode (fullscreen)"
+            style={{ alignSelf: "center" }}
+          >
+            <Icon.Sun /> Focus mode
+          </button>
+        )}
       </div>
 
       <div className="pomo-stage">

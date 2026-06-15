@@ -1410,6 +1410,72 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .pomo-window .scene { position: absolute; inset: 0; z-index: 1; }
 .pomo-center { z-index: 2; }
 
+/* ──── Pomodoro Focus Mode overlay ──────────────────────────────────────
+   A fixed fullscreen layer that hides all surrounding UI.
+   Fades in softly; respects prefers-reduced-motion.
+   ─────────────────────────────────────────────────────────────────────── */
+.pomo-focus-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  animation: pomoFocusFadeIn 0.35s ease forwards;
+}
+[data-reduce-motion="true"] .pomo-focus-overlay { animation: none; }
+
+@keyframes pomoFocusFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* The exit button — small, semi-transparent, top-right corner */
+.pomo-focus-exit {
+  position: absolute; top: 18px; right: 18px; z-index: 10;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 12px;
+  background: rgba(0, 0, 0, 0.38); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff; border-radius: 20px;
+  font-size: 12px; font-weight: 550; cursor: pointer;
+  transition: background 0.18s;
+}
+.pomo-focus-exit:hover { background: rgba(0, 0, 0, 0.60); }
+.pomo-focus-exit svg { width: 13px; height: 13px; }
+
+/* The expanded scene window that fills the whole overlay */
+.pomo-focus-window {
+  position: absolute; inset: 0;
+  background: #0a1230;
+  display: flex; align-items: center; justify-content: center;
+}
+.pomo-focus-window .scene { position: absolute; inset: 0; z-index: 1; }
+
+/* Centred timer + controls within the overlay */
+.pomo-focus-center {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 24px;
+}
+.pomo-focus-controls {
+  display: flex; gap: 10px; align-items: center;
+}
+/* Ghost buttons in focus overlay get white-ish tint for legibility */
+.pomo-focus-controls .btn {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.pomo-focus-controls .btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.pomo-focus-controls .btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* Phone: slightly smaller ring, adjust spacing */
+@media (max-width: 640px) {
+  .pomo-focus-exit { top: 12px; right: 12px; }
+}
+
 /* Airplane — the one fully-rendered theme: a daytime sky out the window. */
 .scene.airplane {
   background:
