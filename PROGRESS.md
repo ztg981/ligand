@@ -6,6 +6,44 @@ This document is the source of truth for what landed, what's verified, what's
 **not** verified, and the **two manual Supabase dashboard steps** you must do to
 finish the job.
 
+> The Supabase auth/sync content below is from the original session. Newer work
+> (mobile, forgot-password, and three feature tasks) is logged in
+> **"Later sessions"** immediately below.
+
+---
+
+## Later sessions (post-Supabase)
+
+### Mobile / responsive layout (verified 375 / 768 / 1280, light + dark)
+- Phone (≤640px): the 6 main tabs move to a fixed **bottom tab bar**; the top
+  bar slims to brand-dot + scrollable goal pills + tools. Tablet/desktop keep
+  the original pill nav.
+- Single-column collapse for Home, goal widgets, Journal; Tasks add-bar and rows
+  reflow; Pomodoro window switches to 4/3 so the timer ring has room; touch
+  sizing for inputs/buttons; goal-widget drag grip is touch-draggable.
+
+### Forgot-password flow
+- "Forgot password?" on sign-in → `resetPasswordForEmail` (verified the call
+  succeeds). A `SetNewPassword` screen shows on the `PASSWORD_RECOVERY` event
+  (verified render + validation via a temporary forced flag, reverted).
+- Note: for the reset email to deliver in production, add the app origin to
+  Supabase → Authentication → URL Configuration (Site URL / redirect allowlist).
+
+### Feature tasks (verified dev + prod preview, light/dark/auto, mobile)
+1. **Auto theme** — Light/Dark/**Auto** in Tweaks + Settings. Auto follows
+   `prefers-color-scheme` live (matchMedia listener, updates without reload). A
+   wallpaper's tone still overrides; Auto only applies with no wallpaper.
+   Presets stay explicit Light/Dark; reset keeps the Light default.
+2. **Wallpaper gallery** — up to 5 custom photos in `ligand.customWallpapers`
+   (migrated from the old single key), selected via `wallpaper.customId`.
+   Settings shows built-ins + customs in one grid with thumbnails + remove (×)
+   and an upload tile. Kept the ~1.5 MB per-image warning; added a hard ~4 MB
+   combined cap (blocks the add) since wallpapers sync to the cloud.
+3. **Upcoming dates widget** — cross-goal list of goal target dates, soonest
+   first, overdue floated up with a gentle "Review" chip (no harsh red). Added
+   to the goal-tab widget picker (threads all goals + onOpenGoal via context)
+   and as a card on Home. Goals with no target date are omitted.
+
 ---
 
 ## TL;DR
