@@ -91,6 +91,19 @@ export default function App() {
   const activeGoals = goals.filter((g) => g.status !== "archived");
   const archivedGoals = goals.filter((g) => g.status === "archived");
 
+  // Reorder active goals based on the stored goalOrder array.
+  // Any goals not listed in goalOrder (e.g. newly created ones) fall back to the end
+  // in their natural array order.
+  const orderedActiveGoals = useMemo(() => {
+    const orderMap = new Map((store.data?.goalOrder || []).map((id, i) => [id, i]));
+    return [...activeGoals].sort((a, b) => {
+      const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
+      const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
+      if (idxA !== idxB) return idxA - idxB;
+      return 0; // maintain natural order for ties (unlisted items)
+    });
+  }, [activeGoals, store.data?.goalOrder]);
+
   // --- gentle re-entry detection (centralised here so the value is captured
   // before anything overwrites it; passed down to Home for its banner) ---
   const [lastVisit, setLastVisit] = useLocalStorage("ligand.lastVisit", null);
@@ -532,7 +545,8 @@ export default function App() {
         <TopNav
           tab={tab}
           setTab={setTab}
-          goals={activeGoals}
+          goals={orderedActiveGoals}
+          setGoalOrder={store.setGoalOrder}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
           onAddGoal={() => setShowGoalModal(true)}

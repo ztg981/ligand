@@ -298,6 +298,16 @@ export function useStore() {
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
+  // -- goal order (display only, does not affect goal IDs/data) ---
+  // goalOrder is an array of goal IDs in the desired display order.
+  // If absent or incomplete (old users), the natural goals array order
+  // is used as the default — no migration needed.
+  const setGoalOrder = useCallback(
+    (ids) =>
+      setData((d) => ({ ...d, goalOrder: ids })),
+    [setData]
+  );
+
   const actions = useMemo(
     () => ({
       addGoal,
@@ -322,6 +332,7 @@ export function useStore() {
       updateCountUp,
       removeCountUp,
       resetData,
+      setGoalOrder,
     }),
     [
       addGoal,
@@ -346,6 +357,7 @@ export function useStore() {
       updateCountUp,
       removeCountUp,
       resetData,
+      setGoalOrder,
     ]
   );
 

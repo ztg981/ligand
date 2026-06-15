@@ -1,5 +1,19 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, useMemo } from "react";
 import { Icon } from "../components/Icons.jsx";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Per-type icon for the notification feed.
 const NOTIF_ICON = {
@@ -273,8 +287,74 @@ const TOOLS = [
 
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
-   element to it, so the highlight glides instead of snapping. */
-function Tabset({ items, activeId, onSelect, variant, trailing, onArchive }) {
+   element to it, so the highlight glides instead of snapping. 
+   When `sortable` is true, items are wrapped in @dnd-kit useSortable. */
+function Tab({ it, activeId, onSelect, onArchive, sortable }) {
+  const isActive = activeId === it.id;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: it.id, disabled: !sortable });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <button
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={"tab " + (isActive ? "active" : "")}
+      // Only call onSelect if we are not dragging. Note: on pointer down,
+      // listeners handles the drag. onClick handles the selection.
+      onClick={() => onSelect(it.id)}
+      title={it.label}
+    >
+      {it.dot ? (
+        <span
+          className="dot"
+          style={{ background: it.dot, boxShadow: `0 0 6px ${it.dot}aa` }}
+        />
+      ) : (
+        it.icon
+      )}
+      {it.label}
+      {onArchive && it.deletable && (
+        <span
+          className="tab-x"
+          role="button"
+          tabIndex={0}
+          title={`Archive ${it.label}`}
+          onPointerDown={(e) => e.stopPropagation()} // Prevent drag start when clicking X
+          onClick={(e) => {
+            e.stopPropagation();
+            onArchive(it.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              onArchive(it.id);
+            }
+          }}
+        >
+          <Icon.Close />
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Tabset({ items, activeId, onSelect, variant, trailing, onArchive, sortable }) {
   const btnRefs = useRef({});
   const [ind, setInd] = useState({ x: 0, w: 0, visible: false });
 
@@ -298,45 +378,33 @@ function Tabset({ items, activeId, onSelect, variant, trailing, onArchive }) {
           opacity: ind.visible ? 1 : 0,
         }}
       />
-      {items.map((it) => (
-        <button
-          key={it.id}
-          ref={(el) => (btnRefs.current[it.id] = el)}
-          className={"tab " + (activeId === it.id ? "active" : "")}
-          onClick={() => onSelect(it.id)}
-          title={it.label}
-        >
-          {it.dot ? (
-            <span
-              className="dot"
-              style={{ background: it.dot, boxShadow: `0 0 6px ${it.dot}aa` }}
+      {sortable ? (
+        <SortableContext items={items.map(it => it.id)} strategy={horizontalListSortingStrategy}>
+          {items.map((it) => (
+            <div key={it.id} ref={(el) => (btnRefs.current[it.id] = el)}>
+              <Tab
+                it={it}
+                activeId={activeId}
+                onSelect={onSelect}
+                onArchive={onArchive}
+                sortable={true}
+              />
+            </div>
+          ))}
+        </SortableContext>
+      ) : (
+        items.map((it) => (
+          <div key={it.id} ref={(el) => (btnRefs.current[it.id] = el)}>
+            <Tab
+              it={it}
+              activeId={activeId}
+              onSelect={onSelect}
+              onArchive={onArchive}
+              sortable={false}
             />
-          ) : (
-            it.icon
-          )}
-          {it.label}
-          {onArchive && it.deletable && (
-            <span
-              className="tab-x"
-              role="button"
-              tabIndex={0}
-              title={`Archive ${it.label}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onArchive(it.id);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.stopPropagation();
-                  onArchive(it.id);
-                }
-              }}
-            >
-              <Icon.Close />
-            </span>
-          )}
-        </button>
-      ))}
+          </div>
+        ))
+      )}
       {trailing}
     </div>
   );
@@ -350,6 +418,7 @@ export default function TopNav({
   setActiveGoal,
   onAddGoal,
   onArchiveGoal,
+  setGoalOrder,
   theme,
   toggleTheme,
   onOpenSearch,
@@ -373,9 +442,32 @@ export default function TopNav({
     deletable: g.type !== "built-in",
   }));
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // Require a 5px drag to start sorting
+      },
+    })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = goals.findIndex((g) => g.id === active.id);
+      const newIndex = goals.findIndex((g) => g.id === over.id);
+      const newOrder = arrayMove(goals.map(g => g.id), oldIndex, newIndex);
+      setGoalOrder?.(newOrder);
+    }
+  };
+
   return (
     <>
-      <div className="topbar">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="topbar">
         <div className="brand">
           <span className="brand-dot" />
           <span className="brand-name">Ligand</span>
@@ -398,6 +490,7 @@ export default function TopNav({
           <Tabset
             variant="goals"
             items={goalItems}
+            sortable={true}
             activeId={tab === "goal" ? activeGoal : null}
             onSelect={(id) => {
               setActiveGoal(id);
@@ -436,7 +529,8 @@ export default function TopNav({
             onRequestAuth={onRequestAuth}
           />
         </div>
-      </div>
+        </div>
+      </DndContext>
 
       {/* Bottom tab bar — phone only (CSS-gated). Mirrors the 6 main tabs that
          live in the top bar on larger screens, with big tappable targets. */}
