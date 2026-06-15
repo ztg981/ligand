@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
+import { fetchAiInsight } from "../lib/aiApi.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
@@ -14,12 +15,27 @@ function whenLabel(iso) {
 
 export default function Reflections({
   goal,
+  tasks = [],
   addReflection,
   removeReflection,
   confirmBeforeDelete = true,
   widgetSize = "medium",
 }) {
-  const prompt = useMemo(() => reflectionPrompt(), []);
+  const defaultPrompt = useMemo(() => reflectionPrompt(), []);
+  const [prompt, setPrompt] = useState(defaultPrompt);
+
+  useEffect(() => {
+    let active = true;
+    const context = {
+      name: goal.name,
+      tasks: tasks.slice(-5).map(t => ({ text: t.text, done: t.done }))
+    };
+    fetchAiInsight(goal.id, "journal-prompt", context).then(res => {
+      if (active && res) setPrompt(res);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [goal.id, goal.name, tasks]);
+
   const [text, setText] = useState("");
   const reflections = goal.reflections || [];
   const compact = widgetSize === "compact";

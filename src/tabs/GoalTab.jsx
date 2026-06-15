@@ -25,6 +25,7 @@ import {
   isGoalOverdue,
   todayKey,
 } from "../lib/model.js";
+import { fetchAiInsight } from "../lib/aiApi.js";
 import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
@@ -98,6 +99,20 @@ function OverdueGoalBanner({
 }) {
   const target = goalTargetDate(goal);
   const [draft, setDraft] = useState(target || "");
+  const [insight, setInsight] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const context = {
+      name: goal.name,
+      targetDate: target,
+      activitySummary: `Past target date by ${daysBetween(target, todayKey())} days.`
+    };
+    fetchAiInsight(goal.id, "overdue-advice", context).then(res => {
+      if (active) setInsight(res);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [goal.id, goal.name, target]);
 
   if (!isGoalOverdue(goal)) return null;
 
@@ -115,7 +130,7 @@ function OverdueGoalBanner({
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "var(--accent-ink)", fontSize: 13.5, lineHeight: 1.45 }}>
-            Plans change. Want to clean this up? You can keep it, revise it, or let it go.
+            {insight || "Plans change. Want to clean this up? You can keep it, revise it, or let it go."}
           </div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
             Target date: {target}
@@ -508,9 +523,10 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, addReflection, removeReflection, confirmBeforeDelete, widgetSize }) => (
+    render: ({ goal, tasks, addReflection, removeReflection, confirmBeforeDelete, widgetSize }) => (
       <Reflections
         goal={goal}
+        tasks={tasks}
         addReflection={addReflection}
         removeReflection={removeReflection}
         confirmBeforeDelete={confirmBeforeDelete}
