@@ -57,6 +57,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
 
   const [insight, setInsight] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
 
   useEffect(() => {
     if (!goal?.id) return;
@@ -88,9 +89,10 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
     fetchAiInsight(goal.id, "goal-summary", context)
       .then(res => {
         setInsight(res);
-        setIsRefreshing(false);
+        setLastRefreshed(new Date());
       })
-      .catch(() => setIsRefreshing(false));
+      .catch(() => {})
+      .finally(() => setIsRefreshing(false));
   };
 
   if (widgetSize === "compact") {
@@ -176,6 +178,11 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
           <div style={{ opacity: isRefreshing ? 0.5 : 1, transition: "opacity 0.2s", whiteSpace: "normal", wordWrap: "break-word" }}>
             {insight.text}
           </div>
+          {lastRefreshed && (
+            <div style={{ marginTop: 6, fontSize: 10, color: "var(--ink-4, var(--ink-3))", textAlign: "right" }}>
+              Updated {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
         </div>
       )}
 
