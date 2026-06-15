@@ -10,6 +10,59 @@ finish the job.
 > (mobile, forgot-password, and three feature tasks) is logged in
 > **"Later sessions"** immediately below.
 
+## Phase 2 — Stability audit + new features (2026-06-15, Claude Code)
+
+Picked the project back up after the Antigravity session. **Did an
+evidence-based stability audit first**, then built three of the seven Phase 2
+features. Everything below is committed and pushed to `master`.
+
+### Stability audit — result: stable (no blocking problems)
+- `npm run build` clean; PWA `sw.js` generates; manifest icons present.
+- **Goal tabs no longer white-screen** (Productivity/Side Hustles/College all
+  render; no `Icon.Sparkles` anywhere). AI Insight card is compact (14px icon),
+  honest labels.
+- **AI backend verified by direct call**: deployed `gemini-insights` returns
+  HTTP 200 + a real grounded sentence; `geminiStatus:200` confirms
+  `gemini-3.5-flash` is valid. No key / no raw Gemini response in the payload.
+- `aiApi.js` logic sound (refresh bypasses cache; only valid AI text cached;
+  fallback never overwrites a good cache; dev-gated logs). Guest mode graceful,
+  zero console errors across all tabs. Phase 1 features (PWA, bg-music, focus
+  mode, goal reorder) all wired and rendering.
+- **Edge Function thinking config (P2.7 note):** the function sends **no**
+  `thinkingBudget` and **no** `thinking_level` — just `temperature` +
+  `maxOutputTokens: 4000`. So there's no stale-parameter conflict. Default
+  thinking (medium for 3.x) + the 4000 budget produces full output (verified).
+  Trimmed the success debug payload to `{hasGeminiKey, geminiStatus,
+  extractedTextLength}`.
+- **Transient Gemini 503s** ("model experiencing high demand") were observed
+  intermittently during testing. These are Google-side, not our code — the app
+  degrades correctly to "Using fallback" / "Last AI insight" when they happen.
+
+### Done this session
+1. **Weekly AI review** — new `weekly_review` action on the Edge Function
+   (redeployed) + a "Your week" card on Home. Per-ISO-week cache, manual
+   refresh, same honest labels as the AI Insight. Verified: backend returns a
+   grounded review (correctly spotted a real weekday pattern); logged-in UI
+   shows AI-generated text; guest shows fallback; 503 → fallback. Fixed a
+   self-introduced StrictMode double-invoke bug in the widget's fetch effect.
+2. **Habit heatmap** — new goal-tab widget: 12-week GitHub-style grid per habit,
+   missed days neutral (never red). Verified cells match check-ins, persists,
+   light/dark, mobile.
+3. **Saved Pomodoro presets** — quick-select chips (apply/save/rename/delete),
+   3 seeded defaults, stored in `ligand.pomodoroPresets` (syncs / local).
+
+### Remaining Phase 2 (NOT started — for next session)
+4. **Recurring tasks** (Daily / Weekly) — resets to not-done on next occurrence.
+5. **Achievement badges** — 8–12 milestones, Badges view, gentle unlock toast.
+6. **Time tracking per goal** — log completed focus-session minutes to the
+   linked task's goal; show in the Progress widget.
+7. **Gemini thinking-level tuning** — OPTIONAL. Current config works; consider
+   `thinking_level: "low"` for latency/cost, but only test when Gemini isn't
+   throwing 503s, and verify output quality doesn't regress before keeping it.
+   Don't change blindly — the function is working as-is.
+
+Then the full final sweep (every tab, light/dark/auto, 375/768/1280, dev+prod).
+
 ## Phase 2 — Gemini AI Integration Session (2026-06-15)
 
 ### Files Touched
