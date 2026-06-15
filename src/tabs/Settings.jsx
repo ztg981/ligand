@@ -145,6 +145,7 @@ export default function Settings({
               options={[
                 { value: "light", label: "Light" },
                 { value: "dark", label: "Dark" },
+                { value: "auto", label: "Auto" },
               ]}
             />
           </Row>

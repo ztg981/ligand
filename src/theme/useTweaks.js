@@ -10,7 +10,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 const STORAGE_KEY = "ligand.tweaks";
 
 export const TWEAK_DEFAULTS = {
-  theme: "light", // "light" | "dark"
+  theme: "light", // "light" | "dark" | "auto" (auto follows the OS color scheme)
   accent: 245, // hue angle
   ambient: 60, // 0–100 (%)
   radius: 12, // 4–20 (px)

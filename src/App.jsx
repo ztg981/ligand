@@ -192,6 +192,26 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // System color-scheme, tracked live so the "Auto" theme can follow the OS
+  // and update the instant the user flips their system between light and dark.
+  const [systemTheme, setSystemTheme] = useState(() =>
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light"
+  );
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = (e) => setSystemTheme(e.matches ? "dark" : "light");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // The actual light/dark to apply: "auto" follows the OS, otherwise the
+  // explicit choice. A wallpaper's tone still wins over this (handled below).
+  const resolvedTheme = tweaks.theme === "auto" ? systemTheme : tweaks.theme;
+
   // Apply the chosen wallpaper. The gradient (or photo for custom) is painted
   // behind the ambient blobs via --app-bg; the wallpaper's tone drives the
   // effective light/dark token set so text stays readable on top.
@@ -199,8 +219,8 @@ export default function App() {
     const root = document.documentElement;
     if (settings.wallpaper.id === "custom" && customWallpaper) {
       // Custom photo: use the data URL directly, cover the viewport.
-      // Theme follows the user's toggle (we can't know the photo's tone).
-      root.dataset.theme = tweaks.theme;
+      // Theme follows the user's choice (we can't know the photo's tone).
+      root.dataset.theme = resolvedTheme;
       document.body.style.backgroundSize = "cover";
       document.body.style.backgroundPosition = "center";
       root.style.setProperty("--app-bg", `url(${customWallpaper})`);
@@ -209,14 +229,15 @@ export default function App() {
       document.body.style.backgroundPosition = "";
       const wp = wallpaperById(settings.wallpaper.id);
       const hasWallpaper = wp.id !== "none";
-      root.dataset.theme = hasWallpaper ? wp.tone : tweaks.theme;
+      // Wallpaper tone wins; otherwise the resolved (auto-aware) theme.
+      root.dataset.theme = hasWallpaper ? wp.tone : resolvedTheme;
       if (hasWallpaper) {
         root.style.setProperty("--app-bg", wp.bg);
       } else {
         root.style.removeProperty("--app-bg");
       }
     }
-  }, [settings.wallpaper.id, tweaks.theme, customWallpaper]);
+  }, [settings.wallpaper.id, resolvedTheme, customWallpaper]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {
@@ -449,8 +470,8 @@ export default function App() {
           setActiveGoal={setActiveGoal}
           onAddGoal={() => setShowGoalModal(true)}
           onArchiveGoal={handleArchiveGoal}
-          theme={tweaks.theme}
-          toggleTheme={() => set({ theme: tweaks.theme === "dark" ? "light" : "dark" })}
+          theme={resolvedTheme}
+          toggleTheme={() => set({ theme: resolvedTheme === "dark" ? "light" : "dark" })}
           onOpenSearch={() => setShowSearch(true)}
           notifications={notif.items}
           unreadCount={notif.unreadCount}

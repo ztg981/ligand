@@ -49,6 +49,7 @@ export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = fa
             options={[
               { value: "light", label: "Light" },
               { value: "dark", label: "Dark" },
+              { value: "auto", label: "Auto" },
             ]}
           />
         </div>
