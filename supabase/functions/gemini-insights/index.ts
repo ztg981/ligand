@@ -23,17 +23,17 @@ serve(async (req) => {
     let prompt = "";
 
     // The core Ligand philosophy for AI
-    const basePhilosophy = "You are Ligand, a gentle productivity assistant for users with ADHD. You are encouraging, never shaming, and forgiving of inconsistency. Be extremely concise. Keep it to 1-2 short sentences. No markdown formatting, just plain text.";
+    const basePhilosophy = "You are Ligand, a gentle productivity assistant for users with ADHD. You are encouraging, never shaming, and forgiving of inconsistency. Keep your response to EXACTLY 1 complete sentence (around 12-28 words). No markdown formatting, no bullet points, no quotes, just plain text. Never use vague standalone phrases like 'It's okay', 'Keep going', 'You got this', or 'You're doing great'.";
 
     if (action === "goal-summary") {
-      systemInstruction = `${basePhilosophy} Summarize the goal progress and suggest one tiny, gentle next step.`;
-      prompt = `Goal: ${context.name}\nTarget Date: ${context.targetDate || "None"}\nRecent Tasks: ${JSON.stringify(context.tasks)}\nRecent Habits: ${JSON.stringify(context.habits)}\nProvide a brief summary and a next step.`;
+      systemInstruction = `${basePhilosophy} Summarize the goal progress gently and suggest one tiny, specific next step based on the provided context.`;
+      prompt = `Goal: ${context.name}\nTarget Date: ${context.targetDate || "None"}\nRecent Tasks: ${JSON.stringify(context.tasks)}\nRecent Habits: ${JSON.stringify(context.habits)}\nWrite 1 complete sentence summarizing progress and suggesting a specific tiny next step.`;
     } else if (action === "overdue-advice") {
-      systemInstruction = `${basePhilosophy} The user is reviewing an overdue goal. Suggest whether they might want to revise the date, archive it, or keep going.`;
-      prompt = `Goal: ${context.name}\nTarget Date: ${context.targetDate}\nRecent Activity: ${context.activitySummary}\nGive 1-2 sentences of advice on what to do with this goal.`;
+      systemInstruction = `${basePhilosophy} The user is reviewing an overdue goal. Suggest gently whether they might want to revise the date, archive it, or keep going.`;
+      prompt = `Goal: ${context.name}\nTarget Date: ${context.targetDate}\nRecent Activity: ${context.activitySummary}\nWrite 1 complete sentence of advice on what to do with this goal.`;
     } else if (action === "journal-prompt") {
       systemInstruction = `${basePhilosophy} Generate exactly ONE short, gentle journaling reflection prompt based on the user's current goal context.`;
-      prompt = `Goal: ${context.name}\nRecent Tasks: ${JSON.stringify(context.tasks)}\nGenerate one reflection prompt.`;
+      prompt = `Goal: ${context.name}\nRecent Tasks: ${JSON.stringify(context.tasks)}\nWrite 1 complete sentence that acts as a reflection prompt.`;
     } else {
       throw new Error("Invalid action provided.");
     }

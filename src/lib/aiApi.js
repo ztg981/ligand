@@ -11,7 +11,7 @@ function getCacheKey(goalId, action) {
 function getFallback(action) {
   switch (action) {
     case "goal-summary":
-      return "You're making steady progress. Keep showing up, even if it's just for five minutes.";
+      return "You're just getting started here — pick one tiny task today and let that count.";
     case "overdue-advice":
       return "It's completely okay to push the date back if you need more time, or to archive it for later.";
     case "journal-prompt":
@@ -21,10 +21,31 @@ function getFallback(action) {
   }
 }
 
-function isValidInsight(text) {
+function isValidInsight(text, action) {
   if (!text || typeof text !== "string") return false;
-  // Gemini might return very short sentences like "Keep it up!"
-  if (text.trim().length < 5) return false;
+  
+  const trimmed = text.trim();
+  if (trimmed.length < 35) return false;
+  
+  const words = trimmed.split(/\s+/);
+  if (words.length < 8) return false;
+
+  const lower = trimmed.toLowerCase();
+  const genericPhrases = [
+    "it's okay", "it is okay",
+    "keep going", 
+    "you've got this", "you got this",
+    "you're doing great", "you are doing great",
+    "every step counts"
+  ];
+  
+  for (const phrase of genericPhrases) {
+    // Reject if the response is essentially just a generic phrase
+    if (lower.includes(phrase) && words.length < 12) {
+      return false;
+    }
+  }
+
   return true;
 }
 
