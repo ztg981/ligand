@@ -29,6 +29,10 @@ const NOT_CONFIGURED = {
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  // True after the user follows a password-reset email link. Supabase fires a
+  // PASSWORD_RECOVERY event and establishes a temporary session; the app shows
+  // a "set a new password" screen until this clears.
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -49,8 +53,9 @@ export function AuthProvider({ children }) {
         setLoading(false);
       });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next ?? null);
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
     });
 
     return () => {
@@ -83,16 +88,39 @@ export function AuthProvider({ children }) {
       return { error };
     };
 
+    // Send a password-reset email. The link returns the user to this app,
+    // where detectSessionInUrl processes the token and fires PASSWORD_RECOVERY.
+    const resetPassword = async (email) => {
+      if (!supabase) return NOT_CONFIGURED;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      return { error };
+    };
+
+    // Set a new password for the recovery (or current) session.
+    const updatePassword = async (password) => {
+      if (!supabase) return NOT_CONFIGURED;
+      const { error } = await supabase.auth.updateUser({ password });
+      return { error };
+    };
+
+    const clearRecovery = () => setRecovery(false);
+
     return {
       session,
       user: session?.user ?? null,
       loading,
+      recovery,
       isConfigured: isSupabaseConfigured,
       signUp,
       signIn,
       signOut,
+      resetPassword,
+      updatePassword,
+      clearRecovery,
     };
-  }, [session, loading]);
+  }, [session, loading, recovery]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

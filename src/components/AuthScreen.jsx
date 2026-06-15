@@ -15,8 +15,8 @@ import { useAuth } from "../hooks/useAuth.jsx";
    for anyone who doesn't want an account.
    ============================================================ */
 export default function AuthScreen({ onContinueAsGuest }) {
-  const { signIn, signUp, isConfigured } = useAuth();
-  const [mode, setMode] = useState("signin"); // "signin" | "signup"
+  const { signIn, signUp, resetPassword, isConfigured } = useAuth();
+  const [mode, setMode] = useState("signin"); // "signin" | "signup" | "reset"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,9 +24,22 @@ export default function AuthScreen({ onContinueAsGuest }) {
   const [notice, setNotice] = useState("");
 
   const isSignup = mode === "signup";
+  const isReset = mode === "reset";
 
   const switchMode = () => {
     setMode((m) => (m === "signin" ? "signup" : "signin"));
+    setError("");
+    setNotice("");
+  };
+
+  const goReset = () => {
+    setMode("reset");
+    setError("");
+    setNotice("");
+  };
+
+  const backToSignIn = () => {
+    setMode("signin");
     setError("");
     setNotice("");
   };
@@ -37,6 +50,31 @@ export default function AuthScreen({ onContinueAsGuest }) {
     setNotice("");
 
     const mail = email.trim();
+
+    // Reset mode only needs an email.
+    if (isReset) {
+      if (!mail) {
+        setError("Enter the email for your account.");
+        return;
+      }
+      setBusy(true);
+      try {
+        const { error } = await resetPassword(mail);
+        if (error) {
+          setError(error.message || "Could not send the reset email.");
+        } else {
+          setNotice(
+            "If an account exists for that email, a password-reset link is on its way. Open it on this device to set a new password."
+          );
+        }
+      } catch (err) {
+        setError(err?.message || "Something went wrong. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     if (!mail || !password) {
       setError("Enter your email and a password.");
       return;
@@ -82,12 +120,18 @@ export default function AuthScreen({ onContinueAsGuest }) {
         </div>
 
         <h1 className="auth-title">
-          {isSignup ? "Create your account" : "Welcome back"}
+          {isReset
+            ? "Reset your password"
+            : isSignup
+              ? "Create your account"
+              : "Welcome back"}
         </h1>
         <p className="auth-sub">
-          {isSignup
-            ? "Sync your goals, tasks and journal across devices. Free, and private to you."
-            : "Sign in to pick up where you left off on any device."}
+          {isReset
+            ? "Enter your email and we'll send you a link to set a new password."
+            : isSignup
+              ? "Sync your goals, tasks and journal across devices. Free, and private to you."
+              : "Sign in to pick up where you left off on any device."}
         </p>
 
         {!isConfigured && (
@@ -112,18 +156,31 @@ export default function AuthScreen({ onContinueAsGuest }) {
             />
           </label>
 
-          <label className="auth-field">
-            <span>Password</span>
-            <input
-              className="input"
-              type="password"
-              autoComplete={isSignup ? "new-password" : "current-password"}
-              placeholder={isSignup ? "At least 6 characters" : "Your password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={busy || !isConfigured}
-            />
-          </label>
+          {!isReset && (
+            <label className="auth-field">
+              <span>Password</span>
+              <input
+                className="input"
+                type="password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                placeholder={isSignup ? "At least 6 characters" : "Your password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={busy || !isConfigured}
+              />
+            </label>
+          )}
+
+          {mode === "signin" && (
+            <button
+              type="button"
+              className="auth-link auth-forgot"
+              onClick={goReset}
+              disabled={busy}
+            >
+              Forgot password?
+            </button>
+          )}
 
           {error && (
             <div className="auth-error" role="alert">
@@ -143,17 +200,30 @@ export default function AuthScreen({ onContinueAsGuest }) {
           >
             {busy
               ? "Just a moment…"
-              : isSignup
-                ? "Create account"
-                : "Sign in"}
+              : isReset
+                ? "Send reset link"
+                : isSignup
+                  ? "Create account"
+                  : "Sign in"}
           </button>
         </form>
 
         <div className="auth-toggle">
-          {isSignup ? "Already have an account?" : "New to Ligand?"}{" "}
-          <button type="button" className="auth-link" onClick={switchMode}>
-            {isSignup ? "Sign in" : "Create one"}
-          </button>
+          {isReset ? (
+            <>
+              Remembered it?{" "}
+              <button type="button" className="auth-link" onClick={backToSignIn}>
+                Back to sign in
+              </button>
+            </>
+          ) : (
+            <>
+              {isSignup ? "Already have an account?" : "New to Ligand?"}{" "}
+              <button type="button" className="auth-link" onClick={switchMode}>
+                {isSignup ? "Sign in" : "Create one"}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="auth-divider">

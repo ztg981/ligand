@@ -2290,6 +2290,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   color: var(--accent); font-weight: 600; font-size: 12.5px;
 }
 .auth-link:hover { text-decoration: underline; }
+.auth-forgot { align-self: flex-end; margin-top: -4px; font-size: 12px; font-weight: 500; }
+.auth-forgot:disabled { opacity: 0.5; cursor: default; }
 .auth-divider {
   display: flex; align-items: center; gap: 10px;
   margin: 16px 0 12px; color: var(--ink-4); font-size: 11px;

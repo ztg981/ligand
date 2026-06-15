@@ -5,6 +5,7 @@ import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
 import { hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
 import MigrationModal from "./components/MigrationModal.jsx";
+import SetNewPassword from "./components/SetNewPassword.jsx";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
@@ -30,7 +31,7 @@ export default function App() {
   // Guest mode is the default and keeps the original local-only behavior.
   // The auth screen only appears when there's no session AND the user hasn't
   // chosen to continue as a guest (or has explicitly asked to sign in).
-  const { session, user, loading: authLoading, signOut } = useAuth();
+  const { session, user, loading: authLoading, signOut, recovery } = useAuth();
   const [guestMode, setGuestMode] = useLocalStorage("ligand.guestMode", false);
   const [authRequested, setAuthRequested] = useState(false);
   const showAuthScreen = !authLoading && !session && (!guestMode || authRequested);
@@ -410,6 +411,12 @@ export default function App() {
         <div>{syncHydrating ? "Syncing your data…" : "Loading…"}</div>
       </div>
     );
+  }
+
+  // Arrived via a password-reset email link → let them set a new password
+  // before anything else (takes priority over the normal app / auth gate).
+  if (recovery) {
+    return <SetNewPassword />;
   }
 
   // Not logged in and hasn't chosen guest mode → the sign-in / sign-up gate.
