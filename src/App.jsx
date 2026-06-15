@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import OfflineBanner from "./components/OfflineBanner.jsx";
+import { playBgMusic, stopBgMusic, setBgMusicVolume, isBgMusicPlaying } from "./lib/bgMusicPlayer.js";
 import { configure as configureUiSounds } from "./lib/uiSounds.js";
 import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
@@ -155,6 +156,32 @@ export default function App() {
   useEffect(() => {
     configureUiSounds({ enabled: settings.uiSounds?.enabled ?? true });
   }, [settings.uiSounds?.enabled]);
+
+  // Background music — app-wide ambient loops. Plays across all tabs.
+  // Off by default; only starts after the user explicitly enables it
+  // (the toggle in Settings acts as the required user gesture).
+  const bgMusic = settings.bgMusic ?? {};
+  const bgEnabled = bgMusic.enabled ?? false;
+  const bgTrack   = bgMusic.track   ?? "rain";
+  const bgVolume  = bgMusic.volume  ?? 30;
+  const bgVolumeRef = useRef(bgVolume);
+
+  useEffect(() => {
+    if (bgEnabled) {
+      playBgMusic(bgTrack, bgVolume / 100);
+    } else {
+      stopBgMusic();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bgEnabled, bgTrack]);
+
+  // Volume-only changes apply without restarting the track.
+  useEffect(() => {
+    bgVolumeRef.current = bgVolume;
+    if (bgEnabled && isBgMusicPlaying()) {
+      setBgMusicVolume(bgVolume / 100);
+    }
+  }, [bgVolume, bgEnabled]);
 
   // Counts that drive the load-time notification triggers.
   const overdueGoals = useMemo(

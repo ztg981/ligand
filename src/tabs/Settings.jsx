@@ -6,6 +6,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 
 /* Built-in one-click appearance presets */
 const BUILT_IN_PRESETS = [
@@ -170,7 +171,7 @@ export default function Settings({
     }
   };
 
-  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {} } = settings;
+  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {} } = settings;
 
   return (
     <>
@@ -433,7 +434,52 @@ export default function Settings({
           )}
         </Section>
 
-        {/* Wallpaper & sound */}
+        {/* Background music */}
+        <Section icon={<Icon.Wand />} title="Background music"
+          sub="Gentle ambient loops that play across the whole app — separate from Pomodoro scene sounds."
+        >
+          <Row name="Background music" hint="Plays softly while you work; no autoplay until you switch it on">
+            <Switch
+              checked={bgMusic.enabled ?? false}
+              onChange={(v) => setSection("bgMusic", { enabled: v })}
+            />
+          </Row>
+          <Row name="Track">
+            <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+              {BG_TRACKS.map((t) => (
+                <button
+                  key={t.id}
+                  className={"btn sm" + ((bgMusic.track ?? "rain") === t.id ? " primary" : " ghost")}
+                  onClick={() => setSection("bgMusic", { track: t.id })}
+                  style={{ minWidth: 68 }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row name="Volume" hint={bgMusic.enabled ? undefined : "Enable music to adjust volume"}>
+            <div className="ctrl" style={{
+              minWidth: 160,
+              opacity: (bgMusic.enabled ?? false) ? 1 : 0.45,
+              pointerEvents: (bgMusic.enabled ?? false) ? "auto" : "none",
+            }}>
+              <Slider
+                value={bgMusic.volume ?? 30}
+                min={0}
+                max={100}
+                step={5}
+                onChange={(v) => setSection("bgMusic", { volume: v })}
+                format={(v) => v + "%"}
+              />
+            </div>
+          </Row>
+          <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+            Tracks: Rain, Stream, and Waves — all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
+          </p>
+        </Section>
+
+        {/* Wallpaper &amp; sound */}
         <Section
           icon={<Icon.Sun />}
           title="Wallpaper & sound"

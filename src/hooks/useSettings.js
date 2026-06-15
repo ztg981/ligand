@@ -37,6 +37,11 @@ export const SETTINGS_DEFAULTS = {
   uiSounds: {
     enabled: true, // subtle click/pop/ding feedback on interactions
   },
+  bgMusic: {
+    enabled: false, // off by default; user must opt in — no autoplay
+    track: "rain",  // "rain" | "stream" | "waves"
+    volume: 30,     // 0–100 percentage
+  },
 };
 
 // Deep-ish merge so newly added nested keys get defaults.
