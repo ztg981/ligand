@@ -6,6 +6,7 @@ import CountUp from "../widgets/CountUp.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
 import DidYouKnow from "../widgets/DidYouKnow.jsx";
 import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
+import WeeklyReview from "../widgets/WeeklyReview.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 function greeting() {
@@ -27,6 +28,7 @@ export default function Home({
   goals,
   tasks,
   countUps,
+  journal = [],
   toggleTask,
   onGoToTasks,
   onSnoozeGoal,
@@ -238,6 +240,7 @@ export default function Home({
 
         {/* Right column */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
           <CountUp countUp={countUps && countUps[0]} />
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
 

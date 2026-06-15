@@ -57,6 +57,12 @@ serve(async (req) => {
     } else if (action === "journal-prompt") {
       systemInstruction = `${basePhilosophy} Generate exactly ONE short, gentle journaling reflection prompt based on the user's current goal context.`;
       prompt = `Goal: ${context.name}\nRecent Tasks: ${JSON.stringify(context.tasks)}\nWrite 1 complete sentence that acts as a reflection prompt.`;
+    } else if (action === "weekly_review") {
+      // Weekly review is the one multi-sentence action — its own instruction so
+      // the strict 1-sentence rule for the other actions stays untouched.
+      const weeklyPhilosophy = "You are Ligand, a gentle productivity assistant for users with ADHD. You are encouraging, never shaming, and forgiving of inconsistency. No markdown, no bullet points, no quotes, just plain text. Never use vague standalone phrases like 'It's okay' or 'You got this'.";
+      systemInstruction = `${weeklyPhilosophy} Write 2-3 short, complete sentences reviewing the user's week: gently note what went well, mention at most one real pattern ONLY if the data clearly shows it (never invent one), and end with one small, specific suggestion for next week.`;
+      prompt = `Active goals: ${JSON.stringify(context.activeGoals)}\nTasks done / total: ${context.tasksDone}/${context.tasksTotal}\nHabit check-ins this week: ${context.habitCheckInsThisWeek}\nHabit check-ins by weekday (last 4 weeks): ${JSON.stringify(context.weekdayCheckIns)}\nJournal entries this week: ${context.journalEntriesThisWeek}\nWrite a gentle 2-3 sentence weekly review based only on this data.`;
     } else {
       throw new Error("Invalid action provided.");
     }
@@ -126,11 +132,9 @@ serve(async (req) => {
         text: generatedText,
         ok: true,
         debug: {
-          typeReceived,
           hasGeminiKey,
           geminiStatus,
-          extractedTextLength,
-          extractedTextPreview
+          extractedTextLength
         }
       }),
       {

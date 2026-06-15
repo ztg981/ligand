@@ -70,6 +70,95 @@ export function clearAiCache(goalId, action) {
   } catch (err) {}
 }
 
+// ISO-8601 week key like "2026-W24" (Thursday-based), used to cache the
+// weekly review once per calendar week.
+function getISOWeekKey(d = new Date()) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // shift to the week's Thursday
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const week = 1 + Math.round((date - firstThursday) / (7 * 24 * 3600 * 1000));
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+const WEEKLY_FALLBACK =
+  "Here's to a fresh week — choose one small thing to focus on, and let the rest stay flexible.";
+
+/**
+ * Weekly review across all goals. Cached once per ISO week (so a normal load
+ * reuses this week's result); Refresh passes forceRefresh to bypass it.
+ * Mirrors fetchAiInsight's conventions: only valid AI text is cached, a stale
+ * valid cache is preserved as "last-ai" on failure, and fallback is labelled.
+ */
+export async function fetchWeeklyReview(context, forceRefresh = false) {
+  const weekKey = getISOWeekKey();
+  const cacheKey = `ligand.aiCache.weekly.${weekKey}`;
+  let cached = null;
+  let hasValidCache = false;
+
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (raw) {
+      cached = JSON.parse(raw);
+      if (cached?.result && isValidInsight(cached.result, "weekly_review")) {
+        hasValidCache = true;
+      } else {
+        window.localStorage.removeItem(cacheKey);
+        cached = null;
+      }
+    }
+  } catch (err) {
+    // ignore cache read errors
+  }
+
+  if (!forceRefresh && hasValidCache) {
+    return { text: cached.result, source: "ai", week: weekKey };
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { text: WEEKLY_FALLBACK, source: "logged-out", week: weekKey };
+  }
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      return { text: WEEKLY_FALLBACK, source: "logged-out", week: weekKey };
+    }
+
+    const { data, error } = await supabase.functions.invoke("gemini-insights", {
+      body: { action: "weekly_review", context },
+    });
+    if (error) throw new Error(error.message);
+    if (!data || !data.ok) {
+      throw new Error(`weekly_review not ok: ${JSON.stringify(data?.debug)}`);
+    }
+
+    const textValue = data.text !== undefined ? data.text : data.result;
+    const cleaned = (textValue || "").replace(/^["']|["']$/g, "").trim();
+    if (!isValidInsight(cleaned, "weekly_review")) {
+      throw new Error(`weekly text failed validation: "${cleaned}"`);
+    }
+
+    try {
+      window.localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ result: cleaned, timestamp: Date.now() })
+      );
+    } catch (err) {
+      // ignore cache write errors
+    }
+    return { text: cleaned, source: "ai", week: weekKey };
+  } catch (err) {
+    debugLog("Weekly review failed. Reason:", err.message);
+    if (hasValidCache) {
+      return { text: cached.result, source: "last-ai", week: weekKey };
+    }
+    return { text: WEEKLY_FALLBACK, source: "fallback", week: weekKey };
+  }
+}
+
 export async function fetchAiInsight(goalId, action, context, forceRefresh = false) {
   const cacheKey = getCacheKey(goalId, action);
   let cached = null;

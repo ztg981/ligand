@@ -383,6 +383,7 @@ export default function App() {
             goals={activeGoals}
             tasks={store.tasks}
             countUps={store.countUps}
+            journal={store.journal}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
             onSnoozeGoal={store.snoozeGoalReview}
