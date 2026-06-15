@@ -153,13 +153,14 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
               )}
             </div>
             <button 
-              className="btn ghost icon-only" 
-              style={{ width: 24, height: 24, opacity: isRefreshing ? 0.5 : 1 }}
+              className="btn ghost sm" 
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: isRefreshing ? 0.5 : 1 }}
               onClick={handleRefreshInsight}
               disabled={isRefreshing}
               title="Refresh insight"
             >
               <Icon.Reset width={12} height={12} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
           <div style={{ opacity: isRefreshing ? 0.5 : 1, transition: "opacity 0.2s" }}>
