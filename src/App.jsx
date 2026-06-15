@@ -9,6 +9,9 @@ import { hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
 import MigrationModal from "./components/MigrationModal.jsx";
 import SetNewPassword from "./components/SetNewPassword.jsx";
+import BadgeToast from "./components/BadgeToast.jsx";
+import BadgesModal from "./components/BadgesModal.jsx";
+import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
@@ -16,7 +19,7 @@ import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, isGoalOverdue } from "./lib/model.js";
+import { todayKey, daysBetween, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import { wallpaperById } from "./lib/wallpaper.js";
 import Home from "./tabs/Home.jsx";
@@ -120,6 +123,40 @@ export default function App() {
     const cutoff = (() => { const d = new Date(); d.setDate(d.getDate() - 6); return todayKey(d); })();
     return (visitDates || []).filter((d) => d >= cutoff && d <= today).length;
   }, [visitDates]);
+
+  // --- achievement badges: derive milestone stats from existing data, then
+  // let useBadges detect unlocks (gentle toast + chime, respecting settings).
+  const badgeStats = useMemo(() => {
+    const allGoals = store.goals || [];
+    const allTasks = store.tasks || [];
+    const allCountUps = store.countUps || [];
+    const journalLen = (store.journal || []).length;
+    const seed = new Set(SEED_GOAL_IDS);
+    const reflectionCount =
+      journalLen + allGoals.reduce((n, g) => n + (g.reflections?.length || 0), 0);
+    const maxStreak = allGoals.reduce(
+      (m, g) => Math.max(m, ...(g.habits || []).map((h) => currentStreak(h)), 0),
+      0
+    );
+    const maxCountUp = allCountUps.reduce(
+      (m, c) => Math.max(m, daysSince(c.startDate)),
+      0
+    );
+    return {
+      ownGoal: allGoals.some((g) => !seed.has(g.id)),
+      goalDone: allGoals.some((g) => g.status === "done"),
+      tasksDone: allTasks.filter((t) => t.done).length,
+      habitCount: allGoals.reduce((n, g) => n + (g.habits?.length || 0), 0),
+      maxStreak,
+      reflectionCount,
+      maxCountUp,
+      visitDays: (visitDates || []).length,
+    };
+  }, [store.goals, store.tasks, store.countUps, store.journal, visitDates]);
+
+  const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
+    useBadges(badgeStats);
+  const [showBadges, setShowBadges] = useState(false);
 
   // --- custom wallpaper gallery (data URLs in their own key to avoid bloating
   // ligand.settings). Up to 5 photos; the active one is picked by
@@ -561,6 +598,7 @@ export default function App() {
           onClearNotifications={notif.clearAll}
           userName={settings.profile.name}
           onOpenSettings={() => setTab("settings")}
+          onOpenBadges={() => setShowBadges(true)}
           onClearData={store.resetData}
           accountEmail={user?.email ?? null}
           onSignOut={async () => {
@@ -604,6 +642,12 @@ export default function App() {
           onFresh={() => runMigration(false)}
         />
       )}
+
+      {showBadges && (
+        <BadgesModal unlocked={unlockedBadges} onClose={() => setShowBadges(false)} />
+      )}
+
+      <BadgeToast queue={badgeToasts} onDismiss={dismissBadgeToast} />
 
       <SearchModal
         open={showSearch}

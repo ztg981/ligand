@@ -122,6 +122,7 @@ const AVATAR_BG =
 function AvatarMenu({
   userName = "You",
   onOpenSettings,
+  onOpenBadges,
   onClearData,
   accountEmail = null,
   onSignOut,
@@ -187,6 +188,16 @@ function AvatarMenu({
               }}
             >
               <Icon.Gear /> Settings
+            </button>
+
+            <button
+              className="avatar-menu-item"
+              onClick={() => {
+                onOpenBadges?.();
+                close();
+              }}
+            >
+              <Icon.Trophy /> Badges
             </button>
 
             {loggedIn ? (
@@ -428,6 +439,7 @@ export default function TopNav({
   onClearNotifications,
   userName = "You",
   onOpenSettings,
+  onOpenBadges,
   onClearData,
   accountEmail = null,
   onSignOut,
@@ -523,6 +535,7 @@ export default function TopNav({
           <AvatarMenu
             userName={userName}
             onOpenSettings={onOpenSettings}
+            onOpenBadges={onOpenBadges}
             onClearData={onClearData}
             accountEmail={accountEmail}
             onSignOut={onSignOut}
