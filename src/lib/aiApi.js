@@ -23,8 +23,8 @@ function getFallback(action) {
 
 function isValidInsight(text) {
   if (!text || typeof text !== "string") return false;
-  if (text.length < 20) return false;
-  if (text.trim().split(/\s+/).length < 5) return false;
+  // Gemini might return very short sentences like "Keep it up!"
+  if (text.trim().length < 5) return false;
   return true;
 }
 
@@ -64,6 +64,7 @@ export async function fetchAiInsight(goalId, action, context) {
     // Fast-fail silently if not logged in (guest mode)
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session) {
+      console.log("[AI Debug] No active session found. Using logged-out fallback.");
       return { text: getFallback(action), source: "logged-out" };
     }
 
@@ -72,11 +73,18 @@ export async function fetchAiInsight(goalId, action, context) {
     });
 
     if (error) {
+      console.warn("[AI Debug] supabase.functions.invoke returned an error:", error);
       throw new Error(`Edge Function Error: ${error.message}`);
     }
 
-    if (data?.result) {
+    if (!data) {
+      console.warn("[AI Debug] Edge Function returned empty data object.");
+      throw new Error("Empty data in Edge Function response");
+    }
+
+    if (data.result !== undefined) {
       if (!isValidInsight(data.result)) {
+        console.warn("[AI Debug] Edge Function returned invalid/too-short text:", JSON.stringify(data.result));
         throw new Error("AI returned truncated or invalid text");
       }
       // 4. Update Cache
@@ -91,6 +99,7 @@ export async function fetchAiInsight(goalId, action, context) {
       return { text: data.result, source: "ai" };
     }
 
+    console.warn("[AI Debug] Edge Function data object missing 'result' property:", data);
     throw new Error("No result in Edge Function response");
   } catch (error) {
     console.warn(`[AI] Failed to fetch ${action} insight. Using fallback.`, error);
