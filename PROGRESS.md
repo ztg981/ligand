@@ -47,6 +47,16 @@ finish the job.
 - **Fix Goal Tab React Crash (Error #130)**: Resolved an issue where navigating to a goal tab caused a white-screen crash due to an undefined component (`<Icon.Sparkles />` instead of `<Icon.Spark />`) being rendered in `GoalProgress.jsx`.
 - Added defensive null guards and optional chaining across AI API calls in `GoalProgress.jsx`, `GoalTab.jsx`, and `Reflections.jsx` to prevent runtime crashes if goal or task payloads are incomplete.
 
+### AI Insight Caching & Refresh Improvements (2026-06-15)
+- **Edge Function Response Schema**: Upgraded `gemini-insights` to return `{ text, ok, debug }` schema, providing non-secret diagnostics (`typeReceived`, `hasGeminiKey`, `geminiStatus`, `extractedTextLength`, `extractedTextPreview`) on success and failure without exposing API keys.
+- **Deterministic Refresh**: Configured "Refresh" button to bypass cache with `forceRefresh = true` parameter, update timestamp on every attempt (success or failure), and never get stuck.
+- **Improved Caching**:
+  - Excluded invalid/fallback text from overwriting valid cached AI text.
+  - Page-load network failures do not destroy old valid cached AI responses.
+  - Automatically deletes invalid, outdated, or generic ADHD-shaming text from localStorage.
+- **Quality Filters**: Enforced strict validation checking that AI insights are complete sentences (at least 35 characters, 8 words, ending in punctuation) and not generic ADHD-shaming phrases ("It's okay", "Keep going", "You got this", etc.).
+- **UI Labels**: Added honest status badges in `GoalProgress.jsx`: `(AI-generated)`, `(Last AI insight)` when utilizing cached AI text on fresh invoke failures, and `(Using fallback)` on actual fallbacks.
+
 ---
 
 ## Phase 1 Feature Session (2026-06-14)

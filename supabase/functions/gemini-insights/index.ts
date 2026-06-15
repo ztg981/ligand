@@ -11,12 +11,35 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let geminiStatus = 0;
+  let typeReceived = "undefined";
+  let extractedTextLength = 0;
+  let extractedTextPreview = "";
+  let generatedText = "";
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const hasGeminiKey = !!apiKey;
+
   try {
     const { action, context } = await req.json();
 
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not set.");
+      return new Response(
+        JSON.stringify({
+          text: "",
+          ok: false,
+          debug: {
+            typeReceived,
+            hasGeminiKey,
+            geminiStatus,
+            extractedTextLength,
+            extractedTextPreview,
+            error: "GEMINI_API_KEY is not set."
+          }
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     let systemInstruction = "";
@@ -39,7 +62,7 @@ serve(async (req) => {
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
@@ -57,29 +80,82 @@ serve(async (req) => {
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 150,
+            maxOutputTokens: 4000,
           },
         }),
       }
     );
 
+    geminiStatus = res.status;
+
     if (!res.ok) {
       const errorData = await res.text();
       console.error("Gemini API Error:", errorData);
-      throw new Error("Failed to fetch from Gemini API.");
+      return new Response(
+        JSON.stringify({
+          text: "",
+          ok: false,
+          debug: {
+            typeReceived,
+            hasGeminiKey,
+            geminiStatus,
+            extractedTextLength,
+            extractedTextPreview,
+            error: `Failed to fetch from Gemini API. Status: ${res.status}. Body: ${errorData}`
+          }
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const data = await res.json();
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    typeReceived = typeof rawText;
 
-    return new Response(JSON.stringify({ result: generatedText.trim() }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (rawText) {
+      // Strip outer quotes and whitespace
+      generatedText = rawText.replace(/^["']|["']$/g, "").trim();
+      extractedTextLength = generatedText.length;
+      extractedTextPreview = generatedText.slice(0, 100);
+    }
+
+    return new Response(
+      JSON.stringify({
+        text: generatedText,
+        ok: true,
+        debug: {
+          typeReceived,
+          hasGeminiKey,
+          geminiStatus,
+          extractedTextLength,
+          extractedTextPreview,
+          rawGeminiResponse: data
+        }
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
     console.error("Edge Function Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        text: "",
+        ok: false,
+        debug: {
+          typeReceived,
+          hasGeminiKey,
+          geminiStatus,
+          extractedTextLength,
+          extractedTextPreview,
+          error: error.message
+        }
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });

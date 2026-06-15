@@ -79,20 +79,21 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
   const handleRefreshInsight = () => {
     if (isRefreshing || !goal?.id) return;
     setIsRefreshing(true);
-    clearAiCache(goal.id, "goal-summary");
     const context = {
       name: goal?.name,
       targetDate: goal?.targetDate,
       tasks: (goalTasks || []).slice(-5).map(t => ({ text: t?.text, done: t?.done })),
       habits: (goal?.habits || []).map(h => h?.name)
     };
-    fetchAiInsight(goal.id, "goal-summary", context)
+    fetchAiInsight(goal.id, "goal-summary", context, true)
       .then(res => {
         setInsight(res);
-        setLastRefreshed(new Date());
       })
       .catch(() => {})
-      .finally(() => setIsRefreshing(false));
+      .finally(() => {
+        setIsRefreshing(false);
+        setLastRefreshed(new Date());
+      });
   };
 
   if (widgetSize === "compact") {
@@ -151,6 +152,11 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
               {insight.source === "ai" && (
                 <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }}>
                   (AI-generated)
+                </span>
+              )}
+              {insight.source === "last-ai" && (
+                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }}>
+                  (Last AI insight)
                 </span>
               )}
               {insight.source === "fallback" && (

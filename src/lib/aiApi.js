@@ -21,10 +21,16 @@ function getFallback(action) {
   }
 }
 
+function debugLog(message, details) {
+  if (import.meta.env.DEV) {
+    console.log(`[AI Debug] ${message}`, details !== undefined ? details : "");
+  }
+}
+
 function isValidInsight(text, action) {
   if (!text || typeof text !== "string") return false;
   
-  const trimmed = text.trim();
+  const trimmed = text.replace(/^["']|["']$/g, "").trim();
   if (trimmed.length < 35) return false;
   
   const words = trimmed.split(/\s+/);
@@ -32,18 +38,27 @@ function isValidInsight(text, action) {
 
   const lower = trimmed.toLowerCase();
   const genericPhrases = [
-    "it's okay", "it is okay",
-    "keep going", 
-    "you've got this", "you got this",
+    "it's okay", "it is okay", "its okay",
+    "keep going", "keep it up",
+    "you've got this", "you got this", "you've got this!", "you got this!",
     "you're doing great", "you are doing great",
-    "every step counts"
+    "every step counts", "you got it", "don't worry"
   ];
   
   for (const phrase of genericPhrases) {
-    // Reject if the response is essentially just a generic phrase
+    const cleanLower = lower.replace(/[.!?,]/g, "").trim();
+    if (cleanLower === phrase) {
+      return false;
+    }
     if (lower.includes(phrase) && words.length < 12) {
       return false;
     }
+  }
+
+  // Check if it ends with a punctuation
+  const lastChar = trimmed[trimmed.length - 1];
+  if (lastChar !== '.' && lastChar !== '!' && lastChar !== '?') {
+    return false;
   }
 
   return true;
@@ -55,19 +70,23 @@ export function clearAiCache(goalId, action) {
   } catch (err) {}
 }
 
-export async function fetchAiInsight(goalId, action, context) {
-  // 1. Check local cache
+export async function fetchAiInsight(goalId, action, context, forceRefresh = false) {
   const cacheKey = getCacheKey(goalId, action);
+  let cached = null;
+  let hasValidCache = false;
+
+  // 1. Check local cache
   try {
     const cachedRaw = window.localStorage.getItem(cacheKey);
     if (cachedRaw) {
-      const cached = JSON.parse(cachedRaw);
-      if (Date.now() - cached.timestamp < CACHE_TTL) {
-        if (isValidInsight(cached.result)) {
-          return { text: cached.result, source: "ai" };
+      cached = JSON.parse(cachedRaw);
+      if (cached && cached.result) {
+        if (isValidInsight(cached.result, action)) {
+          hasValidCache = true;
         } else {
-          // Clear bad cache
+          // Delete bad/generic cache
           window.localStorage.removeItem(cacheKey);
+          cached = null;
         }
       }
     }
@@ -75,55 +94,90 @@ export async function fetchAiInsight(goalId, action, context) {
     // ignore cache read errors
   }
 
-  // 2. Fast-fail silently if Supabase is not configured
+  // If normal page load and we have a valid cache that is not expired, use it
+  if (!forceRefresh && hasValidCache) {
+    const age = Date.now() - cached.timestamp;
+    if (age < CACHE_TTL) {
+      return { text: cached.result, source: "ai" };
+    }
+  }
+
+  // 2. Fast-fail silently if Supabase is not configured (guest mode)
   if (!isSupabaseConfigured || !supabase) {
+    debugLog("Supabase is not configured. Using logged-out fallback.");
     return { text: getFallback(action), source: "logged-out" };
   }
 
   // 3. Fetch from Supabase Edge Function
+  let fallbackReason = "";
   try {
-    // Fast-fail silently if not logged in (guest mode)
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) {
-      console.log("[AI Debug] No active session found. Using logged-out fallback.");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionExists = !!sessionData?.session;
+    debugLog("Supabase session exists:", sessionExists);
+
+    if (!sessionExists) {
+      fallbackReason = "No active session found (guest mode)";
+      debugLog("Session does not exist. Using logged-out fallback.");
       return { text: getFallback(action), source: "logged-out" };
     }
 
+    debugLog(`Calling supabase.functions.invoke("gemini-insights") for action: ${action}`);
     const { data, error } = await supabase.functions.invoke("gemini-insights", {
       body: { action, context },
     });
 
+    debugLog("supabase.functions.invoke returned:", { data, error });
+
     if (error) {
-      console.warn("[AI Debug] supabase.functions.invoke returned an error:", error);
-      throw new Error(`Edge Function Error: ${error.message}`);
+      fallbackReason = `Edge Function Error: ${error.message}`;
+      throw new Error(fallbackReason);
     }
 
     if (!data) {
-      console.warn("[AI Debug] Edge Function returned empty data object.");
-      throw new Error("Empty data in Edge Function response");
+      fallbackReason = "Empty response data from Edge Function";
+      throw new Error(fallbackReason);
     }
 
-    if (data.result !== undefined) {
-      if (!isValidInsight(data.result)) {
-        console.warn("[AI Debug] Edge Function returned invalid/too-short text:", JSON.stringify(data.result));
-        throw new Error("AI returned truncated or invalid text");
+    const textValue = data.text !== undefined ? data.text : data.result;
+    debugLog("Exact data.text (or result):", textValue);
+
+    if (!data.ok) {
+      fallbackReason = `Edge Function response marked ok=false. Debug: ${JSON.stringify(data.debug)}`;
+      throw new Error(fallbackReason);
+    }
+
+    if (textValue !== undefined && textValue !== null) {
+      const cleanedText = textValue.replace(/^["']|["']$/g, "").trim();
+      if (!isValidInsight(cleanedText, action)) {
+        fallbackReason = `Text failed quality validation: "${cleanedText}"`;
+        throw new Error(fallbackReason);
       }
-      // 4. Update Cache
+
+      // 4. Update Cache (only with valid AI text)
       try {
         window.localStorage.setItem(
           cacheKey,
-          JSON.stringify({ result: data.result, timestamp: Date.now() })
+          JSON.stringify({ result: cleanedText, timestamp: Date.now() })
         );
       } catch (err) {
         // ignore cache write errors
       }
-      return { text: data.result, source: "ai" };
+      return { text: cleanedText, source: "ai" };
     }
 
-    console.warn("[AI Debug] Edge Function data object missing 'result' property:", data);
-    throw new Error("No result in Edge Function response");
-  } catch (error) {
-    console.warn(`[AI] Failed to fetch ${action} insight. Using fallback.`, error);
+    fallbackReason = "No result or text property found in response data";
+    throw new Error(fallbackReason);
+
+  } catch (err) {
+    debugLog("Failed to fetch AI insight. Reason:", err.message);
+    
+    // If we have a valid cache, use it as 'last-ai' rather than showing fallback
+    if (hasValidCache) {
+      debugLog("Utilizing old valid cached AI insight on failure.");
+      return { text: cached.result, source: "last-ai" };
+    }
+
+    debugLog("No valid cache exists. Returning fallback.");
     return { text: getFallback(action), source: "fallback" };
   }
 }
