@@ -2389,6 +2389,34 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .sync-pill.synced .sync-dot { background: oklch(0.65 0.14 150); }
 @keyframes syncPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
 
+/* Offline banner — appears at the bottom when navigator.onLine is false.
+   Warm amber tone: informative but not alarming. */
+.offline-banner {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 16px;
+  background: oklch(0.96 0.04 75); border-top: 1px solid oklch(0.88 0.07 75);
+  color: oklch(0.38 0.10 60);
+  font-size: 13px; font-weight: 450;
+  animation: slideUpFade 0.25s ease;
+}
+/* Shift up on phone to clear the bottom tab bar (≤640px) */
+@media (max-width: 640px) {
+  .offline-banner { bottom: 56px; }
+}
+[data-theme="dark"] .offline-banner {
+  background: oklch(0.22 0.04 75); border-top-color: oklch(0.32 0.07 75);
+  color: oklch(0.80 0.09 75);
+}
+.offline-banner-text { flex: 1; }
+.offline-banner-close {
+  background: none; border: none; cursor: pointer; padding: 2px 4px;
+  color: inherit; opacity: 0.6; font-size: 14px; line-height: 1;
+  border-radius: 4px; transition: opacity 0.15s;
+}
+.offline-banner-close:hover { opacity: 1; }
+@keyframes slideUpFade { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
 /* Full-screen loading veil while we hydrate cloud data on login */
 .app-loading {
   position: fixed; inset: 0; z-index: 150;

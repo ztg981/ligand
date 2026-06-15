@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
+import OfflineBanner from "./components/OfflineBanner.jsx";
 import { configure as configureUiSounds } from "./lib/uiSounds.js";
 import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
@@ -27,6 +29,9 @@ import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 
 export default function App() {
+  // Register the PWA service worker (autoUpdate mode — updates silently
+  // in background, activates on next navigation). No user prompt needed.
+  useRegisterSW({ immediate: true });
   // --- auth (Supabase) ---------------------------------------------------
   // Guest mode is the default and keeps the original local-only behavior.
   // The auth screen only appears when there's no session AND the user hasn't
@@ -488,6 +493,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <OfflineBanner />
       <div className="ambient">
         <span className="blob b1" />
         <span className="blob b2" />
