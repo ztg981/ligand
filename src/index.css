@@ -2230,6 +2230,35 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
+/* Upcoming deadlines widget / Home card — a calm cross-goal date list. */
+.upcoming-list { display: flex; flex-direction: column; }
+.upcoming-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 6px;
+  border: none; background: transparent;
+  border-top: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+}
+.upcoming-list > .upcoming-row:first-child { border-top: none; }
+button.upcoming-row { cursor: pointer; }
+button.upcoming-row:hover { background: var(--panel-3); }
+.upcoming-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; }
+.upcoming-name {
+  font-size: 13px; font-weight: 500; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.upcoming-when { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.upcoming-date { font-size: 11.5px; color: var(--ink-3); }
+.upcoming-row.overdue .upcoming-date { color: var(--ink-2); }
+.upcoming-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
+.upcoming-more { font-size: 11px; color: var(--ink-4); padding: 8px 6px 0; }
+
 /* Wallpaper gallery: built-ins + custom photos + an upload tile. */
 .wp-gallery {
   display: grid;

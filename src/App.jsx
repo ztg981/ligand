@@ -361,6 +361,11 @@ export default function App() {
         return (
           <GoalTab
             goal={goal}
+            goals={activeGoals}
+            onOpenGoal={(gid) => {
+              setActiveGoal(gid);
+              setTab("goal");
+            }}
             tasks={store.tasks}
             countUps={store.countUps}
             addCountUp={store.addCountUp}

@@ -29,6 +29,7 @@ import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
 import Reflections from "../widgets/Reflections.jsx";
 import CountUps from "../widgets/CountUps.jsx";
+import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { flashElement } from "../lib/scrollFlash.js";
@@ -563,6 +564,19 @@ const WIDGET_REGISTRY = {
     locked: false,
     render: ({ goal, widgetSize }) => <DeadlineTimelineWidget goal={goal} widgetSize={widgetSize} />,
   },
+  upcomingDeadlines: {
+    type: "upcomingDeadlines",
+    title: "Upcoming dates",
+    sub: "Target dates across all your goals, soonest first.",
+    icon: <Icon.Calendar />,
+    defaultSize: "medium",
+    allowedSizes: WIDGET_SIZE_VARIANTS,
+    preset: false,
+    locked: false,
+    render: ({ goals, onOpenGoal, widgetSize }) => (
+      <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} widgetSize={widgetSize} />
+    ),
+  },
   habitStreakSummary: {
     type: "habitStreakSummary",
     title: "Habit streak summary",
@@ -927,6 +941,7 @@ function WidgetPicker({ widgets = [], onAdd, onRestore, onClose }) {
       types: [
         "nextTinyStep",
         "deadlineTimeline",
+        "upcomingDeadlines",
         "habitStreakSummary",
         "recentWins",
         "aiSummaryPlaceholder",
@@ -1467,6 +1482,8 @@ function WidgetOverlayCard({ widget, context }) {
 
 function GoalWidgetGrid({
   goal,
+  goals = [],
+  onOpenGoal,
   tasks,
   countUps,
   addCountUp,
@@ -1592,6 +1609,8 @@ function GoalWidgetGrid({
 
   const context = {
     goal,
+    goals,
+    onOpenGoal,
     tasks,
     countUps,
     addCountUp,
@@ -1786,6 +1805,8 @@ function GoalWidgetGrid({
 
 export default function GoalTab({
   goal,
+  goals = [],
+  onOpenGoal,
   tasks,
   countUps,
   addCountUp,
@@ -1913,6 +1934,8 @@ export default function GoalTab({
 
       <GoalWidgetGrid
         goal={goal}
+        goals={goals}
+        onOpenGoal={onOpenGoal}
         tasks={tasks}
         countUps={countUps}
         addCountUp={addCountUp}

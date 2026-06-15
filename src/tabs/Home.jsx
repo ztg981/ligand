@@ -5,6 +5,7 @@ import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import CountUp from "../widgets/CountUp.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
 import DidYouKnow from "../widgets/DidYouKnow.jsx";
+import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 function greeting() {
@@ -264,6 +265,8 @@ export default function Home({
               </div>
             </div>
           )}
+
+          <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
 
           <DidYouKnow />
         </div>
