@@ -2230,6 +2230,43 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.5);
 }
 
+/* Wallpaper gallery: built-ins + custom photos + an upload tile. */
+.wp-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+/* Remove (×) on a custom photo tile. */
+.wp-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 999px;
+  background: rgba(0,0,0,0.5); color: #fff;
+  cursor: pointer; opacity: 0; transition: opacity 0.15s var(--ease);
+}
+.wp-tile.wp-custom:hover .wp-remove,
+.wp-tile.wp-custom:focus-within .wp-remove { opacity: 1; }
+.wp-remove svg { width: 11px; height: 11px; }
+.wp-remove:hover { background: rgba(0,0,0,0.7); }
+/* Upload tile — a dashed, centered "+" prompt. */
+.wp-add {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  background: var(--panel-2);
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-3); cursor: pointer;
+}
+.wp-add:hover { color: var(--ink); border-color: var(--accent); }
+.wp-add svg { width: 16px; height: 16px; }
+.wp-add .wp-name {
+  position: static; color: inherit; text-shadow: none; font-size: 10px;
+}
+/* On touch screens the remove button is always visible (no hover). */
+@media (max-width: 640px) {
+  .wp-tile.wp-custom .wp-remove { opacity: 1; }
+}
+
 /* ============================================================
    Auth screen (sign in / sign up gate) + sync indicators
    ============================================================ */

@@ -84,8 +84,8 @@ export default function Settings({
   confirmBeforeDelete = true,
   requestNotifyPermission,
   notifyPermission = "default",
-  customWallpaper = null,
-  setCustomWallpaper,
+  customWallpapers = [],
+  setCustomWallpapers,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -107,6 +107,68 @@ export default function Settings({
   };
   const deleteUserPreset = (id) =>
     setUserPresets((prev) => prev.filter((p) => p.id !== id));
+
+  // --- Custom wallpaper gallery -------------------------------------------
+  // Up to 5 photos; capped at ~4 MB combined because this data syncs to the
+  // cloud. Each photo also gets the existing ~1.5 MB per-image soft warning.
+  const MAX_CUSTOM_WALLPAPERS = 5;
+  const TOTAL_WALLPAPER_CAP = 4 * 1024 * 1024;
+  const byteSize = (str) => {
+    try {
+      return new Blob([str]).size;
+    } catch {
+      return (str || "").length;
+    }
+  };
+  const wallpaperTotalBytes = customWallpapers.reduce(
+    (sum, w) => sum + byteSize(w.url),
+    0
+  );
+
+  const addCustomWallpaper = (file) => {
+    if (!file) return;
+    if (customWallpapers.length >= MAX_CUSTOM_WALLPAPERS) {
+      alert(
+        `You can keep up to ${MAX_CUSTOM_WALLPAPERS} custom wallpapers. ` +
+          "Remove one to add another."
+      );
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      // Soft warning (kept from before) — large files may not sync reliably.
+      alert(
+        `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
+          "For best results use an image under 1.5 MB — large files may not " +
+          "sync reliably. Try resizing or compressing it first."
+      );
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target.result;
+      // Hard cap on combined storage, since wallpapers sync to the database.
+      if (wallpaperTotalBytes + byteSize(url) > TOTAL_WALLPAPER_CAP) {
+        alert(
+          "Adding this image would put your custom wallpapers over ~4 MB " +
+            `combined (currently ${(wallpaperTotalBytes / (1024 * 1024)).toFixed(1)} MB). ` +
+            "Since wallpapers sync to your account, remove one first or use a " +
+            "smaller image."
+        );
+        return;
+      }
+      const id =
+        "cw-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      setCustomWallpapers?.((prev) => [...(prev || []), { id, url }]);
+      setSection("wallpaper", { id: "custom", customId: id });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeCustomWallpaper = (id) => {
+    setCustomWallpapers?.((prev) => (prev || []).filter((w) => w.id !== id));
+    if (wallpaper.id === "custom" && wallpaper.customId === id) {
+      setSection("wallpaper", { id: "none" });
+    }
+  };
 
   const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {} } = settings;
 
@@ -379,7 +441,8 @@ export default function Settings({
         >
           <div style={{ marginBottom: 6 }}>
             <div className="name" style={{ marginBottom: 6 }}>Wallpaper</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div className="wp-gallery">
+              {/* Built-in gradients */}
               {WALLPAPERS.map((w) => (
                 <button
                   key={w.id}
@@ -391,65 +454,68 @@ export default function Settings({
                   <span className="wp-name">{w.name}</span>
                 </button>
               ))}
-            </div>
 
-            {/* Custom photo upload */}
-            <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              {customWallpaper && (
-                <button
-                  className={"wp-tile " + (wallpaper.id === "custom" ? "active" : "")}
-                  style={{
-                    backgroundImage: `url(${customWallpaper})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    width: 80,
-                    flex: "none",
-                  }}
-                  onClick={() => setSection("wallpaper", { id: "custom" })}
-                  title="My photo"
-                >
-                  <span className="wp-name">My photo</span>
-                </button>
-              )}
-              <label className="btn ghost sm" style={{ cursor: "pointer" }}>
-                {customWallpaper ? "Replace photo" : "Upload a photo"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (file.size > 1.5 * 1024 * 1024) {
-                      // Still allow it but warn — browser storage is typically 5–10 MB
-                      alert(
-                        `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
-                        "For best results use an image under 1.5 MB — large files may not " +
-                        "save reliably in browser storage. Try resizing or compressing it first."
-                      );
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setCustomWallpaper?.(ev.target.result);
-                      setSection("wallpaper", { id: "custom" });
-                    };
-                    reader.readAsDataURL(file);
-                    e.target.value = ""; // allow re-picking same file
-                  }}
-                />
-              </label>
-              {customWallpaper && (
-                <button
-                  className="btn ghost sm"
-                  onClick={() => {
-                    setCustomWallpaper?.(null);
-                    if (wallpaper.id === "custom") setSection("wallpaper", { id: "none" });
-                  }}
-                >
-                  Remove
-                </button>
+              {/* Custom photos */}
+              {customWallpapers.map((cw, i) => {
+                const active =
+                  wallpaper.id === "custom" && wallpaper.customId === cw.id;
+                return (
+                  <div
+                    key={cw.id}
+                    className={"wp-tile wp-custom " + (active ? "active" : "")}
+                    style={{
+                      backgroundImage: `url(${cw.url})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    title="Custom photo"
+                    onClick={() => setSection("wallpaper", { id: "custom", customId: cw.id })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSection("wallpaper", { id: "custom", customId: cw.id });
+                      }
+                    }}
+                  >
+                    <span className="wp-name">Photo {i + 1}</span>
+                    <button
+                      className="wp-remove"
+                      title="Remove this wallpaper"
+                      aria-label="Remove this wallpaper"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCustomWallpaper(cw.id);
+                      }}
+                    >
+                      <Icon.Close />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Upload tile (hidden once the gallery is full) */}
+              {customWallpapers.length < MAX_CUSTOM_WALLPAPERS && (
+                <label className="wp-tile wp-add" title="Upload a photo">
+                  <Icon.Plus />
+                  <span className="wp-name">Upload</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      addCustomWallpaper(e.target.files?.[0]);
+                      e.target.value = ""; // allow re-picking the same file
+                    }}
+                  />
+                </label>
               )}
             </div>
+            <p className="set-note">
+              Up to {MAX_CUSTOM_WALLPAPERS} custom photos, ~4 MB combined (they
+              sync to your account). Each looks best under 1.5 MB.
+            </p>
           </div>
           <Row name="Ambient sound" hint="Override the scene's default sound during Pomodoro focus">
             <select

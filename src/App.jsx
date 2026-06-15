@@ -102,8 +102,37 @@ export default function App() {
     return (visitDates || []).filter((d) => d >= cutoff && d <= today).length;
   }, [visitDates]);
 
-  // --- custom wallpaper (data URL stored in its own key to avoid bloating ligand.settings) ---
-  const [customWallpaper, setCustomWallpaper] = useLocalStorage("ligand.customWallpaper", null);
+  // --- custom wallpaper gallery (data URLs in their own key to avoid bloating
+  // ligand.settings). Up to 5 photos; the active one is picked by
+  // settings.wallpaper.customId when settings.wallpaper.id === "custom". ---
+  const [customWallpapers, setCustomWallpapers] = useLocalStorage("ligand.customWallpapers", []);
+
+  // One-time migration from the old single-wallpaper key into the gallery.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("ligand.customWallpaper");
+      if (raw == null) return;
+      const url = JSON.parse(raw);
+      if (typeof url === "string" && url) {
+        setCustomWallpapers((prev) =>
+          prev && prev.length ? prev : [{ id: "cw-legacy", url }]
+        );
+      }
+      window.localStorage.removeItem("ligand.customWallpaper");
+    } catch {
+      /* ignore malformed legacy data */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The active custom photo: the one whose id matches customId, else the first
+  // (covers the migrated legacy wallpaper, which has no stored customId).
+  const activeCustom =
+    settings.wallpaper.id === "custom"
+      ? customWallpapers.find((w) => w.id === settings.wallpaper.customId) ||
+        customWallpapers[0] ||
+        null
+      : null;
 
   useEffect(() => {
     const today = todayKey();
@@ -217,13 +246,13 @@ export default function App() {
   // effective light/dark token set so text stays readable on top.
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.wallpaper.id === "custom" && customWallpaper) {
+    if (settings.wallpaper.id === "custom" && activeCustom) {
       // Custom photo: use the data URL directly, cover the viewport.
       // Theme follows the user's choice (we can't know the photo's tone).
       root.dataset.theme = resolvedTheme;
       document.body.style.backgroundSize = "cover";
       document.body.style.backgroundPosition = "center";
-      root.style.setProperty("--app-bg", `url(${customWallpaper})`);
+      root.style.setProperty("--app-bg", `url(${activeCustom.url})`);
     } else {
       document.body.style.backgroundSize = "";
       document.body.style.backgroundPosition = "";
@@ -237,7 +266,7 @@ export default function App() {
         root.style.removeProperty("--app-bg");
       }
     }
-  }, [settings.wallpaper.id, resolvedTheme, customWallpaper]);
+  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {
@@ -412,8 +441,8 @@ export default function App() {
             confirmBeforeDelete={confirmBeforeDelete}
             requestNotifyPermission={notif.requestPermission}
             notifyPermission={notif.permission}
-            customWallpaper={customWallpaper}
-            setCustomWallpaper={setCustomWallpaper}
+            customWallpapers={customWallpapers}
+            setCustomWallpapers={setCustomWallpapers}
           />
         );
       default:
