@@ -130,8 +130,7 @@ serve(async (req) => {
           hasGeminiKey,
           geminiStatus,
           extractedTextLength,
-          extractedTextPreview,
-          rawGeminiResponse: data
+          extractedTextPreview
         }
       }),
       {
