@@ -21,6 +21,12 @@ function getFallback(action) {
   }
 }
 
+export function clearAiCache(goalId, action) {
+  try {
+    window.localStorage.removeItem(getCacheKey(goalId, action));
+  } catch (err) {}
+}
+
 export async function fetchAiInsight(goalId, action, context) {
   // 1. Check local cache
   const cacheKey = getCacheKey(goalId, action);
@@ -29,7 +35,7 @@ export async function fetchAiInsight(goalId, action, context) {
     if (cachedRaw) {
       const cached = JSON.parse(cachedRaw);
       if (Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.result;
+        return { text: cached.result, source: "ai" };
       }
     }
   } catch (err) {
@@ -38,7 +44,7 @@ export async function fetchAiInsight(goalId, action, context) {
 
   // 2. Fast-fail silently if Supabase is not configured
   if (!isSupabaseConfigured || !supabase) {
-    return getFallback(action);
+    return { text: getFallback(action), source: "fallback" };
   }
 
   // 3. Fetch from Supabase Edge Function
@@ -46,7 +52,7 @@ export async function fetchAiInsight(goalId, action, context) {
     // Fast-fail silently if not logged in (guest mode) to avoid unnecessary network request
     const { data: session } = await supabase.auth.getSession();
     if (!session?.session) {
-      return getFallback(action);
+      return { text: getFallback(action), source: "fallback" };
     }
 
     const { data, error } = await supabase.functions.invoke("gemini-insights", {
@@ -67,13 +73,13 @@ export async function fetchAiInsight(goalId, action, context) {
       } catch (err) {
         // ignore cache write errors (e.g. quota exceeded)
       }
-      return data.result;
+      return { text: data.result, source: "ai" };
     }
 
     throw new Error("No result in Edge Function response");
   } catch (error) {
     console.warn(`[AI] Failed to fetch ${action} insight. Using fallback.`, error);
-    return getFallback(action);
+    return { text: getFallback(action), source: "fallback" };
   }
 }
 

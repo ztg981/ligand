@@ -32,7 +32,7 @@ export default function Reflections({
       tasks: (tasks || []).slice(-5).map(t => ({ text: t?.text, done: t?.done }))
     };
     fetchAiInsight(goal.id, "journal-prompt", context).then(res => {
-      if (active && res) setPrompt(res);
+      if (active && res?.text) setPrompt(res.text);
     }).catch(() => {});
     return () => { active = false; };
   }, [goal?.id, goal?.name, tasks]);

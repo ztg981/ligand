@@ -131,7 +131,7 @@ function OverdueGoalBanner({
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "var(--accent-ink)", fontSize: 13.5, lineHeight: 1.45 }}>
-            {insight || "Plans change. Want to clean this up? You can keep it, revise it, or let it go."}
+            {insight?.text || "Plans change. Want to clean this up? You can keep it, revise it, or let it go."}
           </div>
           <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
             Target date: {target}

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { todayKey, shiftDay, isCheckedOn } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
-import { fetchAiInsight } from "../lib/aiApi.js";
+import { fetchAiInsight, clearAiCache } from "../lib/aiApi.js";
 
 /* GoalProgress — a calm snapshot for ONE goal:
    - task completion (done / total)
@@ -56,6 +56,8 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
   }, [goal.habits, weekStartsMonday]);
 
   const [insight, setInsight] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useEffect(() => {
     if (!goal?.id) return;
     let active = true;
@@ -72,6 +74,24 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
     });
     return () => { active = false; };
   }, [goal?.id, goal?.name, goal?.targetDate, goalTasks, goal?.habits]);
+
+  const handleRefreshInsight = () => {
+    if (isRefreshing || !goal?.id) return;
+    setIsRefreshing(true);
+    clearAiCache(goal.id, "goal-summary");
+    const context = {
+      name: goal?.name,
+      targetDate: goal?.targetDate,
+      tasks: (goalTasks || []).slice(-5).map(t => ({ text: t?.text, done: t?.done })),
+      habits: (goal?.habits || []).map(h => h?.name)
+    };
+    fetchAiInsight(goal.id, "goal-summary", context)
+      .then(res => {
+        setInsight(res);
+        setIsRefreshing(false);
+      })
+      .catch(() => setIsRefreshing(false));
+  };
 
   if (widgetSize === "compact") {
     return (
@@ -123,10 +143,28 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
 
       {insight && (
         <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--panel-3)", borderRadius: "var(--r-md)", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
-          <div className="row" style={{ gap: 6, marginBottom: 4, color: "var(--accent)", fontWeight: 550, fontSize: 11.5 }}>
-            <Icon.Spark /> AI Insight
+          <div className="row between" style={{ marginBottom: 4 }}>
+            <div className="row" style={{ gap: 6, color: "var(--accent)", fontWeight: 550, fontSize: 11.5 }}>
+              <Icon.Spark width={14} height={14} /> AI Insight
+              {insight.source === "fallback" && (
+                <span style={{ fontSize: 10, color: "var(--ink-3)", fontWeight: 400, marginLeft: 4 }} title="Standard fallback text">
+                  (Fallback)
+                </span>
+              )}
+            </div>
+            <button 
+              className="btn ghost icon-only" 
+              style={{ width: 24, height: 24, opacity: isRefreshing ? 0.5 : 1 }}
+              onClick={handleRefreshInsight}
+              disabled={isRefreshing}
+              title="Refresh insight"
+            >
+              <Icon.Reset width={12} height={12} />
+            </button>
           </div>
-          {insight}
+          <div style={{ opacity: isRefreshing ? 0.5 : 1, transition: "opacity 0.2s" }}>
+            {insight.text}
+          </div>
         </div>
       )}
 
