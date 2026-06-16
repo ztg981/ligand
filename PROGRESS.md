@@ -13,8 +13,7 @@ finish the job.
 ## Phase 2 — Stability audit + new features (2026-06-15, Claude Code)
 
 Picked the project back up after the Antigravity session. **Did an
-evidence-based stability audit first**, then built six of the seven Phase 2
-features (the 7th, Gemini thinking-level tuning, is optional and deferred).
+evidence-based stability audit first**, then built all seven Phase 2 features.
 Everything below is committed and pushed to `master`.
 
 ### Stability audit — result: stable (no blocking problems)
@@ -39,7 +38,7 @@ Everything below is committed and pushed to `master`.
   intermittently during testing. These are Google-side, not our code — the app
   degrades correctly to "Using fallback" / "Last AI insight" when they happen.
 
-### Phase 2 features — all 6 DONE, verified, committed & pushed
+### Phase 2 features — all 7 DONE, verified, committed & pushed
 1. **Weekly AI review** — `weekly_review` action on the Edge Function
    (redeployed) + a "Your week" card on Home. Per-ISO-week cache, manual
    refresh, honest labels. Backend returns a grounded review (spotted a real
@@ -62,11 +61,13 @@ Everything below is committed and pushed to `master`.
    GoalProgress shows "Focused <this week> · <all-time>" (calendar-week, own
    goal only). "Deep focus" badge (10 sessions) added.
 
-### Deferred (optional)
-7. **Gemini thinking-level tuning** — NOT done. The function works as-is
-   (no thinking param; default medium + maxOutputTokens 4000). Optionally add
-   `thinking_level: "low"` for latency/cost later, but only test when Gemini
-   isn't throwing 503s and confirm output quality doesn't regress first.
+7. **Gemini thinking-level tuning** — DONE (redeployed). Added
+   `generationConfig.thinkingConfig.thinkingLevel: "low"` (maxOutputTokens
+   4000 kept as a safety margin). Confirmed empirically against the live
+   function: the param is valid/honored and cut latency from **~5.7s → ~3.7s**
+   (~35%) with **no quality regression** — goal-summary, journal-prompt, and
+   the multi-sentence weekly_review all still return complete, on-tone text
+   (weekly_review still correctly spotted the weekday pattern).
 
 ### Final sweep — PASSED
 - `npm run build` clean (only the pre-existing >500 KB bundle warning).

@@ -87,6 +87,10 @@ serve(async (req) => {
           generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 4000,
+            // These are short insight/summary tasks, not complex reasoning —
+            // ask Gemini 3.x for minimal internal thinking so replies are
+            // faster and cheaper. (maxOutputTokens stays as a safety margin.)
+            thinkingConfig: { thinkingLevel: "low" },
           },
         }),
       }
