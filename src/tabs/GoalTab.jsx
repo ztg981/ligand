@@ -493,8 +493,8 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks, widgetSize, weekStartsMonday }) => (
-      <GoalProgress goal={goal} tasks={tasks} widgetSize={widgetSize} weekStartsMonday={weekStartsMonday} />
+    render: ({ goal, tasks, widgetSize, weekStartsMonday, focusLog }) => (
+      <GoalProgress goal={goal} tasks={tasks} widgetSize={widgetSize} weekStartsMonday={weekStartsMonday} focusLog={focusLog} />
     ),
   },
   countUp: {
@@ -1514,6 +1514,7 @@ function GoalWidgetGrid({
   goal,
   goals = [],
   onOpenGoal,
+  focusLog = [],
   tasks,
   countUps,
   addCountUp,
@@ -1641,6 +1642,7 @@ function GoalWidgetGrid({
     goal,
     goals,
     onOpenGoal,
+    focusLog,
     tasks,
     countUps,
     addCountUp,
@@ -1837,6 +1839,7 @@ export default function GoalTab({
   goal,
   goals = [],
   onOpenGoal,
+  focusLog = [],
   tasks,
   countUps,
   addCountUp,
@@ -1966,6 +1969,7 @@ export default function GoalTab({
         goal={goal}
         goals={goals}
         onOpenGoal={onOpenGoal}
+        focusLog={focusLog}
         tasks={tasks}
         countUps={countUps}
         addCountUp={addCountUp}

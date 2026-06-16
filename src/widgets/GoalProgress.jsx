@@ -33,7 +33,16 @@ function Bar({ pct, color }) {
   );
 }
 
-export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekStartsMonday = false }) {
+function fmtMins(min) {
+  if (!min) return "0m";
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekStartsMonday = false, focusLog = [] }) {
   const goalTasks = useMemo(
     () => (tasks || []).filter((t) => t?.goalId === goal?.id),
     [tasks, goal?.id]
@@ -54,6 +63,21 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
       0
     );
   }, [goal.habits, weekStartsMonday]);
+
+  // Focused time logged against this goal (from completed Pomodoro sessions),
+  // both this week (same week boundary as check-ins) and all-time.
+  const focus = useMemo(() => {
+    const mine = (focusLog || []).filter((e) => e?.goalId === goal?.id);
+    const allTime = mine.reduce((sum, e) => sum + (e.minutes || 0), 0);
+    const today = todayKey();
+    const dow = new Date(today + "T00:00:00").getDay();
+    const back = weekStartsMonday ? (dow === 0 ? 6 : dow - 1) : dow;
+    const weekStart = shiftDay(today, -back);
+    const week = mine
+      .filter((e) => e.date >= weekStart)
+      .reduce((sum, e) => sum + (e.minutes || 0), 0);
+    return { allTime, week };
+  }, [focusLog, goal?.id, weekStartsMonday]);
 
   const [insight, setInsight] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -143,6 +167,17 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
           {weekCheckIns}
         </span>
       </div>
+
+      {focus.allTime > 0 && (
+        <div className="row between" style={{ marginTop: 8 }}>
+          <span className="row" style={{ gap: 6, fontSize: 12.5, color: "var(--ink-2)" }}>
+            <Icon.Timer /> Focused
+          </span>
+          <span className="mono" style={{ fontSize: 12, color: "var(--ink-2)" }}>
+            {fmtMins(focus.week)} this week · {fmtMins(focus.allTime)} all-time
+          </span>
+        </div>
+      )}
 
       {insight && (
         <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--panel-3)", borderRadius: "var(--r-md)", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>

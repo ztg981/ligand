@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
@@ -402,14 +403,35 @@ function SceneContent({ themeId, themeName }) {
 /* ============================================================
    Main component
    ============================================================ */
-export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambientOverride = "none" }) {
+export default function Pomodoro({
+  chimeEnabled = true,
+  onPhaseComplete,
+  ambientOverride = "none",
+  tasks = [],
+  goals = [],
+  logFocusSession,
+}) {
+  // What the user is focusing on this session (persisted so it survives reloads).
+  const [focusTaskId, setFocusTaskId] = useLocalStorage("ligand.focusTaskId", "");
+  // Carries the latest values into the phase-end callback without stale closures.
+  const focusEndRef = useRef(null);
+
   const pomo = usePomodoro({
     onPhaseEnd: ({ endedPhase }) => {
       if (chimeEnabled) chime();
+      // Log a completed focus block against its linked task's goal (if any).
+      if (endedPhase === PHASES.WORK && focusEndRef.current) {
+        const { taskId, work, tasks: ts } = focusEndRef.current;
+        const task = ts.find((t) => t.id === taskId);
+        if (task && logFocusSession) {
+          logFocusSession({ minutes: work, goalId: task.goalId || null });
+        }
+      }
       onPhaseComplete?.({ endedPhase });
     },
   });
   const { settings, setSettings } = pomo;
+  focusEndRef.current = { taskId: focusTaskId, work: settings.work, tasks };
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
 
   // Focus mode: hides all surrounding UI, leaving only the scene + timer.
@@ -611,6 +633,31 @@ export default function Pomodoro({ chimeEnabled = true, onPhaseComplete, ambient
               {pomo.completed} done
             </span>
           </div>
+        </div>
+
+        {/* Focusing on — links a completed focus block to a task's goal so
+           time is tracked per goal. "Nothing in particular" logs nothing. */}
+        <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ fontSize: 12, color: "var(--ink-3)" }}>Focusing on</span>
+          <select
+            className="input"
+            value={focusTaskId}
+            onChange={(e) => setFocusTaskId(e.target.value)}
+            style={{ width: "auto", maxWidth: 280, flex: "none" }}
+          >
+            <option value="">Nothing in particular</option>
+            {tasks
+              .filter((t) => !t.done)
+              .map((t) => {
+                const g = t.goalId ? goals.find((x) => x.id === t.goalId) : null;
+                return (
+                  <option key={t.id} value={t.id}>
+                    {t.text}
+                    {g ? ` · ${g.name}` : ""}
+                  </option>
+                );
+              })}
+          </select>
         </div>
       </div>
 

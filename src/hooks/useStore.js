@@ -339,6 +339,23 @@ export function useStore() {
     [setData]
   );
 
+  // -- focus log (Pomodoro time tracking) ------------------------
+  // Each entry: { date: "YYYY-MM-DD", minutes, goalId|null }. Sessions not
+  // linked to a goal are still logged (goalId null) but count toward no goal.
+  const logFocusSession = useCallback(
+    ({ minutes, goalId = null }) => {
+      if (!minutes || minutes <= 0) return;
+      setData((d) => ({
+        ...d,
+        focusLog: [
+          ...(d.focusLog || []),
+          { date: todayKey(), minutes, goalId },
+        ],
+      }));
+    },
+    [setData]
+  );
+
   const actions = useMemo(
     () => ({
       addGoal,
@@ -364,6 +381,7 @@ export function useStore() {
       removeCountUp,
       resetData,
       setGoalOrder,
+      logFocusSession,
     }),
     [
       addGoal,
@@ -389,6 +407,7 @@ export function useStore() {
       removeCountUp,
       resetData,
       setGoalOrder,
+      logFocusSession,
     ]
   );
 
@@ -398,6 +417,7 @@ export function useStore() {
     tasks: data.tasks,
     countUps: data.countUps,
     journal: data.journal || [],
+    focusLog: data.focusLog || [],
     ...actions,
   };
 }

@@ -75,6 +75,13 @@ export const BADGES = [
     earned: (s) => s.maxCountUp >= 30,
   },
   {
+    id: "deep-focus",
+    name: "Deep focus",
+    desc: "Completed 10 focus sessions.",
+    icon: "Timer",
+    earned: (s) => (s.focusSessions || 0) >= 10,
+  },
+  {
     id: "showing-up",
     name: "Showing up",
     desc: "Used Ligand on 7 different days.",

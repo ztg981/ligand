@@ -151,8 +151,9 @@ export default function App() {
       reflectionCount,
       maxCountUp,
       visitDays: (visitDates || []).length,
+      focusSessions: (store.focusLog || []).length,
     };
-  }, [store.goals, store.tasks, store.countUps, store.journal, visitDates]);
+  }, [store.goals, store.tasks, store.countUps, store.journal, store.focusLog, visitDates]);
 
   const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
     useBadges(badgeStats);
@@ -445,6 +446,7 @@ export default function App() {
           <GoalTab
             goal={goal}
             goals={activeGoals}
+            focusLog={store.focusLog}
             onOpenGoal={(gid) => {
               setActiveGoal(gid);
               setTab("goal");
@@ -494,6 +496,9 @@ export default function App() {
           <Pomodoro
             chimeEnabled={settings.notifications.pomodoroChime}
             ambientOverride={settings.wallpaper?.sound ?? "none"}
+            tasks={store.tasks}
+            goals={activeGoals}
+            logFocusSession={store.logFocusSession}
             onPhaseComplete={({ endedPhase }) => {
               const wasFocus = endedPhase === PHASES.WORK;
               notif.push(
