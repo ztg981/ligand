@@ -13,8 +13,9 @@ finish the job.
 ## Phase 2 — Stability audit + new features (2026-06-15, Claude Code)
 
 Picked the project back up after the Antigravity session. **Did an
-evidence-based stability audit first**, then built three of the seven Phase 2
-features. Everything below is committed and pushed to `master`.
+evidence-based stability audit first**, then built six of the seven Phase 2
+features (the 7th, Gemini thinking-level tuning, is optional and deferred).
+Everything below is committed and pushed to `master`.
 
 ### Stability audit — result: stable (no blocking problems)
 - `npm run build` clean; PWA `sw.js` generates; manifest icons present.
@@ -38,30 +39,43 @@ features. Everything below is committed and pushed to `master`.
   intermittently during testing. These are Google-side, not our code — the app
   degrades correctly to "Using fallback" / "Last AI insight" when they happen.
 
-### Done this session
-1. **Weekly AI review** — new `weekly_review` action on the Edge Function
+### Phase 2 features — all 6 DONE, verified, committed & pushed
+1. **Weekly AI review** — `weekly_review` action on the Edge Function
    (redeployed) + a "Your week" card on Home. Per-ISO-week cache, manual
-   refresh, same honest labels as the AI Insight. Verified: backend returns a
-   grounded review (correctly spotted a real weekday pattern); logged-in UI
-   shows AI-generated text; guest shows fallback; 503 → fallback. Fixed a
-   self-introduced StrictMode double-invoke bug in the widget's fetch effect.
-2. **Habit heatmap** — new goal-tab widget: 12-week GitHub-style grid per habit,
-   missed days neutral (never red). Verified cells match check-ins, persists,
-   light/dark, mobile.
+   refresh, honest labels. Backend returns a grounded review (spotted a real
+   weekday pattern); logged-in UI shows AI-generated text; guest shows
+   fallback; transient Gemini 503 → fallback. Fixed a self-introduced
+   StrictMode double-invoke bug in the widget's fetch effect.
+2. **Habit heatmap** — goal-tab widget: 12-week GitHub-style grid per habit,
+   missed days neutral (never red). Cells match check-ins; persists.
 3. **Saved Pomodoro presets** — quick-select chips (apply/save/rename/delete),
-   3 seeded defaults, stored in `ligand.pomodoroPresets` (syncs / local).
+   3 seeded defaults, in `ligand.pomodoroPresets` (syncs / local).
+4. **Recurring tasks** — Daily / Weekly(weekday) repeat picker; completing
+   records `completedOn`; resets to not-done on the next occurrence (on load +
+   window focus). Repeat chip on rows. Verified daily/weekly reset + controls
+   (one-off & same-day never reset); filters unaffected.
+5. **Achievement badges** — 11 milestones in `ligand.badges`, a Badges view in
+   the avatar menu, gentle unlock toast + chime. First run silently grants
+   already-earned badges (no toast spam for returning users).
+6. **Time tracking per goal** — Pomodoro "Focusing on" task selector; a
+   completed focus block logs `{date, minutes, goalId}` to `ligand.focusLog`;
+   GoalProgress shows "Focused <this week> · <all-time>" (calendar-week, own
+   goal only). "Deep focus" badge (10 sessions) added.
 
-### Remaining Phase 2 (NOT started — for next session)
-4. **Recurring tasks** (Daily / Weekly) — resets to not-done on next occurrence.
-5. **Achievement badges** — 8–12 milestones, Badges view, gentle unlock toast.
-6. **Time tracking per goal** — log completed focus-session minutes to the
-   linked task's goal; show in the Progress widget.
-7. **Gemini thinking-level tuning** — OPTIONAL. Current config works; consider
-   `thinking_level: "low"` for latency/cost, but only test when Gemini isn't
-   throwing 503s, and verify output quality doesn't regress before keeping it.
-   Don't change blindly — the function is working as-is.
+### Deferred (optional)
+7. **Gemini thinking-level tuning** — NOT done. The function works as-is
+   (no thinking param; default medium + maxOutputTokens 4000). Optionally add
+   `thinking_level: "low"` for latency/cost later, but only test when Gemini
+   isn't throwing 503s and confirm output quality doesn't regress first.
 
-Then the full final sweep (every tab, light/dark/auto, 375/768/1280, dev+prod).
+### Final sweep — PASSED
+- `npm run build` clean (only the pre-existing >500 KB bundle warning).
+- Dev: every tab at 1280/768/375 in light/dark/auto — no overflow, **zero
+  console errors**.
+- Prod preview (4173): every tab at 1280 light + 375 dark — all six new
+  features present and rendering, **zero console errors**.
+- Reminder for the live site: because of the PWA service worker, hard-refresh
+  (Ctrl/Cmd+Shift+R) to pick up the new build.
 
 ## Phase 2 — Gemini AI Integration Session (2026-06-15)
 
