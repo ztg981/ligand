@@ -163,6 +163,9 @@ export const Icon = {
       <rect x="3" y="7" width="6" height="2" rx="0.2" fill="currentColor" stroke="none" />
     </>
   ),
+  Leaf: make(
+    <path d="M3 13c3-3 6.5-4 9-3.5C12.5 7 11 4 8 2.5 7 6 5 9 3 13z M6 10c1.5-1 3-1.5 5-1" />
+  ),
 };
 
 export default Icon;

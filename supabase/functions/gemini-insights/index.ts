@@ -63,6 +63,10 @@ serve(async (req) => {
       const weeklyPhilosophy = "You are Ligand, a gentle productivity assistant for users with ADHD. You are encouraging, never shaming, and forgiving of inconsistency. No markdown, no bullet points, no quotes, just plain text. Never use vague standalone phrases like 'It's okay' or 'You got this'.";
       systemInstruction = `${weeklyPhilosophy} Write 2-3 short, complete sentences reviewing the user's week: gently note what went well, mention at most one real pattern ONLY if the data clearly shows it (never invent one), and end with one small, specific suggestion for next week.`;
       prompt = `Active goals: ${JSON.stringify(context.activeGoals)}\nTasks done / total: ${context.tasksDone}/${context.tasksTotal}\nHabit check-ins this week: ${context.habitCheckInsThisWeek}\nHabit check-ins by weekday (last 4 weeks): ${JSON.stringify(context.weekdayCheckIns)}\nJournal entries this week: ${context.journalEntriesThisWeek}\nWrite a gentle 2-3 sentence weekly review based only on this data.`;
+    } else if (action === "recovery_insight") {
+      const recoveryPhilosophy = "You are Ligand, a deeply compassionate recovery companion for users who are working on sobriety or freedom from a habit. You are warm, honest, never preachy, never shaming, and never generic. Keep your response to EXACTLY 1-2 complete, natural sentences (under 40 words total). No markdown, no bullet points, no quotes. Never use hollow phrases like 'You got this', 'Keep going', or 'Stay strong'. Speak as if you genuinely know this person.";
+      systemInstruction = `${recoveryPhilosophy} Write 1-2 short sentences of compassionate encouragement grounded in the user's actual journey (days free, their stated why, and any recent journal writing). Be specific to what they shared, not generic.`;
+      prompt = `Days free: ${context.days}\nWhat they're working on: ${context.label || "something important"}\nWhy it matters to them: ${context.why || "(not shared)"}\nRecent journal: ${context.recentJournal || "(nothing recent)"}\nWrite 1-2 sentences of warm, grounded encouragement.`;
     } else {
       throw new Error("Invalid action provided.");
     }

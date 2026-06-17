@@ -55,8 +55,10 @@ export default function Home({
   }, [activeTasks]);
 
   const urgent = useMemo(() => activeTasks.filter((t) => t.label === "Urgent"), [activeTasks]);
+  // Recovery goals are excluded from the overdue list — they're private by design
+  // and don't have target dates anyway, so they can never become overdue.
   const overdueGoals = useMemo(
-    () => goals.filter((g) => isGoalOverdue(g)),
+    () => goals.filter((g) => g.type !== "recovery" && isGoalOverdue(g)),
     [goals]
   );
 

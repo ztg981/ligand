@@ -26,6 +26,7 @@ import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
 import GoalTab from "./tabs/GoalTab.jsx";
+import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -442,6 +443,17 @@ export default function App() {
       case "goal": {
         const id = tab === "productivity" ? "productivity" : activeGoal;
         const goal = store.goals.find((g) => g.id === id);
+        if (goal?.type === "recovery") {
+          return (
+            <RecoveryGoalTab
+              goal={goal}
+              updateGoal={store.updateGoal}
+              onArchiveGoal={handleArchiveGoal}
+              addReflection={store.addReflection}
+              removeReflection={store.removeReflection}
+            />
+          );
+        }
         return (
           <GoalTab
             goal={goal}

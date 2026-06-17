@@ -2744,3 +2744,137 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .badge-desc { font-size: 11px; color: var(--ink-3); margin-top: 2px; line-height: 1.35; }
 .badge-status { font-size: 10px; color: var(--ink-4); margin-top: 6px; font-family: var(--font-mono); }
 @media (max-width: 640px) { .badges-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ============================================================
+   Goal-type chooser (SmartGoalModal)
+   ============================================================ */
+.goal-kind-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) { .goal-kind-grid { grid-template-columns: 1fr; } }
+.goal-kind-card {
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 6px; padding: 16px 14px; text-align: left;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-xl);
+  background: var(--panel-2);
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.14s var(--ease);
+}
+.goal-kind-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  transform: translateY(-1px);
+}
+.goal-kind-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--accent-soft); color: var(--accent-ink, var(--accent));
+}
+.goal-kind-ic svg { width: 18px; height: 18px; }
+.goal-kind-ic.recovery {
+  background: oklch(0.92 0.04 150); color: oklch(0.42 0.12 150);
+}
+[data-theme="dark"] .goal-kind-ic.recovery {
+  background: oklch(0.28 0.06 150); color: oklch(0.82 0.10 150);
+}
+.goal-kind-name { font-size: 14px; font-weight: 600; }
+.goal-kind-desc { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+
+/* ============================================================
+   Recovery goal tab
+   ============================================================ */
+.recovery-hero {
+  text-align: center;
+  padding: 28px 20px 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--shadow-card);
+}
+.recovery-hero-days {
+  font-size: 80px; font-weight: 700; line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+@media (max-width: 640px) { .recovery-hero-days { font-size: 60px; } }
+.recovery-hero-label {
+  font-size: 17px; font-weight: 500; color: var(--ink-2);
+  margin-top: 6px; line-height: 1.4;
+}
+.recovery-hero-enc {
+  font-size: 13.5px; color: var(--ink-3); margin-top: 10px; line-height: 1.5;
+  font-style: italic;
+}
+
+/* Milestone progress bar */
+.recovery-milestone-track {
+  margin-top: 20px;
+  height: 5px; border-radius: 999px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+.recovery-milestone-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.6s var(--ease);
+}
+.recovery-milestone-labels {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 7px; gap: 8px;
+}
+
+/* Milestone celebration toast (inside the hero) */
+.recovery-milestone-toast {
+  margin-top: 16px; padding: 10px 14px;
+  background: oklch(0.93 0.05 150); color: oklch(0.38 0.12 150);
+  border-radius: var(--r-lg); font-size: 13px; font-weight: 500;
+  animation: badgeToastIn 0.3s var(--ease);
+  display: flex; align-items: center; gap: 8px;
+}
+[data-theme="dark"] .recovery-milestone-toast {
+  background: oklch(0.26 0.06 150); color: oklch(0.82 0.10 150);
+}
+
+/* Reset streak — full-screen gentle overlay */
+.recovery-reset-overlay {
+  position: fixed; inset: 0; z-index: 140;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: color-mix(in oklab, var(--bg) 97%, transparent);
+  backdrop-filter: blur(6px);
+  animation: recoveryFadeIn 0.22s var(--ease);
+}
+@keyframes recoveryFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.recovery-reset-card {
+  width: min(480px, 100%); padding: 36px 28px 28px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-3xl); box-shadow: var(--shadow-pop);
+  text-align: center; animation: recoverySlideUp 0.26s var(--ease);
+}
+@keyframes recoverySlideUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.recovery-reset-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 16px;
+  background: oklch(0.93 0.04 150); color: oklch(0.42 0.12 150);
+  margin-bottom: 16px;
+}
+[data-theme="dark"] .recovery-reset-icon {
+  background: oklch(0.28 0.06 150); color: oklch(0.82 0.10 150);
+}
+.recovery-reset-icon svg { width: 24px; height: 24px; }
+.recovery-reset-title { font-size: 21px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 10px; }
+.recovery-reset-body { font-size: 14.5px; color: var(--ink-2); line-height: 1.6; margin: 0 0 24px; }
+.recovery-reset-actions { display: flex; flex-direction: column; gap: 8px; }
+.recovery-reset-actions .btn { height: 44px; justify-content: center; font-size: 14px; }
+
+/* Nav pill leaf icon for recovery goals */
+.tab .recovery-leaf {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 9px; height: 9px; color: oklch(0.5 0.14 150);
+  flex: none; margin-right: 2px;
+}
+.tab .recovery-leaf svg { width: 9px; height: 9px; stroke-width: 1.8; }

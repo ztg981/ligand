@@ -22,7 +22,7 @@ export function uid(prefix = "id") {
 }
 
 // ---- constants -------------------------------------------------
-export const GOAL_TYPES = { BUILT_IN: "built-in", CUSTOM: "custom" };
+export const GOAL_TYPES = { BUILT_IN: "built-in", CUSTOM: "custom", RECOVERY: "recovery" };
 export const GOAL_STATUS = { ACTIVE: "active", DONE: "done", ARCHIVED: "archived" };
 export const TASK_LABELS = ["Today", "Urgent", "General"]; // per-goal names added at runtime
 export const TASK_TERMS = { SHORT: "short", LONG: "long" };
@@ -64,6 +64,7 @@ export function createGoal({
   color,
   smartFields = {},
   deadline = null,
+  recoveryData = null,
 } = {}) {
   return {
     id: uid("goal"),
@@ -75,6 +76,9 @@ export function createGoal({
     habits: [],
     reflections: [],
     deadline,
+    // Recovery goals store their private data here:
+    // { startDate, label, why, milestonesReached: [days...] }
+    recoveryData,
     status: GOAL_STATUS.ACTIVE,
     createdAt: todayKey(),
   };

@@ -449,8 +449,11 @@ export default function TopNav({
   const goalItems = goals.map((g) => ({
     id: g.id,
     label: g.name,
-    dot: g.color,
-    // The built-in Productivity goal is fixed; everything else can be archived.
+    // Recovery goals use a leaf icon instead of the color dot — subtle privacy.
+    dot: g.type === "recovery" ? null : g.color,
+    icon: g.type === "recovery" ? (
+      <span className="recovery-leaf"><Icon.Leaf /></span>
+    ) : null,
     deletable: g.type !== "built-in",
   }));
 

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient.js";
 import { reflectionPrompt } from "./ai.js"; // fallback
+import { recoveryFallback } from "./recovery.js";
 
 // Cache duration: 24 hours
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -16,6 +17,8 @@ function getFallback(action) {
       return "It's completely okay to push the date back if you need more time, or to archive it for later.";
     case "journal-prompt":
       return reflectionPrompt(); // Existing static fallback
+    case "recovery_insight":
+      return recoveryFallback(Date.now());
     default:
       return "You're doing great.";
   }
