@@ -25,6 +25,13 @@ export const SETTINGS_DEFAULTS = {
     encouragement: true, // the warm dashboard lines
     tone: "warm", // "warm" | "plain" | "cheerful"
   },
+  ai: {
+    // Per-feature control over what is sent to the Gemini API.
+    aiGoalInsights: true, // goal summary / "At a glance" / overdue advice / prompts
+    aiWeeklyReview: true, // the "Your week" card
+    includeJournalText: false, // off: only aggregate stats leave the device
+    aiRecoveryInsights: false, // recovery data is private unless explicitly on
+  },
   wallpaper: {
     id: "none",
     sound: "none",

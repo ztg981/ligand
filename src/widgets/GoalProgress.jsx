@@ -179,7 +179,13 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
         </div>
       )}
 
-      {insight && (
+      {insight && insight.source === "off" && (
+        <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--panel-3)", borderRadius: "var(--r-md)", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
+          {insight.text}
+        </div>
+      )}
+
+      {insight && insight.source !== "off" && (
         <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--panel-3)", borderRadius: "var(--r-md)", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
           <div className="row between" style={{ marginBottom: 4 }}>
             <div className="row" style={{ gap: 6, color: "var(--accent)", fontWeight: 550, fontSize: 11.5 }}>

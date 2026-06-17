@@ -132,7 +132,7 @@ export default function WeeklyReview({ goals = [], tasks = [], journal = [] }) {
         <div className="card-title">
           <Icon.Spark width={14} height={14} /> Your week
         </div>
-        {hasActivity && (
+        {hasActivity && review.source !== "off" && (
           <button
             className="btn ghost sm"
             style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: isRefreshing ? 0.5 : 1 }}

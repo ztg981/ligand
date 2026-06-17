@@ -207,7 +207,11 @@ function AIInsightCard({ goal, days }) {
   }, [goal?.id]);
 
   const text = insight?.text;
-  const isFallback = !text || insight?.source === "fallback" || insight?.source === "logged-out";
+  // When recovery AI is toggled off, the call is skipped (source "off") — show
+  // the line quietly with no refresh and no "fallback" badge.
+  const isOff = insight?.source === "off";
+  const isFallback =
+    !isOff && (!text || insight?.source === "fallback" || insight?.source === "logged-out");
   const displayText = text || recoveryFallback(days);
 
   return (
@@ -216,16 +220,18 @@ function AIInsightCard({ goal, days }) {
         <div className="card-title">
           <Icon.Spark /> A thought for today
         </div>
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={() => load(true)}
-          disabled={loading}
-          title="Refresh"
-          style={{ opacity: loading ? 0.55 : 1 }}
-        >
-          {loading ? "…" : <><Icon.Reset width={13} height={13} /> Refresh</>}
-        </button>
+        {!isOff && (
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => load(true)}
+            disabled={loading}
+            title="Refresh"
+            style={{ opacity: loading ? 0.55 : 1 }}
+          >
+            {loading ? "…" : <><Icon.Reset width={13} height={13} /> Refresh</>}
+          </button>
+        )}
       </div>
       <div
         style={{ fontSize: 14, color: "var(--accent-ink)", lineHeight: 1.6, marginTop: 8, fontStyle: "italic" }}

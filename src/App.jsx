@@ -565,6 +565,7 @@ export default function App() {
             notifyPermission={notif.permission}
             customWallpapers={customWallpapers}
             setCustomWallpapers={setCustomWallpapers}
+            hasRecoveryGoal={activeGoals.some((g) => g.type === "recovery")}
           />
         );
       default:

@@ -9,6 +9,49 @@ function getCacheKey(goalId, action) {
   return `ligand.aiCache.${goalId}.${action}`;
 }
 
+// --- AI privacy controls -------------------------------------------------
+// Read the per-feature AI toggles straight from the settings store. Defaults
+// match SETTINGS_DEFAULTS.ai (goal/weekly ON; journal text & recovery OFF).
+function getPrivacySettings() {
+  try {
+    const raw = window.localStorage.getItem("ligand.settings");
+    const ai = (raw ? JSON.parse(raw) : {})?.ai || {};
+    return {
+      aiGoalInsights: ai.aiGoalInsights !== false,
+      aiWeeklyReview: ai.aiWeeklyReview !== false,
+      includeJournalText: ai.includeJournalText === true,
+      aiRecoveryInsights: ai.aiRecoveryInsights === true,
+    };
+  } catch {
+    return {
+      aiGoalInsights: true,
+      aiWeeklyReview: true,
+      includeJournalText: false,
+      aiRecoveryInsights: false,
+    };
+  }
+}
+
+// Which privacy toggle gates each action.
+const ACTION_TOGGLE = {
+  "goal-summary": "aiGoalInsights",
+  "overdue-advice": "aiGoalInsights",
+  "journal-prompt": "aiGoalInsights",
+  recovery_insight: "aiRecoveryInsights",
+};
+
+// Strip free-text journal/reflection fields from a context before it leaves
+// the device, when the user hasn't opted into sending journal text.
+function stripJournalText(context) {
+  if (!context) return context;
+  const clean = { ...context };
+  delete clean.recentJournal;
+  delete clean.journalEntries;
+  delete clean.reflections;
+  delete clean.journalText;
+  return clean;
+}
+
 function getFallback(action) {
   switch (action) {
     case "goal-summary":
@@ -97,6 +140,15 @@ const WEEKLY_FALLBACK =
  */
 export async function fetchWeeklyReview(context, forceRefresh = false) {
   const weekKey = getISOWeekKey();
+  // Privacy gate: weekly review off → quiet static fallback, no API call.
+  const priv = getPrivacySettings();
+  if (!priv.aiWeeklyReview) {
+    return { text: WEEKLY_FALLBACK, source: "off", week: weekKey };
+  }
+  // Weekly review only sends aggregate counts, but strip any text fields too
+  // when journal text is not opted in (defensive, in case context grows).
+  const safeContext = priv.includeJournalText ? context : stripJournalText(context);
+
   const cacheKey = `ligand.aiCache.weekly.${weekKey}`;
   let cached = null;
   let hasValidCache = false;
@@ -131,7 +183,7 @@ export async function fetchWeeklyReview(context, forceRefresh = false) {
     }
 
     const { data, error } = await supabase.functions.invoke("gemini-insights", {
-      body: { action: "weekly_review", context },
+      body: { action: "weekly_review", context: safeContext },
     });
     if (error) throw new Error(error.message);
     if (!data || !data.ok) {
@@ -163,6 +215,16 @@ export async function fetchWeeklyReview(context, forceRefresh = false) {
 }
 
 export async function fetchAiInsight(goalId, action, context, forceRefresh = false) {
+  // Privacy gate: if this feature is toggled off, never call the API — show the
+  // static fallback quietly (source "off" renders with no badge in the UI).
+  const priv = getPrivacySettings();
+  const toggleKey = ACTION_TOGGLE[action];
+  if (toggleKey && !priv[toggleKey]) {
+    return { text: getFallback(action), source: "off" };
+  }
+  // Drop journal/reflection text from the payload unless the user opted in.
+  const safeContext = priv.includeJournalText ? context : stripJournalText(context);
+
   const cacheKey = getCacheKey(goalId, action);
   let cached = null;
   let hasValidCache = false;
@@ -215,7 +277,7 @@ export async function fetchAiInsight(goalId, action, context, forceRefresh = fal
 
     debugLog(`Calling supabase.functions.invoke("gemini-insights") for action: ${action}`);
     const { data, error } = await supabase.functions.invoke("gemini-insights", {
-      body: { action, context },
+      body: { action, context: safeContext },
     });
 
     debugLog("supabase.functions.invoke returned:", { data, error });

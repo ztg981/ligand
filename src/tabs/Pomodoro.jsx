@@ -458,6 +458,9 @@ export default function Pomodoro({
   const sceneDimmed = hyperfocus && pomo.phase !== PHASES.WORK; // soften on breaks
   const ringColor = hyperfocus ? "#cc1111" : "#fff";
 
+  // Hyperfocus collapses the timer settings to keep the tab distraction-free.
+  const [showHfSettings, setShowHfSettings] = useState(false);
+
   // Subtle "Start a focus session?" prompt while hyperfocus is on and idle.
   const [promptDismissed, setPromptDismissed] = useState(false);
   useEffect(() => {
@@ -707,7 +710,47 @@ export default function Pomodoro({
         </div>
       </div>
 
-      {/* Settings */}
+      {/* Hyperfocus: a minimal, collapsed settings strip — no scene picker (it's
+          locked anyway), just the timer lengths tucked behind one quiet toggle. */}
+      {hyperfocus && (
+        <div className="hf-pomo-settings">
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => setShowHfSettings((s) => !s)}
+          >
+            <Icon.Timer width={13} height={13} />
+            {showHfSettings ? "Hide timer settings" : "Adjust timer"}
+          </button>
+          {showHfSettings && (
+            <div className="card hf-pomo-settings-card">
+              <div className="hf-slider-row">
+                <span className="name">Focus</span>
+                <Slider value={settings.work} min={5} max={60} step={5}
+                  onChange={(v) => setSettings({ work: v })} format={(v) => v + "m"} />
+              </div>
+              <div className="hf-slider-row">
+                <span className="name">Short break</span>
+                <Slider value={settings.shortBreak} min={1} max={20} step={1}
+                  onChange={(v) => setSettings({ shortBreak: v })} format={(v) => v + "m"} />
+              </div>
+              <div className="hf-slider-row">
+                <span className="name">Long break</span>
+                <Slider value={settings.longBreak} min={5} max={45} step={5}
+                  onChange={(v) => setSettings({ longBreak: v })} format={(v) => v + "m"} />
+              </div>
+              <div className="hf-slider-row">
+                <span className="name">Long break after</span>
+                <Slider value={settings.longEvery} min={2} max={8} step={1}
+                  onChange={(v) => setSettings({ longEvery: v })} format={(v) => v + "×"} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Settings (standard mode only) */}
+      {!hyperfocus && (
       <div className="grid grid-12" style={{ marginTop: 20 }}>
         {/* Session lengths */}
         <div className="card col-7" style={{ minWidth: 0 }}>
@@ -817,6 +860,7 @@ export default function Pomodoro({
           </p>
         </div>
       </div>
+      )}
     </>
   );
 }

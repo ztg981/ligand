@@ -3109,3 +3109,11 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   animation: badgeToastIn 0.3s var(--ease);
 }
 [data-reduce-motion="true"] .hf-start-prompt { animation: none; }
+
+/* Minimal collapsed timer settings shown only in Hyperfocus mode. */
+.hf-pomo-settings { text-align: center; margin-top: 18px; }
+.hf-pomo-settings-card { max-width: 440px; margin: 12px auto 0; text-align: left; }
+.hf-slider-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
+.hf-slider-row + .hf-slider-row { border-top: 1px solid var(--line); }
+.hf-slider-row .name { font-size: 12.5px; color: var(--ink-2); flex: none; min-width: 116px; }
+.hf-slider-row > div { flex: 1; }

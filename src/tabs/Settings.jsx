@@ -87,6 +87,7 @@ export default function Settings({
   notifyPermission = "default",
   customWallpapers = [],
   setCustomWallpapers,
+  hasRecoveryGoal = false,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -171,7 +172,7 @@ export default function Settings({
     }
   };
 
-  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {} } = settings;
+  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {} } = settings;
 
   return (
     <>
@@ -600,6 +601,47 @@ export default function Settings({
               ]}
             />
           </Row>
+        </Section>
+
+        {/* AI & Privacy */}
+        <Section icon={<Icon.Cloud />} title="AI & Privacy">
+          <p style={{ fontSize: 11.5, color: "var(--ink-4)", margin: "0 0 12px", lineHeight: 1.5 }}>
+            When AI features are on, summarized data is sent to Google's Gemini
+            API to generate insights. Google does not use this data to train
+            their models (paid API tier). Your data is never sold.
+          </p>
+          <Row name="AI goal insights" hint="Goal summary and 'At a glance' suggestions">
+            <Switch
+              checked={ai.aiGoalInsights !== false}
+              onChange={(v) => setSection("ai", { aiGoalInsights: v })}
+            />
+          </Row>
+          <Row name="AI weekly review" hint="The 'Your week' card on Home">
+            <Switch
+              checked={ai.aiWeeklyReview !== false}
+              onChange={(v) => setSection("ai", { aiWeeklyReview: v })}
+            />
+          </Row>
+          <Row
+            name="Include journal text in AI context"
+            hint="Your journal text stays on your device when this is off — AI only sees aggregate stats (tasks done, check-in counts, streaks)."
+          >
+            <Switch
+              checked={ai.includeJournalText === true}
+              onChange={(v) => setSection("ai", { includeJournalText: v })}
+            />
+          </Row>
+          {hasRecoveryGoal && (
+            <Row
+              name="AI recovery insights"
+              hint="Recovery data is kept private by default — nothing from a recovery tracker is sent to AI unless this is on."
+            >
+              <Switch
+                checked={ai.aiRecoveryInsights === true}
+                onChange={(v) => setSection("ai", { aiRecoveryInsights: v })}
+              />
+            </Row>
+          )}
         </Section>
 
         {/* Habits */}

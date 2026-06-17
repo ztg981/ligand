@@ -54,6 +54,13 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   const [remaining, setRemaining] = useState(() => clampMin(POMO_DEFAULTS.work));
   const [completed, setCompleted] = useState(0); // focus blocks done this cycle
   const intervalRef = useRef(null);
+  // Wall-clock target time (ms) the current run should reach 0. Storing an
+  // absolute timestamp — instead of decrementing a counter — keeps the timer
+  // accurate across backgrounded tabs and device sleep, where setInterval is
+  // throttled or frozen. Null whenever the timer isn't running.
+  const endTimeRef = useRef(null);
+  const secsLeft = () =>
+    Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
 
   // When the phase changes, the new phase always starts full.
   useEffect(() => {
@@ -67,18 +74,41 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.work, settings.shortBreak, settings.longBreak]);
 
-  // The 1-second tick.
+  // The tick — recomputes remaining from the absolute end time rather than
+  // decrementing, so a throttled/slept interval self-corrects on the next run.
+  // Runs at 250ms for snappy display; setRemaining bails out when unchanged.
   useEffect(() => {
     if (!running) return;
-    intervalRef.current = setInterval(() => {
-      setRemaining((r) => Math.max(0, r - 1));
-    }, 1000);
+    if (endTimeRef.current == null) {
+      endTimeRef.current = Date.now() + remaining * 1000;
+    }
+    const tick = () => {
+      const secs = secsLeft();
+      setRemaining((prev) => (prev === secs ? prev : secs));
+    };
+    tick(); // correct immediately on (re)start
+    intervalRef.current = setInterval(tick, 250);
     return () => clearInterval(intervalRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running]);
+
+  // Recompute the moment the tab becomes visible again (covers backgrounding
+  // and wake-from-sleep, where the interval may have been paused entirely).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && running && endTimeRef.current != null) {
+        const secs = secsLeft();
+        setRemaining((prev) => (prev === secs ? prev : secs));
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [running]);
 
   // Phase completion: when the clock hits zero while running.
   useEffect(() => {
     if (!running || remaining > 0) return;
+    endTimeRef.current = null;
     setRunning(false);
     if (phase === PHASES.WORK) {
       const done = completed + 1;
@@ -94,19 +124,28 @@ export function usePomodoro({ onPhaseEnd } = {}) {
 
   // -- controls --------------------------------------------------
   const start = useCallback(() => {
-    setRemaining((r) => (r <= 0 ? phaseSeconds(phase) : r));
+    const base = remaining <= 0 ? phaseSeconds(phase) : remaining;
+    endTimeRef.current = Date.now() + base * 1000;
+    setRemaining(base);
     setRunning(true);
-  }, [phase, phaseSeconds]);
+  }, [remaining, phase, phaseSeconds]);
 
-  const pause = useCallback(() => setRunning(false), []);
+  const pause = useCallback(() => {
+    // Freeze at the accurate current value before dropping the end time.
+    if (endTimeRef.current != null) setRemaining(secsLeft());
+    endTimeRef.current = null;
+    setRunning(false);
+  }, []);
 
   const reset = useCallback(() => {
+    endTimeRef.current = null;
     setRunning(false);
     setRemaining(phaseSeconds(phase));
   }, [phase, phaseSeconds]);
 
   // Manually jump to a phase (also used by the segmented control).
   const goToPhase = useCallback((p) => {
+    endTimeRef.current = null;
     setRunning(false);
     setPhase(p);
   }, []);
@@ -115,6 +154,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   // same way finishing it would, so a Long break still lands on every
   // `longEvery`-th block instead of always dropping to a Short break.
   const skip = useCallback(() => {
+    endTimeRef.current = null;
     setRunning(false);
     if (phase === PHASES.WORK) {
       const done = completed + 1;
