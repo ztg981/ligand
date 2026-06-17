@@ -1,6 +1,76 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14_
+_Session date: 2026-06-14 (updated 2026-06-16)_
+
+## Phase 3 — Recovery/Sobriety Tracker (2026-06-16, Claude Code)
+
+Completed a mid-session feature that had hit a context limit. All code was
+verified against the previous session's partial work (SmartGoalModal, model.js,
+recovery.js were confirmed correct), then the remaining UI was built.
+
+### What landed (committed `911e3eb`, pushed, edge function redeployed)
+
+**New goal type: `recovery`**
+- `src/lib/recovery.js` — pure helpers: `recoveryDays()`, `nextMilestone()`,
+  `newlyReachedMilestones()`, `encouragingLine()`, `recoveryFallback()`,
+  `RECOVERY_MILESTONES` (11 real milestones: 1d → 5y), `RECOVERY_PROMPTS`.
+- `src/lib/model.js` — added `GOAL_TYPES.RECOVERY`, `recoveryData` field
+  on `createGoal()`.
+
+**SmartGoalModal** — two-card goal-type chooser ("A goal" | "A recovery tracker")
+as the first screen before the SMART wizard or the 3-step recovery flow.
+The recovery creation asks: what, since when, why.
+
+**RecoveryGoalTab** (`src/components/RecoveryGoalTab.jsx`) — full tab UI:
+- Large hero counter (80px mono font): "X days free from [label]"
+- Milestone progress bar: prev → next milestone with days-away label
+- Milestone celebration: soft chime + in-hero toast on first reach;
+  milestones persist in `recoveryData.milestonesReached` (never repeat)
+- "Why this matters" card: inline editable, shown as styled quote
+- AI insight card: `recovery_insight` action, compassionate 1-2 sentence
+  encouragement grounded in days / why / recent journal
+- Journal section: recovery-specific rotating prompts, full entry history,
+  rotate-prompt button
+- Milestones earned log in sidebar
+- Reset-streak: bottom of sidebar, not prominent. Clicking opens a
+  full-screen overlay with large compassionate text and two buttons:
+  "Start fresh from today" / "Go back" (never "Cancel"). Reset keeps
+  all journal entries + reached milestones, auto-adds a gentle entry.
+
+**Nav pill** — recovery goal pills show `Icon.Leaf` (9px) instead of the
+color dot; subtle to a glancing eye. CSS: `.tab .recovery-leaf`.
+
+**Home privacy**
+- Recovery goals explicitly filtered from the overdue goals list
+  (they can't have deadlines, but the filter makes intent permanent)
+- Notification bodies are already generic (no goal names); confirmed safe
+
+**AI: gemini-insights edge function** — new `recovery_insight` action with
+a distinct `recoveryPhilosophy` system instruction (compassionate, grounded,
+never hollow). `aiApi.js` wired with the rotating `recoveryFallback()` lines.
+Edge function redeployed to project `auypprgibgftwpwuvxqa`.
+
+**CSS** — `goal-kind-grid/card` chooser styles + full recovery tab design
+system: `.recovery-hero`, `.recovery-hero-days`, `.recovery-milestone-track`,
+`.recovery-milestone-toast`, `.recovery-reset-overlay`, `.recovery-reset-card`.
+
+### Build status
+- `npm run build` clean (only pre-existing >500 KB bundle warning).
+- Edge function deployed; recovery_insight action live.
+- All changes pushed to `master`.
+
+### Guest mode
+Recovery goals work fully in guest mode (local-only). AI insight falls back
+to rotating compassionate lines when not logged in.
+
+### To test the full feature
+1. Click `+` in the goal nav → "A recovery tracker"
+2. Fill in: what you're working on, when the streak started, why it matters
+3. The recovery tab opens with the hero counter, milestone bar, AI insight
+4. Navigate away and back — milestone celebrations fire only once per streak
+5. Try "Start a new streak" at the bottom of the right column
+
+
 
 This document is the source of truth for what landed, what's verified, what's
 **not** verified, and the **two manual Supabase dashboard steps** you must do to
