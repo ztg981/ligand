@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import OfflineBanner from "./components/OfflineBanner.jsx";
 import { playBgMusic, stopBgMusic, setBgMusicVolume, isBgMusicPlaying } from "./lib/bgMusicPlayer.js";
-import { configure as configureUiSounds } from "./lib/uiSounds.js";
+import { configure as configureUiSounds, ding, pop } from "./lib/uiSounds.js";
+import HyperfocusBackdrop from "./components/HyperfocusBackdrop.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
 import { hasMeaningfulLocalData } from "./lib/syncManager.js";
@@ -85,6 +86,21 @@ export default function App() {
   const [showTweaks, setShowTweaks] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+
+  // --- Hyperfocus mode: a dramatic dark-red "locked in" theme. State persists
+  // across reloads; the data-hyperfocus attribute on <html> drives all the CSS.
+  const [hyperfocus, setHyperfocus] = useLocalStorage("ligand.hyperfocus", false);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
+    else root.removeAttribute("data-hyperfocus");
+  }, [hyperfocus]);
+  const toggleHyperfocus = () => {
+    setHyperfocus((on) => {
+      if (on) pop(); else ding();
+      return !on;
+    });
+  };
   // When a search result wants us to scroll to a specific row, we stash a
   // { tab, id, nonce } here; the destination tab flashes the matching element.
   const [scrollTarget, setScrollTarget] = useState(null);
@@ -510,6 +526,7 @@ export default function App() {
             ambientOverride={settings.wallpaper?.sound ?? "none"}
             tasks={store.tasks}
             goals={activeGoals}
+            hyperfocus={hyperfocus}
             logFocusSession={store.logFocusSession}
             onPhaseComplete={({ endedPhase }) => {
               const wasFocus = endedPhase === PHASES.WORK;
@@ -596,6 +613,9 @@ export default function App() {
         <span className="blob b4" />
       </div>
 
+      {/* Hyperfocus animated backdrop — only mounted while the mode is active. */}
+      {hyperfocus && <HyperfocusBackdrop />}
+
       <div className="shell">
         <TopNav
           tab={tab}
@@ -635,6 +655,18 @@ export default function App() {
         onClick={() => setShowTweaks((s) => !s)}
       >
         <Icon.Wand />
+      </button>
+
+      {/* Floating Hyperfocus toggle (bottom-left) */}
+      <button
+        className={"hf-fab" + (hyperfocus ? " active" : "")}
+        title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
+        aria-pressed={hyperfocus}
+        onClick={toggleHyperfocus}
+        data-mute-click
+      >
+        <Icon.Bolt />
+        <span>{hyperfocus ? "Locked in" : "Hyperfocus"}</span>
       </button>
 
       {showTweaks && (

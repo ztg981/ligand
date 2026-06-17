@@ -380,9 +380,24 @@ function DeepFocusScene() {
   );
 }
 
+// Hyperfocus — pure dark animated red rings. `dimmed` softens it during breaks.
+function HyperfocusScene({ dimmed = false }) {
+  return (
+    <div className={"scene hyperfocus" + (dimmed ? " dimmed" : "")}>
+      <div className="hf-scene-rings">
+        <span className="hf-scene-ring" style={{ animationDelay: "0s" }} />
+        <span className="hf-scene-ring" style={{ animationDelay: "1.3s" }} />
+        <span className="hf-scene-ring" style={{ animationDelay: "2.6s" }} />
+      </div>
+      <div className="hf-scene-label">HYPERFOCUS</div>
+    </div>
+  );
+}
+
 /** Dispatch the right scene, falling back to a placeholder. */
-function SceneContent({ themeId, themeName }) {
+function SceneContent({ themeId, themeName, dimmed = false }) {
   switch (themeId) {
+    case "hyperfocus": return <HyperfocusScene dimmed={dimmed} />;
     case "airplane": return <AirplaneScene />;
     case "cafe":     return <CafeScene />;
     case "library":  return <LibraryScene />;
@@ -409,6 +424,7 @@ export default function Pomodoro({
   ambientOverride = "none",
   tasks = [],
   goals = [],
+  hyperfocus = false,
   logFocusSession,
 }) {
   // What the user is focusing on this session (persisted so it survives reloads).
@@ -433,6 +449,21 @@ export default function Pomodoro({
   const { settings, setSettings } = pomo;
   focusEndRef.current = { taskId: focusTaskId, work: settings.work, tasks };
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
+
+  // Hyperfocus overrides the scene without mutating the saved theme, so the
+  // user's previous scene is automatically restored when the mode turns off.
+  const effectiveThemeId = hyperfocus ? "hyperfocus" : settings.theme;
+  const effectiveThemeName = hyperfocus ? "Hyperfocus" : theme.name;
+  const showScenePhoto = !hyperfocus && SCENE_PHOTO[settings.theme];
+  const sceneDimmed = hyperfocus && pomo.phase !== PHASES.WORK; // soften on breaks
+  const ringColor = hyperfocus ? "#cc1111" : "#fff";
+
+  // Subtle "Start a focus session?" prompt while hyperfocus is on and idle.
+  const [promptDismissed, setPromptDismissed] = useState(false);
+  useEffect(() => {
+    if (!hyperfocus) setPromptDismissed(false);
+  }, [hyperfocus]);
+  const showStartPrompt = hyperfocus && !pomo.running && !promptDismissed;
 
   // Focus mode: hides all surrounding UI, leaving only the scene + timer.
   // Only toggleable from within; exits cleanly on either the button or when
@@ -503,15 +534,15 @@ export default function Pomodoro({
 
           {/* Scene window — expanded */}
           <div
-            className="pomo-focus-window"
-            style={SCENE_PHOTO[settings.theme] ? {
+            className={"pomo-focus-window" + (hyperfocus ? " hyperfocus" : "")}
+            style={showScenePhoto ? {
               backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             } : undefined}
           >
             <div className="pomo-photo-veil" />
-            <SceneContent themeId={settings.theme} themeName={theme.name} />
+            <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />
 
             {/* Timer ring — centred */}
             <div className="pomo-focus-center">
@@ -519,7 +550,7 @@ export default function Pomodoro({
                 size={240}
                 strokeWidth={8}
                 value={pomo.progress}
-                color="#fff"
+                color={ringColor}
                 label={mmss(pomo.remaining)}
                 sub={PHASE_LABEL[pomo.phase]}
               />
@@ -568,11 +599,26 @@ export default function Pomodoro({
         )}
       </div>
 
+      {/* Subtle auto-start prompt while hyperfocus is on and the timer is idle. */}
+      {showStartPrompt && (
+        <div className="hf-start-prompt">
+          <span>Start a focus session?</span>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn primary sm" onClick={() => pomo.start()}>
+              <Icon.Play /> Start
+            </button>
+            <button className="btn ghost sm" onClick={() => setPromptDismissed(true)}>
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="pomo-stage">
         {/* The scene window — real photo + CSS animations layered on top */}
         <div
-          className="pomo-window"
-          style={SCENE_PHOTO[settings.theme] ? {
+          className={"pomo-window" + (hyperfocus ? " hyperfocus" : "")}
+          style={showScenePhoto ? {
             backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
@@ -580,13 +626,13 @@ export default function Pomodoro({
         >
           {/* Dark overlay so CSS animations + timer remain legible over photo */}
           <div className="pomo-photo-veil" />
-          <SceneContent themeId={settings.theme} themeName={theme.name} />
+          <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />
           <div className="pomo-center">
             <Ring
               size={210}
               strokeWidth={8}
               value={pomo.progress}
-              color="#fff"
+              color={ringColor}
               label={mmss(pomo.remaining)}
               sub={PHASE_LABEL[pomo.phase]}
             />
@@ -711,17 +757,23 @@ export default function Pomodoro({
               <Icon.Wand /> Scene
             </div>
           </div>
-          <div className="theme-pick">
+          {hyperfocus && (
+            <p className="muted" style={{ fontSize: 11.5, margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon.Bolt width={13} height={13} /> Scene locked during Hyperfocus mode
+            </p>
+          )}
+          <div className={"theme-pick" + (hyperfocus ? " locked" : "")}>
             {THEMES.map((t) => (
               <button
                 key={t.id}
                 className={"theme-tile" + (settings.theme === t.id ? " active" : "")}
+                disabled={hyperfocus}
                 style={SCENE_PHOTO[t.id]
                   ? { backgroundImage: `url(${SCENE_PHOTO[t.id]})`, backgroundSize: "cover", backgroundPosition: "center" }
                   : { background: t.swatch }
                 }
-                onClick={() => setSettings({ theme: t.id })}
-                title={t.ready ? t.name : `${t.name} (coming soon)`}
+                onClick={() => !hyperfocus && setSettings({ theme: t.id })}
+                title={hyperfocus ? "Locked during Hyperfocus" : (t.ready ? t.name : `${t.name} (coming soon)`)}
               >
                 {!t.ready && <span className="soon-tag">soon</span>}
                 <span>{t.name}</span>
