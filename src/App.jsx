@@ -10,7 +10,7 @@ import { hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
 import MigrationModal from "./components/MigrationModal.jsx";
 import SetNewPassword from "./components/SetNewPassword.jsx";
-import BadgeToast from "./components/BadgeToast.jsx";
+import BadgeCelebration from "./components/BadgeCelebration.jsx";
 import BadgesModal from "./components/BadgesModal.jsx";
 import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
@@ -151,6 +151,7 @@ export default function App() {
     const allCountUps = store.countUps || [];
     const journalLen = (store.journal || []).length;
     const seed = new Set(SEED_GOAL_IDS);
+    const today = todayKey();
     const reflectionCount =
       journalLen + allGoals.reduce((n, g) => n + (g.reflections?.length || 0), 0);
     const maxStreak = allGoals.reduce(
@@ -161,6 +162,57 @@ export default function App() {
       (m, c) => Math.max(m, daysSince(c.startDate)),
       0
     );
+
+    // Time-of-day + length signals from every journal/reflection entry.
+    const allEntries = [
+      ...(store.journal || []),
+      ...allGoals.flatMap((g) => g.reflections || []),
+    ];
+    let entryAfter10pm = false;
+    let entryBefore7am = false;
+    let longEntry = false;
+    allEntries.forEach((e) => {
+      const d = new Date(e.createdAt);
+      if (!Number.isNaN(d.getTime())) {
+        const h = d.getHours();
+        if (h >= 22) entryAfter10pm = true;
+        if (h < 7) entryBefore7am = true;
+      }
+      const words = (e.text || "").trim().split(/\s+/).filter(Boolean).length;
+      if (words > 200) longEntry = true;
+    });
+
+    // A comeback: any habit checked in again after a 3+ day gap.
+    const habitComeback = allGoals.some((g) =>
+      (g.habits || []).some((h) => {
+        const days = [...(h.checkIns || [])].sort();
+        for (let i = 1; i < days.length; i++) {
+          if (daysBetween(days[i - 1], days[i]) >= 4) return true;
+        }
+        return false;
+      })
+    );
+
+    // Most tasks completed on any single day (groups by completedOn).
+    const byDay = {};
+    allTasks.forEach((t) => {
+      if (t.done && t.completedOn) byDay[t.completedOn] = (byDay[t.completedOn] || 0) + 1;
+    });
+    const maxTasksOneDay = Object.values(byDay).reduce((m, n) => Math.max(m, n), 0);
+
+    // Longest run of consecutive app-open days.
+    const sortedVisits = [...(visitDates || [])].sort();
+    let maxVisitStreak = sortedVisits.length ? 1 : 0;
+    let run = maxVisitStreak;
+    for (let i = 1; i < sortedVisits.length; i++) {
+      if (daysBetween(sortedVisits[i - 1], sortedVisits[i]) === 1) {
+        run += 1;
+        maxVisitStreak = Math.max(maxVisitStreak, run);
+      } else {
+        run = 1;
+      }
+    }
+
     return {
       ownGoal: allGoals.some((g) => !seed.has(g.id)),
       goalDone: allGoals.some((g) => g.status === "done"),
@@ -171,6 +223,23 @@ export default function App() {
       maxCountUp,
       visitDays: (visitDates || []).length,
       focusSessions: (store.focusLog || []).length,
+      // New badge signals
+      entryAfter10pm,
+      entryBefore7am,
+      longEntry,
+      habitComeback,
+      allTasksClearedDay: allTasks.length > 0 && allTasks.every((t) => t.done),
+      maxGoalAgeDays: allGoals.reduce(
+        (m, g) => (g.createdAt ? Math.max(m, daysBetween(g.createdAt, today)) : m),
+        0
+      ),
+      maxTasksOneDay,
+      recoveryReset: allGoals.some(
+        (g) => g.type === "recovery" && (g.recoveryData?.resets || 0) >= 1
+      ),
+      goalCount: allGoals.length,
+      habitGoalCount: allGoals.filter((g) => (g.habits?.length || 0) >= 1).length,
+      maxVisitStreak,
     };
   }, [store.goals, store.tasks, store.countUps, store.journal, store.focusLog, visitDates]);
 
@@ -721,7 +790,7 @@ export default function App() {
         <BadgesModal unlocked={unlockedBadges} onClose={() => setShowBadges(false)} />
       )}
 
-      <BadgeToast queue={badgeToasts} onDismiss={dismissBadgeToast} />
+      <BadgeCelebration queue={badgeToasts} onDismiss={dismissBadgeToast} />
 
       <SearchModal
         open={showSearch}

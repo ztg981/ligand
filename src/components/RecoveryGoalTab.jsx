@@ -417,8 +417,9 @@ export default function RecoveryGoalTab({
       prompt: null,
     });
     // Update start date but KEEP milestonesReached (they earned them).
+    // Bump a resets counter so resilience ("Reset & Rise") can be recognised.
     updateGoal(goal.id, {
-      recoveryData: { ...rd, startDate: today },
+      recoveryData: { ...rd, startDate: today, resets: (rd.resets || 0) + 1 },
     });
     setShowReset(false);
   };
