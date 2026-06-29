@@ -29,6 +29,7 @@ import Pomodoro from "./tabs/Pomodoro.jsx";
 import GoalTab from "./tabs/GoalTab.jsx";
 import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
+import Notes from "./tabs/Notes.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
@@ -546,6 +547,15 @@ export default function App() {
             removeJournalEntry={store.removeJournalEntry}
             confirmBeforeDelete={confirmBeforeDelete}
             scrollTo={scrollTarget?.tab === "journal" ? scrollTarget : null}
+          />
+        );
+      case "notes":
+        return (
+          <Notes
+            notes={store.notes}
+            addNote={store.addNote}
+            updateNote={store.updateNote}
+            removeNote={store.removeNote}
           />
         );
       case "settings":

@@ -8,6 +8,7 @@ import {
   createHabit,
   createReflection,
   createCountUp,
+  createNote,
   shiftDay,
   todayKey,
   toggleCheckIn,
@@ -326,6 +327,38 @@ export function useStore() {
     [setData]
   );
 
+  // -- notes (frictionless plain-text scratchpad) ----------------
+  // New notes are prepended; the Notes tab sorts by updatedAt so an edited
+  // note floats to the top. updatedAt advances on every text change.
+  const addNote = useCallback(
+    (opts) => {
+      const note = createNote(opts);
+      setData((d) => ({ ...d, notes: [note, ...(d.notes || [])] }));
+      return note;
+    },
+    [setData]
+  );
+
+  const updateNote = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        notes: (d.notes || []).map((n) =>
+          n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n
+        ),
+      })),
+    [setData]
+  );
+
+  const removeNote = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        notes: (d.notes || []).filter((n) => n.id !== id),
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -379,6 +412,9 @@ export function useStore() {
       addCountUp,
       updateCountUp,
       removeCountUp,
+      addNote,
+      updateNote,
+      removeNote,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -405,6 +441,9 @@ export function useStore() {
       addCountUp,
       updateCountUp,
       removeCountUp,
+      addNote,
+      updateNote,
+      removeNote,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -417,6 +456,7 @@ export function useStore() {
     tasks: data.tasks,
     countUps: data.countUps,
     journal: data.journal || [],
+    notes: data.notes || [],
     focusLog: data.focusLog || [],
     ...actions,
   };

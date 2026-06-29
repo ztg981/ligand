@@ -160,6 +160,14 @@ export function createCountUp({ label, startDate = todayKey() } = {}) {
   return { id: uid("count"), label: label || "Day counter", startDate };
 }
 
+// Notes — a frictionless plain-text scratchpad. No structure, no prompts;
+// the first line acts as the title. createdAt/updatedAt are full ISO
+// timestamps so we can sort newest-first and show a relative time.
+export function createNote({ text = "" } = {}) {
+  const now = new Date().toISOString();
+  return { id: uid("note"), text, createdAt: now, updatedAt: now };
+}
+
 // ---- habit helpers (forgiving) ---------------------------------
 export function isCheckedOn(habit, dayKey = todayKey()) {
   return habit?.checkIns?.includes(dayKey) ?? false;
@@ -224,5 +232,6 @@ export function seedData() {
     tasks: [],
     countUps: [createCountUp({ label: "Days showing up", startDate: todayKey() })],
     journal: [], // app-wide reflections (per-goal reflections live on each goal)
+    notes: [], // frictionless plain-text scratchpad (see Notes tab)
   };
 }

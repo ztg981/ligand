@@ -293,6 +293,7 @@ const TOOLS = [
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
   { id: "journal", label: "Journal", icon: <Icon.Book /> },
+  { id: "notes", label: "Notes", icon: <Icon.Note /> },
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
 
