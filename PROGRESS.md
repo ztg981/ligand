@@ -2,6 +2,87 @@
 
 _Session date: 2026-06-14 (updated 2026-06-16)_
 
+## Phase 4 — Six-feature session (2026-06-29, Claude Code)
+
+Built six features in order, each committed separately. Every section was
+verified live in the browser (guest mode) at 375 / 768 / 1280 in light / dark /
+auto, with **zero console errors**, and `npm run build` clean throughout.
+All new data lives under the existing `ligand.*` keyspace, so it syncs to the
+cloud for logged-in users with no sync-layer changes (the blob includes
+`data.notes`, `ligand.badges`, `ligand.badgesKnown`, `ligand.journalSort`).
+
+### Section 1 — Notes tab (commit 1)
+A calm, iPhone-Notes-style scratchpad in the main nav between Journal and
+Settings. `src/tabs/Notes.jsx` + `data.notes` array + store `addNote /
+updateNote / removeNote` + `createNote` factory.
+- List newest-first (by `updatedAt`); first line = title, rest = preview,
+  relative timestamp ("just now" / "2 hours ago" / "yesterday" / "Jun 14").
+- Inline editor, **debounced 500ms auto-save**, no save button.
+- Large "New note" button creates a blank note and focuses it.
+- Search bar filters by content; trash icon (hover on desktop, always on
+  touch); blank notes are discarded on leave so the list never clutters.
+- Mobile: full-width list ↔ editor with a back button. Empty state copy.
+
+### Section 2 — Overview tab replaces Productivity (commit 2)
+Removed the redundant built-in **Productivity** main-nav tab; the Productivity
+goal still lives in the goal pills. New `src/tabs/Overview.jsx`:
+- **Daily Focus** card: habits not checked in today (with inline quick
+  check-in), Today/Urgent tasks not done, overdue goals — or "You're all
+  caught up. Great work today."
+- **Goals grid**: one compact card per goal — weekly habit progress, task
+  progress, recovery days-free, "Go to goal →", health color-coded green
+  (on track) / amber (behind) / red (overdue or quiet 7+ days).
+- Added shared `store.updateHabit`; new Grid/Note/Pencil/Map/Pin2 icons.
+
+### Section 3 — Habit editing (commit 3)
+Inline habit-name editing via `store.updateHabit`. Pencil icon on hover
+(always shown on touch); Enter / blur saves; Escape cancels (guarded so the
+unmount blur can't override the cancel). Works in the goal-tab HabitChecker
+**and** the Overview quick check-in; renames propagate everywhere.
+
+### Section 4 — Journal sort order (commit 4)
+- Newest-first default (robust sort by `createdAt`, not insertion order).
+- "Newest / Oldest" toggle near the journal & reflection headers.
+- Main Journal persists sort app-wide (`ligand.journalSort`); goal-tab
+  reflections persist **per goal** (`goal.reflectionSort`).
+- Entries show full date + time ("Jun 14, 2026 · 9:42 AM") via shared
+  `formatEntryDateTime`.
+
+### Section 5 — Location + time on journal entries (commit 5)
+- Timestamps already full-precision; now clearly displayed (Section 4).
+- "Add location" button in journal & reflection compose areas
+  (`src/components/LocationPicker.jsx`, `src/lib/geolocate.js`).
+- Browser geolocation → reverse-geocode via OpenStreetMap Nominatim →
+  store **only** the resolved city/neighbourhood name. Coordinates never
+  leave the helper and are never persisted (verified no leak in storage).
+- Privacy note: "Only the city name is saved, never your exact location."
+- Denied / unavailable / offline all fail silently with a gentle hint.
+- Saved entries show a "📍 City" chip. New `createReflection.location`.
+
+### Section 6 — Badges overhaul (commit 6)
+- **Celebration modal** (`src/components/BadgeCelebration.jsx`) replaces the
+  toast: dark overlay, large glowing/pulsing badge, name + description, a warm
+  personal message, a pure-CSS particle burst, "Nice" button. Plays the chime
+  per badge; queues multiple ("Nice · N more"); never celebrates twice;
+  respects reduced-motion. (Removed the old `BadgeToast.jsx`.)
+- **23 badges** total (was 11), grouped Consistency / Milestones / Recovery /
+  Focus / Writing. New: Night Owl, Early Bird, Streak Saver, Clean Slate, The
+  Long Game, Depth Charge, Overachiever, Reset & Rise, Five Goals, Polymath,
+  Daily Ritual, Marathon. New stats derived in `App.jsx`; recovery resets now
+  record a counter (`recoveryData.resets`) for Reset & Rise.
+- Badges view shows **locked** badges greyed with their requirement text,
+  earned ones with unlock date, per-category counts, and "X / 23 earned".
+- **Upgrade safety**: when the badge set grows, already-satisfied new badges
+  are granted silently (tracked via `ligand.badgesKnown`) so existing users
+  don't get a storm of celebrations — verified.
+
+### Final verification
+- `npm run build` clean (only the pre-existing >500 KB bundle warning).
+- Production `npm run preview` served; guest flow exercised end-to-end.
+- 375 / 768 / 1280 — no real horizontal overflow (the 15px seen at 768 was the
+  vertical scrollbar, confirmed). Light / dark / auto all correct (auto follows
+  the OS scheme). **Zero console errors / warnings.**
+
 ## Phase 3 — Recovery/Sobriety Tracker (2026-06-16, Claude Code)
 
 Completed a mid-session feature that had hit a context limit. All code was
