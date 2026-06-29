@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import LocationPicker from "../components/LocationPicker.jsx";
 import { flashElement } from "../lib/scrollFlash.js";
 import { formatEntryDateTime } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
@@ -34,6 +35,7 @@ export default function Journal({
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
   const [text, setText] = useState("");
   const [mood, setMood] = useState(null);
+  const [location, setLocation] = useState(null);
   // Sort preference persists across sessions (app-wide for the main journal).
   const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
 
@@ -56,9 +58,10 @@ export default function Journal({
   const save = () => {
     const t = text.trim();
     if (!t) return;
-    addJournalEntry({ text: t, prompt, mood });
+    addJournalEntry({ text: t, prompt, mood, location });
     setText("");
     setMood(null);
+    setLocation(null);
   };
 
   return (
@@ -129,6 +132,11 @@ export default function Journal({
                   {m.label}
                 </button>
               ))}
+            </div>
+
+            {/* Optional location */}
+            <div style={{ marginTop: 10 }}>
+              <LocationPicker location={location} onChange={setLocation} />
             </div>
 
             <div className="row between" style={{ marginTop: 12 }}>

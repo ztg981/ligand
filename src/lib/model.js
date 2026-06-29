@@ -145,12 +145,14 @@ export function createHabit({ name, cadence = "daily" } = {}) {
   };
 }
 
-export function createReflection({ text, prompt = null, mood = null } = {}) {
+export function createReflection({ text, prompt = null, mood = null, location = null } = {}) {
   return {
     id: uid("refl"),
     text: text || "",
     prompt,
     mood,
+    // Optional resolved place name (e.g. "New York, New York"). Never coords.
+    location,
     createdAt: new Date().toISOString(),
   };
 }

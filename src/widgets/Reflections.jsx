@@ -4,6 +4,7 @@ import { fetchAiInsight } from "../lib/aiApi.js";
 import { formatEntryDateTime } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import LocationPicker from "../components/LocationPicker.jsx";
 
 /* Reflections — a light journal scoped to one goal.
    A rotating gentle prompt + a place to jot a few lines. Past notes
@@ -35,6 +36,7 @@ export default function Reflections({
   }, [goal?.id, goal?.name, tasks]);
 
   const [text, setText] = useState("");
+  const [location, setLocation] = useState(null);
   const reflections = goal.reflections || [];
   const compact = widgetSize === "compact";
   const roomy = widgetSize === "tall" || widgetSize === "large";
@@ -53,8 +55,9 @@ export default function Reflections({
   const save = () => {
     const t = text.trim();
     if (!t) return;
-    addReflection(goal.id, { text: t, prompt });
+    addReflection(goal.id, { text: t, prompt, location });
     setText("");
+    setLocation(null);
   };
 
   if (compact) {
@@ -136,6 +139,9 @@ export default function Reflections({
         rows={roomy ? 5 : 3}
         style={{ resize: "vertical", width: "100%", lineHeight: 1.45 }}
       />
+      <div style={{ marginTop: 8 }}>
+        <LocationPicker location={location} onChange={setLocation} />
+      </div>
       <div className="row between" style={{ marginTop: 8 }}>
         <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
           Saved privately on this device.
