@@ -30,6 +30,7 @@ import GoalTab from "./tabs/GoalTab.jsx";
 import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
+import Overview from "./tabs/Overview.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
@@ -456,9 +457,20 @@ export default function App() {
             weekVisits={weekVisits}
           />
         );
-      case "productivity":
+      case "overview":
+        return (
+          <Overview
+            goals={activeGoals}
+            tasks={store.tasks}
+            checkInHabit={store.checkInHabit}
+            onOpenGoal={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
+          />
+        );
       case "goal": {
-        const id = tab === "productivity" ? "productivity" : activeGoal;
+        const id = activeGoal;
         const goal = store.goals.find((g) => g.id === id);
         if (goal?.type === "recovery") {
           return (

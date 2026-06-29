@@ -237,6 +237,26 @@ export function useStore() {
     [data.goals, setData]
   );
 
+  // Edit a habit in place (e.g. rename). The patch is shallow-merged, so the
+  // name change shows up everywhere the habit is read (goal tab, Overview).
+  const updateHabit = useCallback(
+    (goalId, habitId, patch) =>
+      setData((d) => ({
+        ...d,
+        goals: d.goals.map((g) =>
+          g.id !== goalId
+            ? g
+            : {
+                ...g,
+                habits: g.habits.map((h) =>
+                  h.id !== habitId ? h : { ...h, ...patch }
+                ),
+              }
+        ),
+      })),
+    [setData]
+  );
+
   const removeHabit = useCallback(
     (goalId, habitId) =>
       setData((d) => ({
@@ -404,6 +424,7 @@ export function useStore() {
       removeTask,
       addHabit,
       checkInHabit,
+      updateHabit,
       removeHabit,
       addReflection,
       removeReflection,
@@ -433,6 +454,7 @@ export function useStore() {
       removeTask,
       addHabit,
       checkInHabit,
+      updateHabit,
       removeHabit,
       addReflection,
       removeReflection,
