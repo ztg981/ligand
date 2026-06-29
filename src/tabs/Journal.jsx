@@ -3,6 +3,8 @@ import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { flashElement } from "../lib/scrollFlash.js";
+import { formatEntryDateTime } from "../lib/model.js";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
 
 /* Journal — app-wide reflection.
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
@@ -21,15 +23,6 @@ function moodLabel(value) {
   return MOODS.find((m) => m.value === value)?.label || null;
 }
 
-function whenLabel(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
 export default function Journal({
   journal,
   addJournalEntry,
@@ -41,6 +34,18 @@ export default function Journal({
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
   const [text, setText] = useState("");
   const [mood, setMood] = useState(null);
+  // Sort preference persists across sessions (app-wide for the main journal).
+  const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
+
+  // Entries newest- or oldest-first by createdAt (ISO strings sort chrono).
+  const orderedJournal = useMemo(() => {
+    const arr = [...(journal || [])];
+    arr.sort((a, b) => {
+      const cmp = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+      return sort === "newest" ? cmp : -cmp;
+    });
+    return arr;
+  }, [journal, sort]);
 
   // Scroll to and flash a journal entry a search result pointed us at.
   useEffect(() => {
@@ -149,9 +154,26 @@ export default function Journal({
               <div className="card-title">
                 <Icon.Book /> Past entries
               </div>
-              <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                {journal.length || ""}
-              </span>
+              <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                {journal.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn ghost sm sort-toggle"
+                    onClick={() => setSort((s) => (s === "newest" ? "oldest" : "newest"))}
+                    title="Toggle sort order"
+                  >
+                    <Icon.Arrow
+                      width={12}
+                      height={12}
+                      style={{ transform: sort === "newest" ? "rotate(90deg)" : "rotate(-90deg)" }}
+                    />
+                    {sort === "newest" ? "Newest" : "Oldest"}
+                  </button>
+                )}
+                <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  {journal.length || ""}
+                </span>
+              </div>
             </div>
 
             {journal.length === 0 ? (
@@ -161,17 +183,22 @@ export default function Journal({
               </div>
             ) : (
               <div className="stack" style={{ gap: 10 }}>
-                {journal.map((e) => (
+                {orderedJournal.map((e) => (
                   <div
                     key={e.id}
                     id={"journal-" + e.id}
                     style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}
                   >
                     <div className="row between" style={{ marginBottom: 4 }}>
-                      <span className="row" style={{ gap: 6, alignItems: "center" }}>
+                      <span className="row" style={{ gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                         <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                          {whenLabel(e.createdAt)}
+                          {formatEntryDateTime(e.createdAt)}
                         </span>
+                        {e.location && (
+                          <span className="entry-location">
+                            <Icon.Pin2 width={11} height={11} /> {e.location}
+                          </span>
+                        )}
                         {e.mood && <span className="chip">{moodLabel(e.mood)}</span>}
                       </span>
                       <ConfirmButton

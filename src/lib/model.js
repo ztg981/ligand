@@ -203,6 +203,24 @@ export function daysSince(startDate, refKey = todayKey()) {
   return Math.max(0, daysBetween(startDate, refKey));
 }
 
+// ---- entry timestamp formatting --------------------------------
+// Full, legible date + time for journal/reflection entries, e.g.
+// "Jun 14, 2026 · 9:42 AM". Falls back gracefully on bad input.
+export function formatEntryDateTime(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${date} · ${time}`;
+}
+
 // ---- seed ------------------------------------------------------
 // First-run data: the built-in Productivity goal plus two starter goals.
 // Stable ids keep the nav goal-pills consistent across reloads.

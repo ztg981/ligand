@@ -3422,3 +3422,18 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .ov-goals-grid { grid-template-columns: 1fr; }
   .ov-habit-edit { opacity: 0.7; }
 }
+
+/* ============================================================
+   Journal/reflection — sort toggle + entry metadata
+   ============================================================ */
+.sort-toggle { flex: none; gap: 5px; }
+.sort-toggle svg { transition: transform 0.2s var(--ease); opacity: 0.7; }
+
+/* Location chip on a journal/reflection entry. */
+.entry-location {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10.5px; color: var(--accent-ink, var(--accent));
+  background: var(--accent-soft); padding: 1px 7px 1px 5px; border-radius: 999px;
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.entry-location svg { flex: none; opacity: 0.85; }

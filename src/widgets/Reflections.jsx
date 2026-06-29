@@ -1,23 +1,20 @@
 import { useMemo, useState, useEffect } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { fetchAiInsight } from "../lib/aiApi.js";
+import { formatEntryDateTime } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
 /* Reflections — a light journal scoped to one goal.
    A rotating gentle prompt + a place to jot a few lines. Past notes
-   are listed newest-first. Nothing is required; skipping is fine. */
-
-function whenLabel(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
+   are listed newest-first by default; the sort can be flipped per goal. */
 
 export default function Reflections({
   goal,
   tasks = [],
   addReflection,
   removeReflection,
+  updateGoal,
   confirmBeforeDelete = true,
   widgetSize = "medium",
 }) {
@@ -41,7 +38,17 @@ export default function Reflections({
   const reflections = goal.reflections || [];
   const compact = widgetSize === "compact";
   const roomy = widgetSize === "tall" || widgetSize === "large";
-  const visibleReflections = roomy ? reflections : reflections.slice(0, 3);
+  // Per-goal sort preference (defaults newest-first).
+  const sort = goal.reflectionSort === "oldest" ? "oldest" : "newest";
+  const orderedReflections = useMemo(() => {
+    const arr = [...reflections];
+    arr.sort((a, b) => {
+      const cmp = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+      return sort === "newest" ? cmp : -cmp;
+    });
+    return arr;
+  }, [reflections, sort]);
+  const visibleReflections = roomy ? orderedReflections : orderedReflections.slice(0, 3);
 
   const save = () => {
     const t = text.trim();
@@ -82,9 +89,30 @@ export default function Reflections({
         <div className="card-title">
           <Icon.Book /> Reflection
         </div>
-        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-          {reflections.length || ""}
-        </span>
+        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+          {updateGoal && reflections.length > 1 && (
+            <button
+              type="button"
+              className="btn ghost sm sort-toggle"
+              onClick={() =>
+                updateGoal(goal.id, {
+                  reflectionSort: sort === "newest" ? "oldest" : "newest",
+                })
+              }
+              title="Toggle sort order"
+            >
+              <Icon.Arrow
+                width={12}
+                height={12}
+                style={{ transform: sort === "newest" ? "rotate(90deg)" : "rotate(-90deg)" }}
+              />
+              {sort === "newest" ? "Newest" : "Oldest"}
+            </button>
+          )}
+          <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+            {reflections.length || ""}
+          </span>
+        </div>
       </div>
 
       <div
@@ -141,9 +169,14 @@ export default function Reflections({
                 ) : (
                   <span />
                 )}
-                <span className="row" style={{ gap: 6, flex: "none", alignItems: "center" }}>
+                <span className="row" style={{ gap: 6, flex: "none", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {r.location && (
+                    <span className="entry-location">
+                      <Icon.Pin2 width={10} height={10} /> {r.location}
+                    </span>
+                  )}
                   <span className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
-                    {whenLabel(r.createdAt)}
+                    {formatEntryDateTime(r.createdAt)}
                   </span>
                   {removeReflection && (
                     <ConfirmButton

@@ -526,12 +526,13 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, tasks, addReflection, removeReflection, confirmBeforeDelete, widgetSize }) => (
+    render: ({ goal, tasks, addReflection, removeReflection, updateGoal, confirmBeforeDelete, widgetSize }) => (
       <Reflections
         goal={goal}
         tasks={tasks}
         addReflection={addReflection}
         removeReflection={removeReflection}
+        updateGoal={updateGoal}
         confirmBeforeDelete={confirmBeforeDelete}
         widgetSize={widgetSize}
       />
@@ -1666,6 +1667,7 @@ function GoalWidgetGrid({
     onArchiveGoal,
     onGoToPomodoro,
     onGoToTasks,
+    updateGoal,
     confirmBeforeDelete,
     showStreaks,
     weekStartsMonday,
