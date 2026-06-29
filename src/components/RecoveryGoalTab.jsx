@@ -245,13 +245,21 @@ function AIInsightCard({ goal, days }) {
   );
 }
 
-function JournalSection({ goal, addReflection, removeReflection }) {
+function JournalSection({ goal, addReflection, removeReflection, updateGoal }) {
   const [text, setText] = useState("");
   const [promptIdx, setPromptIdx] = useState(
     () => Math.floor(Math.random() * RECOVERY_PROMPTS.length)
   );
   const reflections = goal.reflections || [];
   const prompt = RECOVERY_PROMPTS[promptIdx];
+
+  // Per-goal sort preference, defaulting newest-first so the most recent entry
+  // is always at the top without scrolling. (ISO createdAt sorts chronologically.)
+  const sort = goal.reflectionSort === "oldest" ? "oldest" : "newest";
+  const orderedReflections = [...reflections].sort((a, b) => {
+    const cmp = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    return sort === "newest" ? cmp : -cmp;
+  });
 
   const submit = () => {
     const t = text.trim();
@@ -265,8 +273,29 @@ function JournalSection({ goal, addReflection, removeReflection }) {
 
   return (
     <div className="card">
-      <div className="card-title">
-        <Icon.Book /> Journal
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Book /> Journal
+        </div>
+        {updateGoal && reflections.length > 1 && (
+          <button
+            type="button"
+            className="btn ghost sm sort-toggle"
+            onClick={() =>
+              updateGoal(goal.id, {
+                reflectionSort: sort === "newest" ? "oldest" : "newest",
+              })
+            }
+            title="Toggle sort order"
+          >
+            <Icon.Arrow
+              width={12}
+              height={12}
+              style={{ transform: sort === "newest" ? "rotate(90deg)" : "rotate(-90deg)" }}
+            />
+            {sort === "newest" ? "Newest" : "Oldest"}
+          </button>
+        )}
       </div>
 
       <div
@@ -313,7 +342,7 @@ function JournalSection({ goal, addReflection, removeReflection }) {
 
       {reflections.length > 0 && (
         <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-          {[...reflections].reverse().map((r) => (
+          {orderedReflections.map((r) => (
             <div
               key={r.id}
               style={{
@@ -499,6 +528,7 @@ export default function RecoveryGoalTab({
               goal={goal}
               addReflection={addReflection}
               removeReflection={removeReflection}
+              updateGoal={updateGoal}
             />
           </div>
 
