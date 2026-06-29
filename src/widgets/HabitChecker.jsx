@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { todayKey, shiftDay, isCheckedOn, currentStreak } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
@@ -21,11 +21,16 @@ export default function HabitChecker({
   goal,
   addHabit,
   checkInHabit,
+  updateHabit,
   removeHabit,
   confirmBeforeDelete = true,
   showStreaks = true,
 }) {
   const [name, setName] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  // Set true by Escape so the unmount-triggered onBlur skips the save.
+  const cancelEditRef = useRef(false);
   const days = useMemo(() => last7(), []);
   const today = todayKey();
   const habits = goal.habits || [];
@@ -35,6 +40,26 @@ export default function HabitChecker({
     if (!n) return;
     addHabit(goal.id, { name: n });
     setName("");
+  };
+
+  const startEdit = (habit) => {
+    setEditingId(habit.id);
+    setEditText(habit.name);
+  };
+
+  const commitEdit = () => {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      setEditingId(null);
+      setEditText("");
+      return;
+    }
+    if (editingId) {
+      const t = editText.trim();
+      if (t) updateHabit?.(goal.id, editingId, { name: t });
+    }
+    setEditingId(null);
+    setEditText("");
   };
 
   return (
@@ -92,17 +117,48 @@ export default function HabitChecker({
             return (
               <div key={h.id} className="habit-row">
                 <div className="habit-name">
-                  <span className="row" style={{ gap: 6, alignItems: "center" }}>
-                    {h.name}
-                    <ConfirmButton
-                      className="iconbtn sm"
-                      title="Remove habit"
-                      onConfirm={() => removeHabit(goal.id, h.id)}
-                      requireConfirmation={confirmBeforeDelete}
-                      style={{ width: 22, height: 22, color: "var(--ink-4)" }}
-                      icon={<Icon.Trash width={12} height={12} />}
+                  {editingId === h.id ? (
+                    <input
+                      className="input habit-edit-input"
+                      autoFocus
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitEdit();
+                        }
+                        if (e.key === "Escape") {
+                          cancelEditRef.current = true;
+                          setEditingId(null);
+                        }
+                      }}
+                      onBlur={commitEdit}
                     />
-                  </span>
+                  ) : (
+                    <span className="row habit-name-row" style={{ gap: 4, alignItems: "center" }}>
+                      <span className="habit-label-text">{h.name}</span>
+                      {updateHabit && (
+                        <button
+                          type="button"
+                          className="iconbtn sm habit-edit-btn"
+                          title="Edit habit name"
+                          onClick={() => startEdit(h)}
+                          style={{ width: 22, height: 22, color: "var(--ink-4)" }}
+                        >
+                          <Icon.Pencil width={12} height={12} />
+                        </button>
+                      )}
+                      <ConfirmButton
+                        className="iconbtn sm habit-del-btn"
+                        title="Remove habit"
+                        onConfirm={() => removeHabit(goal.id, h.id)}
+                        requireConfirmation={confirmBeforeDelete}
+                        style={{ width: 22, height: 22, color: "var(--ink-4)" }}
+                        icon={<Icon.Trash width={12} height={12} />}
+                      />
+                    </span>
+                  )}
                   <span className="sub">
                     {!showStreaks
                       ? "Tracking quietly"

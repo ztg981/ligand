@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import {
   todayKey,
@@ -60,10 +60,35 @@ export default function Overview({
   goals = [],
   tasks = [],
   checkInHabit,
+  updateHabit,
   onOpenGoal,
 }) {
   const today = todayKey();
   const week = useMemo(() => weekDays(today), [today]);
+
+  // Inline habit-name editing for the quick check-in list.
+  const [editingHabit, setEditingHabit] = useState(null); // { goalId, habitId }
+  const [editText, setEditText] = useState("");
+  const cancelEditRef = useRef(false);
+
+  const startEditHabit = (goalId, habit) => {
+    setEditingHabit({ goalId, habitId: habit.id });
+    setEditText(habit.name);
+  };
+  const commitEditHabit = () => {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      setEditingHabit(null);
+      setEditText("");
+      return;
+    }
+    if (editingHabit) {
+      const t = editText.trim();
+      if (t) updateHabit?.(editingHabit.goalId, editingHabit.habitId, { name: t });
+    }
+    setEditingHabit(null);
+    setEditText("");
+  };
 
   // --- A) Daily focus data -------------------------------------------------
   // Habits across all goals not yet checked in today (each gets a quick check).
@@ -137,21 +162,68 @@ export default function Overview({
                   <span className="ov-count">{openHabits.length}</span>
                 </div>
                 <div className="stack" style={{ gap: 6 }}>
-                  {openHabits.map(({ goalId, goalName, habit }) => (
-                    <button
-                      type="button"
-                      key={goalId + "-" + habit.id}
-                      className="ov-habit-row"
-                      onClick={() => checkInHabit(goalId, habit.id, today)}
-                      title={`Check in “${habit.name}”`}
-                    >
-                      <span className="ov-habit-box" aria-hidden="true" />
-                      <span className="ov-habit-text">
-                        <span className="ov-habit-name">{habit.name}</span>
-                        <span className="ov-habit-goal">{goalName}</span>
-                      </span>
-                    </button>
-                  ))}
+                  {openHabits.map(({ goalId, goalName, habit }) => {
+                    const isEditing =
+                      editingHabit &&
+                      editingHabit.goalId === goalId &&
+                      editingHabit.habitId === habit.id;
+                    if (isEditing) {
+                      return (
+                        <div
+                          key={goalId + "-" + habit.id}
+                          className="ov-habit-row is-editing"
+                        >
+                          <span className="ov-habit-box" aria-hidden="true" />
+                          <input
+                            className="input ov-habit-edit-input"
+                            autoFocus
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitEditHabit();
+                              }
+                              if (e.key === "Escape") {
+                                cancelEditRef.current = true;
+                                setEditingHabit(null);
+                              }
+                            }}
+                            onBlur={commitEditHabit}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={goalId + "-" + habit.id} className="ov-habit-row">
+                        <button
+                          type="button"
+                          className="ov-habit-check"
+                          onClick={() => checkInHabit(goalId, habit.id, today)}
+                          title={`Check in “${habit.name}”`}
+                        >
+                          <span className="ov-habit-box" aria-hidden="true" />
+                          <span className="ov-habit-text">
+                            <span className="ov-habit-name">{habit.name}</span>
+                            <span className="ov-habit-goal">{goalName}</span>
+                          </span>
+                        </button>
+                        {updateHabit && (
+                          <button
+                            type="button"
+                            className="ov-habit-edit"
+                            title="Edit habit name"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditHabit(goalId, habit);
+                            }}
+                          >
+                            <Icon.Pencil width={13} height={13} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

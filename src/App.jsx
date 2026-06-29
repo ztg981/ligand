@@ -463,6 +463,7 @@ export default function App() {
             goals={activeGoals}
             tasks={store.tasks}
             checkInHabit={store.checkInHabit}
+            updateHabit={store.updateHabit}
             onOpenGoal={(id) => {
               setActiveGoal(id);
               setTab("goal");
@@ -505,6 +506,7 @@ export default function App() {
             removeTask={store.removeTask}
             addHabit={store.addHabit}
             checkInHabit={store.checkInHabit}
+            updateHabit={store.updateHabit}
             removeHabit={store.removeHabit}
             addReflection={store.addReflection}
             removeReflection={store.removeReflection}

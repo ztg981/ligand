@@ -450,11 +450,12 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal, addHabit, checkInHabit, removeHabit, confirmBeforeDelete, showStreaks }) => (
+    render: ({ goal, addHabit, checkInHabit, updateHabit, removeHabit, confirmBeforeDelete, showStreaks }) => (
       <HabitChecker
         goal={goal}
         addHabit={addHabit}
         checkInHabit={checkInHabit}
+        updateHabit={updateHabit}
         removeHabit={removeHabit}
         confirmBeforeDelete={confirmBeforeDelete}
         showStreaks={showStreaks}
@@ -1527,6 +1528,7 @@ function GoalWidgetGrid({
   removeTask,
   addHabit,
   checkInHabit,
+  updateHabit,
   removeHabit,
   addReflection,
   removeReflection,
@@ -1655,6 +1657,7 @@ function GoalWidgetGrid({
     removeTask,
     addHabit,
     checkInHabit,
+    updateHabit,
     removeHabit,
     addReflection,
     removeReflection,
@@ -1853,6 +1856,7 @@ export default function GoalTab({
   removeTask,
   addHabit,
   checkInHabit,
+  updateHabit,
   removeHabit,
   addReflection,
   removeReflection,
@@ -1982,6 +1986,7 @@ export default function GoalTab({
         removeTask={removeTask}
         addHabit={addHabit}
         checkInHabit={checkInHabit}
+        updateHabit={updateHabit}
         removeHabit={removeHabit}
         addReflection={addReflection}
         removeReflection={removeReflection}
