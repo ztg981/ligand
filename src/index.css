@@ -306,7 +306,7 @@ button { font: inherit; color: inherit; }
 
 .goal-dd-btn {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  width: 100%; min-width: 0; height: 40px; padding: 0 12px;
+  width: 100%; min-width: 0; height: 44px; padding: 0 12px;
   border-radius: 12px; background: var(--panel); border: 1px solid var(--line);
   color: var(--ink); font-size: 13.5px; font-weight: 600; cursor: pointer;
 }
@@ -2799,9 +2799,9 @@ button.upcoming-row:hover { background: var(--panel-3); }
   .topbar-tools { gap: 4px; }
   .topbar-tools-sep { margin: 0 2px; }
 
-  /* Bigger, tappable icon buttons on touch screens. */
-  .iconbtn { width: 38px; height: 38px; }
-  .avatar-btn { width: 36px; height: 36px; }
+  /* Touch-target sizing — minimum 44×44 per HIG/Material guidelines. */
+  .iconbtn { width: 44px; height: 44px; }
+  .avatar-btn { width: 44px; height: 44px; }
 
   /* Tweaks FAB rides above the bottom tab bar. */
   .tweaks-fab {
@@ -2829,12 +2829,16 @@ button.upcoming-row:hover { background: var(--panel-3); }
   /* Touch sizing for form controls across tabs. Height only applies to
      single-line inputs/selects — textareas keep their rows-based height. */
   .input { font-size: 14px; }
-  input.input, select.input { height: 38px; }
+  input.input, select.input { height: 44px; }
   textarea.input { min-height: 96px; }
-  .btn { height: 38px; }
-  .btn.sm { height: 32px; }
-  .seg button { height: 30px; }
-  .chip { min-height: 28px; }
+  .btn { height: 44px; }
+  .btn.sm { height: 36px; }
+  .seg button { height: 36px; }
+  .chip { min-height: 34px; }
+  /* Notes search bar — the container is the real tap target */
+  .notes-search { height: 44px; }
+  /* DYK next button — secondary in-card nav, bump to 36px on touch */
+  .dyk-next { width: 36px; height: 36px; }
 
   /* Tasks — add bar wraps: text input on its own line, then label/term/add.
      The children carry inline flex/width styles, so these need !important. */
@@ -3081,7 +3085,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
 @media (max-width: 640px) {
   .hf-fab {
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    left: 14px; height: 40px; padding: 0 12px; font-size: 12px;
+    left: 14px; height: 44px; padding: 0 12px; font-size: 12px;
   }
 }
 
@@ -3318,7 +3322,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 /* ============================================================
    Notes tab — the calmest surface in the app
    ============================================================ */
-.notes-new-btn { flex: none; height: 40px; padding: 0 16px; font-size: 13.5px; }
+.notes-new-btn { flex: none; height: 44px; padding: 0 16px; font-size: 13.5px; }
 
 .notes-layout {
   display: grid;
@@ -3346,7 +3350,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .notes-search-input::placeholder { color: var(--ink-4); }
 .notes-search-clear {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; border-radius: 6px; border: none;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
   background: transparent; color: var(--ink-4); cursor: pointer;
 }
 .notes-search-clear:hover { color: var(--ink-2); background: var(--panel-3); }
