@@ -347,7 +347,9 @@ button { font: inherit; color: inherit; }
 }
 .goal-dd-item:hover, .goal-dd-item:active { background: var(--panel-2); }
 .goal-dd-item.selected { background: var(--accent-soft); color: var(--accent-ink); }
-.goal-dd-item-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The dropdown sheet is full-width with room to spare, so a long goal name
+   wraps to a second line instead of being cut off with no way to read it. */
+.goal-dd-item-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .goal-dd-check { display: inline-flex; flex: none; color: var(--accent-ink, var(--accent)); }
 .goal-dd-check svg { width: 15px; height: 15px; }
 .goal-dd-add {
@@ -665,6 +667,10 @@ button { font: inherit; color: inherit; }
    Page header
    ============================================================ */
 .page-head {
+  /* Every tab's content starts with .page-head, so a small fade here reads
+     as a gentle transition on every tab switch without animating each
+     tab's internals separately. */
+  animation: fadeIn 0.18s var(--ease);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -3261,6 +3267,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
 }
 
 /* Reduce motion: freeze rings/scan, keep colour theme. */
+[data-reduce-motion="true"] .page-head { animation: none; }
 [data-reduce-motion="true"] .hf-ring { animation: none; opacity: 0; }
 [data-reduce-motion="true"] .hf-scan { animation: none; opacity: 0; }
 [data-reduce-motion="true"] .hf-wave { animation: none; }
@@ -3655,6 +3662,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ov-habit-goal { font-size: 11px; color: var(--ink-4); margin-top: 1px; }
+.ov-goal-name { overflow-wrap: anywhere; }
 
 .ov-task-row {
   display: flex; align-items: center; gap: 8px;
@@ -3758,7 +3766,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 @media (max-width: 640px) {
   .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
   .ov-goals-grid { grid-template-columns: 1fr; }
-  .ov-habit-edit { opacity: 0.7; }
+  .ov-habit-edit { opacity: 0.7; width: 38px; }
+  /* The single mobile column has plenty of room, so wrap a long habit/task
+     name instead of ellipsis-truncating it with no way to read the rest. */
+  .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
+  .ov-task-text { white-space: normal; overflow: visible; text-overflow: clip; }
+  .ov-task-row { align-items: flex-start; }
+  /* Slightly bigger checkbox + row padding for a more comfortable check-in tap. */
+  .ov-habit-check { padding: 11px 10px; gap: 11px; }
+  .ov-habit-box { width: 22px; height: 22px; }
 }
 
 /* ============================================================

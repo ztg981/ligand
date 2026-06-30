@@ -50,6 +50,7 @@ export default function GoalDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={toggle}
+        title={showCurrent ? current.name : undefined}
       >
         <span className="goal-dd-current">
           {showCurrent ? (
