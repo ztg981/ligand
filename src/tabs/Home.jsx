@@ -2,18 +2,29 @@ import { useMemo, useState } from "react";
 import { todayKey, goalTargetDate, isGoalOverdue } from "../lib/model.js";
 import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai.js";
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
-import CountUp from "../widgets/CountUp.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
 import DidYouKnow from "../widgets/DidYouKnow.jsx";
 import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import WeeklyReview from "../widgets/WeeklyReview.jsx";
 import { Icon } from "../components/Icons.jsx";
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+// Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
+// a little warm — never scolding someone for being up late.
+const NIGHT_OWL_GREETINGS = [
+  "Still up?",
+  "Burning the midnight oil",
+  "Hey, night owl",
+];
+
+function greeting(now = new Date()) {
+  const h = now.getHours();
+  if (h >= 5 && h < 12) return "Good morning";
+  if (h >= 12 && h < 17) return "Good afternoon";
+  if (h >= 17 && h < 21) return "Good evening";
+  if (h >= 21) return "Winding down";
+  // 12am–4:59am — rotate by day so it varies but doesn't flicker on re-render.
+  const dayIndex = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  return NIGHT_OWL_GREETINGS[dayIndex % NIGHT_OWL_GREETINGS.length];
 }
 
 function prettyDate() {
@@ -27,7 +38,6 @@ function prettyDate() {
 export default function Home({
   goals,
   tasks,
-  countUps,
   journal = [],
   toggleTask,
   onGoToTasks,
@@ -40,6 +50,7 @@ export default function Home({
   tone = "warm",
   daysAway = 0,
   weekVisits = 0,
+  activeDays = 0,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -243,7 +254,33 @@ export default function Home({
         {/* Right column */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
-          <CountUp countUp={countUps && countUps[0]} />
+
+          {/* Days showing up — distinct calendar days the app was actually
+              opened (never elapsed days, never more than once per day). */}
+          {activeDays > 0 && (
+            <div className="card">
+              <div className="card-head">
+                <div className="card-title">
+                  <Icon.Flame /> Days showing up
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <div
+                  className="mono"
+                  style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em" }}
+                >
+                  {activeDays}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                  {activeDays === 1 ? "day" : "days"}
+                </div>
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 8 }}>
+                Distinct days you've opened the app. Quiet days never count against you.
+              </div>
+            </div>
+          )}
+
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
 
           {/* Visit streak stat — gentle, framed as "showing up" not performance */}

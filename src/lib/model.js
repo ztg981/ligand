@@ -250,7 +250,10 @@ export function seedData() {
     version: 1,
     goals: [productivity, side, college],
     tasks: [],
-    countUps: [createCountUp({ label: "Days showing up", startDate: todayKey() })],
+    // No seeded count-up: "Days showing up" is now a real distinct-active-days
+    // metric (ligand.activeDays), not an elapsed-days count-up. Users can still
+    // add their own count-ups ("No gaming", etc.) from the goal-tab widget.
+    countUps: [],
     journal: [], // app-wide reflections (per-goal reflections live on each goal)
     notes: [], // frictionless plain-text scratchpad (see Notes tab)
   };

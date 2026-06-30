@@ -136,6 +136,17 @@ export default function App() {
   // --- visit-date history (one entry per calendar day, last 60 days) ---
   const [visitDates, setVisitDates] = useLocalStorage("ligand.visitDates", []);
 
+  // --- all-time distinct active days ("Days showing up") -----------------
+  // A cumulative count of DISTINCT calendar days the app was actually opened.
+  // It increments at most once per day (never for days the app wasn't opened,
+  // never for elapsed-but-unopened days). `null` means "not migrated yet".
+  // `activeDaysDay` records the last day already counted so reloads on the same
+  // day never double-count; a ref guards the StrictMode double-invoke in dev.
+  const [activeDaysCount, setActiveDaysCount] = useLocalStorage("ligand.activeDays", null);
+  const [activeDaysDay, setActiveDaysDay] = useLocalStorage("ligand.activeDaysDay", null);
+  const countedTodayRef = useRef(false);
+  const activeDays = activeDaysCount ?? (visitDates || []).length;
+
   // How many distinct days in the last 7 (including today) the user opened.
   const weekVisits = useMemo(() => {
     const today = todayKey();
@@ -282,12 +293,45 @@ export default function App() {
   useEffect(() => {
     const today = todayKey();
     setLastVisit(today);
+    const priorVisits = Array.isArray(visitDates) ? visitDates : [];
+    const isNewDay = !priorVisits.includes(today);
     setVisitDates((prev) => {
       const arr = Array.isArray(prev) ? prev : [];
       if (arr.includes(today)) return arr; // already recorded
       const cutoff = (() => { const d = new Date(); d.setDate(d.getDate() - 60); return todayKey(d); })();
       return [...arr.filter((d) => d >= cutoff), today].sort();
     });
+
+    // All-time distinct active days. On first run after this change, seed the
+    // counter from the distinct days we already have on record (honest — never
+    // inflated by elapsed-but-unopened days). Then count today if it's new.
+    // Two guards keep this idempotent: `countedTodayRef` absorbs React's
+    // StrictMode double-invoke (dev only), and `activeDaysDay` prevents a
+    // same-day reload from counting twice across sessions.
+    if (!countedTodayRef.current && activeDaysDay !== today) {
+      countedTodayRef.current = true;
+      setActiveDaysCount((prev) => {
+        const base = prev == null ? priorVisits.length : prev;
+        return isNewDay ? base + 1 : base;
+      });
+      setActiveDaysDay(today);
+    }
+
+    // One-time cleanup: the old seed shipped a generic "What I'm proud of"
+    // count-up labelled "Days showing up" whose number was elapsed calendar
+    // days since install — it could read far higher than the days actually
+    // opened. The real metric now lives in `activeDays`, so retire that one
+    // seeded count-up (only the untouched seed, matched by its exact label).
+    try {
+      if (!localStorage.getItem("ligand.daysShowingUpMigrated")) {
+        (store.countUps || [])
+          .filter((c) => c.label === "Days showing up")
+          .forEach((c) => store.removeCountUp(c.id));
+        localStorage.setItem("ligand.daysShowingUpMigrated", "1");
+      }
+    } catch {
+      /* localStorage unavailable — harmless, migration simply retries later */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -508,7 +552,6 @@ export default function App() {
           <Home
             goals={activeGoals}
             tasks={store.tasks}
-            countUps={store.countUps}
             journal={store.journal}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
@@ -524,6 +567,7 @@ export default function App() {
             tone={settings.assistant.tone}
             daysAway={daysAway}
             weekVisits={weekVisits}
+            activeDays={activeDays}
           />
         );
       case "overview":
