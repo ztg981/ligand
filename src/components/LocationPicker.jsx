@@ -33,10 +33,10 @@ export default function LocationPicker({ location, onChange }) {
         </span>
         <button
           type="button"
-          className="iconbtn sm"
+          className="iconbtn sm location-remove-btn"
           title="Remove location"
           onClick={() => onChange(null)}
-          style={{ width: 22, height: 22, color: "var(--ink-4)" }}
+          style={{ color: "var(--ink-4)" }}
         >
           <Icon.Close width={11} height={11} />
         </button>

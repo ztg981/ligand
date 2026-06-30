@@ -3753,6 +3753,27 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .entry-location svg { flex: none; opacity: 0.85; }
+.location-remove-btn { width: 22px; height: 22px; }
+.journal-entry-del { width: 24px; height: 24px; }
+.journal-entry { padding-top: 10px; }
+.journal-entry-text { font-size: 13px; }
+.journal-entries { gap: 10px; }
+
+/* ---- Phone: roomier compose box, tappable location/mood controls,
+   more breathing room between past entries ---- */
+@media (max-width: 640px) {
+  .journal-compose-textarea { min-height: 160px; font-size: 16px; }
+  /* .btn.location-add-btn (two classes) to out-specificity the sitewide
+     .btn.sm mobile rule (also two classes) that would otherwise win the
+     height/padding tie and leave this at the generic small-button size. */
+  .btn.location-add-btn { height: 40px; padding: 0 14px; font-size: 13px; }
+  .location-remove-btn { width: 32px; height: 32px; }
+  .mood-chip { min-height: 38px; padding: 0 14px; font-size: 13px; }
+  .journal-entries { gap: 16px; }
+  .journal-entry { padding-top: 14px; }
+  .journal-entry-text { font-size: 14.5px; }
+  .journal-entry-del { width: 32px; height: 32px; }
+}
 
 /* ============================================================
    Badge celebration modal + particle burst

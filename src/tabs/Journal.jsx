@@ -109,7 +109,7 @@ export default function Journal({
             </div>
 
             <textarea
-              className="input"
+              className="input journal-compose-textarea"
               placeholder="Write as much or as little as you like…"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -125,7 +125,7 @@ export default function Journal({
               {MOODS.map((m) => (
                 <button
                   key={m.value}
-                  className={"chip" + (mood === m.value ? " accent" : "")}
+                  className={"chip mood-chip" + (mood === m.value ? " accent" : "")}
                   onClick={() => setMood(mood === m.value ? null : m.value)}
                   style={{ cursor: "pointer" }}
                 >
@@ -190,12 +190,13 @@ export default function Journal({
                 here — gently waiting, no pressure to keep a streak.
               </div>
             ) : (
-              <div className="stack" style={{ gap: 10 }}>
+              <div className="stack journal-entries">
                 {orderedJournal.map((e) => (
                   <div
                     key={e.id}
                     id={"journal-" + e.id}
-                    style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}
+                    className="journal-entry"
+                    style={{ borderTop: "1px solid var(--line)" }}
                   >
                     <div className="row between" style={{ marginBottom: 4 }}>
                       <span className="row" style={{ gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -210,11 +211,11 @@ export default function Journal({
                         {e.mood && <span className="chip">{moodLabel(e.mood)}</span>}
                       </span>
                       <ConfirmButton
-                        className="iconbtn"
+                        className="iconbtn journal-entry-del"
                         title="Delete entry"
                         onConfirm={() => removeJournalEntry(e.id)}
                         requireConfirmation={confirmBeforeDelete}
-                        style={{ width: 24, height: 24, color: "var(--ink-4)" }}
+                        style={{ color: "var(--ink-4)" }}
                         icon={<Icon.Trash width={13} height={13} />}
                       />
                     </div>
@@ -223,7 +224,7 @@ export default function Journal({
                         {e.prompt}
                       </div>
                     )}
-                    <div style={{ fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                    <div className="journal-entry-text" style={{ color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                       {e.text}
                     </div>
                   </div>
