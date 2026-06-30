@@ -16,14 +16,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-/* GoalSidebar — the DESKTOP-only (≥768px) primary goal navigation.
-   A calm vertical list on the left: each goal shows its type icon (leaf for
-   recovery, a color dot otherwise), its name, and a small health dot. The
-   whole row is drag-to-reorder (vertical dragging via dnd-kit is far more
-   reliable than the old horizontal pills). Collapsible to an icons-only rail.
-   Hidden on mobile via CSS — phones get the top dropdown (Section 3). */
+/* GoalSidebar — DESKTOP-only (≥768px) goal navigation on the RIGHT side.
+   Each goal shows its type icon, name, and health dot. Rows are
+   drag-to-reorder. A privacy toggle (eye button) blurs the goal list
+   without changing the sidebar's footprint — useful in public. */
 
-function GoalRow({ goal, tasks, selected, collapsed, onSelect, onArchive }) {
+function GoalRow({ goal, tasks, selected, onSelect, onArchive }) {
   const {
     attributes,
     listeners,
@@ -62,13 +60,13 @@ function GoalRow({ goal, tasks, selected, collapsed, onSelect, onArchive }) {
           <span className="gs-dot" style={{ background: goal.color }} />
         )}
       </span>
-      {!collapsed && <span className="gs-row-name">{goal.name}</span>}
+      <span className="gs-row-name">{goal.name}</span>
       <span
         className={"gs-health " + health.level}
         title={health.label}
         aria-label={health.label}
       />
-      {!collapsed && goal.type !== "built-in" && onArchive && (
+      {goal.type !== "built-in" && onArchive && (
         <span
           className="gs-row-x"
           role="button"
@@ -102,10 +100,9 @@ export default function GoalSidebar({
   onArchiveGoal,
   setGoalOrder,
 }) {
-  const [collapsed, setCollapsed] = useLocalStorage(
-    "ligand.goalSidebarCollapsed",
-    false
-  );
+  // Privacy mode: blurs goal names without moving content or shrinking the
+  // sidebar — the footprint stays constant so the rest of the page never shifts.
+  const [hidden, setHidden] = useLocalStorage("ligand.goalSidebarHidden", false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -122,71 +119,61 @@ export default function GoalSidebar({
   };
 
   return (
-    <aside className="goal-sidebar" data-collapsed={collapsed ? "true" : "false"}>
+    <aside className="goal-sidebar" data-hidden={hidden ? "true" : "false"}>
       <div className="gs-head">
-        {!collapsed && <span className="gs-title">Goals</span>}
+        <span className="gs-title">Goals</span>
         <button
           type="button"
-          className="iconbtn sm gs-collapse"
-          title={collapsed ? "Expand goals" : "Collapse goals"}
-          aria-label={collapsed ? "Expand goal sidebar" : "Collapse goal sidebar"}
-          aria-pressed={collapsed}
-          onClick={() => setCollapsed((c) => !c)}
+          className="iconbtn sm gs-privacy"
+          title={hidden ? "Show goals" : "Hide goals (privacy)"}
+          aria-label={hidden ? "Show goal list" : "Hide goal list for privacy"}
+          aria-pressed={hidden}
+          onClick={() => setHidden((h) => !h)}
         >
-          {/* Arrow points right; flip it when expanded to mean "collapse ‹". */}
-          <span
-            className="gs-collapse-ic"
-            style={{
-              display: "inline-flex",
-              transform: collapsed ? "none" : "rotate(180deg)",
-              transition: "transform 0.2s var(--ease)",
-            }}
-          >
-            <Icon.Arrow />
-          </span>
+          {hidden ? <Icon.EyeOff /> : <Icon.Eye />}
         </button>
       </div>
 
-      <div className="gs-scroll">
-        {goals.length === 0 ? (
-          !collapsed && (
+      {/* gs-body is what gets blurred in privacy mode */}
+      <div className="gs-body">
+        <div className="gs-scroll">
+          {goals.length === 0 ? (
             <div className="gs-empty">No goals yet — add one below.</div>
-          )
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={goals.map((g) => g.id)}
-              strategy={verticalListSortingStrategy}
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              {goals.map((g) => (
-                <GoalRow
-                  key={g.id}
-                  goal={g}
-                  tasks={tasks}
-                  selected={selectedId === g.id}
-                  collapsed={collapsed}
-                  onSelect={onSelect}
-                  onArchive={onArchiveGoal}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+              <SortableContext
+                items={goals.map((g) => g.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {goals.map((g) => (
+                  <GoalRow
+                    key={g.id}
+                    goal={g}
+                    tasks={tasks}
+                    selected={selectedId === g.id}
+                    onSelect={onSelect}
+                    onArchive={onArchiveGoal}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
 
-      <button
-        type="button"
-        className="gs-add"
-        onClick={onAddGoal}
-        title="New goal"
-      >
-        <Icon.Plus />
-        {!collapsed && <span>New goal</span>}
-      </button>
+        <button
+          type="button"
+          className="gs-add"
+          onClick={onAddGoal}
+          title="New goal"
+        >
+          <Icon.Plus />
+          <span>New goal</span>
+        </button>
+      </div>
     </aside>
   );
 }

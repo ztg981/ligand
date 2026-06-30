@@ -807,7 +807,8 @@ export default function App() {
         />
 
         <div className="body">
-          {/* DESKTOP-only goal navigation (hidden <768px via CSS). */}
+          <div className="content">{screen}</div>
+          {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}
           <GoalSidebar
             goals={orderedActiveGoals}
             tasks={store.tasks}
@@ -820,7 +821,6 @@ export default function App() {
             onArchiveGoal={handleArchiveGoal}
             setGoalOrder={store.setGoalOrder}
           />
-          <div className="content">{screen}</div>
         </div>
       </div>
 

@@ -198,6 +198,19 @@ export const Icon = {
       <rect x="9" y="9" width="4.5" height="4.5" rx="1" />
     </>
   ),
+  Eye: make(
+    <>
+      <path d="M1.5 8C1.5 8 4 3.5 8 3.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+      <circle cx="8" cy="8" r="2.2" />
+    </>
+  ),
+  EyeOff: make(
+    <>
+      <path d="M1.5 8C1.5 8 4 3.5 8 3.5S14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+      <circle cx="8" cy="8" r="2.2" />
+      <path d="M3 13L13 3" />
+    </>
+  ),
 };
 
 export default Icon;
