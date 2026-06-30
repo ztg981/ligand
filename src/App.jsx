@@ -568,6 +568,16 @@ export default function App() {
     if (tab === "goal" && activeGoal === id) setTab("home");
   };
 
+  // Mobile Home's "Capture a thought" button: create a blank note and jump
+  // straight to it in the Notes tab (the most common one-handed phone
+  // action), instead of making the user navigate then tap "New note" again.
+  const [quickCaptureNoteId, setQuickCaptureNoteId] = useState(null);
+  const handleQuickCapture = () => {
+    const note = store.addNote();
+    setQuickCaptureNoteId(note.id);
+    setTab("notes");
+  };
+
   const screen = (() => {
     switch (tab) {
       case "home":
@@ -591,6 +601,9 @@ export default function App() {
             daysAway={daysAway}
             weekVisits={weekVisits}
             activeDays={activeDays}
+            checkInHabit={store.checkInHabit}
+            updateHabit={store.updateHabit}
+            onQuickCapture={handleQuickCapture}
           />
         );
       case "overview":
@@ -706,6 +719,8 @@ export default function App() {
             addNote={store.addNote}
             updateNote={store.updateNote}
             removeNote={store.removeNote}
+            autoOpenNoteId={quickCaptureNoteId}
+            onAutoOpenHandled={() => setQuickCaptureNoteId(null)}
           />
         );
       case "settings":

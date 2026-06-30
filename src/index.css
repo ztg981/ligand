@@ -3839,4 +3839,51 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   margin: 0 2px 9px;
 }
 .badges-group-count { font-size: 11px; color: var(--ink-4); }
+
+/* ============================================================
+   HOME — phone-only "daily driver" view (Section 2B)
+   On phone, Home shows one focus section + a capture button + a compact
+   goals row instead of the full desktop dashboard grid. Both trees render;
+   CSS picks one so there's no resize-listener/JS branching to keep in sync.
+   ============================================================ */
+.home-mobile-only { display: none; }
+@media (max-width: 767px) {
+  .home-mobile-only { display: flex; flex-direction: column; gap: 12px; }
+  .home-desktop-grid { display: none; }
+}
+
+.home-quick-capture {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; min-height: 50px;
+  border-radius: var(--r-xl);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: white;
+  font-size: 14.5px; font-weight: 650;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.12s var(--ease);
+}
+.home-quick-capture:active { transform: translateY(1px); }
+.home-quick-capture svg { width: 17px; height: 17px; }
+
+.home-goals-glance {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 2px 1px 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.home-glance-pill {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  height: 38px; padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-2);
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.home-glance-pill:active { background: var(--panel-2); }
+.home-glance-pill .gs-leaf svg { width: 13px; height: 13px; }
 .badge-req { color: var(--ink-3); font-family: var(--font-sans); font-size: 10.5px; line-height: 1.3; }

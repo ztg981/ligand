@@ -6,6 +6,7 @@ import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
 import DidYouKnow from "../widgets/DidYouKnow.jsx";
 import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import WeeklyReview from "../widgets/WeeklyReview.jsx";
+import DailyFocus from "../widgets/DailyFocus.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -51,6 +52,9 @@ export default function Home({
   daysAway = 0,
   weekVisits = 0,
   activeDays = 0,
+  checkInHabit,
+  updateHabit,
+  onQuickCapture,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -109,7 +113,50 @@ export default function Home({
         </div>
       )}
 
-      <div className="grid grid-12">
+      {/* ---- Phone-only daily driver: one focus section, a quick-capture
+         button, and a compact goals row — not a squished dashboard. The full
+         desktop grid below is hidden <768px via CSS (.home-desktop-grid). ---- */}
+      <div className="home-mobile-only">
+        <DailyFocus
+          goals={goals}
+          tasks={tasks}
+          checkInHabit={checkInHabit}
+          updateHabit={updateHabit}
+          onOpenGoal={onOpenGoal}
+        />
+
+        <button
+          type="button"
+          className="home-quick-capture"
+          onClick={onQuickCapture}
+        >
+          <Icon.Note /> Capture a thought
+        </button>
+
+        {goals.length > 0 && (
+          <div className="home-goals-glance">
+            {goals.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className="home-glance-pill"
+                onClick={() => onOpenGoal?.(g.id)}
+              >
+                {g.type === "recovery" ? (
+                  <span className="gs-leaf">
+                    <Icon.Leaf />
+                  </span>
+                ) : (
+                  <span className="gs-dot" style={{ background: g.color }} />
+                )}
+                {g.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-12 home-desktop-grid">
         {/* Left column */}
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
           {/* Pick one thing */}

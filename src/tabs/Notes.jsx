@@ -55,6 +55,8 @@ export default function Notes({
   addNote,
   updateNote,
   removeNote,
+  autoOpenNoteId = null,
+  onAutoOpenHandled,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState("");
@@ -113,6 +115,17 @@ export default function Notes({
     return () => leaveCurrent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A caller (mobile Home's quick-capture button) can ask us to jump
+  // straight into a freshly-created note instead of landing on the list.
+  useEffect(() => {
+    if (!autoOpenNoteId) return;
+    setSelectedId(autoOpenNoteId);
+    setMobileView("editor");
+    onAutoOpenHandled?.();
+    requestAnimationFrame(() => textareaRef.current?.focus());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenNoteId]);
 
   const sortedNotes = useMemo(() => {
     const arr = [...notes].sort((a, b) =>
