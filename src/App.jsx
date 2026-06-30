@@ -98,6 +98,28 @@ export default function App() {
     if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
     else root.removeAttribute("data-hyperfocus");
   }, [hyperfocus]);
+  // Mousemove parallax for hyperfocus card tilt.
+  // Normalised cursor position (-1 to 1) from viewport centre is written to
+  // CSS vars --hf-mx / --hf-my. Cards read these for their rotateX/Y tilt.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!hyperfocus) {
+      root.style.removeProperty("--hf-mx");
+      root.style.removeProperty("--hf-my");
+      return;
+    }
+    const onMove = (e) => {
+      root.style.setProperty("--hf-mx", ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+      root.style.setProperty("--hf-my", ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      root.style.removeProperty("--hf-mx");
+      root.style.removeProperty("--hf-my");
+    };
+  }, [hyperfocus]);
+
   const toggleHyperfocus = () => {
     setHyperfocus((on) => {
       if (on) pop(); else ding();
