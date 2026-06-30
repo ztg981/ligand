@@ -3529,6 +3529,28 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .note-item-del { opacity: 1; }
 }
 
+/* ---- Phone: New note becomes a true floating FAB, bottom-right ----
+   Stacked above the global Tweaks + Focus FABs (same right:14px column,
+   same stacking convention) rather than colliding with them. Icon-only;
+   the text label is hidden so it reads as a round FAB, not a pill. */
+@media (max-width: 640px) {
+  .notes-new-btn {
+    position: fixed;
+    bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+    z-index: 65;
+    width: 52px; height: 52px; padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
+  .notes-new-btn-label { display: none; }
+  .notes-new-btn svg { width: 19px; height: 19px; }
+  /* While actually writing, the FAB would float on top of the text area
+     for the whole session — hide it in editor view; it's one tap (the
+     back arrow) away from reappearing over the list. */
+  .notes-new-btn.notes-new-btn-hide-fab { display: none; }
+}
+
 /* ============================================================
    Overview tab — bird's-eye across all goals
    ============================================================ */

@@ -190,11 +190,14 @@ export default function Notes({
         </div>
         <button
           type="button"
-          className="btn primary notes-new-btn"
+          className={
+            "btn primary notes-new-btn" +
+            (mobileView === "editor" ? " notes-new-btn-hide-fab" : "")
+          }
           onClick={handleNew}
           title="New note"
         >
-          <Icon.Plus /> New note
+          <Icon.Plus /> <span className="notes-new-btn-label">New note</span>
         </button>
       </div>
 
