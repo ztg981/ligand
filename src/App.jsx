@@ -782,6 +782,7 @@ export default function App() {
           tab={tab}
           setTab={setTab}
           goals={orderedActiveGoals}
+          tasks={store.tasks}
           setGoalOrder={store.setGoalOrder}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}

@@ -631,6 +631,11 @@ button { font: inherit; color: inherit; }
 .avatar-menu-item.danger { color: oklch(0.55 0.16 20); }
 .avatar-menu-item.danger:hover { background: oklch(0.94 0.04 20); color: oklch(0.48 0.18 20); }
 [data-theme="dark"] .avatar-menu-item.danger:hover { background: oklch(0.30 0.08 20); }
+/* Pomodoro shortcut: redundant with the always-visible top-bar tab on
+   tablet/desktop, so it only earns a slot in the menu on phone, where
+   Pomodoro isn't in the bottom tab bar. */
+.avatar-menu-mobile-only { display: none; }
+@media (max-width: 767px) { .avatar-menu-mobile-only { display: flex; } }
 .avatar-confirm { padding: 8px 10px; }
 .avatar-confirm-text {
   font-size: 12px; color: var(--ink-2); line-height: 1.45; margin-bottom: 8px;
@@ -2789,6 +2794,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
   box-shadow: 0 -4px 18px -10px rgba(0,0,0,0.28);
 }
 .bottom-nav-item {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -2802,6 +2808,18 @@ button.upcoming-row:hover { background: var(--panel-3); }
   -webkit-tap-highlight-color: transparent;
 }
 .bottom-nav-item.active { color: var(--accent); }
+/* A small dot above the icon, in addition to the color + pill background
+   below — two independent signals so the active tab reads instantly even
+   at a glance, not just via a subtle tint shift. */
+.bottom-nav-item::before {
+  content: "";
+  position: absolute; top: 1px; left: 50%;
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent);
+  transform: translateX(-50%) scale(0);
+  transition: transform 0.18s var(--ease);
+}
+.bottom-nav-item.active::before { transform: translateX(-50%) scale(1); }
 .bottom-nav-ic {
   display: inline-flex; align-items: center; justify-content: center;
   width: 36px; height: 24px; border-radius: 8px;
@@ -2810,6 +2828,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .bottom-nav-item.active .bottom-nav-ic { background: var(--accent-soft); }
 .bottom-nav-ic svg { width: 18px; height: 18px; }
 .bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+.bottom-nav-item.active .bottom-nav-label { font-weight: 750; }
 
 /* ---- Phone (≤640px) ---- */
 @media (max-width: 640px) {

@@ -123,6 +123,7 @@ const AVATAR_BG =
 function AvatarMenu({
   userName = "You",
   onOpenSettings,
+  onOpenPomodoro,
   onOpenBadges,
   onClearData,
   accountEmail = null,
@@ -180,6 +181,19 @@ function AvatarMenu({
                 </div>
               </div>
             </div>
+
+            {/* Pomodoro is already a top-bar tab on tablet/desktop; this
+               shortcut only shows on phone, where it moved out of the
+               bottom tab bar to make room (see BOTTOM_NAV_IDS). */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenPomodoro?.();
+                close();
+              }}
+            >
+              <Icon.Timer /> Pomodoro
+            </button>
 
             <button
               className="avatar-menu-item"
@@ -297,6 +311,14 @@ const TOOLS = [
   { id: "notes", label: "Notes", icon: <Icon.Note /> },
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
+
+// The phone bottom tab bar only has room for ~5 comfortable targets, so it
+// shows the tabs people actually reach for one-handed: capturing a task or
+// note, checking in on a habit, reviewing goals. Pomodoro (a sit-down focus
+// session) and Settings (infrequent) move to the avatar overflow menu
+// instead of crowding the bar — both still one tap away, just not in the
+// thumb zone.
+const BOTTOM_NAV_IDS = ["home", "tasks", "notes", "journal", "overview"];
 
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
@@ -427,6 +449,7 @@ export default function TopNav({
   tab,
   setTab,
   goals,
+  tasks = [],
   activeGoal,
   setActiveGoal,
   onAddGoal,
@@ -529,6 +552,7 @@ export default function TopNav({
              Desktop uses the sidebar; this is hidden there via CSS. */}
           <GoalDropdown
             goals={goals}
+            tasks={tasks}
             activeGoalId={activeGoal}
             isGoalTab={tab === "goal"}
             onSelect={(id) => {
@@ -557,6 +581,7 @@ export default function TopNav({
           <AvatarMenu
             userName={userName}
             onOpenSettings={onOpenSettings}
+            onOpenPomodoro={() => setTab("pomodoro")}
             onOpenBadges={onOpenBadges}
             onClearData={onClearData}
             accountEmail={accountEmail}
@@ -567,20 +592,24 @@ export default function TopNav({
         </div>
       </DndContext>
 
-      {/* Bottom tab bar — phone only (CSS-gated). Mirrors the 6 main tabs that
-         live in the top bar on larger screens, with big tappable targets. */}
+      {/* Bottom tab bar — phone only (CSS-gated). Shows the 5 tabs most useful
+         one-handed; Pomodoro + Settings live in the avatar menu on mobile. */}
       <nav className="bottom-nav" aria-label="Main">
-        {TOOLS.map((it) => (
-          <button
-            key={it.id}
-            className={"bottom-nav-item " + (tab === it.id ? "active" : "")}
-            onClick={() => setTab(it.id)}
-            aria-current={tab === it.id ? "page" : undefined}
-          >
-            <span className="bottom-nav-ic">{it.icon}</span>
-            <span className="bottom-nav-label">{it.label}</span>
-          </button>
-        ))}
+        {BOTTOM_NAV_IDS.map((id) => {
+          const it = TOOLS.find((t) => t.id === id);
+          const active = tab === id;
+          return (
+            <button
+              key={id}
+              className={"bottom-nav-item " + (active ? "active" : "")}
+              onClick={() => setTab(id)}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className="bottom-nav-ic">{it.icon}</span>
+              <span className="bottom-nav-label">{it.label}</span>
+            </button>
+          );
+        })}
       </nav>
     </>
   );

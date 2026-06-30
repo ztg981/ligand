@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Icon } from "./Icons.jsx";
+import { goalHealth } from "../lib/goalHealth.js";
 
 /* GoalDropdown — the MOBILE-only (<768px) goal selector. The horizontal goal
    pills are far too cramped on a phone, so on mobile they're replaced by a
@@ -8,6 +9,7 @@ import { Icon } from "./Icons.jsx";
    hides this via CSS. */
 export default function GoalDropdown({
   goals = [],
+  tasks = [],
   activeGoalId,
   isGoalTab = false,
   onSelect,
@@ -103,6 +105,16 @@ export default function GoalDropdown({
                       <span className="gs-dot" style={{ background: g.color }} />
                     )}
                     <span className="goal-dd-item-name">{g.name}</span>
+                    {(() => {
+                      const health = goalHealth(g, tasks);
+                      return (
+                        <span
+                          className={"gs-health " + health.level}
+                          title={health.label}
+                          aria-label={health.label}
+                        />
+                      );
+                    })()}
                     {selected && (
                       <span className="goal-dd-check">
                         <Icon.Check />
