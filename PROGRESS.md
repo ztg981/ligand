@@ -1,6 +1,95 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-06-16)_
+_Session date: 2026-06-14 (updated 2026-06-30)_
+
+## Phase 5 — Responsive layout + fixes (2026-06-30, Claude Code)
+
+Overnight responsive-design + bug-fix session. Worked section by section,
+committing + verifying each (dev + production preview, guest mode, 375 / 1280,
+light + dark) with **zero console errors** and a clean `npm run build`
+throughout. Core design rule honored: mobile and desktop layouts are
+independent — every change is gated behind a width media query so desktop work
+never alters mobile and vice-versa (verified at 375 and 1280 for each).
+
+### DONE this session (committed + pushed)
+
+**Section 1 — Time greeting + visit counter + sweep** (`162e7e3`)
+- Time-aware greeting in `src/tabs/Home.jsx`: morning (5–11:59) / afternoon
+  (12–4:59) / evening (5–8:59) / "Winding down" (9–11:59) / rotating night-owl
+  line (12am–4:59am). Uses local time.
+- **"Days showing up" accuracy.** Root cause: the headline number came from a
+  seeded "What I'm proud of" *count-up* = `daysSince(startDate)` = ELAPSED
+  calendar days since install, counted whether or not the app was opened (so it
+  read 17 for far fewer real visits). The genuine distinct-opened-days record
+  already existed in `ligand.visitDates` (deduped, one per calendar day). Fix:
+  new all-time `ligand.activeDays` counter — increments at most once per
+  genuinely-new opened day, idempotent against same-day reloads
+  (`ligand.activeDaysDay` marker) and React StrictMode double-invoke (ref
+  guard), migrated from real `visitDates` history (honest, never elapsed). Home
+  shows this; the misleading seed count-up is retired (removed from `seedData`;
+  one-time cleanup for existing users matched by its untouched label, flagged in
+  `ligand.daysShowingUpMigrated`). NOTE: for logged-in users the cleanup is
+  best-effort (runs before cloud hydration); the guest path is exact.
+- Sweep: audited ProgressTracker / ai.js helpers / weekly-visit card — all
+  already derive from live data. No other static-output bugs found.
+
+**Section 2 — Desktop vertical goal sidebar (≥768px)** (`a86e573`)
+- New `src/components/GoalSidebar.jsx`: vertical goal list on the left (icon +
+  name + health dot), whole-row vertical drag-to-reorder (dnd-kit), selected
+  highlight, hover-archive, independent scroll, "+ New goal" pinned at bottom,
+  collapsible to a 60px icons rail (`ligand.goalSidebarCollapsed`).
+- New `src/lib/goalHealth.js`: extracted `goalHealth`/`lastActivityKey` from
+  Overview so the sidebar dot and Overview cards stay consistent.
+- TopNav goal pills wrapped in `.topbar-goals`; main nav tabs stay at top.
+- App shell wraps the screen in a `.body` flex row (sidebar + `.content`).
+- Desktop-only (all under `@media (min-width:768px)`); mobile untouched.
+
+**Section 3A — Mobile goal dropdown (<768px)** (`0a83681`)
+- New `src/components/GoalDropdown.jsx`: button showing the current goal opens a
+  full-width sheet of all goals (≥44px rows, selected check) + "+ New goal".
+  Completes the goal-nav split: sidebar ≥768, dropdown <768. The old horizontal
+  pills (`.topbar-goals`) are now hidden at every width (kept in DOM).
+
+**Section 5 — Desktop two-column Overview (≥980px)** (`333a0a6`)
+- Overview's Daily Focus + goals grid wrapped in an `.ov-layout` grid (340px
+  focus column + flexible goals column) so the goals overview is visible
+  without scrolling past a tall habits list; habit/task rows densified in the
+  narrow column. Collapses to single stacked column <980px (mobile unchanged).
+
+### Final sweep (this session) — PASSED
+- `npm run build` clean (only the pre-existing >500 KB bundle warning).
+- **Production preview** (`npm run preview`): all 7 tabs + a goal tab at 1280
+  (sidebar) and 375 (bottom nav + goal dropdown) — **zero horizontal overflow,
+  zero console errors**. Light + dark verified during section work.
+
+### NOT done — picked up next session (in priority order)
+Stopped cleanly here to keep a clean partial rather than a broken whole; the
+two biggest items (rest of Section 3, and Section 4) were left untouched so
+they aren't half-built.
+- **Section 3B — mobile bottom tab bar reconsider.** Pick 4–5 most-used mobile
+  tabs; move Pomodoro behind a menu, Settings into the avatar menu, and surface
+  Workout prominently. NOTE: this is coupled to Section 4 — the Workout tab
+  doesn't exist yet, so 3B should be done *after* (or with) Section 4. The
+  current bottom bar (6 tabs) still works and is untouched.
+- **Section 3C — combined mobile Home/Overview** (greeting, what-needs-attention
+  with inline check-in, compact goals summary, quick-capture button).
+- **Section 3D — mobile polish** (44px targets sweep, Notes FAB + full-screen
+  flow, Journal writing area, keyboard-safe layouts).
+- **Section 4 — sophisticated workout system** (NOT STARTED). Build in the
+  staged order from the brief: (1) data model + ~50–80 exercise library,
+  (2) fitness profile + manual logging, (3) progress tracking + PRs + badges,
+  (4) intelligent generation, (5) in-gym mobile flow with auto rest timer.
+  Each stage is a clean checkpoint. New data should live under `ligand.*` /
+  `data.*` so it syncs with no sync-layer changes (see the keyspace note below).
+
+### Notes for next session
+- Breakpoints in this codebase: bottom-nav switches at **≤640px**; the new
+  goal-nav split uses **768px** (sidebar ≥768 / dropdown <768); Overview
+  two-column uses **980px**. Between 640–768 the main tabs are still in the top
+  bar (no bottom nav) and the goal dropdown shows — acceptable tablet band.
+- The desktop goal sidebar takes 222px, so the desktop content column is
+  narrower than before; existing responsive grids reflow fine.
+- Recovery goals keep their leaf distinction in both the sidebar and dropdown.
 
 ## Phase 4 — Six-feature session (2026-06-29, Claude Code)
 
