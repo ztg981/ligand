@@ -833,18 +833,6 @@ export default function App() {
         <Icon.Wand />
       </button>
 
-      {/* Floating Hyperfocus toggle (bottom-left) */}
-      <button
-        className={"hf-fab" + (hyperfocus ? " active" : "")}
-        title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
-        aria-pressed={hyperfocus}
-        onClick={toggleHyperfocus}
-        data-mute-click
-      >
-        <Icon.Bolt />
-        <span>{hyperfocus ? "Locked in" : "Hyperfocus"}</span>
-      </button>
-
       {showTweaks && (
         <TweaksPanel
           tweaks={tweaks}

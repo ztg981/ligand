@@ -362,10 +362,11 @@ button { font: inherit; color: inherit; }
 .goal-sidebar { display: none; }
 
 @media (min-width: 768px) {
-  /* Content first in DOM → left. Sidebar second → right. flex: 1 ensures
-     content fills ALL remaining width — no wasted space. */
-  .body { display: flex; align-items: flex-start; gap: 18px; }
-  .content { flex: 1 1 0%; min-width: 0; }
+  /* Content left, sidebar right. Remove shell right-padding so sidebar sits
+     flush against the content frame edge with no wasted margin. */
+  .shell { padding-right: 0; }
+  .body { display: flex; align-items: flex-start; gap: 0; }
+  .content { flex: 1 1 0%; min-width: 0; padding-right: 18px; }
 
   /* Goals move out of the top bar into the sidebar on desktop. */
   .topbar-goals { display: none; }
@@ -380,36 +381,28 @@ button { font: inherit; color: inherit; }
     top: 84px;
     max-height: calc(100vh - 104px);
     padding: 8px;
-    border-radius: var(--r-2xl);
+    /* Left corners rounded, right flush with page edge. */
+    border-radius: var(--r-2xl) 0 0 var(--r-2xl);
     background: color-mix(in oklab, var(--panel) 70%, transparent);
     border: 1px solid var(--line);
+    border-right: none;
     box-shadow: var(--shadow-pop);
     backdrop-filter: blur(10px) saturate(120%);
     -webkit-backdrop-filter: blur(10px) saturate(120%);
   }
+  .goal-sidebar[data-collapsed="true"] { width: 52px; }
 }
 
 .gs-head {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 6px; padding: 2px 4px 8px; flex: none;
+  gap: 6px; padding: 2px 4px 8px;
 }
+.goal-sidebar[data-collapsed="true"] .gs-head { justify-content: center; }
 .gs-title {
   font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--ink-3);
 }
-.gs-privacy { color: var(--ink-3); }
-
-/* gs-body wraps scroll + add button; blurred as one unit in privacy mode. */
-.gs-body {
-  display: flex; flex-direction: column; flex: 1; min-height: 0;
-  transition: filter 0.2s var(--ease), opacity 0.2s var(--ease);
-}
-.goal-sidebar[data-hidden="true"] .gs-body {
-  filter: blur(6px);
-  opacity: 0.4;
-  pointer-events: none;
-  user-select: none;
-}
+.gs-collapse { color: var(--ink-3); }
 
 .gs-scroll {
   flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
@@ -430,6 +423,7 @@ button { font: inherit; color: inherit; }
 }
 .gs-row:hover { background: var(--panel-2); color: var(--ink); }
 .gs-row.selected { background: var(--accent-soft); color: var(--accent-ink); }
+.goal-sidebar[data-collapsed="true"] .gs-row { justify-content: center; padding: 8px; gap: 0; }
 
 .gs-row-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; }
 .gs-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.12); }
@@ -442,6 +436,7 @@ button { font: inherit; color: inherit; }
 .gs-health.green { background: oklch(0.72 0.14 var(--hue-mint)); }
 .gs-health.amber { background: oklch(0.78 0.13 var(--hue-amb)); }
 .gs-health.red   { background: oklch(0.68 0.16 var(--hue-rose)); }
+.goal-sidebar[data-collapsed="true"] .gs-health { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; }
 
 .gs-row-x {
   display: inline-flex; align-items: center; justify-content: center;
