@@ -65,27 +65,33 @@ function GoalRow({ goal, tasks, selected, collapsed, onSelect, onArchive }) {
         title={health.label}
         aria-label={health.label}
       />
-      {!collapsed && goal.type !== "built-in" && onArchive && (
-        <span
-          className="gs-row-x"
-          role="button"
-          tabIndex={0}
-          title={`Archive ${goal.name}`}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onArchive(goal.id);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
+      {!collapsed &&
+        (goal.type !== "built-in" && onArchive ? (
+          <span
+            className="gs-row-x"
+            role="button"
+            tabIndex={0}
+            title={`Archive ${goal.name}`}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
               e.stopPropagation();
               onArchive(goal.id);
-            }
-          }}
-        >
-          <Icon.Close />
-        </span>
-      )}
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                onArchive(goal.id);
+              }
+            }}
+          >
+            <Icon.Close />
+          </span>
+        ) : (
+          /* Built-in goals have no archive button. Render an inert zero-width
+             spacer so the trailing flex gap matches every other row and the
+             health dots line up in one clean vertical column. */
+          <span className="gs-row-x-spacer" aria-hidden="true" />
+        ))}
     </button>
   );
 }

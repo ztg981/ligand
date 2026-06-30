@@ -86,6 +86,10 @@
 
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
+/* Reserve the vertical scrollbar lane at all times so the flush-right goal
+   sidebar never shifts 15px (or butts against the scrollbar) when switching
+   between a tall tab and a short one. */
+html { scrollbar-gutter: stable; }
 body {
   font-family: var(--font-sans);
   font-size: 13px;
@@ -446,6 +450,9 @@ button { font: inherit; color: inherit; }
 .gs-row:hover .gs-row-x { width: 16px; opacity: 0.7; }
 .gs-row-x:hover { opacity: 1; color: oklch(0.55 0.16 20); background: var(--panel-3); }
 .gs-row-x svg { width: 11px; height: 11px; }
+/* Matches the resting footprint of .gs-row-x (width 0 + the row's flex gap) so
+   built-in rows align their health dot with every other row's. Never expands. */
+.gs-row-x-spacer { width: 0; height: 16px; flex: none; }
 
 .gs-add {
   display: flex; align-items: center; justify-content: center; gap: 6px;
