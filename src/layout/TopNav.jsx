@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
+import GoalDropdown from "../components/GoalDropdown.jsx";
 import {
   DndContext,
   PointerSensor,
@@ -523,6 +524,19 @@ export default function TopNav({
               }
             />
           </div>
+
+          {/* MOBILE (<768px) goal selector — replaces the cramped goal pills.
+             Desktop uses the sidebar; this is hidden there via CSS. */}
+          <GoalDropdown
+            goals={goals}
+            activeGoalId={activeGoal}
+            isGoalTab={tab === "goal"}
+            onSelect={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
+            onAddGoal={onAddGoal}
+          />
         </div>
 
         <div className="topbar-tools">

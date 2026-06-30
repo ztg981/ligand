@@ -295,7 +295,58 @@ button { font: inherit; color: inherit; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar-tools-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 .topbar-main-tabs { display: flex; align-items: center; gap: 12px; }
-.topbar-goals { display: flex; align-items: center; }
+/* The horizontal goal pills are superseded everywhere now: the vertical
+   sidebar owns goals on desktop (≥768px) and the goal dropdown owns them on
+   mobile (<768px), so the pills element stays in the DOM but never shows. */
+.topbar-goals { display: none; }
+
+/* ---- Mobile goal dropdown (<768px) ---- */
+.goal-dropdown { display: none; position: relative; flex: 1; min-width: 0; }
+@media (max-width: 767px) { .goal-dropdown { display: flex; } }
+
+.goal-dd-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; min-width: 0; height: 40px; padding: 0 12px;
+  border-radius: 12px; background: var(--panel); border: 1px solid var(--line);
+  color: var(--ink); font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.goal-dd-current { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.goal-dd-current svg { width: 14px; height: 14px; opacity: 0.85; }
+.goal-dd-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goal-dd-caret {
+  display: inline-flex; flex: none; color: var(--ink-3);
+  transform: rotate(90deg); transition: transform 0.2s var(--ease);
+}
+.goal-dd-caret.open { transform: rotate(-90deg); }
+.goal-dd-caret svg { width: 13px; height: 13px; }
+
+.goal-dd-backdrop { position: fixed; inset: 0; z-index: 94; }
+/* A full-width sheet (not pinned to the narrow button) so the goal list is
+   easy to scan and tap on a phone. `top` is set inline from the button rect. */
+.goal-dd-panel {
+  position: fixed; left: 12px; right: 12px; z-index: 95;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow-pop);
+  padding: 6px; max-height: 70vh; overflow-y: auto;
+}
+.goal-dd-empty { padding: 12px; color: var(--ink-3); font-size: 13px; }
+.goal-dd-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 44px; padding: 8px 12px;
+  border-radius: 10px; background: transparent; border: none;
+  color: var(--ink-2); font-size: 14px; font-weight: 500;
+  text-align: left; cursor: pointer;
+}
+.goal-dd-item:hover, .goal-dd-item:active { background: var(--panel-2); }
+.goal-dd-item.selected { background: var(--accent-soft); color: var(--accent-ink); }
+.goal-dd-item-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.goal-dd-check { display: inline-flex; flex: none; color: var(--accent-ink, var(--accent)); }
+.goal-dd-check svg { width: 15px; height: 15px; }
+.goal-dd-add {
+  color: var(--accent-ink, var(--accent)); font-weight: 600;
+  border-top: 1px solid var(--line); border-radius: 0; margin-top: 4px; padding-top: 12px;
+}
+.goal-dd-add svg { width: 15px; height: 15px; }
 
 /* ============================================================
    Body layout + desktop goal sidebar (≥768px)
