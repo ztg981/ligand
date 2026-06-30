@@ -113,7 +113,12 @@ button { font: inherit; color: inherit; }
 .app {
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  /* No overflow:hidden here — an ancestor with overflow other than visible
+     becomes the scroll container that position:sticky children compute
+     against. Since .app itself never scrolls internally (html/body does),
+     that broke sticky for .topbar and .goal-sidebar entirely. The decorative
+     .ambient blobs and the hyperfocus backdrop already self-clip via their
+     own overflow:hidden, so nothing here depends on .app clipping. */
 }
 
 /* ambient blobs */
@@ -371,6 +376,12 @@ button { font: inherit; color: inherit; }
   .shell { padding-right: 0; }
   .body { display: flex; align-items: flex-start; gap: 0; }
   .content { flex: 1 1 0%; min-width: 0; padding-right: 18px; }
+
+  /* On mobile the topbar floats symmetrically (margin-left/right: 10px) since
+     there's no content column to line up against. On desktop, zero its left
+     margin so its left edge sits flush with the content column's left edge
+     (both driven by .shell's padding-left) instead of sitting 10px right of it. */
+  .topbar { margin-left: 0; }
 
   /* Goals move out of the top bar into the sidebar on desktop. */
   .topbar-goals { display: none; }
