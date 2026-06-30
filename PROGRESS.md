@@ -2,6 +2,50 @@
 
 _Session date: 2026-06-14 (updated 2026-06-30)_
 
+## Phase 6 — Hyperfocus rebuild + mobile touch audit (2026-06-30, Claude Code)
+
+### DONE this session (committed + pushed)
+
+**Hyperfocus mode motion rebuild** (`41b4730`)
+- Rings rebuilt with real depth: 4 rings staggered 1.375s apart (5.5s cycle),
+  each starting at `scale(0.06)` with 4px border + 5px blur (close to viewer),
+  expanding to `scale(1.06)` with 0.5px border + 0px blur (receding). Creates
+  genuine radar/sonar depth rather than flat opacity circles.
+- HUD scanning line: `position: absolute` 1px div sweeping full viewport height
+  over 12s with a red beam gradient, ~0.5–0.7 peak opacity.
+- Card tilt increased from `rotateX(1deg)` → `rotateX(3deg)` with
+  `perspective(900px)` (now visible/pronounced).
+- Mousemove parallax: App.jsx `mousemove` listener writes `--hf-mx`/`--hf-my`
+  (−1→1, viewport-normalised) to `:root`. Cards read these in their `rotateX` /
+  `rotateY` `calc()` for a lightweight depth shift as the cursor moves. On hover,
+  tilt reduces to `0.5deg` base and cards lift `translateY(-3px)`.
+- Particles removed (redundant with the stronger rings). Waves + vignette kept.
+- `prefers-reduced-motion` / `data-reduce-motion` hides rings + scan; colour
+  theme intact.
+- Verified at 375 and 1280px; ring arc visible in card gaps in live preview.
+
+**Section 3D — mobile touch target audit** (`5090519`)
+- Audited every interactive element at 375px. Fixed all critical < 44px targets:
+  - `iconbtn` 38 → 44px, `avatar-btn` 36 → 44px
+  - `goal-dd-btn` 40 → 44px, `hf-fab` 40 → 44px
+  - `.btn` 38 → 44px, `.btn.sm` 32 → 36px
+  - `input.input / select.input` 38 → 44px
+  - `.seg button` 30 → 36px, `.chip` 28 → 34px
+  - `notes-search` container 38 → 44px, `notes-new-btn` 40 → 44px
+  - `notes-search-clear` 22 → 28px, `.dyk-next` 24 → 36px
+- All changes inside `@media (max-width: 767px)` — desktop unchanged.
+- Keyboard safety confirmed: Journal and Notes textareas are `position: static`
+  so viewport reflow when mobile keyboard appears is handled naturally.
+- Bottom nav items already 50px — no change needed.
+
+### NOT done this session (unchanged from Phase 5 notes)
+- **Section 3B** — mobile bottom tab bar reshuffle. **Blocked on Section 4**
+  (Workout tab doesn't exist yet). Leave for the workout session.
+- **Section 3C** — combined mobile Home/Overview. Also blocked on Section 4.
+- **Section 4 — Workout system** — NOT STARTED.
+
+---
+
 ## Phase 5 — Responsive layout + fixes (2026-06-30, Claude Code)
 
 Overnight responsive-design + bug-fix session. Worked section by section,
