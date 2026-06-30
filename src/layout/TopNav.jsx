@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, useMemo } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import {
   DndContext,
@@ -502,23 +502,27 @@ export default function TopNav({
             <div className="tab-sep" />
           </div>
 
-          {/* Goal tabs — active only when we're on the "goal" screen */}
-          <Tabset
-            variant="goals"
-            items={goalItems}
-            sortable={true}
-            activeId={tab === "goal" ? activeGoal : null}
-            onSelect={(id) => {
-              setActiveGoal(id);
-              setTab("goal");
-            }}
-            onArchive={onArchiveGoal}
-            trailing={
-              <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
-                <Icon.Plus />
-              </button>
-            }
-          />
+          {/* Goal tabs — active only when we're on the "goal" screen.
+             DESKTOP (≥768px): hidden — goals live in the left sidebar instead.
+             Tablet/phone: shown here (phones get a dropdown in a later pass). */}
+          <div className="topbar-goals">
+            <Tabset
+              variant="goals"
+              items={goalItems}
+              sortable={true}
+              activeId={tab === "goal" ? activeGoal : null}
+              onSelect={(id) => {
+                setActiveGoal(id);
+                setTab("goal");
+              }}
+              onArchive={onArchiveGoal}
+              trailing={
+                <button className="plusbtn" onClick={onAddGoal} title="New goal tab">
+                  <Icon.Plus />
+                </button>
+              }
+            />
+          </div>
         </div>
 
         <div className="topbar-tools">

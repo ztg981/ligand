@@ -5,8 +5,8 @@ import {
   shiftDay,
   isCheckedOn,
   isGoalOverdue,
-  daysBetween,
 } from "../lib/model.js";
+import { goalHealth } from "../lib/goalHealth.js";
 import { recoveryDays } from "../lib/recovery.js";
 
 /* Overview — a bird's-eye view across ALL goals at once.
@@ -19,41 +19,6 @@ import { recoveryDays } from "../lib/recovery.js";
 // The 7 day-keys for the current rolling week (oldest → today).
 function weekDays(today = todayKey()) {
   return Array.from({ length: 7 }, (_, i) => shiftDay(today, -(6 - i)));
-}
-
-// When did this goal last show any activity? Looks at habit check-ins, task
-// completion/creation, and reflections. Returns a day-key or null.
-function lastActivityKey(goal, tasks) {
-  let latest = null;
-  const bump = (key) => {
-    if (key && (!latest || key > latest)) latest = key;
-  };
-  (goal.habits || []).forEach((h) =>
-    (h.checkIns || []).forEach((d) => bump(d))
-  );
-  (goal.reflections || []).forEach((r) => {
-    if (r.createdAt) bump(r.createdAt.slice(0, 10));
-  });
-  tasks
-    .filter((t) => t.goalId === goal.id)
-    .forEach((t) => {
-      if (t.completedOn) bump(t.completedOn);
-      if (t.createdAt) bump(t.createdAt);
-    });
-  return latest;
-}
-
-// Health: green (on track), amber (behind), red (overdue / quiet 7+ days).
-function goalHealth(goal, tasks, today = todayKey()) {
-  if (isGoalOverdue(goal)) return { level: "red", label: "Needs a look" };
-  // Recovery goals are inherently "active" — staying present is the win.
-  if (goal.type === "recovery") return { level: "green", label: "On track" };
-  const last = lastActivityKey(goal, tasks);
-  if (!last) return { level: "amber", label: "Not started" };
-  const gap = daysBetween(last, today);
-  if (gap <= 2) return { level: "green", label: "On track" };
-  if (gap <= 6) return { level: "amber", label: "Slowing down" };
-  return { level: "red", label: "Quiet lately" };
 }
 
 export default function Overview({

@@ -14,6 +14,7 @@ import BadgeCelebration from "./components/BadgeCelebration.jsx";
 import BadgesModal from "./components/BadgesModal.jsx";
 import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
+import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { useStore } from "./hooks/useStore.js";
@@ -783,7 +784,22 @@ export default function App() {
           syncStatus={syncStatus}
         />
 
-        {screen}
+        <div className="body">
+          {/* DESKTOP-only goal navigation (hidden <768px via CSS). */}
+          <GoalSidebar
+            goals={orderedActiveGoals}
+            tasks={store.tasks}
+            selectedId={tab === "goal" ? activeGoal : null}
+            onSelect={(id) => {
+              setActiveGoal(id);
+              setTab("goal");
+            }}
+            onAddGoal={() => setShowGoalModal(true)}
+            onArchiveGoal={handleArchiveGoal}
+            setGoalOrder={store.setGoalOrder}
+          />
+          <div className="content">{screen}</div>
+        </div>
       </div>
 
       {/* Floating Tweaks toggle */}

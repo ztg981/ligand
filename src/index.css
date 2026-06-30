@@ -295,6 +295,116 @@ button { font: inherit; color: inherit; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar-tools-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 .topbar-main-tabs { display: flex; align-items: center; gap: 12px; }
+.topbar-goals { display: flex; align-items: center; }
+
+/* ============================================================
+   Body layout + desktop goal sidebar (≥768px)
+   ------------------------------------------------------------
+   Phones/tablets: content is full width and the goal sidebar is hidden
+   (goals live in the top pills). Desktop: a calm vertical goal sidebar sits
+   to the LEFT of the content and becomes the primary goal navigation; the
+   top goal pills hide. This block is desktop-only so it never touches the
+   mobile layout.
+   ============================================================ */
+.body { display: block; }
+.content { min-width: 0; }
+.goal-sidebar { display: none; }
+
+@media (min-width: 768px) {
+  .body { display: flex; align-items: flex-start; gap: 18px; }
+  .content { flex: 1 1 auto; min-width: 0; }
+
+  /* Goals move out of the top bar into the sidebar on desktop. */
+  .topbar-goals { display: none; }
+  .topbar-main-tabs .tab-sep { display: none; }
+
+  .goal-sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    width: 222px;
+    position: sticky;
+    top: 84px;
+    max-height: calc(100vh - 104px);
+    padding: 8px;
+    border-radius: var(--r-2xl);
+    background: color-mix(in oklab, var(--panel) 70%, transparent);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-pop);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+  }
+  .goal-sidebar[data-collapsed="true"] { width: 60px; }
+}
+
+.gs-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; padding: 2px 4px 8px;
+}
+.goal-sidebar[data-collapsed="true"] .gs-head { justify-content: center; }
+.gs-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.gs-collapse { color: var(--ink-3); }
+
+.gs-scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 2px;
+  scrollbar-width: thin;
+}
+.gs-empty { font-size: 12px; color: var(--ink-3); padding: 6px 8px; line-height: 1.4; }
+
+.gs-row {
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 8px 10px;
+  border-radius: 10px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--ink-2); font-size: 13px; font-weight: 500;
+  text-align: left; cursor: pointer;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+.gs-row:hover { background: var(--panel-2); color: var(--ink); }
+.gs-row.selected { background: var(--accent-soft); color: var(--accent-ink); }
+.goal-sidebar[data-collapsed="true"] .gs-row { justify-content: center; padding: 8px; gap: 0; }
+
+.gs-row-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 16px; }
+.gs-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 6px rgba(0,0,0,0.12); }
+.gs-leaf { display: inline-flex; color: oklch(0.5 0.14 150); }
+.gs-leaf svg { width: 14px; height: 14px; stroke-width: 1.8; }
+
+.gs-row-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.gs-health { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.gs-health.green { background: oklch(0.72 0.14 var(--hue-mint)); }
+.gs-health.amber { background: oklch(0.78 0.13 var(--hue-amb)); }
+.gs-health.red   { background: oklch(0.68 0.16 var(--hue-rose)); }
+.goal-sidebar[data-collapsed="true"] .gs-health {
+  position: absolute; top: 6px; right: 6px;
+  width: 6px; height: 6px;
+}
+
+.gs-row-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 0; height: 16px; overflow: hidden; opacity: 0; flex: none;
+  border-radius: 5px; color: var(--ink-3); cursor: pointer;
+  transition: opacity 0.15s var(--ease), width 0.15s var(--ease);
+}
+.gs-row:hover .gs-row-x { width: 16px; opacity: 0.7; }
+.gs-row-x:hover { opacity: 1; color: oklch(0.55 0.16 20); background: var(--panel-3); }
+.gs-row-x svg { width: 11px; height: 11px; }
+
+.gs-add {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 8px; padding: 9px 10px; width: 100%;
+  border-radius: 10px; border: 1px dashed var(--line);
+  background: transparent; color: var(--ink-2);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.gs-add:hover { background: var(--accent-soft); color: var(--accent-ink); border-color: transparent; }
+.gs-add svg { width: 14px; height: 14px; }
 
 /* Floating Tweaks toggle (bottom-right). Repositioned above the bottom tab
    bar on phones — see the mobile block below. */
