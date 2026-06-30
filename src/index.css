@@ -3527,6 +3527,33 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-goal-link svg { transition: transform 0.15s var(--ease); }
 .ov-goal-link:hover svg { transform: translateX(2px); }
 
+/* Desktop two-column Overview (Section 5): Daily Focus on the left, the
+   goals grid on the right, so "what needs attention" and the goals overview
+   are visible together without scrolling past a tall habits list. Below
+   980px this collapses to a single stacked column (unchanged from before). */
+.ov-layout { display: block; }
+.ov-pane-focus, .ov-pane-goals { min-width: 0; }
+
+@media (min-width: 980px) {
+  .ov-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  /* The focus card owns the left column — drop its stacked bottom margin. */
+  .ov-focus-card { margin-bottom: 0; }
+  /* Stack the three focus sub-lists in the narrow left column and densify
+     them so the column stays short. */
+  .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
+  .ov-pane-focus .ov-habit-check { padding: 7px 9px; gap: 8px; }
+  .ov-pane-focus .ov-habit-name { font-size: 13px; }
+  .ov-pane-focus .ov-task-row { padding: 7px 9px; }
+  /* Goals fill the wider right column. */
+  .ov-pane-goals .ov-section-label { margin-top: 0; }
+  .ov-goals-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+}
+
 @media (max-width: 640px) {
   .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
   .ov-goals-grid { grid-template-columns: 1fr; }

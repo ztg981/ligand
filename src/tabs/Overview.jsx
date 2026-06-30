@@ -99,6 +99,12 @@ export default function Overview({
         </div>
       </div>
 
+      {/* On desktop these two panes sit side-by-side (focus left, goals right)
+         so the goals overview is visible without scrolling past a tall habits
+         list. On mobile/tablet .ov-layout collapses to a single column and the
+         panes stack in this same order — unchanged from before. */}
+      <div className="ov-layout">
+      <div className="ov-pane-focus">
       {/* A) DAILY FOCUS ------------------------------------------------------ */}
       <div className="card ov-focus-card">
         <div className="card-head">
@@ -246,8 +252,10 @@ export default function Overview({
           </div>
         )}
       </div>
+      </div>{/* /ov-pane-focus */}
 
       {/* B) GOALS GRID ------------------------------------------------------- */}
+      <div className="ov-pane-goals">
       <div className="ov-section-label">
         <Icon.Target /> Your goals
       </div>
@@ -335,6 +343,8 @@ export default function Overview({
           })}
         </div>
       )}
+      </div>{/* /ov-pane-goals */}
+      </div>{/* /ov-layout */}
     </>
   );
 }
