@@ -833,6 +833,19 @@ export default function App() {
         <Icon.Wand />
       </button>
 
+      {/* Floating Hyperfocus toggle (bottom-right, stacked above the Tweaks
+          wand so it never overlaps it regardless of viewport width). */}
+      <button
+        className={"hf-fab" + (hyperfocus ? " active" : "")}
+        title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
+        aria-pressed={hyperfocus}
+        onClick={toggleHyperfocus}
+        data-mute-click
+      >
+        <Icon.Bolt />
+        <span>Focus</span>
+      </button>
+
       {showTweaks && (
         <TweaksPanel
           tweaks={tweaks}
