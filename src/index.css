@@ -395,17 +395,27 @@ button { font: inherit; color: inherit; }
     /* Match the topbar's right margin (margin: 6px 10px 18px) so the right
        edges of the topbar pill and this panel form one continuous line. */
     margin-right: 10px;
+    /* .page-head (the title block above every tab's cards) takes up
+       margin-top 6px + ~71px of content + margin-bottom 18px = ~95px before
+       the first card starts. Match that here so the panel's resting top
+       lines up with the first card instead of sitting flush under the
+       topbar with no breathing room. This only affects the panel's natural
+       (unscrolled) position — the `top: 84px` sticky offset below is
+       unchanged, so once scrolled past this margin the panel docks right
+       under the topbar, exactly like the page-head itself scrolling away. */
+    margin-top: 95px;
     position: sticky;
     top: 84px;
     max-height: calc(100vh - 104px);
     padding: 8px;
-    /* Floating panel, fully rounded like the topbar pill. */
-    border-radius: var(--r-2xl);
-    background: color-mix(in oklab, var(--panel) 70%, transparent);
+    /* Same visual weight as the content cards beside it (not the topbar
+       pill): card radius, card shadow, solid panel background — it should
+       read as part of the content layer, not a separate floating chrome
+       element. */
+    border-radius: var(--r-xl);
+    background: var(--panel);
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-pop);
-    backdrop-filter: blur(10px) saturate(120%);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    box-shadow: var(--shadow-card);
   }
   .goal-sidebar[data-collapsed="true"] { width: 52px; }
 }
