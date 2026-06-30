@@ -206,8 +206,8 @@ export default function Tasks({
       </div>
 
       {/* Filters */}
-      <div className="row between" style={{ marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
-        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+      <div className="row between tasks-filter-bar" style={{ marginBottom: 12, gap: 10 }}>
+        <div className="row tasks-filter-chips" style={{ gap: 6 }}>
           <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
             All
           </FilterChip>

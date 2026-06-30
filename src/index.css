@@ -1411,6 +1411,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
 .taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
+.tasks-filter-bar { flex-wrap: wrap; }
+.tasks-filter-chips { flex-wrap: wrap; }
 
 /* habit dots row */
 .habit-row { display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px; padding: 8px 4px; }
@@ -2908,19 +2910,39 @@ button.upcoming-row:hover { background: var(--panel-3); }
   .auth-screen { padding: 16px; }
   .auth-card { padding: 24px 20px 20px; }
 
-  /* Tasks — rows: checkbox + name + actions on the top line, chips below. */
+  /* Tasks — rows: checkbox + name + actions on the top line, chips below.
+     Taller padding + a bigger checkbox so the whole row reads as one easy
+     tap target instead of the dense desktop row. */
   .taskrow {
-    grid-template-columns: 22px 1fr auto;
+    grid-template-columns: 26px 1fr auto;
     grid-template-areas:
       "check name  actions"
       "chips chips chips";
-    gap: 6px 10px;
+    gap: 8px 10px;
+    padding: 14px 12px;
   }
-  .taskrow > .checkbox { grid-area: check; }
+  .taskrow > .checkbox { grid-area: check; width: 24px; height: 24px; }
   .taskrow > .task-name,
-  .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
+  .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; font-size: 14.5px; }
   .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
   .taskrow > .taskrow-actions { grid-area: actions; }
+  .taskrow-actions button { padding: 8px !important; }
+
+  /* Filter chips scroll horizontally instead of wrapping to a second/third
+     line, which ate a lot of vertical space once a few goals existed. The
+     chip row is the one that shrinks/scrolls; the Active/Done/All segment
+     keeps its full size next to it. */
+  .tasks-filter-bar { flex-wrap: nowrap; }
+  .tasks-filter-bar > .seg { flex: none; }
+  .tasks-filter-chips {
+    flex: 1 1 0%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  .tasks-filter-chips .chip { flex: none; }
 }
 
 /* ============================================================
