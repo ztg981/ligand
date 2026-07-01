@@ -3956,22 +3956,28 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
      habit list can run to a dozen-plus rows and needs to stay scannable. */
   .ov-task-text { white-space: normal; overflow: visible; text-overflow: clip; }
   .ov-task-row { align-items: flex-start; }
-  /* Compact habit rows (~44px instead of 60px+): tighter padding, and name
-     + goal on one line instead of stacked, so a long habit list doesn't
-     dominate the screen. */
+  /* Compact habit rows: tighter padding than desktop. Name is allowed to
+     wrap up to 2 lines instead of single-line-ellipsis-truncating - users
+     need to actually read the full habit name, so the row height simply
+     expands to fit rather than hiding part of it. */
   .ov-habit-check { padding: 10px 10px; gap: 10px; }
   .ov-habit-box { width: 20px; height: 20px; }
-  .ov-habit-text { flex-direction: row; align-items: baseline; gap: 5px; min-width: 0; }
-  .ov-habit-name {
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    flex: 0 1 auto; min-width: 0;
-  }
-  .ov-habit-goal { flex: none; white-space: nowrap; }
-  .ov-habit-goal::before { content: "· "; }
+  .ov-habit-text { flex-direction: column; gap: 1px; min-width: 0; }
+  .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
+  .ov-habit-goal::before { content: none; }
   /* Extra right clearance, same reasoning as .taskrow above: with enough
      habits the list runs the full page height, and rows land in the same
      bottom-right corner the fixed Focus/Tweaks FABs float in. */
   .ov-habit-row { padding-right: 60px; }
+
+  /* A long-press meant to check in a habit (or, on .taskrow, to trigger
+     inline edit) shouldn't also select the row's text - browsers treat a
+     sustained press on text as a selection gesture by default. */
+  .ov-habit-row, .taskrow {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
 }
 
 /* ============================================================

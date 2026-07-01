@@ -1,7 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey, isCheckedOn, isGoalOverdue } from "../lib/model.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+
+const CHECK_TOUCH_DELAY_MS = 150;
+const CHECK_TOUCH_MOVE_TOLERANCE = 10;
 
 /* DailyFocus - "what needs attention today" across every goal: habits not
    yet checked in (with inline quick check-in), Today/Urgent tasks not done,
@@ -27,6 +30,47 @@ export default function DailyFocus({
   // this reveals the already-checked ones too, so today's check-ins aren't
   // just gone with no way to glance back at them.
   const [showAllHabits, setShowAllHabits] = useState(false);
+
+  // Touch-delay gate on the check-in button: a scroll gesture that starts on
+  // the button shouldn't register as a check-in. Hold for 150ms before it
+  // fires; moving more than a few px during that window (a scroll) cancels
+  // it. Desktop mouse clicks are untouched - onClick still fires directly
+  // there, since no touchstart precedes it.
+  const checkPressTimer = useRef(null);
+  const checkTouchHandled = useRef(false);
+  const checkPressStart = useRef({ x: 0, y: 0 });
+  useEffect(() => () => clearTimeout(checkPressTimer.current), []);
+
+  const handleCheckTouchStart = (goalId, habitId) => (e) => {
+    const pt = e.touches[0];
+    checkPressStart.current = { x: pt.clientX, y: pt.clientY };
+    clearTimeout(checkPressTimer.current);
+    checkPressTimer.current = setTimeout(() => {
+      checkTouchHandled.current = true;
+      checkInHabit(goalId, habitId, today);
+    }, CHECK_TOUCH_DELAY_MS);
+  };
+  const handleCheckTouchMove = (e) => {
+    if (!checkPressTimer.current) return;
+    const pt = e.touches[0];
+    const dx = Math.abs(pt.clientX - checkPressStart.current.x);
+    const dy = Math.abs(pt.clientY - checkPressStart.current.y);
+    if (dx > CHECK_TOUCH_MOVE_TOLERANCE || dy > CHECK_TOUCH_MOVE_TOLERANCE) {
+      clearTimeout(checkPressTimer.current);
+      checkPressTimer.current = null;
+    }
+  };
+  const handleCheckTouchEnd = () => {
+    clearTimeout(checkPressTimer.current);
+    checkPressTimer.current = null;
+  };
+  const handleCheckClick = (goalId, habitId) => () => {
+    if (checkTouchHandled.current) {
+      checkTouchHandled.current = false;
+      return;
+    }
+    checkInHabit(goalId, habitId, today);
+  };
 
   const startEditHabit = (goalId, habit) => {
     setEditingHabit({ goalId, habitId: habit.id });
@@ -176,7 +220,11 @@ export default function DailyFocus({
                       <button
                         type="button"
                         className="ov-habit-check"
-                        onClick={() => checkInHabit(goalId, habit.id, today)}
+                        onClick={handleCheckClick(goalId, habit.id)}
+                        onTouchStart={handleCheckTouchStart(goalId, habit.id)}
+                        onTouchMove={handleCheckTouchMove}
+                        onTouchEnd={handleCheckTouchEnd}
+                        onTouchCancel={handleCheckTouchEnd}
                         title={`Check in "${habit.name}"`}
                       >
                         <span className="ov-habit-box" aria-hidden="true" />
