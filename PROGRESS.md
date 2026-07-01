@@ -164,6 +164,35 @@ zero sync-layer changes.
   rest timer → PR celebration → save template → start-from-template →
   progress charts → body stats → badge unlocks (First Rep, PR Breaker).
 
+### Addendum — Hyperfocus color palette fix (colors/opacity only, no animation changes)
+- The all-bright-red palette read as an alert/warning screen rather than a
+  premium focus mode. Retuned every hyperfocus color token/rule to a dark,
+  desaturated "cockpit" palette while leaving all animation code/timing
+  untouched:
+  - `--accent`: `#cc1111` → `#8b0000` (deep crimson); `--line`/`--line-strong`
+    → barely-visible dark red borders (`rgba(120,0,20,.3)` / `rgba(139,0,0,.45)`).
+  - `--ink-2/-3/-4` de-tinted back to the site's normal neutral warm greys
+    (no longer reddish) — only `--accent`/`--accent-ink` carry the red now.
+  - `.card` in hyperfocus: dark charcoal (`rgba(26,26,31,.82)`) instead of
+    red-tinted glass; border/glow reduced to a hint.
+  - `.hf-wave-*` ambient blobs: hue shifted from bright red to deep burgundy
+    (`rgba(61,0,16,…)` / `rgba(26,0,8,…)`) with lower opacity.
+  - `.hf-ring` radar pulse: color swapped to `#8b0000`-based rgba, peak
+    opacity capped at 0.3 (was up to 0.8) — reads as a heat signature, not
+    a neon circle.
+  - `.hf-scan` line: red → barely-visible white/silver (`rgba(255,255,255,
+    .08)` max).
+  - `.hf-fab.active`, nav active pill/tab-indicator, bottom-nav active,
+    Pomodoro hyperfocus scene rings/gauge glow, `.hf-start-prompt`: all
+    retuned to the same deep-crimson-on-charcoal treatment.
+  - Verified live (guest mode): computed `--accent`/`--ink`/`--line`/wave/
+    scan/FAB values all match the target palette; toggling hyperfocus off
+    correctly reverts `--accent` to the theme's normal token
+    (`oklch(0.62 0.09 245)`), confirming no bleed. `npm run build` clean.
+    Desktop-viewport screenshots hit the known intermittent tool-render bug
+    (mobile screenshots and computed-style reads worked fine and were used
+    as verification instead).
+
 ---
 
 ## Phase 6 — Hyperfocus rebuild + mobile touch audit (2026-06-30, Claude Code)
