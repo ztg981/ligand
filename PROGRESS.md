@@ -2,6 +2,117 @@
 
 _Session date: 2026-06-14 (updated 2026-06-30)_
 
+## Phase 7 — Hyperfocus FAB, mobile UX pass, workout system (2026-06-30, Claude Code)
+
+Large multi-section brief: (1) Hyperfocus FAB + effect audit, (2) full mobile
+UX pass (nav, Home, Notes, Journal, Tasks, general polish), (3) a full workout
+system, (4) recovery journal sort fix, (5) polish. Working section by section,
+committing after each, `npm run build` clean throughout, verified live via the
+preview tool (console errors checked, computed styles/rects measured, screen-
+shots where the tool cooperated) at 375px and 1280px, light+dark.
+
+### DONE this session (committed + pushed)
+
+**Section 1 — Hyperfocus FAB restored** (`b6eb0fb`)
+- The FAB was dropped during the right-sidebar rework (`c5b3f12`) and never
+  replaced. Re-added as a small pill (bolt icon + "Focus", not a large FAB),
+  stacked directly above the Tweaks wand FAB (bottom-right) with a verified
+  12px+ gap at both 1280 and 375px — no overlap with the wand or the goal
+  sidebar. Active state now breathes (subtle pulsing glow) instead of a
+  static glow.
+- Audited the existing motion rebuild (`41b4730`) live, not just in code:
+  confirmed via computed styles that all 4 radar rings animate, the scan
+  line sweeps, card tilt applies a real 3D transform, and mousemove
+  parallax updates the `--hf-mx`/`--hf-my` CSS vars. All already working;
+  no fix was needed there.
+- Found (but did not fix, out of scope) a pre-existing cascade bug: `.iconbtn`
+  is declared after `.tweaks-fab` with equal specificity, so it silently
+  wins the width/height tie and the wand renders at 30px instead of its own
+  declared 44px on desktop.
+
+**Section 2A — Mobile nav** (`696f6a6`)
+- Goal dropdown rows now show the same health dot (`goalHealth()`) as the
+  desktop sidebar, threaded via a new `tasks` prop through TopNav ->
+  GoalDropdown.
+- Bottom tab bar reordered/reduced to the 5 most-used-one-handed tabs: Home,
+  Tasks, Notes, Journal, Overview (`BOTTOM_NAV_IDS`). Pomodoro + Settings
+  moved to the avatar overflow menu (Pomodoro shortcut is mobile-only,
+  verified hidden >=768px).
+- Active-tab indicator strengthened: a small dot above the icon + bolder
+  label weight, not just a color/tint shift.
+
+**Section 2B — Mobile Home redesign** (`5255576`)
+- New phone-only (`<768px`) "daily driver" view: greeting (existing), one
+  "Today's focus" section, a "Capture a thought" button, a compact
+  horizontally-scrolling goals row. Desktop dashboard (`.home-desktop-grid`)
+  untouched and hidden on mobile via CSS — both trees render, CSS picks one.
+- Extracted the "Today's focus" card out of `Overview.jsx` into
+  `widgets/DailyFocus.jsx` so Home and Overview share one implementation.
+  Overview's own rendering verified byte-identical after the extraction.
+- Quick capture: `App.jsx` creates a blank note and stores its id;
+  `Notes.jsx` accepts `autoOpenNoteId` and jumps straight into that note's
+  editor with the textarea focused — verified end-to-end live (activeElement
+  was the textarea after one tap).
+
+**Section 2C — Notes FAB** (`0f65ef2`)
+- "New note" is now a true floating circular FAB (52px) on phone, stacked
+  above the Tweaks + Focus FABs with a verified 12px gap, hidden while
+  actually in the editor (a fixed button sitting on top of the writing
+  area the whole session would fight the "large comfortable text area"
+  goal). Desktop and the 641-760px tablet band keep the original inline
+  button, verified unchanged. List row height / editor size were already
+  correct (measured 85px rows, 60vh/16px editor) — no changes needed there.
+
+**Section 2D — Journal mobile polish** (`4a99593`)
+- Compose textarea: 160px min-height + 16px font on phone (was a 6-row
+  desktop default). Add-location button bumped to 40px (had to use a
+  `.btn.location-add-btn` two-class selector to out-specificity the
+  sitewide `.btn.sm` mobile rule). Remove-location and per-entry delete
+  buttons bumped 22/24 -> 32px. Mood chips bumped to 38px. Entry list
+  gets 16px gaps / 14px padding / 14.5px text (was 10/10/13).
+- Hit the "inline style always beats a CSS class" trap three times while
+  wiring this up (LocationPicker's remove button, the entry wrapper's
+  padding-top, the entry text's font-size) — fixed by moving those values
+  out of inline `style` and into CSS classes with base + mobile-override
+  rules.
+
+**Section 2E — Tasks mobile polish** (`abcd42d`)
+- Task rows: 14px padding (was 9px), 24px checkbox (was 18px), 14.5px name
+  text, bigger edit/delete tap padding — measured 101.6px row height on
+  phone vs. 41.6px on desktop (verified both, unchanged desktop).
+- Filter chips: scroll horizontally instead of wrapping to 2-3 lines on
+  phone (`overflow-x: auto` + `flex-wrap: nowrap`, Active/Done/All segment
+  pinned `flex: none` so it isn't squeezed) — verified genuinely scrollable
+  (619px content in a 191px viewport), not just visually clipped.
+- Add-task flow's existing mobile reflow (full-width input, 44px controls)
+  was already correct — verified, no changes.
+
+**Section 2F — General mobile polish** (`0bab3c3`)
+- Overview goal cards were already reasonably readable on phone (single
+  column, health pill, two stats, link) — verified live, no changes needed.
+- Habit check-in (shared `DailyFocus` widget): checkbox 20->22px + more row
+  padding on phone; habit/task names wrap instead of ellipsis-truncating
+  now that the single mobile column has room to spare.
+- Goal dropdown list items wrap instead of truncating (verified live: all
+  4 rows showed `white-space: normal` after the fix). The compact topbar
+  current-goal pill still truncates (it's chrome; the full name is always
+  shown as the page's own `<h1>` once on that goal's tab) but now has a
+  `title` attribute.
+- Added a subtle 0.18s fade-in on `.page-head` (present at the top of every
+  tab) so tab/goal switches read as a gentle transition; respects
+  `[data-reduce-motion="true"]`.
+
+### NOT started yet this session
+- **Section 3 — full workout system** (data model + ~60-exercise library,
+  fitness goal type + onboarding, manual logging + rest timer, intelligent
+  generation, progress tracking + 7 new badges). This is the single largest
+  remaining item — see the brief for the full staged spec.
+- **Section 4 — recovery-tracker journal sort fix** (small, targeted).
+- **Section 5 — em dash cleanup + stale-value audit** (optional polish, only
+  if time remains).
+
+---
+
 ## Phase 6 — Hyperfocus rebuild + mobile touch audit (2026-06-30, Claude Code)
 
 ### DONE this session (committed + pushed)
