@@ -37,6 +37,8 @@ import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
+import QuickNoteFab from "./components/QuickNoteFab.jsx";
+import { useIsMobile } from "./hooks/useIsMobile.js";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -82,6 +84,9 @@ export default function App() {
 
   const { tweaks, set } = useTweaks();
   const store = useStore();
+  // Below 768px, the Hyperfocus FAB is replaced by a quick-capture note
+  // button (see the FAB render further down) - desktop keeps Hyperfocus.
+  const isMobile = useIsMobile(768);
   const { settings, setSection, reset: resetSettings } = useSettings();
   const notif = useNotifications({ enabled: settings.notifications.enabled });
   const { goals, addGoal } = store;
@@ -945,17 +950,25 @@ export default function App() {
       </button>
 
       {/* Floating Hyperfocus toggle (bottom-right, stacked above the Tweaks
-          wand so it never overlaps it regardless of viewport width). */}
-      <button
-        className={"hf-fab" + (hyperfocus ? " active" : "")}
-        title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
-        aria-pressed={hyperfocus}
-        onClick={toggleHyperfocus}
-        data-mute-click
-      >
-        <Icon.Bolt />
-        <span className="hf-fab-label">Focus</span>
-      </button>
+          wand so it never overlaps it regardless of viewport width).
+          Mobile (<768px) swaps this for a quick-capture note button instead
+          - Hyperfocus is a sit-down desktop mode, not a one-handed phone
+          action, and the same corner is more useful as a capture tool
+          there. Desktop keeps Hyperfocus exactly as it was. */}
+      {isMobile ? (
+        <QuickNoteFab addNote={store.addNote} />
+      ) : (
+        <button
+          className={"hf-fab" + (hyperfocus ? " active" : "")}
+          title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
+          aria-pressed={hyperfocus}
+          onClick={toggleHyperfocus}
+          data-mute-click
+        >
+          <Icon.Bolt />
+          <span className="hf-fab-label">Focus</span>
+        </button>
+      )}
 
       {showTweaks && (
         <TweaksPanel

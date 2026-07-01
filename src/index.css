@@ -1485,6 +1485,22 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .sheet-fields-row > .seg { flex: 1 1 100%; justify-content: center; }
 .sheet-submit { width: 100%; height: 48px; justify-content: center; }
 
+/* Quick note sheet (mobile FAB, see QuickNoteFab.jsx) - taller than the
+   task-add sheet since it's built around one large text area. */
+.quick-note-sheet { max-height: 70vh; }
+.quick-note-body { gap: 10px; }
+.quick-note-textarea {
+  width: 100%; min-height: 160px; resize: none;
+  line-height: 1.5; padding: 12px;
+}
+.quick-note-save { width: 100%; height: 48px; justify-content: center; }
+.quick-note-saved {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 160px;
+  font-size: 16px; font-weight: 600; color: var(--accent-ink, var(--accent));
+  animation: badgeToastIn 0.25s var(--ease);
+}
+
 /* habit dots row */
 .habit-row { display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px; padding: 8px 4px; }
 .habit-row + .habit-row { border-top: 1px solid var(--line); }
