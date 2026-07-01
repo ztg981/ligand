@@ -2,6 +2,107 @@
 
 _Session date: 2026-06-14 (updated 2026-07-01)_
 
+## Phase 10 — More mobile fixes, quick-note FAB, real app icon, iTunes search (2026-07-01, Claude Code)
+
+Clean baseline confirmed before starting (`npm run build` green, no
+uncommitted changes). Six sections, each committed separately.
+
+**Section 1 — Nav bar scrolled away on mobile** (commit `17a5c22`):
+`.topbar` was `position: sticky`, which iOS Safari has a long-documented
+bug with when combined with `backdrop-filter` — the element scrolls away
+instead of sticking (doesn't reproduce in this environment's Chromium,
+but matches a real, widely-reported iOS issue). Switched the mobile
+topbar to `position: fixed` (still respecting
+`env(safe-area-inset-top)` for the Dynamic Island/notch) and bumped
+`.shell`'s top padding to clear it now that it's out of flow. Verified
+the nav stays pinned through a 300px scroll with real overflowing
+content.
+
+**Section 2 — Quick-note FAB replaces Hyperfocus on mobile** (commit
+`9be1c91`): below 768px, the same bottom-right FAB slot now opens a
+quick-capture note sheet instead of toggling Hyperfocus (a sit-down
+desktop mode, not a one-handed phone action) — gated on a new
+`useIsMobile(768)` check in `App.jsx`. New `QuickNoteFab.jsx`: tap the
+pencil FAB, an auto-focused textarea sheet opens ("What's on your
+mind?"), Save creates a note via `store.addNote` and shows a brief
+"Saved" checkmark before auto-closing after 1s; X/backdrop-tap/swipe-down
+all dismiss without saving. Desktop keeps Hyperfocus untouched.
+
+**Section 3 — Habit/task touch fixes** (commit `bde447b`):
+- 3A: `.taskrow` / `.ov-habit-row` get `user-select: none` +
+  `touch-action: manipulation` on mobile so a long-press doesn't also
+  trigger text selection.
+- 3B: the habit check-in button now gates on a 150ms touch delay
+  (touchstart starts a timer, touchmove past 10px cancels it as a
+  scroll-through) before calling `checkInHabit`, with a ref flag
+  suppressing the following synthetic click so it doesn't double-fire.
+  Desktop mouse clicks are unaffected. Verified live: a
+  touchstart+touchmove(50px)+touchend gesture does NOT check the habit
+  in even well past 150ms; a plain click still does instantly.
+- 3C: habit names wrap freely instead of single-line-ellipsis-truncating
+  — verified a 14-word name renders in full across 3 wrapped lines.
+
+**Section 4 — Real app icon** (commit `872b455`): replaced the
+placeholder "white L on solid purple" icon with the actual Ligand brand
+mark used next to the wordmark in the top nav (`.brand-dot`) — a
+rounded-square with the exact blue-to-lavender diagonal gradient
+(`#558cb9` → `#b6aaff`), a soft glossy highlight, and a subtle inset
+ring, all clipped to stay inside the rounded edge (a stroke-based first
+attempt bled onto the background as a muddy gray outline at icon scale;
+fixed with a clipPath around the whole mark). Centered at 60% of the
+canvas on a `#15161a` background, regenerated at every existing icon
+size (192/512 manifest, all 9 apple-touch-icon sizes 57–180) via `sharp`
+rendering an SVG. `index.html`/`vite.config.js` already pointed at these
+exact filenames, so only the PNG contents changed.
+
+**Section 5 — Workout mobile audit** (commit `0fb96a3`): walked the full
+flow at 375px — goal creation → 4-step onboarding → generate → preview
+→ start → in-gym logger → finish summary → progress view. Found two
+real bugs:
+- The in-gym logger's set-completion checkbox was 32×32px, below the
+  44px minimum this flow explicitly needs (it's the primary mobile use
+  case). Widened to 44×44 on mobile, adjusted the set-row grid column
+  to match.
+- Found in passing (not workout-specific): the badge-unlock
+  celebration's confetti burst can fly ~210px from center — on a 375px
+  viewport this created real horizontal page overflow (measured
+  `scrollWidth` 403 vs `clientWidth` 375). Fixed by clipping
+  `.badge-cele-scrim` (the fixed backdrop) instead of the card, so
+  confetti still bursts visually but never creates page-level scroll.
+  Re-verified clean on a second badge unlock later in the same session.
+
+Everything else in the flow (onboarding steps, preview modal, rest
+timer, PR celebration, finish summary, progress charts) already fit
+at 375px with no overflow and 16px inputs (from a prior session's
+global mobile rule).
+
+**Section 6 — iTunes song search** (commit `2471887`): the song title
+field in the Journal's song-log form now debounces (400ms) into the
+iTunes Search API (`itunes.apple.com/search`, free, no key) as you
+type, showing a dropdown (album art, title, artist, album name).
+Tapping a result fills title/artist/album. Uses `onMouseDown` (fires
+before the input's `onBlur` closes the dropdown) and a monotonic search
+token to discard stale responses. Any failure or empty result set just
+leaves the dropdown closed — manual typing and saving are never
+blocked, verified with both a real query (all fields correctly filled
+from live iTunes data) and a nonsense query (manual entry still saved
+normally). Works on both viewports.
+
+_Aside, not a code change: the "July" song referenced in an earlier
+session is by i dont like mirrors, not the placeholder artist used in
+that session's test data._
+
+### Verification
+
+`npm run build` clean at every commit checkpoint. Final production
+build verified via `vite preview` (not dev server): service worker
+active, manifest correct, zero console errors cycling every tab at both
+375px and 1280px, light and dark. Desktop confirmed unaffected by every
+mobile-gated change (sticky nav, Hyperfocus FAB, 32px workout
+checkboxes, unwrapped one-line habit text all still exactly as before).
+
+---
+
 ## Phase 9 — Mobile fixes from screenshots + music feature (2026-07-01, Claude Code)
 
 Two-part brief: priority mobile bug fixes first, then a new music
