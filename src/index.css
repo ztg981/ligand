@@ -2927,18 +2927,28 @@ button.upcoming-row:hover { background: var(--panel-3); }
 /* ---- Phone (≤640px) ---- */
 @media (max-width: 640px) {
   .shell {
-    /* Top: clears the status bar/notch in standalone PWA mode (viewport-fit=cover
-       draws content under it otherwise). Bottom: clears the fixed tab bar, plus
+    /* Top: clears the now-fixed .topbar (see below) plus the status bar/
+       notch in standalone PWA mode. Bottom: clears the fixed tab bar, plus
        the home-indicator safe area on notched phones. */
     padding:
-      calc(10px + env(safe-area-inset-top, 0px))
+      calc(76px + env(safe-area-inset-top, 0px))
       14px
       calc(96px + env(safe-area-inset-bottom, 0px));
   }
+  /* Fixed, not sticky: iOS Safari has long-standing bugs where a sticky
+     element combined with backdrop-filter scrolls away instead of
+     sticking (doesn't reproduce in Chromium, but is a real, reported iOS
+     issue) - fixed positioning sidesteps it entirely. Taken out of layout
+     flow, so .shell's top padding above is sized to clear it. */
   .topbar {
-    margin: 6px 8px 14px;
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 8px;
+    right: 8px;
+    margin: 6px 0 0;
     gap: 8px;
     padding: 7px 8px;
+    z-index: 70;
   }
   .brand { padding: 0 4px; }
   .brand-name { display: none; } /* dot alone keeps identity, saves width */
