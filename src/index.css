@@ -4203,3 +4203,112 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .wl-summary-ex-sets { font-size: 11.5px; color: var(--ink-4); font-family: var(--font-mono); }
 .wl-summary-done { width: 100%; height: 44px; justify-content: center; margin-top: 6px; }
+.wl-tmpl-save { display: flex; gap: 8px; width: 100%; }
+.wl-tmpl-save .input { flex: 1; height: 40px; }
+.wl-tmpl-save .btn { height: 40px; }
+.wl-tmpl-saved {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--accent-ink, var(--accent)); font-weight: 600;
+}
+
+/* Rest timer — a prominent bar pinned above the "Add exercise" area. */
+.wl-rest {
+  flex: none; position: relative;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.wl-rest-bar {
+  position: absolute; left: 0; top: 0; height: 3px;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent-glow);
+  transition: width 1s linear;
+}
+.wl-rest-inner {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 16px; max-width: 640px; margin: 0 auto;
+}
+.wl-rest-info { display: flex; flex-direction: column; min-width: 0; }
+.wl-rest-lbl {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent-ink, var(--accent));
+}
+.wl-rest-ex {
+  font-size: 13px; color: var(--ink-2); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wl-rest-count {
+  font-size: 30px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.01em; margin-left: auto;
+}
+.wl-rest-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.wl-rest-adj {
+  min-width: 44px; height: 38px; padding: 0 8px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--panel-2); color: var(--ink-2);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.wl-rest-adj:active { background: var(--panel-3); }
+.wl-rest-skip {
+  height: 38px; padding: 0 14px;
+  border: none; border-radius: 9px;
+  background: var(--accent); color: white;
+  font-size: 13px; font-weight: 650; cursor: pointer;
+}
+
+/* PR celebration overlay (inside the logger). */
+.wl-pr-scrim {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(10, 8, 6, 0.72);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s var(--ease);
+}
+.wl-pr-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px;
+  padding: 30px 28px; max-width: 340px; width: 100%;
+  border-radius: 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-pop), 0 30px 80px -20px rgba(0,0,0,0.6);
+  animation: popIn 0.28s var(--ease);
+}
+.wl-pr-ic {
+  width: 62px; height: 62px; border-radius: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(145deg, oklch(0.85 0.14 85), oklch(0.72 0.16 65));
+  color: white; box-shadow: 0 8px 24px -6px oklch(0.72 0.16 65 / 0.6);
+  margin-bottom: 4px;
+}
+.wl-pr-ic svg { width: 30px; height: 30px; }
+.wl-pr-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: oklch(0.62 0.16 65);
+}
+.wl-pr-weight { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); line-height: 1; }
+.wl-pr-unit { font-size: 20px; font-weight: 600; color: var(--ink-3); margin-left: 3px; }
+.wl-pr-ex { font-size: 14px; color: var(--ink-2); }
+.wl-pr-btn { width: 100%; height: 44px; justify-content: center; margin-top: 10px; }
+
+/* Fitness "how to start" chooser */
+.fit-start-modal { width: 420px; max-width: 100%; }
+.fit-start-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--panel-2); cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.fit-start-opt:hover { border-color: var(--accent); background: var(--accent-soft); }
+.fit-start-opt-ic {
+  flex: none; width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--panel); color: var(--accent-ink, var(--accent)); border: 1px solid var(--line);
+}
+.fit-start-opt-ic svg { width: 16px; height: 16px; }
+.fit-start-opt-text { display: flex; flex-direction: column; min-width: 0; }
+.fit-start-opt-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.fit-start-opt-desc { font-size: 12px; color: var(--ink-3); }
+.fit-start-sep {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-4); margin: 8px 2px 2px;
+}

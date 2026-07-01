@@ -5,9 +5,57 @@ import {
   workoutsThisWeek,
   weeklyWorkoutStreak,
   workoutVolume,
+  createWorkoutExercise,
+  createSet,
+  createWorkoutTemplate,
   todayKey,
 } from "../lib/model.js";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
+
+// Turn a saved template's exercise plans into fresh, empty logger exercises
+// (targetSets blank sets seeded with the planned reps/weight to beat).
+function planToLoggerExercises(template) {
+  return (template.exercises || []).map((p) =>
+    createWorkoutExercise({
+      exerciseId: p.exerciseId,
+      name: p.name,
+      muscleGroup: p.muscleGroup,
+      type: p.type,
+      sets: Array.from({ length: Math.max(1, p.targetSets || 3) }, () =>
+        createSet(
+          p.type === "cardio"
+            ? { durationSec: (p.targetMinutes || 0) * 60 }
+            : { reps: p.targetReps ?? null, weight: p.targetWeight ?? null }
+        )
+      ),
+    })
+  );
+}
+
+// Build a reusable template plan from a just-finished session's exercises.
+function workoutToTemplatePlan(exercises) {
+  return (exercises || []).map((ex) => {
+    const strengthSets = ex.sets.filter((s) => s.weight != null);
+    const maxWeight = strengthSets.reduce((m, s) => Math.max(m, s.weight || 0), 0);
+    // Most common rep count as the target.
+    const repCounts = {};
+    ex.sets.forEach((s) => {
+      if (s.reps != null) repCounts[s.reps] = (repCounts[s.reps] || 0) + 1;
+    });
+    const targetReps = Object.keys(repCounts).sort(
+      (a, b) => repCounts[b] - repCounts[a]
+    )[0];
+    return {
+      exerciseId: ex.exerciseId,
+      name: ex.name,
+      muscleGroup: ex.muscleGroup,
+      type: ex.type,
+      targetSets: ex.sets.length,
+      targetReps: targetReps != null ? Number(targetReps) : null,
+      targetWeight: maxWeight || null,
+    };
+  });
+}
 
 /* FitnessGoalTab — the preset layout for a Fitness goal, distinct from the
    regular SMART goal tab. Three sections per the brief:
@@ -40,10 +88,15 @@ export default function FitnessGoalTab({
   goal,
   profile,
   workouts = [],
+  templates = [],
   addWorkout,
+  addTemplate,
   onArchiveGoal,
 }) {
-  const [logging, setLogging] = useState(false);
+  // logging: null (overview) | { exercises } (active session, exercises may be
+  // empty for a free log or seeded from a template/generated plan)
+  const [logging, setLogging] = useState(null);
+  const [choosing, setChoosing] = useState(false); // "how to start" chooser
   const unit = profile?.weightUnit || "lbs";
 
   // Only this goal's sessions (fall back to all if none are tagged — a lone
@@ -83,13 +136,41 @@ export default function FitnessGoalTab({
     addWorkout({ ...workout, goalId: goal.id });
   };
 
+  const handleSaveTemplate = (name, exercises) => {
+    addTemplate?.(
+      createWorkoutTemplate({
+        name,
+        goalId: goal.id,
+        exercises: workoutToTemplatePlan(exercises),
+      })
+    );
+  };
+
+  // Start a session — free log, or seeded from a template.
+  const startFree = () => {
+    setChoosing(false);
+    setLogging({ exercises: null });
+  };
+  const startFromTemplate = (tmpl) => {
+    setChoosing(false);
+    setLogging({ exercises: planToLoggerExercises(tmpl) });
+  };
+  const onLogClick = () => {
+    // If there are saved routines, offer a quick chooser; otherwise log freely.
+    if (templates.length > 0) setChoosing(true);
+    else startFree();
+  };
+
   if (logging) {
     return (
       <WorkoutLogger
         profile={profile}
         goalId={goal.id}
+        priorWorkouts={myWorkouts}
+        initialExercises={logging.exercises}
         onFinish={handleFinish}
-        onCancel={() => setLogging(false)}
+        onSaveTemplate={handleSaveTemplate}
+        onCancel={() => setLogging(null)}
       />
     );
   }
@@ -125,7 +206,7 @@ export default function FitnessGoalTab({
           <p className="fit-today-sub">
             Ready when you are. Log a session freely, or build one exercise at a time.
           </p>
-          <button className="btn primary fit-log-btn" onClick={() => setLogging(true)}>
+          <button className="btn primary fit-log-btn" onClick={onLogClick}>
             <Icon.Plus /> Log a workout
           </button>
         </div>
@@ -215,6 +296,53 @@ export default function FitnessGoalTab({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* "How do you want to start?" chooser (only when templates exist). */}
+      {choosing && (
+        <div className="scrim" role="presentation" onMouseDown={() => setChoosing(false)}>
+          <div
+            className="modal fit-start-modal"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: 18 }}>
+              <div className="row between" style={{ alignItems: "flex-start", gap: 12 }}>
+                <div>
+                  <div className="eyebrow">Start a workout</div>
+                  <h2 className="page-title" style={{ fontSize: 20 }}>How do you want to start?</h2>
+                </div>
+                <button className="iconbtn" title="Close" onClick={() => setChoosing(false)}>
+                  <Icon.Close />
+                </button>
+              </div>
+
+              <div className="stack" style={{ gap: 8, marginTop: 14 }}>
+                <button className="fit-start-opt" onClick={startFree}>
+                  <span className="fit-start-opt-ic"><Icon.Plus /></span>
+                  <span className="fit-start-opt-text">
+                    <span className="fit-start-opt-name">Log freely</span>
+                    <span className="fit-start-opt-desc">Add exercises as you go.</span>
+                  </span>
+                </button>
+
+                <div className="fit-start-sep">From a template</div>
+                {templates.map((t) => (
+                  <button key={t.id} className="fit-start-opt" onClick={() => startFromTemplate(t)}>
+                    <span className="fit-start-opt-ic"><Icon.Pin2 /></span>
+                    <span className="fit-start-opt-text">
+                      <span className="fit-start-opt-name">{t.name}</span>
+                      <span className="fit-start-opt-desc">
+                        {(t.exercises || []).length} exercises
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>

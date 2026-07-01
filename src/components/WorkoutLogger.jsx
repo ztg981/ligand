@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
+import { ding } from "../lib/uiSounds.js";
 import {
   createWorkout,
   createWorkoutExercise,
   createSet,
   workoutVolume,
   completedSetCount,
+  exercisePR,
 } from "../lib/model.js";
 import { searchExercises, findExercise } from "../lib/exercises.js";
 
@@ -29,11 +31,19 @@ export default function WorkoutLogger({
   goalId = null,
   initialExercises = null,
   initialType = "strength",
+  priorWorkouts = [],
   onFinish,
   onCancel,
-  onSetCompleted, // (exercise, set) — Stage C hook for the rest timer
+  onSaveTemplate, // (name, exercises) => void
 }) {
   const unit = profile?.weightUnit || "lbs";
+  const restStrength = profile?.restStrengthSec || 90;
+  const restCardio = profile?.restCardioSec || 30;
+
+  // All-time best weight for an exercise coming INTO this session — the
+  // baseline a completed set must beat to count as a personal record.
+  const priorBestFor = (exerciseId) => exercisePR(priorWorkouts, exerciseId);
+  const celebratedRef = useRef(new Set()); // exerciseIds already celebrated this session
 
   // Seed from a template/generated plan if provided, else start empty.
   const [exercises, setExercises] = useState(() =>
@@ -44,6 +54,8 @@ export default function WorkoutLogger({
   const [showPicker, setShowPicker] = useState(!initialExercises);
   const [query, setQuery] = useState("");
   const [summary, setSummary] = useState(null); // set on finish
+  const [tmplName, setTmplName] = useState("");
+  const [tmplSaved, setTmplSaved] = useState(false);
 
   const startRef = useRef(Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -54,6 +66,45 @@ export default function WorkoutLogger({
     }, 1000);
     return () => clearInterval(t);
   }, [summary]);
+
+  // Rest timer: { remaining, total, name } while resting, else null.
+  const [rest, setRest] = useState(null);
+  useEffect(() => {
+    if (!rest) return undefined;
+    if (rest.remaining <= 0) {
+      // Gentle buzz on phones when the rest is up; best-effort.
+      try {
+        navigator.vibrate?.([180, 90, 180]);
+      } catch {
+        /* not supported — fine */
+      }
+      try {
+        ding();
+      } catch {
+        /* sound best-effort */
+      }
+      setRest(null);
+      return undefined;
+    }
+    const t = setTimeout(
+      () => setRest((r) => (r ? { ...r, remaining: r.remaining - 1 } : null)),
+      1000
+    );
+    return () => clearTimeout(t);
+  }, [rest]);
+
+  const startRest = (exercise) => {
+    const dur = exercise.type === "cardio" ? restCardio : restStrength;
+    setRest({ remaining: dur, total: dur, name: exercise.name });
+  };
+  const adjustRest = (delta) =>
+    setRest((r) =>
+      r ? { ...r, remaining: Math.max(0, r.remaining + delta), total: r.total + delta } : null
+    );
+  const skipRest = () => setRest(null);
+
+  // PR celebration: { name, weight } when a set beats the all-time best, else null.
+  const [prMoment, setPrMoment] = useState(null);
 
   const results = useMemo(() => searchExercises(query, 40), [query]);
 
@@ -111,23 +162,47 @@ export default function WorkoutLogger({
     );
 
   const toggleSetDone = (exId, setId) => {
-    let completed = null;
+    // Decide effects from the CURRENT snapshot (not inside the state updater —
+    // functional updaters run during render, so a side effect there wouldn't
+    // have happened yet by the time we read it).
+    const exercise = exercises.find((e) => e.id === exId);
+    const set = exercise?.sets.find((s) => s.id === setId);
+    if (!exercise || !set) return;
+    const willBeDone = !set.done;
+
     setExercises((list) =>
-      list.map((e) => {
-        if (e.id !== exId) return e;
-        return {
-          ...e,
-          sets: e.sets.map((s) => {
-            if (s.id !== setId) return s;
-            const next = { ...s, done: !s.done };
-            if (next.done) completed = { exercise: e, set: next };
-            return next;
-          }),
-        };
-      })
+      list.map((e) =>
+        e.id !== exId
+          ? e
+          : {
+              ...e,
+              sets: e.sets.map((s) =>
+                s.id === setId ? { ...s, done: willBeDone } : s
+              ),
+            }
+      )
     );
-    // Fire the rest-timer hook when a set is freshly completed (Stage C).
-    if (completed) onSetCompleted?.(completed.exercise, completed.set);
+
+    if (!willBeDone) return; // un-completing a set: no timer, no PR
+
+    // Auto-start the rest countdown (the integrated in-gym clock).
+    startRest(exercise);
+
+    // Personal record: a strength set that beats the all-time best weight for
+    // this exercise, celebrated at most once per exercise per session.
+    if (
+      exercise.type !== "cardio" &&
+      exercise.exerciseId &&
+      set.weight != null &&
+      set.weight > 0 &&
+      !celebratedRef.current.has(exercise.exerciseId)
+    ) {
+      const best = priorBestFor(exercise.exerciseId);
+      if (!best || set.weight > best.weight) {
+        celebratedRef.current.add(exercise.exerciseId);
+        setPrMoment({ name: exercise.name, weight: set.weight });
+      }
+    }
   };
 
   const anyCompleted = exercises.some((e) => e.sets.some((s) => s.done));
@@ -186,6 +261,35 @@ export default function WorkoutLogger({
               </div>
             ))}
           </div>
+
+          {/* Save this session as a reusable template. */}
+          {onSaveTemplate && !tmplSaved && (
+            <div className="wl-tmpl-save">
+              <input
+                className="input"
+                placeholder="Save as template (name it)…"
+                value={tmplName}
+                onChange={(e) => setTmplName(e.target.value)}
+              />
+              <button
+                className="btn"
+                disabled={!tmplName.trim()}
+                style={{ opacity: tmplName.trim() ? 1 : 0.5, flex: "none" }}
+                onClick={() => {
+                  onSaveTemplate(tmplName.trim(), summary.workout.exercises);
+                  setTmplSaved(true);
+                }}
+              >
+                <Icon.Pin2 width={13} height={13} /> Save
+              </button>
+            </div>
+          )}
+          {tmplSaved && (
+            <div className="wl-tmpl-saved">
+              <Icon.Check width={13} height={13} /> Saved as a template
+            </div>
+          )}
+
           <button className="btn primary wl-summary-done" onClick={onCancel}>
             Done
           </button>
@@ -327,6 +431,59 @@ export default function WorkoutLogger({
           <Icon.Plus width={14} height={14} /> Add exercise
         </button>
       </div>
+
+      {/* Rest timer — auto-starts after each completed set. The integrated
+          in-gym clock: big countdown, the exercise you just did, quick
+          adjust, and skip. */}
+      {rest && (
+        <div className="wl-rest" role="status" aria-live="polite">
+          <div
+            className="wl-rest-bar"
+            style={{ width: `${(rest.remaining / Math.max(1, rest.total)) * 100}%` }}
+            aria-hidden="true"
+          />
+          <div className="wl-rest-inner">
+            <div className="wl-rest-info">
+              <span className="wl-rest-lbl">Rest</span>
+              <span className="wl-rest-ex">{rest.name}</span>
+            </div>
+            <div className="wl-rest-count mono">{fmtElapsed(rest.remaining)}</div>
+            <div className="wl-rest-actions">
+              <button className="wl-rest-adj" onClick={() => adjustRest(-15)} title="Subtract 15 seconds">
+                −15
+              </button>
+              <button className="wl-rest-adj" onClick={() => adjustRest(15)} title="Add 15 seconds">
+                +15
+              </button>
+              <button className="wl-rest-skip" onClick={skipRest}>
+                Skip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PR celebration */}
+      {prMoment && (
+        <div
+          className="wl-pr-scrim"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPrMoment(null)}
+        >
+          <div className="wl-pr-card" onClick={(e) => e.stopPropagation()}>
+            <div className="wl-pr-ic"><Icon.Trophy /></div>
+            <div className="wl-pr-eyebrow">New personal record</div>
+            <div className="wl-pr-weight">
+              {prMoment.weight}<span className="wl-pr-unit">{unit}</span>
+            </div>
+            <div className="wl-pr-ex">{prMoment.name}</div>
+            <button className="btn primary wl-pr-btn" onClick={() => setPrMoment(null)} autoFocus>
+              Let's go
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Exercise picker */}
       {showPicker && (
