@@ -4013,7 +4013,9 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .fit-today-card { display: flex; flex-direction: column; }
 .fit-today-sub { font-size: 13px; color: var(--ink-3); line-height: 1.5; margin: 4px 0 14px; flex: 1; }
-.fit-log-btn { align-self: flex-start; height: 42px; padding: 0 18px; font-size: 14px; }
+.fit-today-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fit-log-btn { height: 42px; padding: 0 18px; font-size: 14px; }
+.fit-log-btn-alt { height: 42px; padding: 0 16px; font-size: 14px; }
 .fit-stat-card { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
 .fit-stat-num {
   font-size: 32px; font-weight: 600; letter-spacing: -0.02em;
@@ -4311,4 +4313,56 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .fit-start-sep {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--ink-4); margin: 8px 2px 2px;
+}
+
+/* Generated-workout preview / edit modal */
+.wp-modal {
+  width: 480px; max-width: 100%;
+  max-height: min(84vh, 720px);
+  display: flex; flex-direction: column;
+}
+.wp-head {
+  flex: none; display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 18px 18px 12px;
+}
+.wp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 18px; display: flex; flex-direction: column; gap: 10px; }
+.wp-empty { padding: 24px; text-align: center; color: var(--ink-3); font-size: 13px; }
+.wp-ex {
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--panel-2); padding: 12px 14px;
+}
+.wp-ex-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.wp-ex-name { font-size: 14.5px; font-weight: 650; color: var(--ink); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.wp-ex-group {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+.wp-ex-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.wp-ex-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 30px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel);
+  color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.wp-ex-btn:hover { border-color: var(--line-strong); color: var(--ink); }
+.wp-ex-btn.danger { padding: 0 8px; }
+.wp-ex-btn.danger:hover { color: oklch(0.55 0.16 20); }
+.wp-ex-fields { display: flex; gap: 8px; }
+.wp-field { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wp-field span {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+.wp-field .input { height: 40px; text-align: center; }
+.wp-foot { flex: none; padding: 14px 18px; border-top: 1px solid var(--line); }
+.wp-foot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.wp-foot-actions .btn { height: 42px; }
+.wp-start { flex: 1; justify-content: center; min-width: 130px; }
+.wp-tmpl-row { display: flex; gap: 8px; }
+.wp-tmpl-row .input { flex: 1; height: 42px; }
+.wp-tmpl-row .btn { height: 42px; }
+
+@media (max-width: 480px) {
+  .wp-foot-actions { flex-direction: column; }
+  .wp-foot-actions .btn { width: 100%; justify-content: center; }
 }

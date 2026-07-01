@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "./Icons.jsx";
 import WorkoutLogger from "./WorkoutLogger.jsx";
+import WorkoutPreview from "./WorkoutPreview.jsx";
 import {
   workoutsThisWeek,
   weeklyWorkoutStreak,
@@ -10,6 +11,7 @@ import {
   createWorkoutTemplate,
   todayKey,
 } from "../lib/model.js";
+import { generateWorkout } from "../lib/workoutGen.js";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
 
 // Turn a saved template's exercise plans into fresh, empty logger exercises
@@ -97,6 +99,7 @@ export default function FitnessGoalTab({
   // empty for a free log or seeded from a template/generated plan)
   const [logging, setLogging] = useState(null);
   const [choosing, setChoosing] = useState(false); // "how to start" chooser
+  const [preview, setPreview] = useState(null); // generated plan under review
   const unit = profile?.weightUnit || "lbs";
 
   // Only this goal's sessions (fall back to all if none are tagged — a lone
@@ -161,6 +164,17 @@ export default function FitnessGoalTab({
     else startFree();
   };
 
+  // Generation: build a plan, review it, then start it in the logger.
+  const buildPlan = () => generateWorkout({ profile, workouts: myWorkouts });
+  const onGenerate = () => {
+    setChoosing(false);
+    setPreview(buildPlan());
+  };
+  const startFromPlan = (plan) => {
+    setPreview(null);
+    setLogging({ exercises: planToLoggerExercises({ exercises: plan }) });
+  };
+
   if (logging) {
     return (
       <WorkoutLogger
@@ -174,6 +188,17 @@ export default function FitnessGoalTab({
       />
     );
   }
+
+  const previewEl = preview && (
+    <WorkoutPreview
+      profile={profile}
+      initialPlan={preview}
+      onRegenerate={buildPlan}
+      onStart={startFromPlan}
+      onSaveTemplate={handleSaveTemplate}
+      onClose={() => setPreview(null)}
+    />
+  );
 
   return (
     <>
@@ -204,11 +229,16 @@ export default function FitnessGoalTab({
             <div className="card-title"><Icon.Bolt /> Today's workout</div>
           </div>
           <p className="fit-today-sub">
-            Ready when you are. Log a session freely, or build one exercise at a time.
+            Let us build today's session from your history, or log one yourself.
           </p>
-          <button className="btn primary fit-log-btn" onClick={onLogClick}>
-            <Icon.Plus /> Log a workout
-          </button>
+          <div className="fit-today-actions">
+            <button className="btn primary fit-log-btn" onClick={onGenerate}>
+              <Icon.Bolt /> Generate workout
+            </button>
+            <button className="btn fit-log-btn-alt" onClick={onLogClick}>
+              <Icon.Plus /> Log freely
+            </button>
+          </div>
         </div>
 
         <div className="card fit-stat-card">
@@ -320,6 +350,13 @@ export default function FitnessGoalTab({
               </div>
 
               <div className="stack" style={{ gap: 8, marginTop: 14 }}>
+                <button className="fit-start-opt" onClick={onGenerate}>
+                  <span className="fit-start-opt-ic"><Icon.Bolt /></span>
+                  <span className="fit-start-opt-text">
+                    <span className="fit-start-opt-name">Generate a workout</span>
+                    <span className="fit-start-opt-desc">Built from your history and profile.</span>
+                  </span>
+                </button>
                 <button className="fit-start-opt" onClick={startFree}>
                   <span className="fit-start-opt-ic"><Icon.Plus /></span>
                   <span className="fit-start-opt-text">
@@ -328,7 +365,9 @@ export default function FitnessGoalTab({
                   </span>
                 </button>
 
-                <div className="fit-start-sep">From a template</div>
+                {templates.length > 0 && (
+                  <div className="fit-start-sep">From a template</div>
+                )}
                 {templates.map((t) => (
                   <button key={t.id} className="fit-start-opt" onClick={() => startFromTemplate(t)}>
                     <span className="fit-start-opt-ic"><Icon.Pin2 /></span>
@@ -345,6 +384,8 @@ export default function FitnessGoalTab({
           </div>
         </div>
       )}
+
+      {previewEl}
     </>
   );
 }
