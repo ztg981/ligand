@@ -4072,6 +4072,12 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   position: fixed; inset: 0; z-index: 200;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
+  /* Confetti pieces fly up to ~210px from center (see .confetti-piece) -
+     on a narrow phone that's well past the card's own edges. overflow
+     hidden here (not on the card - it needs overflow:visible for the
+     burst to be visible at all) clips them to the viewport instead of
+     creating real horizontal page-scroll. */
+  overflow: hidden;
   background: rgba(10, 8, 6, 0.62);
   backdrop-filter: blur(6px) saturate(120%);
   -webkit-backdrop-filter: blur(6px) saturate(120%);
@@ -4427,6 +4433,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 /* Grid columns collapse to one input for cardio (no reps column). */
 .wl-ex[data-cardio="true"] .wl-set-labels,
 .wl-ex[data-cardio="true"] .wl-set { grid-template-columns: 28px 1fr 40px 28px; }
+
+/* Mobile: this is the primary in-gym use case, so the set-completion
+   checkbox needs a real 44px+ tap target (was 32px) - widen its grid
+   column to match so it doesn't overlap the weight input next to it. */
+@media (max-width: 640px) {
+  .wl-set-labels, .wl-set { grid-template-columns: 44px 1fr 1fr 40px 28px; }
+  .wl-ex[data-cardio="true"] .wl-set-labels,
+  .wl-ex[data-cardio="true"] .wl-set { grid-template-columns: 44px 1fr 40px 28px; }
+  .wl-set-check { width: 44px; height: 44px; border-radius: 10px; }
+  .wl-set-del { width: 36px; height: 36px; }
+}
 
 .wl-picker {
   position: absolute; inset: 0; z-index: 2;
