@@ -1416,9 +1416,73 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .taskrow.done .task-name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink-4); }
 .task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
 .taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
+.taskrow-icon-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--ink-3); padding: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.taskrow-icon-btn:hover { color: var(--accent-ink, var(--accent)); background: var(--panel-3); }
+/* Brief highlight while a long-press is building up, so mobile users get
+   feedback that something is happening before the 500ms edit trigger. */
+.taskrow.pressing { background: var(--panel-3); border-color: var(--line-strong); }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
 .tasks-filter-bar { flex-wrap: wrap; }
 .tasks-filter-chips { flex-wrap: wrap; }
+
+/* Mobile compact "+ Add task" trigger - hidden on desktop/tablet, where the
+   inline bar (.tasks-addbar-desktop) is used instead. See the mobile
+   override above (max-width: 640px) that flips which one shows. */
+.tasks-add-mobile-btn {
+  display: none;
+  width: 100%;
+  align-items: center; justify-content: center; gap: 8px;
+  height: 46px; margin-bottom: 12px;
+  border-radius: var(--r-lg);
+  border: 1px dashed var(--line-strong);
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 13.5px; font-weight: 600;
+  cursor: pointer;
+}
+.tasks-add-mobile-btn svg { width: 14px; height: 14px; }
+
+/* ---- Bottom sheet (mobile add-task form, reused pattern) ---- */
+.sheet-scrim {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: sheetScrimIn 0.2s var(--ease);
+}
+@keyframes sheetScrimIn { from { opacity: 0; } to { opacity: 1; } }
+.bottom-sheet {
+  width: 100%; max-width: 640px;
+  max-height: 55vh;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 40px -10px rgba(0, 0, 0, 0.4);
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: sheetSlideUp 0.22s var(--ease);
+}
+@keyframes sheetSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+[data-reduce-motion="true"] .sheet-scrim,
+[data-reduce-motion="true"] .bottom-sheet { animation: none; }
+.sheet-drag-area { display: flex; justify-content: center; padding: 10px 0 6px; cursor: grab; touch-action: none; }
+.sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--line-strong); }
+.sheet-body {
+  padding: 4px 18px 18px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sheet-title { font-size: 15px; font-weight: 650; color: var(--ink); }
+.sheet-fields-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sheet-fields-row > select.input { flex: 1 1 auto; width: auto; }
+.sheet-fields-row > .seg { flex: 1 1 100%; justify-content: center; }
+.sheet-submit { width: 100%; height: 48px; justify-content: center; }
 
 /* habit dots row */
 .habit-row { display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px; padding: 8px 4px; }
@@ -2912,13 +2976,11 @@ button.upcoming-row:hover { background: var(--panel-3); }
   /* DYK next button — secondary in-card nav, bump to 36px on touch */
   .dyk-next { width: 36px; height: 36px; }
 
-  /* Tasks — add bar wraps: text input on its own line, then label/term/add.
-     The children carry inline flex/width styles, so these need !important. */
-  .tasks-addbar { flex-wrap: wrap; }
-  .tasks-addbar > input.input { flex: 1 1 100% !important; }
-  .tasks-addbar > select.input { flex: 1 1 auto !important; width: auto !important; }
-  .tasks-addbar > .seg { flex: 1 1 auto !important; justify-content: center; }
-  .tasks-addbar > .btn.primary { flex: 1 1 auto !important; justify-content: center; }
+  /* Tasks — the 3-row inline add form is replaced by a compact trigger +
+     bottom sheet on mobile (see .tasks-add-mobile-btn / .bottom-sheet
+     below), freeing the whole screen for the task list itself. */
+  .tasks-addbar-desktop { display: none; }
+  .tasks-add-mobile-btn { display: flex; }
 
   /* Pomodoro — taller window so the 210px timer ring has breathing room
      and the scene photo frames better in a narrow viewport. */
@@ -2947,8 +3009,14 @@ button.upcoming-row:hover { background: var(--panel-3); }
   .taskrow > .task-name,
   .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; font-size: 14.5px; }
   .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
-  .taskrow > .taskrow-actions { grid-area: actions; }
-  .taskrow-actions button { padding: 8px !important; }
+  .taskrow > .taskrow-actions { grid-area: actions; gap: 0; }
+  /* Edit/Delete are the primary way to edit on mobile now (a single tap on
+     the task name does nothing, and a long-press isn't discoverable at a
+     glance) - so they need a real 44px tap target, not a small icon. */
+  .taskrow-icon-btn {
+    min-width: 44px; min-height: 44px;
+    border-radius: 10px;
+  }
 
   /* Filter chips scroll horizontally instead of wrapping to a second/third
      line, which ate a lot of vertical space once a few goals existed. The
@@ -3644,8 +3712,25 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-focus-card { margin-bottom: 18px; }
 
 .ov-caught-up {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
   padding: 6px 2px;
+}
+/* "Show all N habits" expandable (mobile only - see .ov-focus-grid section
+   for the non-caught-up variant). Plain text link, not a heavy button, so
+   it doesn't compete with the actual check-in rows. */
+.ov-habits-toggle {
+  align-self: flex-start;
+  background: none; border: none; cursor: pointer;
+  color: var(--accent-ink, var(--accent)); font-size: 12px; font-weight: 600;
+  padding: 6px 2px; text-align: left;
+}
+.ov-habits-toggle-caughtup { flex: 1 0 100%; margin-top: 2px; }
+/* Already-checked habit row, shown only when "Show all" is expanded. */
+.ov-habit-row.checked { opacity: 0.6; }
+.ov-habit-row.checked .ov-habit-name { text-decoration: line-through; text-decoration-color: var(--ink-4); }
+.ov-habit-box.checked {
+  background: var(--accent); border-color: transparent; color: white;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .ov-caught-ic {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
@@ -3825,14 +3910,23 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
   .ov-goals-grid { grid-template-columns: 1fr; }
   .ov-habit-edit { opacity: 0.7; width: 38px; }
-  /* The single mobile column has plenty of room, so wrap a long habit/task
-     name instead of ellipsis-truncating it with no way to read the rest. */
-  .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
+  /* Tasks still wrap (they're usually one-off, worth reading in full);
+     habit name/goal go one-line + compact instead (see below) since a
+     habit list can run to a dozen-plus rows and needs to stay scannable. */
   .ov-task-text { white-space: normal; overflow: visible; text-overflow: clip; }
   .ov-task-row { align-items: flex-start; }
-  /* Slightly bigger checkbox + row padding for a more comfortable check-in tap. */
-  .ov-habit-check { padding: 11px 10px; gap: 11px; }
-  .ov-habit-box { width: 22px; height: 22px; }
+  /* Compact habit rows (~44px instead of 60px+): tighter padding, and name
+     + goal on one line instead of stacked, so a long habit list doesn't
+     dominate the screen. */
+  .ov-habit-check { padding: 10px 10px; gap: 10px; }
+  .ov-habit-box { width: 20px; height: 20px; }
+  .ov-habit-text { flex-direction: row; align-items: baseline; gap: 5px; min-width: 0; }
+  .ov-habit-name {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 0 1 auto; min-width: 0;
+  }
+  .ov-habit-goal { flex: none; white-space: nowrap; }
+  .ov-habit-goal::before { content: "· "; }
   /* Extra right clearance, same reasoning as .taskrow above: with enough
      habits the list runs the full page height, and rows land in the same
      bottom-right corner the fixed Focus/Tweaks FABs float in. */

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey, isCheckedOn, isGoalOverdue } from "../lib/model.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 /* DailyFocus - "what needs attention today" across every goal: habits not
    yet checked in (with inline quick check-in), Today/Urgent tasks not done,
@@ -15,11 +16,17 @@ export default function DailyFocus({
   onOpenGoal,
 }) {
   const today = todayKey();
+  const isMobile = useIsMobile(640);
 
   // Inline habit-name editing for the quick check-in list.
   const [editingHabit, setEditingHabit] = useState(null); // { goalId, habitId }
   const [editText, setEditText] = useState("");
   const cancelEditRef = useRef(false);
+
+  // Mobile: the habit list defaults to unchecked-only (see openHabits below);
+  // this reveals the already-checked ones too, so today's check-ins aren't
+  // just gone with no way to glance back at them.
+  const [showAllHabits, setShowAllHabits] = useState(false);
 
   const startEditHabit = (goalId, habit) => {
     setEditingHabit({ goalId, habitId: habit.id });
@@ -42,13 +49,16 @@ export default function DailyFocus({
 
   // Habits across all goals not yet checked in today (each gets a quick check).
   const openHabits = [];
+  const allHabits = [];
   goals.forEach((g) => {
     (g.habits || []).forEach((h) => {
-      if (!isCheckedOn(h, today)) {
-        openHabits.push({ goalId: g.id, goalName: g.name, habit: h });
-      }
+      const checked = isCheckedOn(h, today);
+      allHabits.push({ goalId: g.id, goalName: g.name, habit: h, checked });
+      if (!checked) openHabits.push({ goalId: g.id, goalName: g.name, habit: h, checked: false });
     });
   });
+  const hasCheckedHabits = allHabits.length > openHabits.length;
+  const habitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
 
   // Tasks labeled Today/Urgent that aren't done yet.
   const focusTasks = tasks.filter(
@@ -77,18 +87,44 @@ export default function DailyFocus({
             <div className="ov-caught-title">You're all caught up.</div>
             <div className="ov-caught-sub">Great work today.</div>
           </div>
+          {isMobile && hasCheckedHabits && (
+            <button
+              type="button"
+              className="ov-habits-toggle ov-habits-toggle-caughtup"
+              onClick={() => setShowAllHabits((s) => !s)}
+            >
+              {showAllHabits ? "Hide habits" : `Show all ${allHabits.length} habits`}
+            </button>
+          )}
+          {isMobile && showAllHabits && hasCheckedHabits && (
+            <div className="stack" style={{ gap: 6, width: "100%" }}>
+              {allHabits.map(({ goalId, goalName, habit, checked }) => (
+                <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
+                  <span className="ov-habit-check" style={{ cursor: "default" }}>
+                    <span className="ov-habit-box checked" aria-hidden="true">
+                      <Icon.Check width={11} height={11} />
+                    </span>
+                    <span className="ov-habit-text">
+                      <span className="ov-habit-name">{habit.name}</span>
+                      <span className="ov-habit-goal">{goalName}</span>
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="ov-focus-grid">
           {/* Quick habit check-in */}
-          {openHabits.length > 0 && (
+          {(openHabits.length > 0 || (isMobile && showAllHabits)) && (
             <div className="ov-focus-col">
               <div className="ov-focus-label">
                 Habits to check in
                 <span className="ov-count">{openHabits.length}</span>
               </div>
               <div className="stack" style={{ gap: 6 }}>
-                {openHabits.map(({ goalId, goalName, habit }) => {
+                {habitsToShow.map(({ goalId, goalName, habit, checked }) => {
                   const isEditing =
                     editingHabit &&
                     editingHabit.goalId === goalId &&
@@ -117,6 +153,21 @@ export default function DailyFocus({
                           }}
                           onBlur={commitEditHabit}
                         />
+                      </div>
+                    );
+                  }
+                  if (checked) {
+                    return (
+                      <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
+                        <span className="ov-habit-check" style={{ cursor: "default" }}>
+                          <span className="ov-habit-box checked" aria-hidden="true">
+                            <Icon.Check width={11} height={11} />
+                          </span>
+                          <span className="ov-habit-text">
+                            <span className="ov-habit-name">{habit.name}</span>
+                            <span className="ov-habit-goal">{goalName}</span>
+                          </span>
+                        </span>
                       </div>
                     );
                   }
@@ -150,6 +201,15 @@ export default function DailyFocus({
                     </div>
                   );
                 })}
+                {isMobile && hasCheckedHabits && (
+                  <button
+                    type="button"
+                    className="ov-habits-toggle"
+                    onClick={() => setShowAllHabits((s) => !s)}
+                  >
+                    {showAllHabits ? "Show only unchecked" : `Show all ${allHabits.length} habits`}
+                  </button>
+                )}
               </div>
             </div>
           )}

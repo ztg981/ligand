@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { TASK_TERMS, repeatLabel } from "../lib/model.js";
 import { flashElement } from "../lib/scrollFlash.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 /* ============================================================
    Tasks tab
@@ -11,6 +13,8 @@ import { flashElement } from "../lib/scrollFlash.js";
    ============================================================ */
 
 const BASE_LABELS = ["Today", "Urgent", "General"];
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
 
 // Map a label/goal to a chip style so the list reads at a glance.
 function LabelChip({ task, goals }) {
@@ -37,6 +41,65 @@ function TermChip({ term }) {
   return <span className={long ? "chip lav" : "chip mint"}>{long ? "Long-term" : "Short-term"}</span>;
 }
 
+// The label/goal + short/long + repeat fields, shared by the desktop inline
+// bar and the mobile bottom sheet so the two never drift apart.
+function TaskFormFields({ pick, setPick, term, setTerm, repeat, setRepeat, goals }) {
+  return (
+    <>
+      <select
+        className="input"
+        value={pick}
+        onChange={(e) => setPick(e.target.value)}
+        style={{ width: "auto", flex: "none" }}
+      >
+        {BASE_LABELS.map((l) => (
+          <option key={l} value={`label:${l}`}>
+            {l}
+          </option>
+        ))}
+        {goals.length > 0 && (
+          <optgroup label="Goals">
+            {goals.map((g) => (
+              <option key={g.id} value={`goal:${g.id}`}>
+                {g.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+      <div className="seg" style={{ flex: "none" }}>
+        <button
+          className={term === TASK_TERMS.SHORT ? "active" : ""}
+          onClick={() => setTerm(TASK_TERMS.SHORT)}
+        >
+          Short
+        </button>
+        <button
+          className={term === TASK_TERMS.LONG ? "active" : ""}
+          onClick={() => setTerm(TASK_TERMS.LONG)}
+        >
+          Long
+        </button>
+      </div>
+      <select
+        className="input"
+        value={repeat}
+        onChange={(e) => setRepeat(e.target.value)}
+        title="Repeat this task"
+        style={{ width: "auto", flex: "none" }}
+      >
+        <option value="none">No repeat</option>
+        <option value="daily">Every day</option>
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+          <option key={d} value={`weekly:${i}`}>
+            Every {d}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
 export default function Tasks({
   tasks,
   goals,
@@ -47,11 +110,47 @@ export default function Tasks({
   confirmBeforeDelete = true,
   scrollTo = null,
 }) {
-  // --- add bar state ---
+  const isMobile = useIsMobile(640);
+
+  // --- add bar state (shared by the desktop inline bar and the mobile sheet) ---
   const [text, setText] = useState("");
   const [pick, setPick] = useState("label:General"); // encodes label or goal
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
   const [repeat, setRepeat] = useState("none"); // none | daily | weekly:0..6
+
+  // --- mobile add sheet ---
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const sheetInputRef = useRef(null);
+  const [sheetDrag, setSheetDrag] = useState(0);
+  const dragStartY = useRef(null);
+
+  useEffect(() => {
+    if (!showAddSheet) return;
+    const t = setTimeout(() => sheetInputRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [showAddSheet]);
+
+  const closeSheet = () => {
+    setShowAddSheet(false);
+    setSheetDrag(0);
+    dragStartY.current = null;
+  };
+  const onHandleTouchStart = (e) => {
+    dragStartY.current = e.touches[0].clientY;
+  };
+  const onHandleTouchMove = (e) => {
+    if (dragStartY.current == null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta > 0) setSheetDrag(delta);
+  };
+  const onHandleTouchEnd = () => {
+    if (sheetDrag > 80) {
+      closeSheet();
+    } else {
+      setSheetDrag(0);
+      dragStartY.current = null;
+    }
+  };
 
   // --- filter state ---
   const [status, setStatus] = useState("active"); // all | active | done
@@ -69,6 +168,13 @@ export default function Tasks({
   // --- inline edit state ---
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
+
+  // --- mobile long-press-to-edit state ---
+  const [pressingId, setPressingId] = useState(null);
+  const pressTimer = useRef(null);
+  const pressStart = useRef({ x: 0, y: 0 });
+
+  useEffect(() => () => clearTimeout(pressTimer.current), []);
 
   const parseRepeat = (v) => {
     if (v === "daily") return { type: "daily" };
@@ -90,6 +196,12 @@ export default function Tasks({
     setText("");
   };
 
+  const submitFromSheet = () => {
+    if (!text.trim()) return;
+    submit();
+    closeSheet();
+  };
+
   const startEdit = (task) => {
     setEditingId(task.id);
     setEditText(task.text);
@@ -101,6 +213,38 @@ export default function Tasks({
     }
     setEditingId(null);
     setEditText("");
+  };
+
+  // Long-press (mobile only): a short tap does nothing but a subtle
+  // highlight; holding for LONG_PRESS_MS opens inline edit. Prevents the
+  // "tapped a task while scrolling and accidentally started editing it"
+  // problem, since Edit/Delete are always available as explicit buttons.
+  const handlePressStart = (task) => (e) => {
+    if (!isMobile) return;
+    const pt = e.touches ? e.touches[0] : e;
+    pressStart.current = { x: pt.clientX, y: pt.clientY };
+    setPressingId(task.id);
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      startEdit(task);
+      setPressingId(null);
+    }, LONG_PRESS_MS);
+  };
+  const handlePressMove = (e) => {
+    if (!pressTimer.current) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = Math.abs(pt.clientX - pressStart.current.x);
+    const dy = Math.abs(pt.clientY - pressStart.current.y);
+    if (dx > LONG_PRESS_MOVE_TOLERANCE || dy > LONG_PRESS_MOVE_TOLERANCE) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+      setPressingId(null);
+    }
+  };
+  const handlePressEnd = () => {
+    clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+    setPressingId(null);
   };
 
   // Filter + sort: matches first, active before done, newest first.
@@ -137,8 +281,19 @@ export default function Tasks({
         </div>
       </div>
 
-      {/* Add bar */}
-      <div className="card" style={{ marginBottom: 14 }}>
+      {/* Mobile: a compact trigger that opens the full form in a bottom
+         sheet, so the task list gets almost the whole screen instead of a
+         3-row form eating the top. Desktop keeps the inline bar below. */}
+      <button
+        type="button"
+        className="tasks-add-mobile-btn"
+        onClick={() => setShowAddSheet(true)}
+      >
+        <Icon.Plus /> Add task
+      </button>
+
+      {/* Add bar - desktop/tablet only (hidden on mobile via CSS). */}
+      <div className="card tasks-addbar-desktop" style={{ marginBottom: 14 }}>
         <div className="row tasks-addbar" style={{ gap: 8 }}>
           <input
             className="input"
@@ -148,62 +303,70 @@ export default function Tasks({
             onKeyDown={(e) => e.key === "Enter" && submit()}
             style={{ flex: 1 }}
           />
-          <select
-            className="input"
-            value={pick}
-            onChange={(e) => setPick(e.target.value)}
-            style={{ width: "auto", flex: "none" }}
-          >
-            {BASE_LABELS.map((l) => (
-              <option key={l} value={`label:${l}`}>
-                {l}
-              </option>
-            ))}
-            {goals.length > 0 && (
-              <optgroup label="Goals">
-                {goals.map((g) => (
-                  <option key={g.id} value={`goal:${g.id}`}>
-                    {g.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-          <div className="seg" style={{ flex: "none" }}>
-            <button
-              className={term === TASK_TERMS.SHORT ? "active" : ""}
-              onClick={() => setTerm(TASK_TERMS.SHORT)}
-            >
-              Short
-            </button>
-            <button
-              className={term === TASK_TERMS.LONG ? "active" : ""}
-              onClick={() => setTerm(TASK_TERMS.LONG)}
-            >
-              Long
-            </button>
-          </div>
-          <select
-            className="input"
-            value={repeat}
-            onChange={(e) => setRepeat(e.target.value)}
-            title="Repeat this task"
-            style={{ width: "auto", flex: "none" }}
-          >
-            <option value="none">No repeat</option>
-            <option value="daily">Every day</option>
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-              <option key={d} value={`weekly:${i}`}>
-                Every {d}
-              </option>
-            ))}
-          </select>
+          <TaskFormFields
+            pick={pick}
+            setPick={setPick}
+            term={term}
+            setTerm={setTerm}
+            repeat={repeat}
+            setRepeat={setRepeat}
+            goals={goals}
+          />
           <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
             <Icon.Plus />
             Add
           </button>
         </div>
       </div>
+
+      {/* Mobile add-task bottom sheet */}
+      {showAddSheet &&
+        createPortal(
+          <div className="sheet-scrim" role="presentation" onClick={closeSheet}>
+            <div
+              className="bottom-sheet"
+              role="dialog"
+              aria-modal="true"
+              style={{ transform: sheetDrag ? `translateY(${sheetDrag}px)` : undefined }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="sheet-drag-area"
+                onTouchStart={onHandleTouchStart}
+                onTouchMove={onHandleTouchMove}
+                onTouchEnd={onHandleTouchEnd}
+              >
+                <span className="sheet-handle" />
+              </div>
+              <div className="sheet-body">
+                <div className="sheet-title">Add a task</div>
+                <input
+                  ref={sheetInputRef}
+                  className="input"
+                  placeholder="Add a task…"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submitFromSheet()}
+                />
+                <div className="sheet-fields-row">
+                  <TaskFormFields
+                    pick={pick}
+                    setPick={setPick}
+                    term={term}
+                    setTerm={setTerm}
+                    repeat={repeat}
+                    setRepeat={setRepeat}
+                    goals={goals}
+                  />
+                </div>
+                <button className="btn primary sheet-submit" onClick={submitFromSheet}>
+                  <Icon.Plus /> Add task
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Filters */}
       <div className="row between tasks-filter-bar" style={{ marginBottom: 12, gap: 10 }}>
@@ -264,7 +427,11 @@ export default function Tasks({
             <div
               key={task.id}
               id={"task-" + task.id}
-              className={"taskrow" + (task.done ? " done" : "")}
+              className={
+                "taskrow" +
+                (task.done ? " done" : "") +
+                (pressingId === task.id ? " pressing" : "")
+              }
             >
               <button
                 className="checkbox"
@@ -292,9 +459,13 @@ export default function Tasks({
               ) : (
                 <span
                   className="task-name"
-                  onClick={() => startEdit(task)}
-                  title="Click to edit"
-                  style={{ cursor: "text" }}
+                  onClick={() => !isMobile && startEdit(task)}
+                  onTouchStart={handlePressStart(task)}
+                  onTouchMove={handlePressMove}
+                  onTouchEnd={handlePressEnd}
+                  onTouchCancel={handlePressEnd}
+                  title={isMobile ? "Hold to edit" : "Click to edit"}
+                  style={{ cursor: isMobile ? "default" : "text" }}
                 >
                   {task.text}
                 </span>
@@ -319,9 +490,9 @@ export default function Tasks({
 
               <span className="taskrow-actions">
                 <button
+                  className="taskrow-icon-btn"
                   onClick={() => startEdit(task)}
                   title="Edit"
-                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
                 >
                   <Icon.Edit width={14} height={14} />
                 </button>
@@ -330,8 +501,7 @@ export default function Tasks({
                   onConfirm={() => removeTask(task.id)}
                   requireConfirmation={confirmBeforeDelete}
                   title="Delete"
-                  className=""
-                  style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ink-3)", padding: 4, display: "inline-flex" }}
+                  className="taskrow-icon-btn"
                   icon={<Icon.Trash width={14} height={14} />}
                 />
               </span>
