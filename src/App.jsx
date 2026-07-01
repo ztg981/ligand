@@ -950,7 +950,7 @@ export default function App() {
         data-mute-click
       >
         <Icon.Bolt />
-        <span>Focus</span>
+        <span className="hf-fab-label">Focus</span>
       </button>
 
       {showTweaks && (

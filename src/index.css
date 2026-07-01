@@ -2786,6 +2786,13 @@ button.upcoming-row:hover { background: var(--panel-3); }
    Responsive — bottom tab bar + phone layout
    ============================================================ */
 
+/* iOS Safari auto-zooms the page when a focused input's font-size is under
+   16px. Force every text input to 16px on mobile so tapping into any form
+   field never triggers that zoom. */
+@media (max-width: 768px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
 /* Bottom tab bar styling (visibility gated by the phone media query). */
 .bottom-nav {
   position: fixed;
@@ -2841,7 +2848,13 @@ button.upcoming-row:hover { background: var(--panel-3); }
 /* ---- Phone (≤640px) ---- */
 @media (max-width: 640px) {
   .shell {
-    padding: 10px 14px 96px; /* bottom space clears the fixed tab bar */
+    /* Top: clears the status bar/notch in standalone PWA mode (viewport-fit=cover
+       draws content under it otherwise). Bottom: clears the fixed tab bar, plus
+       the home-indicator safe area on notched phones. */
+    padding:
+      calc(10px + env(safe-area-inset-top, 0px))
+      14px
+      calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .topbar {
     margin: 6px 8px 14px;
@@ -2925,7 +2938,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
       "check name  actions"
       "chips chips chips";
     gap: 8px 10px;
-    padding: 14px 12px;
+    /* Extra right clearance so the row's own actions never sit under the
+       fixed Focus/Tweaks FABs, which float in that same bottom-right
+       corner at almost every scroll position. */
+    padding: 14px 60px 14px 12px;
   }
   .taskrow > .checkbox { grid-area: check; width: 24px; height: 24px; }
   .taskrow > .task-name,
@@ -3217,11 +3233,20 @@ button.upcoming-row:hover { background: var(--panel-3); }
 }
 [data-reduce-motion="true"] .hf-fab.active { animation: none; }
 @media (max-width: 640px) {
+  /* Icon-only circle on mobile (matches .tweaks-fab's treatment) instead of
+     the desktop text pill. The pill's ~90px width put its left edge well
+     into the same column list rows use for their right-aligned Edit/Delete
+     buttons, so at almost any scroll position it sat on top of them,
+     stealing taps. A 44px circle plus the extra right-side clearance added
+     to .taskrow / .ov-habit-row (see their mobile rules) keeps this FAB
+     out of that column entirely. */
   .hf-fab {
-    /* Above the Tweaks FAB, which itself rides above the bottom tab bar. */
     bottom: calc(128px + env(safe-area-inset-bottom, 0px));
-    right: 14px; height: 36px; padding: 0 13px; font-size: 12px;
+    right: 14px; width: 44px; height: 44px; padding: 0;
+    border-radius: 50%; justify-content: center;
   }
+  .hf-fab-label { display: none; }
+  .hf-fab svg { width: 17px; height: 17px; }
 }
 
 /* ---- Full-screen animated backdrop ---- */
@@ -3808,6 +3833,10 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   /* Slightly bigger checkbox + row padding for a more comfortable check-in tap. */
   .ov-habit-check { padding: 11px 10px; gap: 11px; }
   .ov-habit-box { width: 22px; height: 22px; }
+  /* Extra right clearance, same reasoning as .taskrow above: with enough
+     habits the list runs the full page height, and rows land in the same
+     bottom-right corner the fixed Focus/Tweaks FABs float in. */
+  .ov-habit-row { padding-right: 60px; }
 }
 
 /* ============================================================
