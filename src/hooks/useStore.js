@@ -9,6 +9,9 @@ import {
   createReflection,
   createCountUp,
   createNote,
+  createWorkout,
+  createWorkoutTemplate,
+  createFitnessProfile,
   shiftDay,
   todayKey,
   toggleCheckIn,
@@ -379,6 +382,86 @@ export function useStore() {
     [setData]
   );
 
+  // -- workouts (logged sessions) --------------------------------
+  // A completed session can be passed pre-built (from the logger) or by opts.
+  const addWorkout = useCallback(
+    (workoutOrOpts) => {
+      const workout =
+        workoutOrOpts && workoutOrOpts.id
+          ? workoutOrOpts
+          : createWorkout(workoutOrOpts);
+      setData((d) => ({ ...d, workouts: [workout, ...(d.workouts || [])] }));
+      return workout;
+    },
+    [setData]
+  );
+
+  const updateWorkout = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        workouts: (d.workouts || []).map((w) =>
+          w.id === id ? { ...w, ...patch } : w
+        ),
+      })),
+    [setData]
+  );
+
+  const deleteWorkout = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        workouts: (d.workouts || []).filter((w) => w.id !== id),
+      })),
+    [setData]
+  );
+
+  // -- workout templates (saved routines) ------------------------
+  const addTemplate = useCallback(
+    (tmplOrOpts) => {
+      const tmpl =
+        tmplOrOpts && tmplOrOpts.id ? tmplOrOpts : createWorkoutTemplate(tmplOrOpts);
+      setData((d) => ({
+        ...d,
+        workoutTemplates: [...(d.workoutTemplates || []), tmpl],
+      }));
+      return tmpl;
+    },
+    [setData]
+  );
+
+  const updateTemplate = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        workoutTemplates: (d.workoutTemplates || []).map((t) =>
+          t.id === id ? { ...t, ...patch } : t
+        ),
+      })),
+    [setData]
+  );
+
+  const deleteTemplate = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        workoutTemplates: (d.workoutTemplates || []).filter((t) => t.id !== id),
+      })),
+    [setData]
+  );
+
+  // -- fitness profile (one per app) -----------------------------
+  // Shallow-merges a patch onto the existing profile, creating a default one
+  // first if none exists yet (so onboarding steps can patch incrementally).
+  const updateFitnessProfile = useCallback(
+    (patch) =>
+      setData((d) => ({
+        ...d,
+        fitnessProfile: { ...(d.fitnessProfile || createFitnessProfile()), ...patch },
+      })),
+    [setData]
+  );
+
   // -- escape hatch / reset --------------------------------------
   const resetData = useCallback(() => setData(seedData()), [setData]);
 
@@ -436,6 +519,13 @@ export function useStore() {
       addNote,
       updateNote,
       removeNote,
+      addWorkout,
+      updateWorkout,
+      deleteWorkout,
+      addTemplate,
+      updateTemplate,
+      deleteTemplate,
+      updateFitnessProfile,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -466,6 +556,13 @@ export function useStore() {
       addNote,
       updateNote,
       removeNote,
+      addWorkout,
+      updateWorkout,
+      deleteWorkout,
+      addTemplate,
+      updateTemplate,
+      deleteTemplate,
+      updateFitnessProfile,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -480,6 +577,9 @@ export function useStore() {
     journal: data.journal || [],
     notes: data.notes || [],
     focusLog: data.focusLog || [],
+    workouts: data.workouts || [],
+    workoutTemplates: data.workoutTemplates || [],
+    fitnessProfile: data.fitnessProfile || null,
     ...actions,
   };
 }

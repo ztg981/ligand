@@ -22,10 +22,17 @@ export function uid(prefix = "id") {
 }
 
 // ---- constants -------------------------------------------------
-export const GOAL_TYPES = { BUILT_IN: "built-in", CUSTOM: "custom", RECOVERY: "recovery" };
+export const GOAL_TYPES = { BUILT_IN: "built-in", CUSTOM: "custom", RECOVERY: "recovery", FITNESS: "fitness" };
 export const GOAL_STATUS = { ACTIVE: "active", DONE: "done", ARCHIVED: "archived" };
 export const TASK_LABELS = ["Today", "Urgent", "General"]; // per-goal names added at runtime
 export const TASK_TERMS = { SHORT: "short", LONG: "long" };
+
+// ---- fitness constants -----------------------------------------
+export const EXPERIENCE_LEVELS = ["beginner", "intermediate", "advanced"];
+export const FITNESS_GOAL_TYPES = ["strength", "hypertrophy", "endurance", "general"];
+export const WEIGHT_UNITS = ["lbs", "kg"];
+// Sets per exercise suggested by experience level (used by the generator).
+export const SETS_BY_LEVEL = { beginner: 3, intermediate: 4, advanced: 5 };
 
 // ---- date helpers ----------------------------------------------
 // Dates are stored as local "YYYY-MM-DD" strings to avoid timezone drift.
@@ -170,6 +177,166 @@ export function createNote({ text = "" } = {}) {
   return { id: uid("note"), text, createdAt: now, updatedAt: now };
 }
 
+// ---- fitness / workout factories -------------------------------
+// The user's training profile, set during the fitness-goal onboarding. One
+// per app (there's a single lifter). null until onboarding completes.
+export function createFitnessProfile({
+  experienceLevel = "beginner",
+  availableEquipment = ["bodyweight"],
+  goalType = "general", // strength | hypertrophy | endurance | general
+  workoutDaysPerWeek = 3,
+  weightUnit = "lbs",
+} = {}) {
+  return {
+    experienceLevel,
+    availableEquipment,
+    goalType,
+    workoutDaysPerWeek,
+    weightUnit,
+    // Optional user-entered body stats over time: { date, weight, bodyFat? }.
+    bodyStats: [],
+    // Default rest between sets (seconds); cardio gets a shorter default.
+    restStrengthSec: 90,
+    restCardioSec: 30,
+    createdAt: todayKey(),
+  };
+}
+
+// A single logged set within an exercise. Strength sets carry reps + weight;
+// cardio sets carry a duration. `done` flips true when ticked mid-workout.
+export function createSet({ reps = null, weight = null, durationSec = null, done = false } = {}) {
+  return { id: uid("set"), reps, weight, durationSec, done };
+}
+
+// One exercise inside a workout session: a snapshot of the library entry
+// (so renames/removals from the library never orphan history) plus its sets.
+export function createWorkoutExercise({
+  exerciseId,
+  name,
+  muscleGroup = "other",
+  type = "strength",
+  sets = [],
+} = {}) {
+  return {
+    id: uid("wex"),
+    exerciseId: exerciseId || null,
+    name: name || "Exercise",
+    muscleGroup,
+    type,
+    sets: sets.length ? sets : [createSet()],
+  };
+}
+
+// A logged (or in-progress) workout session.
+export function createWorkout({
+  date = todayKey(),
+  type = "strength", // strength | cardio | mixed
+  exercises = [],
+  durationSec = 0,
+  notes = "",
+  goalId = null,
+  templateId = null,
+} = {}) {
+  return {
+    id: uid("workout"),
+    date,
+    type,
+    exercises,
+    durationSec,
+    notes,
+    goalId,
+    templateId,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+// A saved routine the user can start from. Its exercises are *plans*
+// (target sets/reps/weight), not logged sets.
+export function createWorkoutTemplate({
+  name = "My routine",
+  type = "strength",
+  exercises = [],
+  goalId = null,
+} = {}) {
+  return {
+    id: uid("tmpl"),
+    name,
+    type,
+    // Each: { exerciseId, name, muscleGroup, type, targetSets, targetReps, targetWeight? }
+    exercises,
+    goalId,
+    createdAt: todayKey(),
+  };
+}
+
+// ---- workout helpers -------------------------------------------
+// Total volume (weight × reps summed over completed strength sets) for a
+// session. Cardio sets contribute no volume. Used for the session summary,
+// the "Volume King" badge, and per-exercise progress.
+export function workoutVolume(workout) {
+  if (!workout?.exercises) return 0;
+  let total = 0;
+  workout.exercises.forEach((ex) => {
+    (ex.sets || []).forEach((s) => {
+      if (s.done && s.weight && s.reps) total += s.weight * s.reps;
+    });
+  });
+  return total;
+}
+
+// Count of completed sets across a session.
+export function completedSetCount(workout) {
+  if (!workout?.exercises) return 0;
+  return workout.exercises.reduce(
+    (n, ex) => n + (ex.sets || []).filter((s) => s.done).length,
+    0
+  );
+}
+
+// Best (heaviest) completed set weight for an exercise id across a history of
+// workouts. Returns { weight, reps } or null. Basis for personal records.
+export function exercisePR(workouts, exerciseId) {
+  let best = null;
+  (workouts || []).forEach((w) => {
+    (w.exercises || []).forEach((ex) => {
+      if (ex.exerciseId !== exerciseId) return;
+      (ex.sets || []).forEach((s) => {
+        if (s.done && s.weight != null) {
+          if (!best || s.weight > best.weight) best = { weight: s.weight, reps: s.reps };
+        }
+      });
+    });
+  });
+  return best;
+}
+
+// How many distinct calendar weeks (Mon-anchored ISO-ish) had >=1 workout,
+// counting consecutively backward from the current week — a workout streak
+// in weeks. Used for the "Streak Builder" badge and the fitness tab.
+export function weeklyWorkoutStreak(workouts, refKey = todayKey()) {
+  if (!workouts?.length) return 0;
+  const weekStart = (key) => {
+    const d = new Date(key + "T00:00:00");
+    const dow = (d.getDay() + 6) % 7; // Mon=0
+    d.setDate(d.getDate() - dow);
+    return todayKey(d);
+  };
+  const weeksWithWorkout = new Set(workouts.map((w) => weekStart(w.date)));
+  let streak = 0;
+  let cursor = weekStart(refKey);
+  while (weeksWithWorkout.has(cursor)) {
+    streak += 1;
+    cursor = shiftDay(cursor, -7);
+  }
+  return streak;
+}
+
+// Workouts falling in the current rolling 7-day window (incl. today).
+export function workoutsThisWeek(workouts, refKey = todayKey()) {
+  const cutoff = shiftDay(refKey, -6);
+  return (workouts || []).filter((w) => w.date >= cutoff && w.date <= refKey);
+}
+
 // ---- habit helpers (forgiving) ---------------------------------
 export function isCheckedOn(habit, dayKey = todayKey()) {
   return habit?.checkIns?.includes(dayKey) ?? false;
@@ -256,5 +423,10 @@ export function seedData() {
     countUps: [],
     journal: [], // app-wide reflections (per-goal reflections live on each goal)
     notes: [], // frictionless plain-text scratchpad (see Notes tab)
+    // Fitness / workout system. All start empty; a fitnessProfile is created
+    // when the user makes their first Fitness goal and finishes onboarding.
+    workouts: [], // logged sessions
+    workoutTemplates: [], // saved routines
+    fitnessProfile: null,
   };
 }
