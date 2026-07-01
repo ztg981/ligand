@@ -29,7 +29,9 @@ export const TASK_TERMS = { SHORT: "short", LONG: "long" };
 
 // ---- fitness constants -----------------------------------------
 export const EXPERIENCE_LEVELS = ["beginner", "intermediate", "advanced"];
-export const FITNESS_GOAL_TYPES = ["strength", "hypertrophy", "endurance", "general"];
+// Primary training focus. "loseweight" biases toward higher reps + cardio in
+// the generator; the others map to conventional rep ranges.
+export const FITNESS_GOAL_TYPES = ["strength", "hypertrophy", "endurance", "loseweight", "general"];
 export const WEIGHT_UNITS = ["lbs", "kg"];
 // Sets per exercise suggested by experience level (used by the generator).
 export const SETS_BY_LEVEL = { beginner: 3, intermediate: 4, advanced: 5 };

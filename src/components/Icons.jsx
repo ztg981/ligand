@@ -211,6 +211,11 @@ export const Icon = {
       <path d="M3 13L13 3" />
     </>
   ),
+  Dumbbell: make(
+    <>
+      <path d="M2 6v4M4 4.5v7M12 4.5v7M14 6v4M4 8h8" />
+    </>
+  ),
 };
 
 export default Icon;

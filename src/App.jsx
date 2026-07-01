@@ -29,6 +29,7 @@ import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
 import GoalTab from "./tabs/GoalTab.jsx";
 import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
+import FitnessGoalTab from "./components/FitnessGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
 import Overview from "./tabs/Overview.jsx";
@@ -544,7 +545,11 @@ export default function App() {
   };
 
   const handleCreateGoal = (goalInput) => {
-    const goal = addGoal(goalInput);
+    // Fitness goals carry a fitnessProfile payload from onboarding; persist it
+    // app-wide (one lifter) and keep it off the goal object itself.
+    const { fitnessProfile, ...goalOnly } = goalInput || {};
+    const goal = addGoal(goalOnly);
+    if (fitnessProfile) store.updateFitnessProfile(fitnessProfile);
     setShowGoalModal(false);
     setActiveGoal(goal.id);
     setTab("goal");
@@ -630,6 +635,24 @@ export default function App() {
               onArchiveGoal={handleArchiveGoal}
               addReflection={store.addReflection}
               removeReflection={store.removeReflection}
+            />
+          );
+        }
+        if (goal?.type === "fitness") {
+          return (
+            <FitnessGoalTab
+              goal={goal}
+              profile={store.fitnessProfile}
+              workouts={store.workouts}
+              templates={store.workoutTemplates}
+              addWorkout={store.addWorkout}
+              updateWorkout={store.updateWorkout}
+              deleteWorkout={store.deleteWorkout}
+              addTemplate={store.addTemplate}
+              updateTemplate={store.updateTemplate}
+              deleteTemplate={store.deleteTemplate}
+              updateFitnessProfile={store.updateFitnessProfile}
+              onArchiveGoal={handleArchiveGoal}
             />
           );
         }

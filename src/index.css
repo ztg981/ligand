@@ -3032,8 +3032,41 @@ button.upcoming-row:hover { background: var(--panel-3); }
 [data-theme="dark"] .goal-kind-ic.recovery {
   background: oklch(0.28 0.06 150); color: oklch(0.82 0.10 150);
 }
+.goal-kind-ic.fitness {
+  background: oklch(0.93 0.05 45); color: oklch(0.52 0.16 45);
+}
+[data-theme="dark"] .goal-kind-ic.fitness {
+  background: oklch(0.30 0.07 45); color: oklch(0.80 0.13 45);
+}
 .goal-kind-name { font-size: 14px; font-weight: 600; }
 .goal-kind-desc { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+
+/* ---- Fitness onboarding controls (in SmartGoalModal) ---- */
+.fit-choice {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  width: 100%; text-align: left; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: var(--r-lg);
+  background: var(--panel-2); cursor: pointer;
+  transition: border-color 0.16s var(--ease), background 0.16s var(--ease);
+}
+.fit-choice:hover { border-color: var(--line-strong); }
+.fit-choice.active { border-color: var(--accent); background: var(--accent-soft); }
+.fit-choice-name { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.fit-choice.active .fit-choice-name { color: var(--accent-ink); }
+.fit-choice-desc { font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+.fit-equip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.fit-equip-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px; padding: 0 14px;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); color: var(--ink-2);
+  font-size: 13px; font-weight: 550; cursor: pointer;
+  transition: border-color 0.16s var(--ease), background 0.16s var(--ease), color 0.16s var(--ease);
+}
+.fit-equip-chip:hover { border-color: var(--line-strong); }
+.fit-equip-chip.active {
+  border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink);
+}
 
 /* ============================================================
    Recovery goal tab
@@ -3968,3 +4001,205 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .home-glance-pill:active { background: var(--panel-2); }
 .home-glance-pill .gs-leaf svg { width: 13px; height: 13px; }
 .badge-req { color: var(--ink-3); font-family: var(--font-sans); font-size: 10.5px; line-height: 1.3; }
+
+/* ============================================================
+   Fitness goal tab
+   ============================================================ */
+.fit-top {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.fit-today-card { display: flex; flex-direction: column; }
+.fit-today-sub { font-size: 13px; color: var(--ink-3); line-height: 1.5; margin: 4px 0 14px; flex: 1; }
+.fit-log-btn { align-self: flex-start; height: 42px; padding: 0 18px; font-size: 14px; }
+.fit-stat-card { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.fit-stat-num {
+  font-size: 32px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--ink); font-family: var(--font-mono); line-height: 1;
+}
+.fit-stat-den { font-size: 18px; color: var(--ink-4); font-weight: 500; }
+.fit-stat-lbl { font-size: 12px; color: var(--ink-3); }
+.fit-streak { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
+.fit-streak svg { width: 20px; height: 20px; }
+.fit-week-dots { display: flex; gap: 5px; margin-top: 8px; }
+.fit-week-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--panel-3); border: 1px solid var(--line);
+}
+.fit-week-dot.on { background: var(--accent); border-color: transparent; box-shadow: 0 0 6px var(--accent-glow); }
+
+.fit-section-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-3); font-family: var(--font-mono);
+  margin: 4px 2px 12px;
+}
+.fit-section-label svg { width: 13px; height: 13px; opacity: 0.8; }
+.fit-empty { color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+
+.fit-session { padding: 14px 16px; }
+.fit-session-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.fit-session-date { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.fit-session-type {
+  font-size: 10.5px; font-weight: 600; text-transform: capitalize;
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink, var(--accent));
+}
+.fit-session-exs { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; margin-bottom: 6px; }
+.fit-session-meta { display: flex; gap: 6px; font-size: 11.5px; color: var(--ink-4); font-family: var(--font-mono); }
+
+.fit-pr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.fit-pr { padding: 14px; display: flex; flex-direction: column; gap: 3px; }
+.fit-pr-group {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.fit-pr-weight { font-size: 26px; font-weight: 600; color: var(--ink); font-family: var(--font-mono); line-height: 1.1; }
+.fit-pr-unit { font-size: 14px; color: var(--ink-4); font-weight: 500; margin-left: 2px; }
+.fit-pr-ex { font-size: 11.5px; color: var(--ink-3); }
+
+@media (max-width: 767px) {
+  .fit-top { grid-template-columns: 1fr 1fr; }
+  .fit-today-card { grid-column: 1 / -1; }
+}
+
+/* ============================================================
+   Workout logger — full-screen in-gym flow
+   ============================================================ */
+.workout-logger {
+  position: fixed; inset: 0; z-index: 120;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+}
+.wl-head {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 16px calc(12px);
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.wl-timer { font-size: 20px; font-weight: 600; color: var(--ink); letter-spacing: 0.02em; }
+.wl-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 640px; width: 100%; margin: 0 auto;
+}
+.wl-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 4px; padding: 40px 18px;
+}
+.wl-empty-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 14px; margin-bottom: 6px;
+  background: var(--accent-soft); color: var(--accent-ink, var(--accent));
+}
+.wl-empty-ic svg { width: 24px; height: 24px; }
+.wl-empty-title { font-size: 15px; font-weight: 650; color: var(--ink-2); }
+.wl-empty-sub { font-size: 12.5px; color: var(--ink-3); }
+
+.wl-ex { padding: 12px 14px; }
+.wl-ex-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.wl-ex-name { font-size: 15px; font-weight: 650; color: var(--ink); }
+.wl-sets { display: flex; flex-direction: column; gap: 6px; }
+.wl-set-labels, .wl-set {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr 40px 28px;
+  align-items: center; gap: 8px;
+}
+.wl-set-labels {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-4); padding: 0 2px 2px;
+}
+.wl-set-labels .wl-set-col { text-align: center; }
+.wl-set-col-n { text-align: center; }
+.wl-set-n { text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-3); font-family: var(--font-mono); }
+.wl-set-input { text-align: center; height: 40px; font-size: 15px; }
+.wl-set.done .wl-set-input { opacity: 0.7; }
+.wl-set-check {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.6px solid var(--line-strong); background: var(--panel);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: white; cursor: pointer; justify-self: center;
+  transition: all 0.15s var(--ease);
+}
+.wl-set.done .wl-set-check {
+  background: var(--accent); border-color: transparent;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow);
+}
+.wl-set-del {
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: var(--ink-4); cursor: pointer; justify-self: center;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.wl-set-del:hover { color: oklch(0.55 0.16 20); }
+.wl-add-set {
+  align-self: flex-start; margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--accent-ink, var(--accent)); font-size: 12.5px; font-weight: 600;
+  padding: 4px 2px;
+}
+.wl-add-ex { width: 100%; justify-content: center; height: 44px; }
+
+/* Grid columns collapse to one input for cardio (no reps column). */
+.wl-ex[data-cardio="true"] .wl-set-labels,
+.wl-ex[data-cardio="true"] .wl-set { grid-template-columns: 28px 1fr 40px 28px; }
+
+.wl-picker {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+}
+.wl-picker-head {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.wl-picker-list { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; max-width: 640px; width: 100%; margin: 0 auto; }
+.wl-picker-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-height: 48px; padding: 10px 12px; text-align: left;
+  border: none; background: transparent; border-radius: 10px; cursor: pointer;
+  color: var(--ink);
+}
+.wl-picker-item:hover, .wl-picker-item:active { background: var(--panel-2); }
+.wl-picker-name { font-size: 14.5px; font-weight: 500; }
+.wl-picker-group {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+.wl-picker-empty { padding: 16px; color: var(--ink-3); font-size: 13px; text-align: center; }
+
+/* Finish summary */
+.wl-summary {
+  margin: auto; max-width: 420px; width: 100%; padding: 24px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+}
+.wl-summary-ic {
+  width: 60px; height: 60px; border-radius: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: white;
+}
+.wl-summary-ic svg { width: 30px; height: 30px; }
+.wl-summary-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.wl-summary-stats { display: flex; gap: 22px; margin: 4px 0; }
+.wl-sum-stat { display: flex; flex-direction: column; gap: 2px; }
+.wl-sum-num { font-size: 24px; font-weight: 600; font-family: var(--font-mono); color: var(--ink); }
+.wl-sum-lbl { font-size: 11px; color: var(--ink-3); }
+.wl-summary-exs { width: 100%; display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+.wl-summary-ex {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--ink-2);
+  padding: 8px 12px; border-radius: 10px; background: var(--panel-2);
+}
+.wl-summary-ex-sets { font-size: 11.5px; color: var(--ink-4); font-family: var(--font-mono); }
+.wl-summary-done { width: 100%; height: 44px; justify-content: center; margin-top: 6px; }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { todayKey } from "../lib/model.js";
+import { EQUIPMENT_OPTIONS } from "../lib/exercises.js";
 
 const STEPS = [
   "Goal name",
@@ -30,12 +31,38 @@ const BLANK_FORM = {
 
 const REC_STEPS = ["What", "Since when", "Why"];
 
+// Fitness onboarding: a name, then the 3 profile steps from the brief.
+const FIT_STEPS = ["Name", "Experience", "Equipment", "Your plan"];
+const FIT_EXPERIENCE = [
+  { value: "beginner", label: "Beginner", desc: "New to training, or back after a long break. We'll keep volume gentle." },
+  { value: "intermediate", label: "Intermediate", desc: "Comfortable with the basics and training somewhat regularly." },
+  { value: "advanced", label: "Advanced", desc: "Years of consistent training; you know your lifts and can handle more." },
+];
+const FIT_GOAL_TYPES = [
+  { value: "strength", label: "Build strength" },
+  { value: "hypertrophy", label: "Build muscle" },
+  { value: "endurance", label: "Improve endurance" },
+  { value: "loseweight", label: "Lose weight" },
+  { value: "general", label: "General fitness" },
+];
+const FIT_DAYS = [2, 3, 4, 5];
+const BLANK_FIT = {
+  name: "",
+  experienceLevel: "beginner",
+  availableEquipment: ["bodyweight"],
+  goalType: "general",
+  workoutDaysPerWeek: 3,
+  weightUnit: "lbs",
+};
+
 export default function SmartGoalModal({ onCreate, onClose }) {
-  // kind: null = chooser, "smart" = SMART wizard, "recovery" = recovery flow
+  // kind: null = chooser, "smart" = SMART wizard, "recovery" = recovery flow,
+  // "fitness" = fitness goal + onboarding
   const [kind, setKind] = useState(null);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(BLANK_FORM);
   const [rec, setRec] = useState({ label: "", startDate: todayKey(), why: "" });
+  const [fit, setFit] = useState(BLANK_FIT);
 
   const update = (patch) => setForm((f) => ({ ...f, ...patch }));
   const updateHabit = (index, value) =>
@@ -97,6 +124,45 @@ export default function SmartGoalModal({ onCreate, onClose }) {
     else setStep((s) => s + 1);
   };
 
+  // --- fitness flow ---
+  const fitLast = step === FIT_STEPS.length - 1;
+  const fitCanContinue = step !== 0 || fit.name.trim().length > 0;
+  const toggleEquip = (id) =>
+    setFit((f) => {
+      const has = f.availableEquipment.includes(id);
+      const next = has
+        ? f.availableEquipment.filter((e) => e !== id)
+        : [...f.availableEquipment, id];
+      // Never let the selection become empty — bodyweight is the floor.
+      return { ...f, availableEquipment: next.length ? next : ["bodyweight"] };
+    });
+  const submitFitness = () => {
+    const name = fit.name.trim();
+    if (!name) {
+      setStep(0);
+      return;
+    }
+    onCreate({
+      name,
+      type: "fitness",
+      color: "oklch(0.66 0.17 45)", // energetic orange, distinct from goal blues/greens
+      // Carried alongside the goal; App strips this off and persists it via
+      // updateFitnessProfile (the profile is app-wide, one lifter).
+      fitnessProfile: {
+        experienceLevel: fit.experienceLevel,
+        availableEquipment: fit.availableEquipment,
+        goalType: fit.goalType,
+        workoutDaysPerWeek: fit.workoutDaysPerWeek,
+        weightUnit: fit.weightUnit,
+      },
+    });
+  };
+  const fitNext = () => {
+    if (!fitCanContinue) return;
+    if (fitLast) submitFitness();
+    else setStep((s) => s + 1);
+  };
+
   const backToChooser = () => {
     setKind(null);
     setStep(0);
@@ -148,6 +214,17 @@ export default function SmartGoalModal({ onCreate, onClose }) {
                   <span className="goal-kind-name">A recovery tracker</span>
                   <span className="goal-kind-desc">
                     Count the days you've been free from something. A private, gentle space.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="goal-kind-card"
+                  onClick={() => { setKind("fitness"); setStep(0); }}
+                >
+                  <span className="goal-kind-ic fitness"><Icon.Dumbbell /></span>
+                  <span className="goal-kind-name">A fitness goal</span>
+                  <span className="goal-kind-desc">
+                    Log workouts, track PRs, and get sessions built for you. Includes a rest timer.
                   </span>
                 </button>
               </div>
@@ -313,6 +390,147 @@ export default function SmartGoalModal({ onCreate, onClose }) {
                   <button className="btn primary" onClick={recNext} disabled={!recCanContinue}
                     style={{ opacity: recCanContinue ? 1 : 0.55 }}>
                     {recLast ? (<><Icon.Check /> Begin</>) : (<>Next <Icon.Arrow /></>)}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ---------- Fitness flow ---------- */}
+          {kind === "fitness" && (
+            <>
+              <div className="row between" style={{ alignItems: "flex-start", gap: 12 }}>
+                <div>
+                  <div className="eyebrow">Fitness · step {step + 1} of {FIT_STEPS.length} · {FIT_STEPS[step]}</div>
+                  <h2 className="page-title" style={{ fontSize: 21 }}>Set up your training</h2>
+                  <p className="page-sub" style={{ margin: "5px 0 0" }}>
+                    A few quick questions so we can build workouts that fit you. Change any of this later.
+                  </p>
+                </div>
+                <button className="iconbtn" title="Close" onClick={onClose}>
+                  <Icon.Close />
+                </button>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                {step === 0 && (
+                  <Field
+                    label="What do you want to call this?"
+                    hint="Example: Get stronger, Build muscle, Marathon prep."
+                    value={fit.name}
+                    onChange={(v) => setFit((f) => ({ ...f, name: v }))}
+                    autoFocus
+                    placeholder="Get stronger"
+                  />
+                )}
+
+                {step === 1 && (
+                  <div>
+                    <div className="card-title" style={{ marginBottom: 6 }}>How much training experience do you have?</div>
+                    <div className="stack fit-choice-list" style={{ gap: 8, marginTop: 10 }}>
+                      {FIT_EXPERIENCE.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          className={"fit-choice" + (fit.experienceLevel === o.value ? " active" : "")}
+                          onClick={() => setFit((f) => ({ ...f, experienceLevel: o.value }))}
+                        >
+                          <span className="fit-choice-name">{o.label}</span>
+                          <span className="fit-choice-desc">{o.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div>
+                    <div className="card-title" style={{ marginBottom: 6 }}>What equipment can you use?</div>
+                    <p className="muted" style={{ fontSize: 12.5, margin: "0 0 10px" }}>
+                      Pick everything you have access to. Bodyweight is always included.
+                    </p>
+                    <div className="fit-equip-grid">
+                      {EQUIPMENT_OPTIONS.map((opt) => {
+                        const on = fit.availableEquipment.includes(opt.id);
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            className={"fit-equip-chip" + (on ? " active" : "")}
+                            aria-pressed={on}
+                            onClick={() => toggleEquip(opt.id)}
+                          >
+                            {on && <Icon.Check width={13} height={13} />}
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="stack" style={{ gap: 16 }}>
+                    <div>
+                      <div className="card-title" style={{ marginBottom: 8 }}>How many days a week?</div>
+                      <div className="seg">
+                        {FIT_DAYS.map((d) => (
+                          <button
+                            key={d}
+                            className={fit.workoutDaysPerWeek === d ? "active" : ""}
+                            onClick={() => setFit((f) => ({ ...f, workoutDaysPerWeek: d }))}
+                          >
+                            {d} days
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="card-title" style={{ marginBottom: 8 }}>What's your main focus?</div>
+                      <div className="fit-equip-grid">
+                        {FIT_GOAL_TYPES.map((o) => (
+                          <button
+                            key={o.value}
+                            type="button"
+                            className={"fit-equip-chip" + (fit.goalType === o.value ? " active" : "")}
+                            aria-pressed={fit.goalType === o.value}
+                            onClick={() => setFit((f) => ({ ...f, goalType: o.value }))}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="card-title" style={{ marginBottom: 8 }}>Weight unit</div>
+                      <div className="seg" style={{ width: "fit-content" }}>
+                        {["lbs", "kg"].map((u) => (
+                          <button
+                            key={u}
+                            className={fit.weightUnit === u ? "active" : ""}
+                            onClick={() => setFit((f) => ({ ...f, weightUnit: u }))}
+                          >
+                            {u}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="row between" style={{ marginTop: 18 }}>
+                <button className="btn ghost"
+                  onClick={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}>
+                  Back
+                </button>
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn ghost" onClick={onClose}>Cancel</button>
+                  <button className="btn primary" onClick={fitNext} disabled={!fitCanContinue}
+                    style={{ opacity: fitCanContinue ? 1 : 0.55 }}>
+                    {fitLast ? (<><Icon.Check /> Create</>) : (<>Next <Icon.Arrow /></>)}
                   </button>
                 </div>
               </div>
