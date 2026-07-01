@@ -9,7 +9,7 @@ import {
   recoveryFallback,
   RECOVERY_MILESTONES,
 } from "../lib/recovery.js";
-import { todayKey } from "../lib/model.js";
+import { todayKey, formatEntryDateTime } from "../lib/model.js";
 import { fetchAiInsight } from "../lib/aiApi.js";
 import { ding } from "../lib/uiSounds.js";
 
@@ -357,8 +357,8 @@ function JournalSection({ goal, addReflection, removeReflection, updateGoal }) {
               )}
               <div style={{ whiteSpace: "pre-wrap" }}>{r.text}</div>
               <div className="row between" style={{ marginTop: 6 }}>
-                <span style={{ fontSize: 11, color: "var(--ink-4)" }}>
-                  {r.createdAt ? r.createdAt.slice(0, 10) : ""}
+                <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>
+                  {r.createdAt ? formatEntryDateTime(r.createdAt) : ""}
                 </span>
                 {removeReflection && (
                   <button
