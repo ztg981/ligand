@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
@@ -6,6 +6,9 @@ import LocationPicker from "../components/LocationPicker.jsx";
 import { flashElement } from "../lib/scrollFlash.js";
 import { formatEntryDateTime, todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import { searchItunesSongs } from "../lib/itunesSearch.js";
+
+const SONG_SEARCH_DEBOUNCE_MS = 400;
 
 /* Journal - app-wide reflection.
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
@@ -26,30 +29,102 @@ function moodLabel(value) {
 
 // Shared inline form for both the standalone "Log a song" button and the
 // compose card's "+ Add song" - a fast capture tool, not a music player, so
-// only the title is required. Autofocuses the title on open.
+// only the title is required. Autofocuses the title on open. The title
+// field doubles as an iTunes Search API lookup (debounced, best-effort -
+// any failure just leaves the user typing manually, never blocks saving).
 function SongForm({ onSave, onCancel }) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [album, setAlbum] = useState(null);
   const [note, setNote] = useState("");
   const [mood, setMood] = useState(null);
+  const [results, setResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const debounceRef = useRef(null);
+  const searchTokenRef = useRef(0);
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  const onTitleChange = (v) => {
+    setTitle(v);
+    setAlbum(null);
+    clearTimeout(debounceRef.current);
+    const q = v.trim();
+    if (!q) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    const token = ++searchTokenRef.current;
+    debounceRef.current = setTimeout(async () => {
+      const found = await searchItunesSongs(q);
+      // Ignore a stale response from an earlier keystroke.
+      if (token !== searchTokenRef.current) return;
+      setResults(found);
+      setShowResults(found.length > 0);
+    }, SONG_SEARCH_DEBOUNCE_MS);
+  };
+
+  const pickResult = (r) => {
+    setTitle(r.title);
+    setArtist(r.artist);
+    setAlbum(r.album);
+    setShowResults(false);
+  };
 
   const submit = () => {
     const t = title.trim();
     if (!t) return;
-    onSave({ title: t, artist: artist.trim(), note: note.trim() || null, mood });
+    onSave({ title: t, artist: artist.trim(), album, note: note.trim() || null, mood });
   };
 
   return (
     <div className="song-form">
       <div className="song-form-row">
-        <input
-          className="input"
-          autoFocus
-          placeholder="Song title…"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-        />
+        <div className="song-search-wrap">
+          <input
+            className="input"
+            autoFocus
+            placeholder="Song title…"
+            value={title}
+            onChange={(e) => onTitleChange(e.target.value)}
+            onFocus={() => results.length > 0 && setShowResults(true)}
+            onBlur={() => setTimeout(() => setShowResults(false), 150)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+          />
+          {showResults && (
+            <div className="song-search-results">
+              {results.map((r) => (
+                <button
+                  type="button"
+                  key={r.id}
+                  className="song-search-result"
+                  // onMouseDown (not onClick) fires before the input's onBlur
+                  // hides this dropdown, so the tap actually registers.
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pickResult(r);
+                  }}
+                >
+                  {r.artworkUrl ? (
+                    <img src={r.artworkUrl} alt="" className="song-search-art" />
+                  ) : (
+                    <span className="song-search-art song-search-art-empty">
+                      <Icon.Music width={12} height={12} />
+                    </span>
+                  )}
+                  <span className="song-search-meta">
+                    <span className="song-search-title">{r.title}</span>
+                    <span className="song-search-artist">
+                      {r.artist}
+                      {r.album ? ` · ${r.album}` : ""}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <input
           className="input"
           placeholder="Artist"
