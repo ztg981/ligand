@@ -12,6 +12,7 @@ import {
   createWorkout,
   createWorkoutTemplate,
   createFitnessProfile,
+  createSong,
   shiftDay,
   todayKey,
   toggleCheckIn,
@@ -309,6 +310,34 @@ export function useStore() {
     [setData]
   );
 
+  // -- song log (lightweight "what I was listening to" log) ------
+  const addSong = useCallback(
+    (opts) => {
+      const song = createSong(opts);
+      setData((d) => ({ ...d, songLog: [song, ...(d.songLog || [])] }));
+      return song;
+    },
+    [setData]
+  );
+
+  const updateSong = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        songLog: (d.songLog || []).map((s) => (s.id === id ? { ...s, ...patch } : s)),
+      })),
+    [setData]
+  );
+
+  const deleteSong = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        songLog: (d.songLog || []).filter((s) => s.id !== id),
+      })),
+    [setData]
+  );
+
   const removeReflection = useCallback(
     (goalId, reflectionId) =>
       setData((d) => ({
@@ -526,6 +555,9 @@ export function useStore() {
       updateTemplate,
       deleteTemplate,
       updateFitnessProfile,
+      addSong,
+      updateSong,
+      deleteSong,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -563,6 +595,9 @@ export function useStore() {
       updateTemplate,
       deleteTemplate,
       updateFitnessProfile,
+      addSong,
+      updateSong,
+      deleteSong,
       resetData,
       setGoalOrder,
       logFocusSession,
@@ -580,6 +615,7 @@ export function useStore() {
     workouts: data.workouts || [],
     workoutTemplates: data.workoutTemplates || [],
     fitnessProfile: data.fitnessProfile || null,
+    songLog: data.songLog || [],
     ...actions,
   };
 }

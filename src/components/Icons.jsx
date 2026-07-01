@@ -166,6 +166,13 @@ export const Icon = {
   Leaf: make(
     <path d="M3 13c3-3 6.5-4 9-3.5C12.5 7 11 4 8 2.5 7 6 5 9 3 13z M6 10c1.5-1 3-1.5 5-1" />
   ),
+  Music: make(
+    <>
+      <path d="M6 12V3.5L13 2v8.5" />
+      <circle cx="4.3" cy="12" r="1.7" />
+      <circle cx="11.3" cy="10.5" r="1.7" />
+    </>
+  ),
   Note: make(
     <>
       <path d="M4 2.5h6L13 5.5V13a.5.5 0 0 1-.5.5h-8A.5.5 0 0 1 4 13V2.5z" />

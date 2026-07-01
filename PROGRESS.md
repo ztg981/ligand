@@ -2,6 +2,138 @@
 
 _Session date: 2026-06-14 (updated 2026-07-01)_
 
+## Phase 9 — Mobile fixes from screenshots + music feature (2026-07-01, Claude Code)
+
+Two-part brief: priority mobile bug fixes first, then a new music
+logging/discovery feature. Two commit checkpoints for Section 1
+(1A-1C, then 1D-1F), plus this final one for Section 2.
+
+### Section 1 — Mobile fixes (commits `506ab61`, `6f28ff0`)
+
+**1A — Safe area cutoff**: `.shell`'s mobile padding had no top safe-area
+inset at all (`padding: 10px 14px 96px`), so content drew under the status
+bar/notch in standalone PWA mode — worse since last session's
+`viewport-fit=cover` addition. Fixed: `padding-top` now folds in
+`env(safe-area-inset-top)`; bottom padding also gained
+`env(safe-area-inset-bottom)` alongside the bottom-nav's existing handling.
+Mobile-only via the existing `max-width: 640px` block.
+
+**1B — Focus FAB overlapping content**: verified this was a *real*,
+reproducible bug, not just a visual quirk — with as few as 4-6 tasks or 7+
+habits, the fixed Focus/Tweaks FABs' rectangle actually sat on top of a row's
+Edit/Delete (or habit-edit) buttons and would intercept taps meant for them,
+confirmed via exact `getBoundingClientRect()` overlap checks. Root cause:
+both the FABs and the row action buttons are anchored to the same
+bottom-right column. Fixed by (a) shrinking `.hf-fab` to a 44px icon-only
+circle on mobile, matching `.tweaks-fab`'s existing treatment (was a ~90px
+text pill), and (b) adding matching right-side clearance to `.taskrow` and
+`.ov-habit-row` so their action buttons structurally can't reach that
+column. Re-verified zero overlap with 6 tasks / 16 habits at any scroll
+position.
+
+**1C — Input zoom**: `input, select, textarea { font-size: 16px !important }`
+at `max-width: 768px` — stops iOS Safari's zoom-on-focus for every form
+field app-wide.
+
+**1D — Compact add-task on mobile**: the 3-row inline form is replaced by a
+compact "+ Add task" trigger + bottom sheet (auto-focused input, same
+fields, dismiss via backdrop tap or swipe-down on the drag handle) on
+mobile only. Desktop keeps the original inline bar unchanged — both share
+one `TaskFormFields` component so they can't drift apart. Added
+`src/hooks/useIsMobile.js` (a `matchMedia`-backed hook) since this needed
+runtime branching, not just a CSS breakpoint.
+
+**1E — Compact Home habits list**: the habit list already defaulted to
+unchecked-only; added the missing "Show all N habits" expandable (mobile
+only) so already-checked habits — previously just gone with no way back —
+can still be glanced at, shown muted/struck-through. Rows are ~42px on
+mobile now (was 60px+) via tighter padding and one-line "name · goal" text
+instead of two stacked lines. Desktop/Overview untouched.
+
+**1F — Long-press to edit, bigger tap targets**: a single tap on a task
+name now does nothing (a brief `.taskrow.pressing` highlight) instead of
+jumping into inline edit — holding for 500ms does, via touch-tracked
+press/move/end handlers with a 10px move-tolerance (treated as a scroll,
+not a hold). Desktop is unchanged (click still edits instantly — gated on
+`useIsMobile()`). Edit/Delete are the explicit alternative and are now real
+44×44 mobile tap targets (were ~22px with inline styles that also blocked
+CSS from resizing them — moved to a `.taskrow-icon-btn` class).
+
+All of Section 1 verified at both 375px and 1280px, light and dark, with
+zero new console errors (see the one pre-existing, out-of-scope issue
+noted at the bottom of this entry).
+
+### Section 2 — Music feature (this commit)
+
+**2A — Song log** (`data.songLog`, `createSong()` in `model.js`,
+`addSong`/`updateSong`/`deleteSong` in `useStore.js`): a lightweight
+`{ id, title, artist, album, mood, note, journalEntryId, date, createdAt }`
+record — logging, not playback. Journal tab gained:
+- A standalone "Log a song" button (Songs card, below Past entries) for
+  fast, no-context capture — title is the only required field.
+- A "+ Add song" option while composing an entry; songs logged this way
+  are staged as removable chips under the compose box and linked to the
+  entry (`updateSong(id, { journalEntryId })`) the moment "Save entry" is
+  pressed.
+- Attached songs render as a chip on their entry:
+  `🎵 {title} - {note or artist}` (matches the brief's example exactly,
+  verified live: "🎵 July - idk if i like mirrors").
+- A full song log list (title, artist, date, note, delete) in its own
+  card.
+
+**2B — Focus Music suggestions** (`src/lib/focusMusic.js`, rendered in
+**Settings → Focus music**, a desktop-appropriate settings section):
+24 curated genre/mood entries across lo-fi, ambient, classical, jazz,
+nature sounds, video-game OSTs, post-rock, and binaural-beats/frequencies,
+each with a "Good for: …" line. Each links out to a Spotify *search* and a
+YouTube *search* for that genre (`open.spotify.com/search/…`,
+`youtube.com/results?search_query=…`) rather than a specific hardcoded
+playlist ID — specific editorial playlist IDs drift/get retired over time
+and a dead link is worse than a search that always returns something
+current. No playback inside Ligand at all, per the brief.
+
+**2C — Same-day surfacing**: built alongside 2A. If an entry has no
+explicit song attached but a song was logged the same calendar day, the
+entry shows a quieter `🎵 Listening to: {title} - {artist}` line instead
+of a chip — verified both states live in the same session (one entry with
+an explicit attach, a second same-day entry with only the ambient match).
+
+**2D — Connect Spotify placeholder**: a disabled `Switch` (added a
+`disabled` prop to the shared `Switch` control) in the new Settings →
+Focus music section, tagged "Coming soon," hint text describing the future
+auto-populate-from-now-playing behavior. No OAuth, no API calls — UI
+placeholder only, as scoped.
+
+### Known pre-existing issue (found, NOT fixed — flagged as a separate task)
+
+While testing, the console showed a React "hooks order changed" warning on
+every single tab switch. Investigated thoroughly: it reproduces even in a
+production build (rules out a StrictMode dev-only artifact) and — via
+`git stash` + checking out `b06f12f` (the commit before this entire
+session) — it was already present before any of today's work. No visible
+functional breakage was found across extensive manual testing of every
+tab, but hook-order violations are inherently fragile, so it's flagged
+rather than silently left. Filed as a background task
+(`task_d5dcf794`) rather than fixed here, since finding the actual
+conditional hook inside App's ~76-hook flattened call tree (which
+includes every custom hook it calls: `useStore`, `useAuth`, `useSettings`,
+`useNotifications`, `useBadges`, etc.) is its own investigation, out of
+scope for this mobile-fixes-and-music session.
+
+### Verification
+
+`npm run build` clean throughout every checkpoint. Production build
+verified via `vite preview` (not just dev server): service worker active,
+manifest correct, zero *new* console errors at 375px/1280px and light/dark
+(only the pre-existing issue above). Tooling note: this environment's
+`preview_click`/eval-based clicks were intermittently flaky — a click
+immediately followed by a state read in the *same* eval call would
+sometimes report the pre-click state; splitting the click and the
+follow-up read into two separate tool calls was reliable every time this
+was tried, and is the pattern used throughout this session's verification.
+
+---
+
 ## Phase 8 — PWA setup for iPhone (Add to Home Screen), pre-App Store (2026-07-01, Claude Code)
 
 First step toward App Store distribution: get Ligand properly installable

@@ -166,6 +166,32 @@ export function createReflection({ text, prompt = null, mood = null, location = 
   };
 }
 
+// A lightweight song log entry - "what I was listening to", not a player.
+// `date` (YYYY-MM-DD) is what same-day journal surfacing matches on;
+// `createdAt` is the full timestamp, used to break ties when several songs
+// share a date.
+export function createSong({
+  title,
+  artist,
+  album = null,
+  mood = null,
+  note = null,
+  journalEntryId = null,
+  date = todayKey(),
+} = {}) {
+  return {
+    id: uid("song"),
+    title: title || "",
+    artist: artist || "",
+    album,
+    mood,
+    note,
+    journalEntryId,
+    date,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 // "What I'm proud of" — counts UP from a start date, forgiving by design.
 export function createCountUp({ label, startDate = todayKey() } = {}) {
   return { id: uid("count"), label: label || "Day counter", startDate };
@@ -430,5 +456,6 @@ export function seedData() {
     workouts: [], // logged sessions
     workoutTemplates: [], // saved routines
     fitnessProfile: null,
+    songLog: [], // lightweight "what I was listening to" log (see Journal tab)
   };
 }

@@ -799,6 +799,10 @@ export default function App() {
             journal={store.journal}
             addJournalEntry={store.addJournalEntry}
             removeJournalEntry={store.removeJournalEntry}
+            songLog={store.songLog}
+            addSong={store.addSong}
+            updateSong={store.updateSong}
+            deleteSong={store.deleteSong}
             confirmBeforeDelete={confirmBeforeDelete}
             scrollTo={scrollTarget?.tab === "journal" ? scrollTarget : null}
           />

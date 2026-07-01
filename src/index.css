@@ -978,6 +978,7 @@ button { font: inherit; color: inherit; }
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.04), 0 0 10px -2px var(--accent-glow);
 }
 .tswitch[aria-checked="true"]::after { transform: translateX(calc(var(--w) - var(--h))); }
+.tswitch.disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* segmented */
 .seg {
@@ -2650,6 +2651,20 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .upcoming-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
 .upcoming-more { font-size: 11px; color: var(--ink-4); padding: 8px 6px 0; }
 
+/* Focus music suggestions (Settings) - curated discovery cards, no playback. */
+.focus-music-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.focus-music-card {
+  padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.focus-music-genre { font-size: 13px; font-weight: 600; color: var(--ink); }
+.focus-music-goodfor { font-size: 11px; color: var(--ink-3); margin-top: 2px; line-height: 1.4; }
+.focus-music-card .btn { font-size: 11px; padding: 0 8px; height: 26px; }
+
 /* Wallpaper gallery: built-ins + custom photos + an upload tile. */
 .wp-gallery {
   display: grid;
@@ -3967,6 +3982,55 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .journal-entry { padding-top: 14px; }
   .journal-entry-text { font-size: 14.5px; }
   .journal-entry-del { width: 32px; height: 32px; }
+}
+
+/* ---- Song log (Journal tab) ---- */
+.song-add-btn { gap: 6px; }
+.song-form {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px; border-radius: var(--r-md);
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.song-form-row { display: flex; gap: 8px; }
+.song-form-row > input { flex: 1; min-width: 0; }
+.song-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  max-width: 260px;
+}
+.song-chip.static { cursor: default; }
+.song-chip-remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: transparent; border: none; cursor: pointer;
+  color: inherit; opacity: 0.7;
+}
+.song-chip-remove:hover { opacity: 1; background: rgba(0, 0, 0, 0.08); }
+.journal-listening-to {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; font-size: 11.5px; color: var(--ink-3); font-style: italic;
+}
+.journal-listening-to svg { flex: none; opacity: 0.75; }
+
+.song-log-list { gap: 10px; }
+.song-log-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 0; border-top: 1px solid var(--line);
+}
+.song-log-list .song-log-row:first-child { border-top: none; padding-top: 0; }
+.song-log-ic {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent-ink, var(--accent));
+  margin-top: 1px;
+}
+.song-log-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.song-log-artist { font-weight: 500; color: var(--ink-3); }
+.song-log-note { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+.song-log-meta { font-size: 10.5px; color: var(--ink-4); margin-top: 3px; font-family: var(--font-mono); }
+.song-log-del { flex: none; width: 24px; height: 24px; }
+@media (max-width: 640px) {
+  .song-form-row { flex-direction: column; }
+  .song-log-del { width: 32px; height: 32px; }
 }
 
 /* ============================================================

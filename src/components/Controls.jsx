@@ -2,13 +2,15 @@
    These are the physical-feeling switches/sliders/segments the design calls for. */
 import { tick, pop } from "../lib/uiSounds.js";
 
-export function Switch({ checked, onChange }) {
+export function Switch({ checked, onChange, disabled = false }) {
   return (
     <button
-      className="tswitch"
+      className={"tswitch" + (disabled ? " disabled" : "")}
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => {
+        if (disabled) return;
         pop();
         onChange && onChange(!checked);
       }}
