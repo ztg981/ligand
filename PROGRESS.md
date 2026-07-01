@@ -102,14 +102,67 @@ shots where the tool cooperated) at 375px and 1280px, light+dark.
   tab) so tab/goal switches read as a gentle transition; respects
   `[data-reduce-motion="true"]`.
 
-### NOT started yet this session
-- **Section 3 — full workout system** (data model + ~60-exercise library,
-  fitness goal type + onboarding, manual logging + rest timer, intelligent
-  generation, progress tracking + 7 new badges). This is the single largest
-  remaining item — see the brief for the full staged spec.
-- **Section 4 — recovery-tracker journal sort fix** (small, targeted).
-- **Section 5 — em dash cleanup + stale-value audit** (optional polish, only
-  if time remains).
+**Section 3 — Workout system** (built in 5 staged commits)
+All fitness data lives under the existing `ligand.data` blob (`data.workouts`,
+`data.workoutTemplates`, `data.fitnessProfile`), so it syncs to the cloud with
+zero sync-layer changes.
+- **Stage A — data model + library** (`5cff69a`): `src/lib/exercises.js` with
+  61 exercises across all 8 muscle groups (each { id, name, muscleGroup,
+  equipment[], type, instructions? }); canonical equipment tags mapped from
+  the onboarding choices. model.js factories (createFitnessProfile, createSet,
+  createWorkoutExercise, createWorkout, createWorkoutTemplate) + helpers
+  (workoutVolume, exercisePR, weeklyWorkoutStreak, workoutsThisWeek). Store
+  actions add/update/delete for workouts + templates + updateFitnessProfile.
+- **Stage B — goal type + onboarding + tab + logging** (`b906dc5`): third
+  "A fitness goal" chooser card + 4-step onboarding (name, experience,
+  equipment multi-select, days/focus/unit). New `FitnessGoalTab` (today's
+  workout / weekly progress / streak / recent sessions / PRs per muscle
+  group) and full-screen `WorkoutLogger` (searchable library, per-exercise
+  sets, tap-to-complete, live timer, finish summary). Logger portaled to
+  document.body so it covers the FABs.
+- **Stage C — rest timer + PR celebration + templates** (`6d19f48`):
+  auto-start rest countdown after each set (strength 90s / cardio 30s,
+  ±15 adjust, skip, vibrate + chime at zero); trophy celebration when a set
+  beats the all-time best; save-as-template on the summary; start chooser
+  (log freely / from template). Fixed an effect-ordering bug (side effects
+  were inside the setState updater, which runs during render).
+- **Stage D — intelligent generation** (`092d519`): `src/lib/workoutGen.js`
+  builds a session from equipment + level (volume) + goal (reps) + muscle
+  recovery (avoid groups trained <2 days ago) + progressive overload
+  (+2.5kg/+5lb past last session). `WorkoutPreview` modal to swap/adjust/
+  regenerate/save/start. Verified generation correctly avoids a
+  same-day-trained group.
+- **Stage E — progress tracking + 7 badges** (`e308fc7`): Overview/Progress
+  toggle on the fitness tab; `FitnessProgress` with weekly/30-day summary,
+  muscle-balance bars, per-exercise weight/volume sparklines (hand-rolled
+  SVG), and optional body-stats (weight/body-fat) trend. New "Fitness" badge
+  category: First Rep, Consistent, Iron Will, PR Breaker, Comeback, Volume
+  King, Streak Builder — wired to workout-derived stats in App's badgeStats.
+
+**Section 4 — recovery journal** (`d7e5626`)
+- Investigated the reported "still oldest-first" issue: the newest-first
+  default + sort toggle are already present and working (added in `d941aa1`),
+  confirmed live. No sort bug. Aligned the only real inconsistency — recovery
+  entries showed date-only while the main journal shows full date+time — to
+  the shared `formatEntryDateTime` format.
+
+**Section 5 — em dash cleanup** (`3d4a38e`)
+- The app already declares UTF-8 so em dashes render fine, but per the brief
+  replaced hardcoded em dashes with ASCII hyphens across all user-facing text
+  (tabs/components/widgets/layout + ai.js/recovery.js content) and lone "—"
+  placeholders. 177 substitutions, 1:1, no logic touched.
+- Stale-value audit: flagged (did not fix) the pre-existing `.iconbtn`
+  vs `.tweaks-fab` CSS cascade quirk — left alone because the Focus FAB
+  stacking is positioned around the current layout.
+
+### Final sweep — PASSED
+- `npm run build` clean throughout (only the pre-existing >500 KB bundle
+  warning). Every section verified live in the dev preview.
+- All 7 top-nav tabs + the fitness goal tab cycled at 1280 (dark) and 375
+  (light): zero console errors/warnings, no horizontal overflow.
+- Fitness system exercised end-to-end live: onboarding → generate/log →
+  rest timer → PR celebration → save template → start-from-template →
+  progress charts → body stats → badge unlocks (First Rep, PR Breaker).
 
 ---
 
