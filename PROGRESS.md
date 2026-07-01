@@ -1,6 +1,114 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-06-30)_
+_Session date: 2026-06-14 (updated 2026-07-01)_
+
+## Phase 8 — PWA setup for iPhone (Add to Home Screen), pre-App Store (2026-07-01, Claude Code)
+
+First step toward App Store distribution: get Ligand properly installable
+on iPhone today via "Add to Home Screen," ahead of any native wrapper work.
+
+**Manifest** (`vite.config.js`) — updated to match the app's real identity
+instead of stale placeholder values:
+- `description`: "Focus, habits, and goals - designed for ADHD" (was a
+  different, longer sentence).
+- `theme_color`: `#558cb9` — was `#863bff` (a purple that no longer matches
+  anything in the app). The real light-theme accent is
+  `oklch(0.62 0.09 245)` (`--accent-h: 245` in `src/index.css`), computed via
+  canvas to its sRGB hex equivalent, `#558cb9`.
+- `background_color`: `#15161a` — the dark theme's `--bg`, used as the
+  splash-screen background while the app loads from the home screen icon.
+- `orientation`: `portrait` (was `portrait-primary`; `portrait` is the value
+  actually requested in the brief and is the more portable variant).
+- `icons`: left at the existing 192/512 PNGs (used by the manifest/Android);
+  iOS doesn't read this list at all (see below).
+
+**iOS icons** — iOS ignores the manifest's `icons` array entirely and only
+looks at `<link rel="apple-touch-icon">` tags. Generated all 9 standard
+iOS sizes (57, 60, 72, 76, 114, 120, 144, 152, 180) from the existing
+`pwa-512.png` source using `sharp` (installed with `--no-save` as a one-off
+dev tool, not a project dependency — removed after use, `package.json`/
+`package-lock.json` untouched). Files live at
+`public/apple-touch-icon-{size}x{size}.png`; `index.html` now links all 9,
+plus a bare `apple-touch-icon` (no `sizes`) pointing at the 180x180 as the
+fallback modern iPhones actually use.
+- *Note on process:* first attempt tried hand-transcribing base64 PNG data
+  through the model — this silently corrupted one icon (wrong bytes spliced
+  from a different size). Caught it before committing and switched to
+  generating the files programmatically instead of ever routing binary
+  image data through generated text.
+
+**iOS meta tags** (`index.html`) — `apple-mobile-web-app-capable`,
+`apple-mobile-web-app-status-bar-style` (`black-translucent`), and
+`apple-mobile-web-app-title` were already present from a previous session.
+Added: `viewport-fit=cover` to the viewport meta (lets the app draw under
+the iPhone notch/home-indicator safe areas), and three
+`apple-touch-startup-image` splash screens (iPhone 14 Pro 1179x2556,
+iPhone 14 1170x2532, iPhone SE 750x1334 — each a solid `#15161a` background
+with the app logo centered, generated with `sharp`), keyed by the correct
+`device-width`/`device-height`/`-webkit-device-pixel-ratio` media queries.
+
+**Verification (production build, not dev server):**
+- `npm run build` clean; precache count went from 31 -> 43 entries (new
+  icons/splashes picked up automatically by the existing
+  `globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}']` rule).
+- Served the actual `dist/` output via `vite preview` (port 4173) rather
+  than the dev server, since dev mode doesn't register a service worker.
+  Confirmed via the browser: `manifest.webmanifest` fetches and parses with
+  the correct name/colors/description; `navigator.serviceWorker
+  .getRegistrations()` shows an active registration scoped to `/`; zero
+  console errors.
+- **Offline fallback, tested for real**: killed the actual preview server
+  process (`taskkill`, confirmed with `curl` returning connection-refused),
+  then reloaded the already-open tab pointed at that dead origin. The app
+  still rendered the full sign-in UI from the service worker's precache —
+  not a blank page — with zero console errors. This is a genuine offline
+  test, not a simulation: the origin was completely gone when the page
+  loaded.
+- Tooling note: `preview_start` in this environment did not respect the
+  `ligand-preview` (port 4173, `vite preview`) entry in
+  `.claude/launch.json` — it always launched the `ligand` (port 5173,
+  `vite dev`) entry regardless of which name was requested, even after
+  editing the config (looks cached at session start). Worked around by
+  starting `vite preview` directly via Bash on 4173 and navigating the
+  tool-controlled browser tab to that origin with
+  `window.location.href = 'http://localhost:4173/'` — cross-origin
+  navigation isn't blocked the way cross-origin `fetch` reads are, so this
+  gave real DevTools-equivalent access to the production build. No code
+  change resulted from this, just noting it for next time this comes up.
+
+### Next steps for actual App Store submission (not done, path documented only)
+
+Add to Home Screen gets Ligand installable today, but a real App Store
+listing needs a native wrapper around the same web app. Two viable paths:
+
+1. **Capacitor** (recommended) — wraps the existing Vite build almost as-is.
+   `npx cap init`, `npx cap add ios`, point Capacitor's `webDir` at `dist/`,
+   then open the generated Xcode project. Existing PWA manifest/icons carry
+   over directly; add native plugins only if a feature needs one (haptics,
+   push notifications) that the web APIs already used here
+   (`navigator.vibrate`) can't cover on iOS Safari's WebView.
+2. **Expo (React Native)** — a much bigger lift since the app is a plain
+   React + Vite SPA, not React Native; would mean re-platforming components,
+   not wrapping them. Not worth it unless native-only APIs become a hard
+   requirement.
+
+Either path additionally requires, before submission is possible at all:
+- An **Apple Developer Program** account ($99/year) to sign builds and
+  submit to App Store Connect.
+- A Mac with Xcode (or a cloud Mac CI service) to build/archive the iOS
+  binary — this can't be done from Windows directly.
+- App Store assets: proper marketing screenshots per device size,
+  a privacy policy URL (Ligand stores data locally/in Supabase — the
+  policy needs to say so), and answers to Apple's data-collection
+  questionnaire.
+- A review pass for Apple's Human Interface Guidelines fit-and-finish
+  expectations (safe-area handling, no dead-tap zones, etc.) — the
+  `viewport-fit=cover` + existing safe-area CSS work already done for
+  mobile this session is a head start here.
+
+None of this was built this session — only documented as the path forward.
+
+---
 
 ## Phase 7 — Hyperfocus FAB, mobile UX pass, workout system (2026-06-30, Claude Code)
 

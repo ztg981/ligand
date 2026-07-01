@@ -15,11 +15,14 @@ export default defineConfig({
       manifest: {
         name: 'Ligand',
         short_name: 'Ligand',
-        description: 'Gentle productivity and journaling for people with ADHD.',
-        theme_color: '#863bff',
-        background_color: '#faf8f5',
+        description: 'Focus, habits, and goals - designed for ADHD',
+        // Matches --accent in the light theme (src/index.css): oklch(0.62 0.09 245).
+        theme_color: '#558cb9',
+        // Matches --bg in the dark theme, used for the splash background
+        // shown while the app loads on the home screen.
+        background_color: '#15161a',
         display: 'standalone',
-        orientation: 'portrait-primary',
+        orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
