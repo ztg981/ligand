@@ -4071,6 +4071,60 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .fit-today-card { grid-column: 1 / -1; }
 }
 
+.fit-view-seg { margin-bottom: 18px; }
+
+/* ---- Fitness progress view ---- */
+.fp { display: flex; flex-direction: column; gap: 4px; }
+.fp-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+.fp-sum-card { padding: 14px 16px; }
+.fp-sum-title {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 10px;
+}
+.fp-sum-row { display: flex; gap: 22px; }
+.fp-sum-row > div { display: flex; flex-direction: column; gap: 2px; }
+.fp-sum-num { font-size: 24px; font-weight: 600; color: var(--ink); font-family: var(--font-mono); line-height: 1; }
+.fp-sum-lbl { font-size: 11px; color: var(--ink-3); }
+
+.fp-balance { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.fp-bal-row { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; }
+.fp-bal-name { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+.fp-bal-track { height: 10px; border-radius: 999px; background: var(--panel-3); overflow: hidden; }
+.fp-bal-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), oklch(0.72 0.14 var(--hue-lav)));
+}
+.fp-bal-val { font-size: 11.5px; color: var(--ink-4); font-family: var(--font-mono); }
+
+.fp-exercise { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.fp-ex-select { height: 42px; }
+.fp-ex-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fp-ex-chart { display: flex; flex-direction: column; gap: 6px; }
+.fp-ex-chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fp-ex-chart-head > span:first-child {
+  font-size: 11px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.02em;
+}
+.fp-ex-latest { font-size: 13px; font-weight: 700; color: var(--ink); font-family: var(--font-mono); }
+.fp-spark { width: 100%; height: 44px; display: block; overflow: visible; }
+.fp-spark-empty { font-size: 12px; color: var(--ink-4); padding: 14px 0; text-align: center; }
+
+.fp-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.fp-body-add { display: flex; gap: 10px; align-items: flex-end; }
+.fp-body-add .wp-field { flex: 1; }
+.fp-body-trend { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 14px; }
+.fp-body-trend-head { display: flex; align-items: baseline; justify-content: space-between; }
+.fp-body-trend-head > span:first-child { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.fp-body-delta { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+.fp-body-delta.down { color: oklch(0.62 0.14 var(--hue-mint)); }
+.fp-body-delta.up { color: oklch(0.62 0.14 var(--hue-amb)); }
+.fp-body-latest { font-size: 12px; color: var(--ink-3); }
+
+@media (max-width: 640px) {
+  .fp-summary { grid-template-columns: 1fr; }
+  .fp-ex-charts { grid-template-columns: 1fr; }
+  .fp-body-add { flex-wrap: wrap; }
+}
+
 /* ============================================================
    Workout logger — full-screen in-gym flow
    ============================================================ */

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "./Icons.jsx";
 import WorkoutLogger from "./WorkoutLogger.jsx";
 import WorkoutPreview from "./WorkoutPreview.jsx";
+import FitnessProgress from "./FitnessProgress.jsx";
 import {
   workoutsThisWeek,
   weeklyWorkoutStreak,
@@ -93,8 +94,10 @@ export default function FitnessGoalTab({
   templates = [],
   addWorkout,
   addTemplate,
+  updateFitnessProfile,
   onArchiveGoal,
 }) {
+  const [view, setView] = useState("overview"); // overview | progress
   // logging: null (overview) | { exercises } (active session, exercises may be
   // empty for a free log or seeded from a template/generated plan)
   const [logging, setLogging] = useState(null);
@@ -222,6 +225,25 @@ export default function FitnessGoalTab({
         )}
       </div>
 
+      <div className="seg fit-view-seg">
+        <button className={view === "overview" ? "active" : ""} onClick={() => setView("overview")}>
+          Overview
+        </button>
+        <button className={view === "progress" ? "active" : ""} onClick={() => setView("progress")}>
+          Progress
+        </button>
+      </div>
+
+      {view === "progress" ? (
+        <FitnessProgress
+          profile={profile}
+          workouts={myWorkouts}
+          updateFitnessProfile={updateFitnessProfile}
+        />
+      ) : (
+      <>
+      {/* overview content wrapper */}
+
       {/* TOP: today's plan + weekly progress + streak */}
       <div className="fit-top">
         <div className="card fit-today-card">
@@ -327,6 +349,8 @@ export default function FitnessGoalTab({
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* "How do you want to start?" chooser (only when templates exist). */}

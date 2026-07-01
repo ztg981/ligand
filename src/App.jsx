@@ -21,7 +21,7 @@ import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS } from "./lib/model.js";
+import { todayKey, daysBetween, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import { wallpaperById } from "./lib/wallpaper.js";
 import Home from "./tabs/Home.jsx";
@@ -275,8 +275,76 @@ export default function App() {
       goalCount: allGoals.length,
       habitGoalCount: allGoals.filter((g) => (g.habits?.length || 0) >= 1).length,
       maxVisitStreak,
+      // --- fitness / workout signals ---
+      ...(() => {
+        const workouts = store.workouts || [];
+        const unit = store.fitnessProfile?.weightUnit || "lbs";
+        const toLbs = unit === "kg" ? 2.20462 : 1;
+
+        // Max single-session volume, normalised to lbs for the badge threshold.
+        let maxSessionVolumeLbs = 0;
+        workouts.forEach((w) => {
+          maxSessionVolumeLbs = Math.max(maxSessionVolumeLbs, workoutVolume(w) * toLbs);
+        });
+
+        // Beat a PR: per exercise, a later session's top set exceeds the best
+        // that came before it (the first-ever lift doesn't count as "beating").
+        // Tiebreak same-day sessions by createdAt so within-day order is right.
+        const asc = [...workouts].sort(
+          (a, b) =>
+            String(a.date).localeCompare(String(b.date)) ||
+            String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+        );
+        const bestByEx = {};
+        let beatPR = false;
+        for (const w of asc) {
+          for (const ex of w.exercises || []) {
+            if (!ex.exerciseId) continue;
+            const top = (ex.sets || []).reduce(
+              (m, s) => (s.done && s.weight != null ? Math.max(m, s.weight) : m),
+              0
+            );
+            if (top <= 0) continue;
+            if (bestByEx[ex.exerciseId] != null && top > bestByEx[ex.exerciseId]) beatPR = true;
+            bestByEx[ex.exerciseId] = Math.max(bestByEx[ex.exerciseId] ?? 0, top);
+          }
+        }
+
+        // Comeback: a 2+ week gap between consecutive workout days.
+        const dates = [...new Set(workouts.map((w) => w.date))].sort();
+        let comebackWorkout = false;
+        for (let i = 1; i < dates.length; i++) {
+          if (daysBetween(dates[i - 1], dates[i]) >= 14) comebackWorkout = true;
+        }
+
+        // Most workouts in any Mon-anchored calendar week.
+        const weekKey = (key) => {
+          const d = new Date(key + "T00:00:00");
+          const dow = (d.getDay() + 6) % 7;
+          d.setDate(d.getDate() - dow);
+          return todayKey(d);
+        };
+        const weekCounts = {};
+        workouts.forEach((w) => {
+          const k = weekKey(w.date);
+          weekCounts[k] = (weekCounts[k] || 0) + 1;
+        });
+        const maxWorkoutsInWeek = Object.values(weekCounts).reduce(
+          (m, c) => Math.max(m, c),
+          0
+        );
+
+        return {
+          workoutCount: workouts.length,
+          maxWorkoutsInWeek,
+          beatPR,
+          comebackWorkout,
+          maxSessionVolumeLbs,
+          workoutWeekStreak: weeklyWorkoutStreak(workouts),
+        };
+      })(),
     };
-  }, [store.goals, store.tasks, store.countUps, store.journal, store.focusLog, visitDates]);
+  }, [store.goals, store.tasks, store.countUps, store.journal, store.focusLog, store.workouts, store.fitnessProfile, visitDates]);
 
   const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
     useBadges(badgeStats);
