@@ -7,7 +7,7 @@ import { flashElement } from "../lib/scrollFlash.js";
 /* ============================================================
    Tasks tab
    Add / edit / complete / delete tasks, with labels + filters.
-   Pure UI over the store — all persistence handled by useStore.
+   Pure UI over the store - all persistence handled by useStore.
    ============================================================ */
 
 const BASE_LABELS = ["Today", "Urgent", "General"];
@@ -132,7 +132,7 @@ export default function Tasks({
           <div className="eyebrow">To-do</div>
           <h1 className="page-title">Tasks</h1>
           <p className="page-sub">
-            Everything you want to get to — labelled and filterable. One at a time is plenty.
+            Everything you want to get to - labelled and filterable. One at a time is plenty.
           </p>
         </div>
       </div>
@@ -254,7 +254,7 @@ export default function Tasks({
         <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--ink-3)" }}>
           <div style={{ fontSize: 13 }}>
             {counts.total === 0
-              ? "No tasks yet — add the first thing on your mind above."
+              ? "No tasks yet - add the first thing on your mind above."
               : "Nothing here with this filter. That's okay."}
           </div>
         </div>

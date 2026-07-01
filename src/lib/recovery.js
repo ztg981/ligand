@@ -1,7 +1,7 @@
 import { daysSince, todayKey } from "./model.js";
 
 /* ============================================================
-   Recovery tracker helpers — pure data + math, no React.
+   Recovery tracker helpers - pure data + math, no React.
 
    A recovery goal counts real elapsed days free from something the
    user named. Milestones are recognized recovery markers. The tone
@@ -51,7 +51,7 @@ export function encouragingLine(days) {
   if (days < 90) return "A month-plus of momentum. This is becoming who you are.";
   if (days < 180) return "Look how far you've carried yourself.";
   if (days < 365) return "Months of freedom. You've changed your story.";
-  return "This is a long, brave road — and you're walking it.";
+  return "This is a long, brave road - and you're walking it.";
 }
 
 // Recovery-specific reflection prompts (the journal falls back to these first).

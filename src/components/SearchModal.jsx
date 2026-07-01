@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./Icons.jsx";
 
 /* ============================================================
-   SearchModal — a floating command-palette-style search.
+   SearchModal - a floating command-palette-style search.
 
    Searches across goals, tasks (text + label), journal entries,
    habit names, and count-up labels. Results are grouped by type;
@@ -220,7 +220,7 @@ export default function SearchModal({
               Start typing to search your goals, tasks, and journal.
             </div>
           ) : flat.length === 0 ? (
-            <div className="search-hint">Nothing found — try a different word.</div>
+            <div className="search-hint">Nothing found - try a different word.</div>
           ) : (
             results.map((group) => (
               <div key={group.type} className="search-group">

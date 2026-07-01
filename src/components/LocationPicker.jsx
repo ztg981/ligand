@@ -4,7 +4,7 @@ import { captureLocationName } from "../lib/geolocate.js";
 
 /* A tiny, optional "add location" control for the journal/reflection compose
    area. Requests the browser location, resolves a city name, and reports it up
-   via onChange. Only the resolved name is ever held — never coordinates.
+   via onChange. Only the resolved name is ever held - never coordinates.
    Failures are quiet: a small muted hint, no scary errors. */
 export default function LocationPicker({ location, onChange }) {
   const [status, setStatus] = useState("idle"); // idle | locating | error
@@ -20,7 +20,7 @@ export default function LocationPicker({ location, onChange }) {
         setStatus("error");
       }
     } catch {
-      // Denied, unavailable, or offline — location is always optional.
+      // Denied, unavailable, or offline - location is always optional.
       setStatus("error");
     }
   };
@@ -58,7 +58,7 @@ export default function LocationPicker({ location, onChange }) {
       </button>
       <span style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
         {status === "error"
-          ? "Location unavailable — that's okay, it's optional."
+          ? "Location unavailable - that's okay, it's optional."
           : "Only the city name is saved, never your exact location."}
       </span>
     </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth.jsx";
 
 /* ============================================================
-   SetNewPassword — shown after the user follows a password-reset
+   SetNewPassword - shown after the user follows a password-reset
    email link. Supabase has already established a temporary
    recovery session (PASSWORD_RECOVERY), so all we need is the new
    password. On success we clear the recovery flag and the app
@@ -62,7 +62,7 @@ export default function SetNewPassword() {
 
         {done ? (
           <div className="auth-notice" role="status">
-            Password updated — signing you in…
+            Password updated - signing you in…
           </div>
         ) : (
           <form onSubmit={submit} className="auth-form">

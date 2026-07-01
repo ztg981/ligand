@@ -4,7 +4,7 @@ import { fetchWeeklyReview } from "../lib/aiApi.js";
 import { Icon } from "../components/Icons.jsx";
 
 /* ============================================================
-   WeeklyReview — a once-a-week, gentle AI summary of the user's
+   WeeklyReview - a once-a-week, gentle AI summary of the user's
    activity across all goals. Built only from real data (tasks,
    habit check-ins, journal entries, weekday patterns) so the AI
    has something concrete to reflect on rather than inventing.
@@ -28,7 +28,7 @@ function buildContext({ goals = [], tasks = [], journal = [] }) {
     0
   );
 
-  // Habit check-ins by weekday over the last 4 weeks — gives the AI a real
+  // Habit check-ins by weekday over the last 4 weeks - gives the AI a real
   // signal to (optionally) spot a pattern like "Tuesdays are your strongest."
   const weekdayCheckIns = {};
   for (const d of last28) {
@@ -88,14 +88,14 @@ export default function WeeklyReview({ goals = [], tasks = [], journal = [] }) {
 
   // Fetch when there's real activity to summarize. The dependency is the
   // boolean hasActivity (not the context object), so this re-runs only when
-  // activity first appears — not on every task/habit edit — while staying
+  // activity first appears - not on every task/habit edit - while staying
   // safe under StrictMode's double-invoke. Per-week caching in
   // fetchWeeklyReview keeps repeat loads to a single AI call.
   useEffect(() => {
     if (!hasActivity) {
       setReview({
         text:
-          "Your week is just getting started here — add a task or check in on a habit, and next week I'll have something to reflect back.",
+          "Your week is just getting started here - add a task or check in on a habit, and next week I'll have something to reflect back.",
         source: "empty",
       });
       return;

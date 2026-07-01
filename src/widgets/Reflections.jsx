@@ -6,7 +6,7 @@ import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import LocationPicker from "../components/LocationPicker.jsx";
 
-/* Reflections — a light journal scoped to one goal.
+/* Reflections - a light journal scoped to one goal.
    A rotating gentle prompt + a place to jot a few lines. Past notes
    are listed newest-first by default; the sort can be flipped per goal. */
 
@@ -133,7 +133,7 @@ export default function Reflections({
 
       <textarea
         className="input"
-        placeholder="A line or two — or skip it, no pressure."
+        placeholder="A line or two - or skip it, no pressure."
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={roomy ? 5 : 3}

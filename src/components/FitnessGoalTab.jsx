@@ -60,11 +60,11 @@ function workoutToTemplatePlan(exercises) {
   });
 }
 
-/* FitnessGoalTab — the preset layout for a Fitness goal, distinct from the
+/* FitnessGoalTab - the preset layout for a Fitness goal, distinct from the
    regular SMART goal tab. Three sections per the brief:
-     TOP     — today's plan / log button, weekly progress, current streak
-     MIDDLE  — recent sessions (last 5)
-     BOTTOM  — personal records per muscle group
+     TOP     - today's plan / log button, weekly progress, current streak
+     MIDDLE  - recent sessions (last 5)
+     BOTTOM  - personal records per muscle group
 
    Stage B: the overview + manual free logging (via WorkoutLogger).
    (Stage C adds the rest timer + PR celebration + start-from-template;
@@ -82,7 +82,7 @@ function relDate(key) {
 }
 
 function fmtDuration(sec) {
-  if (!sec) return "—";
+  if (!sec) return "-";
   const m = Math.round(sec / 60);
   return `${m} min`;
 }
@@ -105,7 +105,7 @@ export default function FitnessGoalTab({
   const [preview, setPreview] = useState(null); // generated plan under review
   const unit = profile?.weightUnit || "lbs";
 
-  // Only this goal's sessions (fall back to all if none are tagged — a lone
+  // Only this goal's sessions (fall back to all if none are tagged - a lone
   // fitness goal often logs untagged sessions).
   const myWorkouts = useMemo(() => {
     const tagged = workouts.filter((w) => w.goalId === goal.id);
@@ -152,7 +152,7 @@ export default function FitnessGoalTab({
     );
   };
 
-  // Start a session — free log, or seeded from a template.
+  // Start a session - free log, or seeded from a template.
   const startFree = () => {
     setChoosing(false);
     setLogging({ exercises: null });

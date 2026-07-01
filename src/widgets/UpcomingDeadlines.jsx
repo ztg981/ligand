@@ -2,7 +2,7 @@ import { goalTargetDate, isGoalOverdue, todayKey, daysBetween } from "../lib/mod
 import { Icon } from "../components/Icons.jsx";
 
 /* ============================================================
-   UpcomingDeadlines — a calm, cross-goal look at what's coming.
+   UpcomingDeadlines - a calm, cross-goal look at what's coming.
 
    Lists every active goal that has a target date (the SMART
    "time-bound" field, or a legacy deadline), soonest first.

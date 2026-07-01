@@ -1,5 +1,5 @@
 /* ============================================================
-   HyperfocusBackdrop — the full-screen animated layer behind the
+   HyperfocusBackdrop - the full-screen animated layer behind the
    whole app while Hyperfocus mode is active.
 
    Rebuilt for premium depth:
@@ -10,7 +10,7 @@
    - Red vignette to focus the eye inward
 
    All motion is killed automatically by [data-reduce-motion="true"] /
-   prefers-reduced-motion — static colour theme stays intact.
+   prefers-reduced-motion - static colour theme stays intact.
    ============================================================ */
 
 export default function HyperfocusBackdrop() {
@@ -21,9 +21,9 @@ export default function HyperfocusBackdrop() {
       <div className="hf-wave hf-wave-2" />
       <div className="hf-wave hf-wave-3" />
 
-      {/* Concentric radar rings — 4 rings, staggered 1.375s apart.
+      {/* Concentric radar rings - 4 rings, staggered 1.375s apart.
           Each starts small+blurry+thick (near the viewer), then expands
-          outward while thinning and sharpening — the "depth" effect. */}
+          outward while thinning and sharpening - the "depth" effect. */}
       <div className="hf-rings">
         <span className="hf-ring" style={{ animationDelay: "0s" }} />
         <span className="hf-ring" style={{ animationDelay: "-1.375s" }} />
@@ -31,10 +31,10 @@ export default function HyperfocusBackdrop() {
         <span className="hf-ring" style={{ animationDelay: "-4.125s" }} />
       </div>
 
-      {/* HUD scanning line — thin horizontal sweep, subtle, periodic */}
+      {/* HUD scanning line - thin horizontal sweep, subtle, periodic */}
       <div className="hf-scan" />
 
-      {/* Red vignette — darker edges, focuses the eye inward */}
+      {/* Red vignette - darker edges, focuses the eye inward */}
       <div className="hf-vignette" />
     </div>
   );

@@ -12,7 +12,7 @@ import {
 } from "../lib/model.js";
 import { searchExercises, findExercise } from "../lib/exercises.js";
 
-/* WorkoutLogger — the in-gym flow. A full-screen layer (not a centered modal)
+/* WorkoutLogger - the in-gym flow. A full-screen layer (not a centered modal)
    so it works one-handed on a phone at the rack. Add exercises from the
    library, log sets (reps × weight, or a duration for cardio), tap a set to
    mark it complete, then Finish to save a session + see a summary.
@@ -40,7 +40,7 @@ export default function WorkoutLogger({
   const restStrength = profile?.restStrengthSec || 90;
   const restCardio = profile?.restCardioSec || 30;
 
-  // All-time best weight for an exercise coming INTO this session — the
+  // All-time best weight for an exercise coming INTO this session - the
   // baseline a completed set must beat to count as a personal record.
   const priorBestFor = (exerciseId) => exercisePR(priorWorkouts, exerciseId);
   const celebratedRef = useRef(new Set()); // exerciseIds already celebrated this session
@@ -76,7 +76,7 @@ export default function WorkoutLogger({
       try {
         navigator.vibrate?.([180, 90, 180]);
       } catch {
-        /* not supported — fine */
+        /* not supported - fine */
       }
       try {
         ding();
@@ -248,7 +248,7 @@ export default function WorkoutLogger({
             </div>
             <div className="wl-sum-stat">
               <span className="wl-sum-num">
-                {summary.volume ? summary.volume.toLocaleString() : "—"}
+                {summary.volume ? summary.volume.toLocaleString() : "-"}
               </span>
               <span className="wl-sum-lbl">{unit} lifted</span>
             </div>
@@ -432,7 +432,7 @@ export default function WorkoutLogger({
         </button>
       </div>
 
-      {/* Rest timer — auto-starts after each completed set. The integrated
+      {/* Rest timer - auto-starts after each completed set. The integrated
           in-gym clock: big countdown, the exercise you just did, quick
           adjust, and skip. */}
       {rest && (

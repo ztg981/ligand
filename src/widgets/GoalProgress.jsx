@@ -3,7 +3,7 @@ import { todayKey, shiftDay, isCheckedOn } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import { fetchAiInsight, clearAiCache } from "../lib/aiApi.js";
 
-/* GoalProgress — a calm snapshot for ONE goal:
+/* GoalProgress - a calm snapshot for ONE goal:
    - task completion (done / total)
    - this week's habit check-ins (a count, never framed as a shortfall) */
 
@@ -146,7 +146,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
           <Icon.Target /> Progress
         </div>
         <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-          {total ? `${done}/${total}` : "—"}
+          {total ? `${done}/${total}` : "-"}
         </span>
       </div>
 
@@ -154,7 +154,7 @@ export default function GoalProgress({ goal, tasks, widgetSize = "medium", weekS
         <Bar pct={pct} color={goal.color} />
         <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 6 }}>
           {total === 0
-            ? "No tasks linked to this goal yet — add some from the Tasks tab."
+            ? "No tasks linked to this goal yet - add some from the Tasks tab."
             : `${pct}% of this goal's tasks are done. Every bit counts.`}
         </div>
       </div>

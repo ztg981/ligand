@@ -24,9 +24,9 @@ function pickByDay(arr, salt = 0) {
 const ENCOURAGEMENT = {
   warm: {
     done: (n) => [
-      `That's ${n} done already — proof you're moving.`,
+      `That's ${n} done already - proof you're moving.`,
       `${n} finished. Momentum doesn't have to be loud to count.`,
-      `Nice — ${n} off your plate. Rest is allowed too.`,
+      `Nice - ${n} off your plate. Rest is allowed too.`,
     ],
     streak: (s) => [
       `You've shown up ${s} days in a row. Gently does it.`,
@@ -34,10 +34,10 @@ const ENCOURAGEMENT = {
     ],
     clear: () => [
       "A clear list is a fine place to be. Add one thing when you're ready.",
-      "Nothing pressing right now — that's okay to enjoy.",
+      "Nothing pressing right now - that's okay to enjoy.",
     ],
     nudge: () => [
-      "Small steps still count. Pick one thing — momentum follows.",
+      "Small steps still count. Pick one thing - momentum follows.",
       "You don't have to do it all. Just the next small piece.",
       "Be kind to today's version of you. One step is enough.",
     ],
@@ -62,20 +62,20 @@ const ENCOURAGEMENT = {
   },
   cheerful: {
     done: (n) => [
-      `Woohoo — ${n} done already! You're on a roll! 🎉`,
+      `Woohoo - ${n} done already! You're on a roll! 🎉`,
       `${n} knocked out! Look at you go! ✨`,
     ],
     streak: (s) => [
-      `${s} days strong — you're unstoppable! 🔥`,
+      `${s} days strong - you're unstoppable! 🔥`,
       `${s}-day streak! That's seriously awesome.`,
     ],
     clear: () => [
-      "All clear — enjoy the breathing room! 🌿",
+      "All clear - enjoy the breathing room! 🌿",
       "Clean slate! A perfect moment to relax or dream up something new.",
     ],
     nudge: () => [
       "Let's pick one fun little thing to kick things off! 💪",
-      "One tiny step and you're moving — you've got this!",
+      "One tiny step and you're moving - you've got this!",
     ],
   },
 };
@@ -107,12 +107,12 @@ export function summarizeProgress({ goals = [], tasks = [] } = {}) {
 export function reentryMessage(daysAway = 0) {
   // TODO(ai): could personalise based on what was left in progress.
   if (daysAway >= 14) {
-    return "It's been a little while — and that's completely fine. Nothing's broken, your streaks are paused, not lost. Want to pick one small thing?";
+    return "It's been a little while - and that's completely fine. Nothing's broken, your streaks are paused, not lost. Want to pick one small thing?";
   }
   if (daysAway >= 7) {
-    return "Welcome back. A week away is no problem at all — your habits paused, they didn't reset. Ease in with one tiny step.";
+    return "Welcome back. A week away is no problem at all - your habits paused, they didn't reset. Ease in with one tiny step.";
   }
-  return "Welcome back. You didn't lose any progress while you were away — pick up wherever feels easy.";
+  return "Welcome back. You didn't lose any progress while you were away - pick up wherever feels easy.";
 }
 
 /* A gentle reflection prompt. Rotates daily; salt lets callers vary it. */
@@ -121,7 +121,7 @@ export function reflectionPrompt(salt = 0) {
   return pickByDay(
     [
       "What's one small thing that went okay today?",
-      "What felt heavier than it needed to — and could it be lighter tomorrow?",
+      "What felt heavier than it needed to - and could it be lighter tomorrow?",
       "What are you quietly proud of right now?",
       "If today was a 2/10 day, what would still make it count?",
       "What's one kind thing you could do for tomorrow-you?",

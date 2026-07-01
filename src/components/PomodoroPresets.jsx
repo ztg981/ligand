@@ -3,7 +3,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { Icon } from "../components/Icons.jsx";
 
 /* ============================================================
-   PomodoroPresets — named timer configurations as quick-select
+   PomodoroPresets - named timer configurations as quick-select
    chips. Clicking a chip applies its work / short / long / cadence
    to the live Pomodoro settings. Persisted in ligand.pomodoroPresets
    (so they sync for logged-in users and stay local for guests).

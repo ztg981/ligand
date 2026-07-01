@@ -2,14 +2,14 @@ import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { SCIENCE_STATS, dailyStatIndex } from "../lib/scienceStats.js";
 
-/* DidYouKnow — a soft "Did you know?" card on the dashboard.
+/* DidYouKnow - a soft "Did you know?" card on the dashboard.
    Shows one science-backed stat, rotating once per calendar day. A
    subtle arrow lets the curious browse the rest manually without
    changing what tomorrow shows. */
 export default function DidYouKnow() {
   // The day's starting stat (stable for the whole day).
   const base = useMemo(() => dailyStatIndex(), []);
-  // Manual browsing offset — does not affect the daily rotation.
+  // Manual browsing offset - does not affect the daily rotation.
   const [offset, setOffset] = useState(0);
 
   const idx = (base + offset) % SCIENCE_STATS.length;

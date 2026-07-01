@@ -3,7 +3,7 @@ import { daysSince, todayKey } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
-/* CountUps — manage "what I'm proud of" day counters.
+/* CountUps - manage "what I'm proud of" day counters.
    Each one counts UP from a start date (forgiving: nothing resets it on
    its own). Users can add their own (e.g. "No gaming"), rename, set or
    reset the start date, and delete ones they don't want. */
@@ -51,7 +51,7 @@ export default function CountUps({
 
       {countUps.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-          No count-ups yet. Start one below — it counts up gently and never
+          No count-ups yet. Start one below - it counts up gently and never
           resets on its own.
         </div>
       ) : (

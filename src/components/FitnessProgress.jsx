@@ -3,12 +3,12 @@ import { Icon } from "./Icons.jsx";
 import { workoutVolume, todayKey, shiftDay } from "../lib/model.js";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
 
-/* FitnessProgress — the analytics view for a Fitness goal:
+/* FitnessProgress - the analytics view for a Fitness goal:
      - weekly / monthly summary (sessions + volume)
      - muscle-group balance (last 28 days volume per group)
      - per-exercise weight-over-time + volume-over-time sparklines
      - optional body stats (weight / body fat %) with a simple trend
-   All charts are hand-rolled SVG — no charting dependency. */
+   All charts are hand-rolled SVG - no charting dependency. */
 
 // A tiny sparkline from an array of {x, y}. Scales to the given box.
 function Sparkline({ values = [], width = 240, height = 44, color = "var(--accent)" }) {
@@ -222,11 +222,11 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
         <div className="fp-body-add">
           <label className="wp-field">
             <span>Weight ({unit})</span>
-            <input className="input" type="number" inputMode="decimal" min="0" value={bw} onChange={(e) => setBw(e.target.value)} placeholder="—" />
+            <input className="input" type="number" inputMode="decimal" min="0" value={bw} onChange={(e) => setBw(e.target.value)} placeholder="-" />
           </label>
           <label className="wp-field">
             <span>Body fat %</span>
-            <input className="input" type="number" inputMode="decimal" min="0" value={bf} onChange={(e) => setBf(e.target.value)} placeholder="—" />
+            <input className="input" type="number" inputMode="decimal" min="0" value={bf} onChange={(e) => setBf(e.target.value)} placeholder="-" />
           </label>
           <button className="btn" onClick={addBodyStat} disabled={!bw} style={{ opacity: bw ? 1 : 0.5, flex: "none", height: 40, alignSelf: "flex-end" }}>
             <Icon.Plus width={13} height={13} /> Log

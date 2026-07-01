@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 
-/* Notes — the calmest tab in the app.
+/* Notes - the calmest tab in the app.
    A frictionless plain-text scratchpad, like iPhone Notes. No goal links,
    no prompts, no formatting toolbar. Notes auto-save as you type (debounced
    500ms). The first line is the title; the rest is preview text.
@@ -79,7 +79,7 @@ export default function Notes({
   }, [selectedId]);
 
   // Leaving a note: persist its text, or discard it entirely if it's blank
-  // (so an opened-but-untouched note never clutters the list — iPhone-style).
+  // (so an opened-but-untouched note never clutters the list - iPhone-style).
   const leaveCurrent = () => {
     const id = selectedIdRef.current;
     if (!id) return;
@@ -185,7 +185,7 @@ export default function Notes({
           <div className="eyebrow">Capture</div>
           <h1 className="page-title">Notes</h1>
           <p className="page-sub">
-            A quiet scratchpad. Just write — it saves itself.
+            A quiet scratchpad. Just write - it saves itself.
           </p>
         </div>
         <button

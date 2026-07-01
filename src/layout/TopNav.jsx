@@ -287,7 +287,7 @@ function SyncPill({ status }) {
   if (status === "idle" || status === "synced") return null;
   if (status === "offline") {
     return (
-      <span className="sync-pill offline" title="Can't reach the cloud — your changes are saved on this device and will sync when you're back online.">
+      <span className="sync-pill offline" title="Can't reach the cloud - your changes are saved on this device and will sync when you're back online.">
         <span className="sync-dot" /> Offline
       </span>
     );
@@ -316,7 +316,7 @@ const TOOLS = [
 // shows the tabs people actually reach for one-handed: capturing a task or
 // note, checking in on a habit, reviewing goals. Pomodoro (a sit-down focus
 // session) and Settings (infrequent) move to the avatar overflow menu
-// instead of crowding the bar — both still one tap away, just not in the
+// instead of crowding the bar - both still one tap away, just not in the
 // thumb zone.
 const BOTTOM_NAV_IDS = ["home", "tasks", "notes", "journal", "overview"];
 
@@ -474,7 +474,7 @@ export default function TopNav({
   const goalItems = goals.map((g) => ({
     id: g.id,
     label: g.name,
-    // Recovery goals use a leaf icon instead of the color dot — subtle privacy.
+    // Recovery goals use a leaf icon instead of the color dot - subtle privacy.
     dot: g.type === "recovery" ? null : g.color,
     icon: g.type === "recovery" ? (
       <span className="recovery-leaf"><Icon.Leaf /></span>
@@ -519,15 +519,15 @@ export default function TopNav({
            On phones the main app tabs move to a bottom tab bar, so only the goal
            pills remain here. */}
         <div className="topbar-scroll">
-          {/* Main app tabs (hidden on phone — see .bottom-nav) */}
+          {/* Main app tabs (hidden on phone - see .bottom-nav) */}
           <div className="topbar-main-tabs">
             <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
             {/* Divider between app tabs and goal tabs */}
             <div className="tab-sep" />
           </div>
 
-          {/* Goal tabs — active only when we're on the "goal" screen.
-             DESKTOP (≥768px): hidden — goals live in the left sidebar instead.
+          {/* Goal tabs - active only when we're on the "goal" screen.
+             DESKTOP (≥768px): hidden - goals live in the left sidebar instead.
              Tablet/phone: shown here (phones get a dropdown in a later pass). */}
           <div className="topbar-goals">
             <Tabset
@@ -548,7 +548,7 @@ export default function TopNav({
             />
           </div>
 
-          {/* MOBILE (<768px) goal selector — replaces the cramped goal pills.
+          {/* MOBILE (<768px) goal selector - replaces the cramped goal pills.
              Desktop uses the sidebar; this is hidden there via CSS. */}
           <GoalDropdown
             goals={goals}
@@ -592,7 +592,7 @@ export default function TopNav({
         </div>
       </DndContext>
 
-      {/* Bottom tab bar — phone only (CSS-gated). Shows the 5 tabs most useful
+      {/* Bottom tab bar - phone only (CSS-gated). Shows the 5 tabs most useful
          one-handed; Pomodoro + Settings live in the avatar menu on mobile. */}
       <nav className="bottom-nav" aria-label="Main">
         {BOTTOM_NAV_IDS.map((id) => {

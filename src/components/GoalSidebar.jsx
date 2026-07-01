@@ -16,9 +16,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-/* GoalSidebar — DESKTOP-only (≥768px) goal navigation on the RIGHT side.
+/* GoalSidebar - DESKTOP-only (≥768px) goal navigation on the RIGHT side.
    Collapsible to a narrow icon-only rail. Drag-to-reorder via dnd-kit.
-   Hidden on mobile — phones use the GoalDropdown in the topbar instead. */
+   Hidden on mobile - phones use the GoalDropdown in the topbar instead. */
 
 function GoalRow({ goal, tasks, selected, collapsed, onSelect, onArchive }) {
   const {
@@ -153,7 +153,7 @@ export default function GoalSidebar({
       <div className="gs-scroll">
         {goals.length === 0 ? (
           !collapsed && (
-            <div className="gs-empty">No goals yet — add one below.</div>
+            <div className="gs-empty">No goals yet - add one below.</div>
           )
         ) : (
           <DndContext

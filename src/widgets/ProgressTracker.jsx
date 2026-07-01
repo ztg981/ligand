@@ -1,6 +1,6 @@
 import { Icon } from "../components/Icons.jsx";
 
-/* ProgressTracker — a calm overview of task progress overall and per goal.
+/* ProgressTracker - a calm overview of task progress overall and per goal.
    Uses a simple bar; never frames an empty bar as failure. */
 function Bar({ pct }) {
   return (
@@ -46,7 +46,7 @@ export default function ProgressTracker({ goals, tasks }) {
           <Icon.Target /> Progress
         </div>
         <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-          {total ? `${done}/${total}` : "—"}
+          {total ? `${done}/${total}` : "-"}
         </span>
       </div>
 
@@ -54,7 +54,7 @@ export default function ProgressTracker({ goals, tasks }) {
         <Bar pct={pct} />
         <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 6 }}>
           {total === 0
-            ? "No tasks yet — your list is wide open."
+            ? "No tasks yet - your list is wide open."
             : `${pct}% of your tasks are done. Every bit counts.`}
         </div>
       </div>

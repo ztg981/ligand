@@ -3,10 +3,10 @@ import { todayKey, shiftDay, isCheckedOn } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 
 /* ============================================================
-   HabitHeatmap — a gentle, GitHub-contributions-style view of
+   HabitHeatmap - a gentle, GitHub-contributions-style view of
    each habit's check-ins over the last several weeks. Columns
    are weeks (Sun→Sat rows). A checked day glows in the accent;
-   every other day is a calm neutral square — never red — so a
+   every other day is a calm neutral square - never red - so a
    quiet day reads as rest, not failure (the forgiving model).
    ============================================================ */
 
@@ -48,7 +48,7 @@ export default function HabitHeatmap({ goal, widgetSize = "medium" }) {
       {habits.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
           No habits yet. Add one in the Habits widget and your check-ins will
-          show up here — quiet days stay neutral, never red.
+          show up here - quiet days stay neutral, never red.
         </div>
       ) : (
         <div className="stack" style={{ gap: 14 }}>

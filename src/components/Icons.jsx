@@ -1,4 +1,4 @@
-/* Minimal icon set — line-based, 16px viewBox standard.
+/* Minimal icon set - line-based, 16px viewBox standard.
    Ported from the Claude Design bundle (icons.jsx). */
 const make =
   (paths, vb = "0 0 16 16") =>

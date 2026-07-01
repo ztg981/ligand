@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey, isCheckedOn, isGoalOverdue } from "../lib/model.js";
 
-/* DailyFocus — "what needs attention today" across every goal: habits not
+/* DailyFocus - "what needs attention today" across every goal: habits not
    yet checked in (with inline quick check-in), Today/Urgent tasks not done,
    and overdue goals. Originally part of Overview; extracted so the mobile
    Home screen can show the same calm, single-section daily-focus view as

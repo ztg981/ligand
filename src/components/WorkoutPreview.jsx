@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { alternativesFor } from "../lib/workoutGen.js";
 
-/* WorkoutPreview — the editable review step for a generated (or template)
+/* WorkoutPreview - the editable review step for a generated (or template)
    session, shown before you start. Swap any exercise for another that hits
    the same muscle group, tweak sets/reps/weight, drop exercises, regenerate
    the whole thing, save it as a template, or start logging it. */
@@ -37,7 +37,7 @@ export default function WorkoutPreview({
       name: next.name,
       muscleGroup: next.muscleGroup,
       type: next.type,
-      targetWeight: null, // different lift — clear the carried-over load
+      targetWeight: null, // different lift - clear the carried-over load
       targetReps: next.type === "cardio" ? null : ex.targetReps,
     });
   };
@@ -73,7 +73,7 @@ export default function WorkoutPreview({
         <div className="wp-body">
           {plan.length === 0 && (
             <div className="wp-empty">
-              Nothing to show — try regenerating.
+              Nothing to show - try regenerating.
             </div>
           )}
           {plan.map((ex, idx) => (
@@ -140,7 +140,7 @@ export default function WorkoutPreview({
                         type="number"
                         inputMode="decimal"
                         min="0"
-                        placeholder="—"
+                        placeholder="-"
                         value={ex.targetWeight ?? ""}
                         onChange={(e) => patch(idx, { targetWeight: num(e.target.value) })}
                       />

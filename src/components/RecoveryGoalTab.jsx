@@ -14,10 +14,10 @@ import { fetchAiInsight } from "../lib/aiApi.js";
 import { ding } from "../lib/uiSounds.js";
 
 /* ============================================================
-   RecoveryGoalTab — the full UI for a recovery/sobriety goal.
+   RecoveryGoalTab - the full UI for a recovery/sobriety goal.
 
    Tone: compassionate, zero shame, entirely forward-facing.
-   A setback is not a failure — it's a reason to start fresh.
+   A setback is not a failure - it's a reason to start fresh.
    ============================================================ */
 
 function MilestoneToast({ milestone, onDismiss }) {
@@ -30,7 +30,7 @@ function MilestoneToast({ milestone, onDismiss }) {
     <div className="recovery-milestone-toast">
       <Icon.Star width={16} height={16} />
       <span>
-        <strong>{milestone.label}</strong> — a real milestone. You earned this.
+        <strong>{milestone.label}</strong> - a real milestone. You earned this.
       </span>
       <button
         type="button"
@@ -56,7 +56,7 @@ function ResetConfirmOverlay({ label, onConfirm, onBack }) {
         </h2>
         <p className="recovery-reset-body">
           Every day you tried counts. The path isn't straight, and that's normal.
-          Your journal and the milestones you've reached stay with you — nothing is erased.
+          Your journal and the milestones you've reached stay with you - nothing is erased.
           Ready to start your next streak?
         </p>
         <div className="recovery-reset-actions">
@@ -207,7 +207,7 @@ function AIInsightCard({ goal, days }) {
   }, [goal?.id]);
 
   const text = insight?.text;
-  // When recovery AI is toggled off, the call is skipped (source "off") — show
+  // When recovery AI is toggled off, the call is skipped (source "off") - show
   // the line quietly with no refresh and no "fallback" badge.
   const isOff = insight?.source === "off";
   const isFallback =
@@ -535,7 +535,7 @@ export default function RecoveryGoalTab({
           <div className="col-4 stack" style={{ gap: 14, minWidth: 0 }}>
             <AIInsightCard goal={goal} days={days} />
 
-            {/* Milestones earned — a gentle log */}
+            {/* Milestones earned - a gentle log */}
             {reachedDays.length > 0 && (
               <div className="card">
                 <div className="card-title">
@@ -554,7 +554,7 @@ export default function RecoveryGoalTab({
               </div>
             )}
 
-            {/* Start a new streak — placed at the bottom, never prominent */}
+            {/* Start a new streak - placed at the bottom, never prominent */}
             <div
               style={{
                 textAlign: "center", paddingTop: 8,

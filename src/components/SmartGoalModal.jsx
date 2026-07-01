@@ -133,7 +133,7 @@ export default function SmartGoalModal({ onCreate, onClose }) {
       const next = has
         ? f.availableEquipment.filter((e) => e !== id)
         : [...f.availableEquipment, id];
-      // Never let the selection become empty — bodyweight is the floor.
+      // Never let the selection become empty - bodyweight is the floor.
       return { ...f, availableEquipment: next.length ? next : ["bodyweight"] };
     });
   const submitFitness = () => {

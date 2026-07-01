@@ -7,7 +7,7 @@ import { flashElement } from "../lib/scrollFlash.js";
 import { formatEntryDateTime } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 
-/* Journal — app-wide reflection.
+/* Journal - app-wide reflection.
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
    to write. Entries are saved newest-first and kept on this device only.
    Tone stays forgiving: writing is invited, never required. */
@@ -71,7 +71,7 @@ export default function Journal({
           <div className="eyebrow">Reflect</div>
           <h1 className="page-title">Journal</h1>
           <p className="page-sub">
-            A quiet place to check in. A line is plenty — or skip it entirely.
+            A quiet place to check in. A line is plenty - or skip it entirely.
           </p>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function Journal({
             {journal.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
                 Nothing here yet. Whenever you write something, it'll appear
-                here — gently waiting, no pressure to keep a streak.
+                here - gently waiting, no pressure to keep a streak.
               </div>
             ) : (
               <div className="stack journal-entries">

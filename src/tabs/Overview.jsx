@@ -5,11 +5,11 @@ import { goalHealth } from "../lib/goalHealth.js";
 import { recoveryDays } from "../lib/recovery.js";
 import DailyFocus from "../widgets/DailyFocus.jsx";
 
-/* Overview — a bird's-eye view across ALL goals at once.
+/* Overview - a bird's-eye view across ALL goals at once.
    Replaces the redundant built-in "Productivity" main-nav tab. Three parts:
-   A) Daily Focus  — what needs attention today (habits, urgent tasks, overdue
+   A) Daily Focus  - what needs attention today (habits, urgent tasks, overdue
       goals) with inline quick habit check-in;
-   B) Goals grid   — one compact, health-colored card per goal;
+   B) Goals grid   - one compact, health-colored card per goal;
    ...all calm and non-judgmental in tone. */
 
 // The 7 day-keys for the current rolling week (oldest → today).
@@ -34,7 +34,7 @@ export default function Overview({
           <div className="eyebrow">Across everything</div>
           <h1 className="page-title">Overview</h1>
           <p className="page-sub">
-            One calm place to see — and act on — what's going on across all your
+            One calm place to see - and act on - what's going on across all your
             goals.
           </p>
         </div>
@@ -43,7 +43,7 @@ export default function Overview({
       {/* On desktop these two panes sit side-by-side (focus left, goals right)
          so the goals overview is visible without scrolling past a tall habits
          list. On mobile/tablet .ov-layout collapses to a single column and the
-         panes stack in this same order — unchanged from before. */}
+         panes stack in this same order - unchanged from before. */}
       <div className="ov-layout">
       <div className="ov-pane-focus">
       {/* A) DAILY FOCUS ------------------------------------------------------ */}

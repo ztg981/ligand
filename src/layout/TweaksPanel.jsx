@@ -2,7 +2,7 @@ import { Segmented, Slider } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS } from "../theme/useTweaks.js";
 
-/* Floating Tweaks panel — theme / accent / ambient glow / corner radius /
+/* Floating Tweaks panel - theme / accent / ambient glow / corner radius /
    density. Every control is wired to the live tweaks state, so the whole app
    re-themes instantly. */
 export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = false }) {

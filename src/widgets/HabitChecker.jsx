@@ -3,7 +3,7 @@ import { todayKey, shiftDay, isCheckedOn, currentStreak } from "../lib/model.js"
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
-/* HabitChecker — a FORGIVING habit tracker.
+/* HabitChecker - a FORGIVING habit tracker.
    - Shows the last 7 days as toggleable cells.
    - We only ever store completed days; an empty cell is just "no data",
      never a recorded miss, so a gap can't shame you.
@@ -90,7 +90,7 @@ export default function HabitChecker({
 
       {habits.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-          No habits yet — add one small thing you'd like to return to. Missing a
+          No habits yet - add one small thing you'd like to return to. Missing a
           day never breaks anything here.
         </div>
       ) : (
@@ -163,7 +163,7 @@ export default function HabitChecker({
                     {!showStreaks
                       ? "Tracking quietly"
                       : streak > 0
-                      ? `${streak}-day streak${streak >= 3 ? " — lovely" : ""}`
+                      ? `${streak}-day streak${streak >= 3 ? " - lovely" : ""}`
                       : "Ready when you are"}
                   </span>
                 </div>

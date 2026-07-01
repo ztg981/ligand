@@ -1,6 +1,6 @@
 import { Icon } from "../components/Icons.jsx";
 
-/* EncouragingMsg — a warm line from the placeholder AI (src/lib/ai.js).
+/* EncouragingMsg - a warm line from the placeholder AI (src/lib/ai.js).
    Purely supportive; never a nag. */
 export default function EncouragingMsg({ message, sub }) {
   return (

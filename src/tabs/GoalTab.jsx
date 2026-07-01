@@ -1311,7 +1311,7 @@ function GoalSummaryWidget({ goal, tasks }) {
   lines.push(
     goalTasks.length
       ? `${done} of ${goalTasks.length} linked task${goalTasks.length === 1 ? "" : "s"} complete`
-      : "No linked tasks yet — add one below to get rolling."
+      : "No linked tasks yet - add one below to get rolling."
   );
   if (habits.length) {
     lines.push(
@@ -1496,7 +1496,7 @@ function GoalWidgetShell({
 
 /* The card that floats under the cursor while dragging. dnd-kit's
    DragOverlay measures the source node and sizes this to match, so it
-   lines up exactly — we just add the lift (scale + shadow). */
+   lines up exactly - we just add the lift (scale + shadow). */
 function WidgetOverlayCard({ widget, context }) {
   const registry = widget ? WIDGET_REGISTRY[widget.type] : null;
   if (!registry) return null;
@@ -1835,7 +1835,7 @@ function GoalWidgetGrid({
   );
 }
 
-/* GoalTab — the preset layout shown for any goal.
+/* GoalTab - the preset layout shown for any goal.
    The built-in "Productivity" goal uses the very same layout; it just
    can't be deleted or renamed. Composition (left = do/track, right =
    feel/reflect) keeps the most actionable things first for an ADHD flow. */

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth.jsx";
 
 /* ============================================================
-   AuthScreen — the sign-in / sign-up gate.
+   AuthScreen - the sign-in / sign-up gate.
 
    Shown when there's no session and the user hasn't chosen to
    continue as a guest. Email + password, a toggle between Sign
@@ -97,7 +97,7 @@ export default function AuthScreen({ onContinueAsGuest }) {
           setMode("signin");
         }
         // On success without confirmation, the auth listener flips us into
-        // the app automatically — nothing more to do here.
+        // the app automatically - nothing more to do here.
       } else {
         const { error } = await signIn(mail, password);
         if (error) {
@@ -136,7 +136,7 @@ export default function AuthScreen({ onContinueAsGuest }) {
 
         {!isConfigured && (
           <div className="auth-error" role="alert">
-            Cloud accounts aren't configured in this build — you can still
+            Cloud accounts aren't configured in this build - you can still
             continue without an account.
           </div>
         )}

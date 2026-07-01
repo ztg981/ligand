@@ -1,9 +1,9 @@
 import { BADGES, BADGE_CATEGORIES } from "../lib/badges.js";
 import { Icon } from "./Icons.jsx";
 
-/* The Badges view — every milestone, grouped by category. Earned badges light
+/* The Badges view - every milestone, grouped by category. Earned badges light
    up with their unlock date; locked ones stay gently greyed with the
-   requirement shown, so there's always a clear "here's how" — never pressure.
+   requirement shown, so there's always a clear "here's how" - never pressure.
    Opened from the avatar menu. */
 export default function BadgesModal({ unlocked = [], onClose }) {
   const earnedAt = new Map(unlocked.map((u) => [u.id, u.at]));
@@ -40,7 +40,7 @@ export default function BadgesModal({ unlocked = [], onClose }) {
               <strong>
                 {earnedCount} / {BADGES.length}
               </strong>{" "}
-              badges earned — gentle nudges, never pressure.
+              badges earned - gentle nudges, never pressure.
             </p>
           </div>
           <button type="button" className="iconbtn" title="Close" onClick={onClose}>

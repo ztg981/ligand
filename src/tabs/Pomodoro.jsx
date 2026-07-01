@@ -12,14 +12,14 @@ import {
 } from "../lib/ambientPlayer.js";
 
 /* ============================================================
-   Pomodoro tab — immersive focus timer with CSS scene themes.
+   Pomodoro tab - immersive focus timer with CSS scene themes.
    Each theme is a pure-CSS + React-elements scene that fills
    the porthole window. Café / Library / Airport switch between
    day (6 am–8 pm) and night variants automatically. Subway is
-   always underground — no day/night.
+   always underground - no day/night.
    ============================================================ */
 
-/* Real background photos (CC0/Pexels — bundled in /public/images/).
+/* Real background photos (CC0/Pexels - bundled in /public/images/).
    Each scene photo is loaded lazily as a CSS background-image so the
    network cost is zero until the user opens the Pomodoro tab. */
 const SCENE_PHOTO = {
@@ -67,7 +67,7 @@ function isDay() {
    React doesn't re-create them on every render)
    ============================================================ */
 
-// Airplane — drifting clouds
+// Airplane - drifting clouds
 const CLOUDS = [
   { w: 120, h: 34, top: "22%", dur: 34, delay:  0   },
   { w:  80, h: 24, top: "44%", dur: 26, delay: -8   },
@@ -75,14 +75,14 @@ const CLOUDS = [
   { w:  70, h: 20, top: "33%", dur: 30, delay: -24  },
 ];
 
-// Café — coffee steam wisps (left positions relative to scene width)
+// Café - coffee steam wisps (left positions relative to scene width)
 const STEAM = [
   { left: "43%", dur: 3.1, delay:  0   },
   { left: "51%", dur: 2.7, delay: -1.1 },
   { left: "47%", dur: 3.5, delay: -2.0 },
 ];
 
-// Café night — rain drops (positions within window element)
+// Café night - rain drops (positions within window element)
 const RAIN = Array.from({ length: 20 }, (_, i) => ({
   left:   `${(i * 5.1) % 96}%`,
   height: 8 + (i % 5) * 3,
@@ -90,7 +90,7 @@ const RAIN = Array.from({ length: 20 }, (_, i) => ({
   delay:  -(i * 0.14),
 }));
 
-// Library day — floating dust motes
+// Library day - floating dust motes
 const DUST = Array.from({ length: 12 }, (_, i) => ({
   left:  `${16 + (i * 5.9) % 62}%`,
   top:   `${30 + (i * 6.4) % 52}%`,
@@ -99,7 +99,7 @@ const DUST = Array.from({ length: 12 }, (_, i) => ({
   size:  1.5 + (i % 3) * 0.5,
 }));
 
-// Subway — horizontal light streaks sweeping right-to-left
+// Subway - horizontal light streaks sweeping right-to-left
 const STREAKS = [
   { top: "17%", w:  72, dur: 1.55, delay:  0,    opacity: 0.85 },
   { top: "31%", w:  46, dur: 1.95, delay: -0.52, opacity: 0.60 },
@@ -109,13 +109,13 @@ const STREAKS = [
   { top:  "9%", w:  62, dur: 1.85, delay: -0.80, opacity: 0.45 },
 ];
 
-// Airport night — runway lights
+// Airport night - runway lights
 const RUNWAY = Array.from({ length: 8 }, (_, i) => ({
   left:  `${7 + i * 12}%`,
   delay: -(i * 0.19),
 }));
 
-// Forest — drifting leaves
+// Forest - drifting leaves
 const LEAVES = Array.from({ length: 6 }, (_, i) => ({
   left: `${10 + ((i * 15) % 80)}%`,
   dur:  7 + (i % 4) * 2.5,
@@ -123,13 +123,13 @@ const LEAVES = Array.from({ length: 6 }, (_, i) => ({
   size: 6 + (i % 3) * 2,
 }));
 
-// Forest day — birds drifting across
+// Forest day - birds drifting across
 const BIRDS = [
   { top: "18%", dur: 15, delay: 0 },
   { top: "27%", dur: 19, delay: -8 },
 ];
 
-// Forest night — fireflies
+// Forest night - fireflies
 const FIREFLIES = Array.from({ length: 9 }, (_, i) => ({
   left: `${8 + ((i * 11) % 84)}%`,
   top:  `${32 + ((i * 7) % 52)}%`,
@@ -137,7 +137,7 @@ const FIREFLIES = Array.from({ length: 9 }, (_, i) => ({
   delay: -(i * 0.9),
 }));
 
-// Fireplace — flame tongues (clustered centre)
+// Fireplace - flame tongues (clustered centre)
 const FLAMES = [
   { left: "33%", w: 26, h: 52, dur: 0.95, delay: 0 },
   { left: "42%", w: 34, h: 76, dur: 1.15, delay: -0.3 },
@@ -145,7 +145,7 @@ const FLAMES = [
   { left: "58%", w: 24, h: 50, dur: 1.05, delay: -0.15 },
 ];
 
-// Fireplace — rising embers
+// Fireplace - rising embers
 const EMBERS = Array.from({ length: 7 }, (_, i) => ({
   left: `${36 + ((i * 6) % 30)}%`,
   dur:  2.4 + (i % 3) * 0.8,
@@ -175,7 +175,7 @@ function CafeScene() {
   const day = isDay();
   return (
     <div className={`scene cafe ${day ? "day" : "night"}`}>
-      {/* Window — bright day or rainy night */}
+      {/* Window - bright day or rainy night */}
       <div className="cafe-window">
         {!day && RAIN.map((r, i) => (
           <span key={i} className="cafe-raindrop" style={{
@@ -218,7 +218,7 @@ function LibraryScene() {
   const day = isDay();
   return (
     <div className={`scene library ${day ? "day" : "night"}`}>
-      {/* Bookshelf row lines — always visible */}
+      {/* Bookshelf row lines - always visible */}
       <div className="lib-shelves" />
 
       {day ? (
@@ -380,7 +380,7 @@ function DeepFocusScene() {
   );
 }
 
-// Hyperfocus — pure dark animated red rings. `dimmed` softens it during breaks.
+// Hyperfocus - pure dark animated red rings. `dimmed` softens it during breaks.
 function HyperfocusScene({ dimmed = false }) {
   return (
     <div className={"scene hyperfocus" + (dimmed ? " dimmed" : "")}>
@@ -409,7 +409,7 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
     default:
       return (
         <div className="scene placeholder">
-          <div className="pomo-soon">"{themeName}" scene — coming soon</div>
+          <div className="pomo-soon">"{themeName}" scene - coming soon</div>
         </div>
       );
   }
@@ -506,7 +506,7 @@ export default function Pomodoro({
   // Always silence the audio when leaving the Pomodoro tab.
   useEffect(() => () => stopAmbient(), []);
 
-  // Escape key exits focus mode — never trap the user.
+  // Escape key exits focus mode - never trap the user.
   useEffect(() => {
     if (!focusMode) return;
     const onKey = (e) => { if (e.key === "Escape") setFocusMode(false); };
@@ -523,9 +523,9 @@ export default function Pomodoro({
       {focusMode && (
         <div
           className="pomo-focus-overlay"
-          aria-label="Focus mode — press Escape or click Exit to leave"
+          aria-label="Focus mode - press Escape or click Exit to leave"
         >
-          {/* Exit button — always visible, small, top-right */}
+          {/* Exit button - always visible, small, top-right */}
           <button
             className="pomo-focus-exit"
             onClick={() => setFocusMode(false)}
@@ -535,7 +535,7 @@ export default function Pomodoro({
             <Icon.Close /> <span>Exit focus</span>
           </button>
 
-          {/* Scene window — expanded */}
+          {/* Scene window - expanded */}
           <div
             className={"pomo-focus-window" + (hyperfocus ? " hyperfocus" : "")}
             style={showScenePhoto ? {
@@ -547,7 +547,7 @@ export default function Pomodoro({
             <div className="pomo-photo-veil" />
             <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />
 
-            {/* Timer ring — centred */}
+            {/* Timer ring - centred */}
             <div className="pomo-focus-center">
               <Ring
                 size={240}
@@ -586,10 +586,10 @@ export default function Pomodoro({
           <h1 className="page-title">Pomodoro</h1>
           <p className="page-sub">
             An immersive focus timer. Adjust your blocks, pick a scene, and take
-            it one stretch at a time — breaks are part of the work.
+            it one stretch at a time - breaks are part of the work.
           </p>
         </div>
-        {/* Focus mode toggle — only shown when a session is running */}
+        {/* Focus mode toggle - only shown when a session is running */}
         {pomo.running && !focusMode && (
           <button
             className="btn ghost"
@@ -618,7 +618,7 @@ export default function Pomodoro({
       )}
 
       <div className="pomo-stage">
-        {/* The scene window — real photo + CSS animations layered on top */}
+        {/* The scene window - real photo + CSS animations layered on top */}
         <div
           className={"pomo-window" + (hyperfocus ? " hyperfocus" : "")}
           style={showScenePhoto ? {
@@ -684,7 +684,7 @@ export default function Pomodoro({
           </div>
         </div>
 
-        {/* Focusing on — links a completed focus block to a task's goal so
+        {/* Focusing on - links a completed focus block to a task's goal so
            time is tracked per goal. "Nothing in particular" logs nothing. */}
         <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 12, color: "var(--ink-3)" }}>Focusing on</span>
@@ -710,7 +710,7 @@ export default function Pomodoro({
         </div>
       </div>
 
-      {/* Hyperfocus: a minimal, collapsed settings strip — no scene picker (it's
+      {/* Hyperfocus: a minimal, collapsed settings strip - no scene picker (it's
           locked anyway), just the timer lengths tucked behind one quiet toggle. */}
       {hyperfocus && (
         <div className="hf-pomo-settings">
@@ -855,7 +855,7 @@ export default function Pomodoro({
 
           <p className="muted" style={{ fontSize: 11.5, marginTop: 10 }}>
             All eight scenes are live. Café, Library, Airport, and Forest shift
-            between day and night automatically. Real CC0 audio loops per scene —
+            between day and night automatically. Real CC0 audio loops per scene -
             override the sound in Settings → Wallpaper &amp; sound.
           </p>
         </div>

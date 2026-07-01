@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Icon } from "./Icons.jsx";
 
 /* ============================================================
-   MigrationModal — first-login data import prompt.
+   MigrationModal - first-login data import prompt.
 
    Shown once, right after a brand-new account's first sign-in,
    when the device already has meaningful local (guest) data.
    The user chooses to bring that data into their new account or
-   start clean. Not dismissible by clicking away — it's a clear,
+   start clean. Not dismissible by clicking away - it's a clear,
    required one-time decision.
    ============================================================ */
 export default function MigrationModal({ onImport, onFresh }) {
@@ -42,7 +42,7 @@ export default function MigrationModal({ onImport, onFresh }) {
           <p className="migrate-text">
             You already have goals, tasks or journal entries saved on this
             device. Would you like to import them into your new account so they
-            sync everywhere — or start with a clean slate?
+            sync everywhere - or start with a clean slate?
           </p>
 
           <div className="migrate-actions">

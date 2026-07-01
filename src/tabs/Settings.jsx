@@ -30,7 +30,7 @@ const BUILT_IN_PRESETS = [
   },
 ];
 
-/* Settings — the full preferences screen.
+/* Settings - the full preferences screen.
    Mirrors the floating Tweaks (appearance), plus Pomodoro timings,
    notifications, wallpaper/sound, the assistant, habits, and data.
    Placeholder systems (notifications, wallpaper, sound) save the choice
@@ -94,7 +94,7 @@ export default function Settings({
   const pomo = { ...POMO_DEFAULTS, ...pomoStored };
   const patchPomo = (patch) => setPomo((p) => ({ ...p, ...patch }));
 
-  // User presets — stored separately so they survive a Settings reset.
+  // User presets - stored separately so they survive a Settings reset.
   const [userPresets, setUserPresets] = useLocalStorage("ligand.userPresets", []);
   const [savingPresetName, setSavingPresetName] = useState("");
   const [showSavePreset, setShowSavePreset] = useState(false);
@@ -137,10 +137,10 @@ export default function Settings({
       return;
     }
     if (file.size > 1.5 * 1024 * 1024) {
-      // Soft warning (kept from before) — large files may not sync reliably.
+      // Soft warning (kept from before) - large files may not sync reliably.
       alert(
         `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
-          "For best results use an image under 1.5 MB — large files may not " +
+          "For best results use an image under 1.5 MB - large files may not " +
           "sync reliably. Try resizing or compressing it first."
       );
     }
@@ -248,7 +248,7 @@ export default function Settings({
               ]}
             />
           </Row>
-          <Row name="Reduce motion" hint="Calmer — minimizes animation">
+          <Row name="Reduce motion" hint="Calmer - minimizes animation">
             <Switch
               checked={behavior.reduceMotion}
               onChange={(v) => setSection("behavior", { reduceMotion: v })}
@@ -385,7 +385,7 @@ export default function Settings({
             name="Enable notifications"
             hint={
               notifyPermission === "denied"
-                ? "Your browser is blocking notifications — enable them in site settings"
+                ? "Your browser is blocking notifications - enable them in site settings"
                 : notifyPermission === "unsupported"
                 ? "This browser doesn't support system notifications"
                 : "System (browser) notifications + the in-app bell"
@@ -415,7 +415,7 @@ export default function Settings({
           </Row>
           <Row
             name="Daily reminder"
-            hint="Nudges you when you open the app after the set time — not a background alarm"
+            hint="Nudges you when you open the app after the set time - not a background alarm"
           >
             <Switch
               checked={notifications.dailyReminder}
@@ -437,7 +437,7 @@ export default function Settings({
 
         {/* Background music */}
         <Section icon={<Icon.Wand />} title="Background music"
-          sub="Gentle ambient loops that play across the whole app — separate from Pomodoro scene sounds."
+          sub="Gentle ambient loops that play across the whole app - separate from Pomodoro scene sounds."
         >
           <Row name="Background music" hint="Plays softly while you work; no autoplay until you switch it on">
             <Switch
@@ -476,7 +476,7 @@ export default function Settings({
             </div>
           </Row>
           <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
-            Tracks: Rain, Stream, and Waves — all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
+            Tracks: Rain, Stream, and Waves - all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
           </p>
         </Section>
 
@@ -624,7 +624,7 @@ export default function Settings({
           </Row>
           <Row
             name="Include journal text in AI context"
-            hint="Your journal text stays on your device when this is off — AI only sees aggregate stats (tasks done, check-in counts, streaks)."
+            hint="Your journal text stays on your device when this is off - AI only sees aggregate stats (tasks done, check-in counts, streaks)."
           >
             <Switch
               checked={ai.includeJournalText === true}
@@ -634,7 +634,7 @@ export default function Settings({
           {hasRecoveryGoal && (
             <Row
               name="AI recovery insights"
-              hint="Recovery data is kept private by default — nothing from a recovery tracker is sent to AI unless this is on."
+              hint="Recovery data is kept private by default - nothing from a recovery tracker is sent to AI unless this is on."
             >
               <Switch
                 checked={ai.aiRecoveryInsights === true}
@@ -668,7 +668,7 @@ export default function Settings({
         <Section
           icon={<Icon.Trash />}
           title="Archived goals"
-          sub="Goals you've removed wait here. Restore them anytime, or delete one for good — that part can't be undone."
+          sub="Goals you've removed wait here. Restore them anytime, or delete one for good - that part can't be undone."
         >
           {archivedGoals.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--ink-4)", margin: 0 }}>
@@ -759,7 +759,7 @@ export default function Settings({
                       );
                       window.location.reload();
                     } catch {
-                      alert("Couldn't read the backup file — is it a valid Ligand JSON export?");
+                      alert("Couldn't read the backup file - is it a valid Ligand JSON export?");
                     }
                   };
                   reader.readAsText(file);
@@ -768,7 +768,7 @@ export default function Settings({
               />
             </label>
           </Row>
-          <Row name="Reset preferences" hint="Theme, notifications, etc. — keeps your data">
+          <Row name="Reset preferences" hint="Theme, notifications, etc. - keeps your data">
             <button
               className="btn ghost sm"
               onClick={() => {
@@ -780,7 +780,7 @@ export default function Settings({
               <Icon.Reset width={13} height={13} /> Reset
             </button>
           </Row>
-          <Row name="Erase all data" hint="Goals, tasks, habits and journal — can't be undone">
+          <Row name="Erase all data" hint="Goals, tasks, habits and journal - can't be undone">
             <button
               className="btn ghost sm"
               style={{ color: "oklch(0.55 0.16 20)" }}

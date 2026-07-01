@@ -10,7 +10,7 @@ import DailyFocus from "../widgets/DailyFocus.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
-// a little warm — never scolding someone for being up late.
+// a little warm - never scolding someone for being up late.
 const NIGHT_OWL_GREETINGS = [
   "Still up?",
   "Burning the midnight oil",
@@ -23,7 +23,7 @@ function greeting(now = new Date()) {
   if (h >= 12 && h < 17) return "Good afternoon";
   if (h >= 17 && h < 21) return "Good evening";
   if (h >= 21) return "Winding down";
-  // 12am–4:59am — rotate by day so it varies but doesn't flicker on re-render.
+  // 12am–4:59am - rotate by day so it varies but doesn't flicker on re-render.
   const dayIndex = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
   return NIGHT_OWL_GREETINGS[dayIndex % NIGHT_OWL_GREETINGS.length];
 }
@@ -70,7 +70,7 @@ export default function Home({
   }, [activeTasks]);
 
   const urgent = useMemo(() => activeTasks.filter((t) => t.label === "Urgent"), [activeTasks]);
-  // Recovery goals are excluded from the overdue list — they're private by design
+  // Recovery goals are excluded from the overdue list - they're private by design
   // and don't have target dates anyway, so they can never become overdue.
   const overdueGoals = useMemo(
     () => goals.filter((g) => g.type !== "recovery" && isGoalOverdue(g)),
@@ -92,7 +92,7 @@ export default function Home({
         </div>
       </div>
 
-      {/* Gentle re-entry banner — only after a real gap away. */}
+      {/* Gentle re-entry banner - only after a real gap away. */}
       {daysAway >= 2 && (
         <div
           className="card"
@@ -114,7 +114,7 @@ export default function Home({
       )}
 
       {/* ---- Phone-only daily driver: one focus section, a quick-capture
-         button, and a compact goals row — not a squished dashboard. The full
+         button, and a compact goals row - not a squished dashboard. The full
          desktop grid below is hidden <768px via CSS (.home-desktop-grid). ---- */}
       <div className="home-mobile-only">
         <DailyFocus
@@ -302,7 +302,7 @@ export default function Home({
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
 
-          {/* Days showing up — distinct calendar days the app was actually
+          {/* Days showing up - distinct calendar days the app was actually
               opened (never elapsed days, never more than once per day). */}
           {activeDays > 0 && (
             <div className="card">
@@ -330,7 +330,7 @@ export default function Home({
 
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
 
-          {/* Visit streak stat — gentle, framed as "showing up" not performance */}
+          {/* Visit streak stat - gentle, framed as "showing up" not performance */}
           {weekVisits > 0 && (
             <div className="card" style={{ textAlign: "center", padding: "14px 16px" }}>
               <div

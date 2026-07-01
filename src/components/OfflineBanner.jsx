@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * OfflineBanner — appears at the bottom when the browser reports offline status.
+ * OfflineBanner - appears at the bottom when the browser reports offline status.
  * Dismisses automatically when the connection returns.
  * Friendly, not alarming. Ligand's local data is always safe.
  */
@@ -29,7 +29,7 @@ export default function OfflineBanner() {
       aria-live="polite"
     >
       <span className="offline-banner-text">
-        You're offline — your data is safe and the app still works.
+        You're offline - your data is safe and the app still works.
       </span>
       <button
         className="offline-banner-close"

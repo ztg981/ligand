@@ -1,4 +1,4 @@
-/* Reusable tactile controls — ported from the Claude Design bundle (controls.jsx).
+/* Reusable tactile controls - ported from the Claude Design bundle (controls.jsx).
    These are the physical-feeling switches/sliders/segments the design calls for. */
 import { tick, pop } from "../lib/uiSounds.js";
 

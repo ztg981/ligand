@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { goalHealth } from "../lib/goalHealth.js";
 
-/* GoalDropdown — the MOBILE-only (<768px) goal selector. The horizontal goal
+/* GoalDropdown - the MOBILE-only (<768px) goal selector. The horizontal goal
    pills are far too cramped on a phone, so on mobile they're replaced by a
    single button showing the current goal that opens a clean, full-width list
    to switch goals (plus "+ New goal"). Desktop uses the vertical sidebar and
