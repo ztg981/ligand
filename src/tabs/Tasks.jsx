@@ -277,7 +277,9 @@ export default function Tasks({
   // Filter + sort: matches first, active before done, newest first.
   const visible = useMemo(() => {
     return tasks
-      .filter((t) => (status === "all" ? true : status === "done" ? t.done : !t.done))
+      .filter((t) =>
+        taskMotion[t.id] ? true : status === "all" ? true : status === "done" ? t.done : !t.done
+      )
       .filter((t) => {
         if (filter === "all") return true;
         if (filter.startsWith("goal:")) return t.goalId === filter.slice(5);
@@ -285,7 +287,7 @@ export default function Tasks({
         return true;
       })
       .sort((a, b) => Number(a.done) - Number(b.done) || b.id.localeCompare(a.id));
-  }, [tasks, status, filter]);
+  }, [tasks, status, filter, taskMotion]);
 
   const counts = useMemo(
     () => ({
