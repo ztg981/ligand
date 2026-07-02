@@ -2,6 +2,70 @@
 
 _Session date: 2026-06-14 (updated 2026-07-01)_
 
+## Phase 11 — Hooks fix + native-feel mobile polish (2026-07-02, Claude Code)
+
+Clean baseline confirmed first (`npm run build` green, working tree clean).
+A Priority-0 correctness fix, then seven polish sections, each committed
+separately. Verified on the production build (`vite preview`, port 4173) at
+375px and 1280px with zero console errors; desktop confirmed unaffected.
+
+**P0 — React conditional-hook warning** (commit `742980b`): `RecoveryGoalTab`
+called two `useEffect`s *after* an `if (!goal) return null` early return, so
+the hook count changed with `goal` — a genuine `react-hooks/rules-of-hooks`
+violation (it only surfaced when viewing a recovery goal, which the seed data
+has none of, so a plain tab-switch sweep never triggered it). Found it via
+`eslint` (the runtime warning couldn't be reproduced from tab switches alone),
+moved both effects above the early return, and had the milestone effect derive
+`recoveryData` internally with a `goal` guard. `eslint react-hooks/rules-of-hooks`
+is now clean repo-wide. Verified live by injecting a recovery goal and switching
+in/out of its tab repeatedly — zero warnings.
+
+**1 — Transparent app icons** (commit `5cf3f58`): regenerated `pwa-192/512`
+and the whole `apple-touch-icon` set (57–180) with a transparent canvas
+instead of the solid `#15161a` fill. The gradient rounded-square logo mark
+(blue→lavender, glossy highlight, inset ring, soft shadow) is unchanged; only
+the surrounding field is now transparent so light home screens/taskbars supply
+their own background. Corner-pixel alpha confirmed 0; splash images untouched.
+
+**2 — Frosted-glass top nav** (commit `b2e3e73`): on phones the fixed nav pill
+now uses `blur(20px) saturate(140%)` over an 85% panel surface, with a subtle
+gradient `::after` fade below the pill so content scrolling behind dissolves
+into the page instead of hard-cutting. Placed in the ≤640px phone block (where
+the fixed pill actually lives); desktop nav (blur 14px) untouched.
+
+**3 — Hidden scrollbars ≤768px** (commit `90c4b58`): `scrollbar-width: none`
++ `::-webkit-scrollbar { display: none }`, scrolling preserved.
+
+**4 — Native active bottom-tab pill** (commit `5bfa83d`): wrapped each tab's
+icon+label in a `.bottom-nav-pill`; the active highlight is now a snug capsule
+filled with the accent at 15% opacity (radius 12px) with accent-colored
+content, inactive tabs muted grey with no background. Replaces the old
+icon-only tint + dot-above. Verified computed styles at 375px.
+
+**5 — Quick-note sheet keyboard/scroll fix** (commit `9e3c6e7`): the backdrop
+now pins to `window.visualViewport` while open so the sheet rests above the
+soft keyboard, and the textarea flex-shrinks (body scrolls) to fit. Removed
+swipe-down-to-dismiss — it closes only via the X button or a backdrop tap now,
+so an accidental drag while typing can't discard the note; `touch-action: none`
+on the backdrop stops it scrolling the page. Verified the full type→Save→"Saved"
+→auto-close flow persists a note.
+
+**6 — Hold-to-check habits (300ms)** (commit `0b5e84f`): replaced the 150ms
+touch delay with a real press-and-hold — the habit checkbox must be held 300ms
+before a check-in registers, with an accent fill animating across the circle as
+live feedback. Releasing early (or moving past the scroll tolerance) cancels
+with no check, and the synthetic click that follows a touch is suppressed so a
+quick scroll-tap can no longer toggle a habit. Desktop mouse clicks still check
+instantly. Verified all three paths live (quick-tap → no check; 300ms hold →
+check; desktop click → instant check).
+
+**7 — Native-feel polish** (commit `d98718a`): `overscroll-behavior: none` on
+html/body (no rubber-band flash); default corner radius 12→16 in
+`TWEAK_DEFAULTS` (new users only); `-webkit-tap-highlight-color: transparent`
+on interactive elements; `touch-action: manipulation` on buttons/links; and an
+inline `html { background-color: #15161a }` in `index.html` so launch/app-switch
+never flashes white before React loads. All confirmed via computed styles.
+
 ## Phase 10 — More mobile fixes, quick-note FAB, real app icon, iTunes search (2026-07-01, Claude Code)
 
 Clean baseline confirmed before starting (`npm run build` green, no
