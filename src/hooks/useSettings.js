@@ -40,6 +40,7 @@ export const SETTINGS_DEFAULTS = {
   behavior: {
     reduceMotion: false,
     confirmBeforeDelete: true,
+    showDesktopScrollbars: false,
   },
   uiSounds: {
     enabled: true, // subtle click/pop/ding feedback on interactions
@@ -65,12 +66,15 @@ export function useSettings() {
   const [stored, setStored] = useLocalStorage(STORAGE_KEY, SETTINGS_DEFAULTS);
   const settings = withDefaults(stored);
 
-  // Reflect "reduce motion" at the document root so CSS can honor it.
+  // Reflect behavior preferences at the document root so CSS can honor them.
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = settings.behavior.reduceMotion
       ? "true"
       : "false";
-  }, [settings.behavior.reduceMotion]);
+    document.documentElement.dataset.desktopScrollbars = settings.behavior.showDesktopScrollbars
+      ? "show"
+      : "hide";
+  }, [settings.behavior.reduceMotion, settings.behavior.showDesktopScrollbars]);
 
   // Patch a whole section at once, e.g. setSection("notifications", { enabled: true }).
   const setSection = (section, patch) =>

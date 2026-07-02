@@ -55,9 +55,9 @@ function Section({ icon, title, sub, children }) {
   );
 }
 
-function Row({ name, hint, children }) {
+function Row({ name, hint, children, className = "" }) {
   return (
-    <div className="setting-row">
+    <div className={["setting-row", className].filter(Boolean).join(" ")}>
       <div>
         <div className="name">{name}</div>
         {hint && <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 1 }}>{hint}</div>}
@@ -253,6 +253,16 @@ export default function Settings({
             <Switch
               checked={behavior.reduceMotion}
               onChange={(v) => setSection("behavior", { reduceMotion: v })}
+            />
+          </Row>
+          <Row
+            name="Desktop scrollbar"
+            hint="Show the PC scroll bar"
+            className="desktop-only-setting"
+          >
+            <Switch
+              checked={behavior.showDesktopScrollbars}
+              onChange={(v) => setSection("behavior", { showDesktopScrollbars: v })}
             />
           </Row>
 

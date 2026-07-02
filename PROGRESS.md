@@ -27,6 +27,15 @@ green), then reduced the desktop Focus pill from about 80px by 32px to about
 73px by 30px while preserving the Tweaks-center alignment. Verified on a fresh
 production preview at 1280px and checked mobile remained 44px.
 
+Follow-up 3: hid desktop scrollbars by default while preserving scrolling, then
+added a PC-only Settings -> Appearance toggle ("Desktop scrollbar") to restore
+the normal scrollbar/gutter when desired. Restored the desktop Tweaks FAB to a
+small 30px square, aligned its right edge with the shifted Focus pill, and
+tightened the Focus label/icon alignment without changing mobile FAB sizing.
+Verified on the production preview at 1280px and 375px with zero browser console
+warnings/errors; `npm run build` passed with only the existing Vite large-chunk
+warning. Claude's Electron work (`electron/main.js`) was left untouched.
+
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
 Wrapped the existing Vite/React web app in Electron so it ships as a native
