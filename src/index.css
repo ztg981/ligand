@@ -2918,24 +2918,22 @@ button.upcoming-row:hover { background: var(--panel-3); }
   -webkit-tap-highlight-color: transparent;
 }
 .bottom-nav-item.active { color: var(--accent); }
-/* A small dot above the icon, in addition to the color + pill background
-   below — two independent signals so the active tab reads instantly even
-   at a glance, not just via a subtle tint shift. */
-.bottom-nav-item::before {
-  content: "";
-  position: absolute; top: 1px; left: 50%;
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--accent);
-  transform: translateX(-50%) scale(0);
-  transition: transform 0.18s var(--ease);
-}
-.bottom-nav-item.active::before { transform: translateX(-50%) scale(1); }
-.bottom-nav-ic {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 24px; border-radius: 8px;
+/* Native-style active state: a filled capsule hugging the icon + label.
+   The button stays full-width for the tap target; the pill wraps only the
+   content so it reads as a snug highlight (iOS/Material tab-bar pattern). */
+.bottom-nav-pill {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px;
+  padding: 5px 14px;
+  border-radius: 12px;
   transition: background 0.18s var(--ease);
 }
-.bottom-nav-item.active .bottom-nav-ic { background: var(--accent-soft); }
+.bottom-nav-item.active .bottom-nav-pill {
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+}
+.bottom-nav-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+}
 .bottom-nav-ic svg { width: 18px; height: 18px; }
 .bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .bottom-nav-item.active .bottom-nav-label { font-weight: 750; }
@@ -3544,7 +3542,7 @@ html[data-hyperfocus="true"] .bottom-nav {
   border-top-color: rgba(120, 0, 20, 0.25);
 }
 html[data-hyperfocus="true"] .bottom-nav-item.active { color: var(--accent-ink); }
-html[data-hyperfocus="true"] .bottom-nav-item.active .bottom-nav-ic { background: rgba(139, 0, 0, 0.14); }
+html[data-hyperfocus="true"] .bottom-nav-item.active .bottom-nav-pill { background: rgba(139, 0, 0, 0.16); }
 
 /* Typography — a touch more letter-spacing on headings for intensity. */
 html[data-hyperfocus="true"] .page-title,

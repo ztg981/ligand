@@ -605,8 +605,10 @@ export default function TopNav({
               onClick={() => setTab(id)}
               aria-current={active ? "page" : undefined}
             >
-              <span className="bottom-nav-ic">{it.icon}</span>
-              <span className="bottom-nav-label">{it.label}</span>
+              <span className="bottom-nav-pill">
+                <span className="bottom-nav-ic">{it.icon}</span>
+                <span className="bottom-nav-label">{it.label}</span>
+              </span>
             </button>
           );
         })}
