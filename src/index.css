@@ -561,7 +561,7 @@ button, a, [role="button"] { touch-action: manipulation; }
 }
 @media (min-width: 769px) {
   .iconbtn.tweaks-fab {
-    right: calc(20px - ((73px - 44px) / 2));
+    right: 12px;
     border-radius: 9px;
   }
 }

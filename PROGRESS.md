@@ -36,6 +36,10 @@ Verified on the production preview at 1280px and 375px with zero browser console
 warnings/errors; `npm run build` passed with only the existing Vite large-chunk
 warning. Claude's Electron work (`electron/main.js`) was left untouched.
 
+Follow-up 4: moved the desktop Tweaks FAB slightly left after visual review
+while keeping the Focus pill in place and leaving mobile FAB sizing/placement
+unchanged.
+
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
 Wrapped the existing Vite/React web app in Electron so it ships as a native
