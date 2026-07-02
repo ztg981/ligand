@@ -1485,12 +1485,15 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .sheet-fields-row > .seg { flex: 1 1 100%; justify-content: center; }
 .sheet-submit { width: 100%; height: 48px; justify-content: center; }
 
-/* Quick note sheet (mobile FAB, see QuickNoteFab.jsx) - taller than the
-   task-add sheet since it's built around one large text area. */
-.quick-note-sheet { max-height: 70vh; }
-.quick-note-body { gap: 10px; }
+/* Quick note sheet (mobile FAB, see QuickNoteFab.jsx). The backdrop pins to
+   the visual viewport in JS so this sheet rests above the soft keyboard; the
+   textarea flex-shrinks (and the body scrolls) to fit the space that remains.
+   touch-action:none stops a drag on the backdrop from scrolling the page. */
+.quick-note-scrim { touch-action: none; }
+.quick-note-sheet { max-height: 100%; }
+.quick-note-body { gap: 10px; flex: 1 1 auto; min-height: 0; }
 .quick-note-textarea {
-  width: 100%; min-height: 160px; resize: none;
+  width: 100%; flex: 1 1 auto; min-height: 120px; resize: none;
   line-height: 1.5; padding: 12px;
 }
 .quick-note-save { width: 100%; height: 48px; justify-content: center; }

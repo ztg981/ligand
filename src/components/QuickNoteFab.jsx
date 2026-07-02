@@ -12,8 +12,7 @@ export default function QuickNoteFab({ addNote }) {
   const [text, setText] = useState("");
   const [saved, setSaved] = useState(false);
   const textareaRef = useRef(null);
-  const [dragY, setDragY] = useState(0);
-  const dragStartY = useRef(null);
+  const scrimRef = useRef(null);
   const closeTimer = useRef(null);
 
   useEffect(() => {
@@ -22,14 +21,35 @@ export default function QuickNoteFab({ addNote }) {
     return () => clearTimeout(t);
   }, [open]);
 
+  // Keep the sheet resting above the on-screen keyboard. When a soft keyboard
+  // opens, the layout viewport doesn't change but the visual viewport shrinks;
+  // we pin the fixed backdrop to the visual viewport so its flex-end sheet sits
+  // just above the keyboard (the textarea flex-shrinks to fit — see CSS).
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    const scrim = scrimRef.current;
+    if (!vv || !scrim) return;
+    const apply = () => {
+      scrim.style.top = `${vv.offsetTop}px`;
+      scrim.style.height = `${vv.height}px`;
+      scrim.style.bottom = "auto";
+    };
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+    };
+  }, [open]);
+
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   const close = () => {
     setOpen(false);
     setSaved(false);
     setText("");
-    setDragY(0);
-    dragStartY.current = null;
   };
 
   const save = () => {
@@ -41,19 +61,6 @@ export default function QuickNoteFab({ addNote }) {
     addNote({ text: t });
     setSaved(true);
     closeTimer.current = setTimeout(close, 1000);
-  };
-
-  const onDragStart = (e) => {
-    dragStartY.current = e.touches[0].clientY;
-  };
-  const onDragMove = (e) => {
-    if (dragStartY.current == null) return;
-    const delta = e.touches[0].clientY - dragStartY.current;
-    if (delta > 0) setDragY(delta);
-  };
-  const onDragEnd = () => {
-    if (dragY > 80) close();
-    else setDragY(0);
   };
 
   return (
@@ -71,20 +78,22 @@ export default function QuickNoteFab({ addNote }) {
 
       {open &&
         createPortal(
-          <div className="sheet-scrim" role="presentation" onClick={close}>
+          <div
+            className="sheet-scrim quick-note-scrim"
+            role="presentation"
+            ref={scrimRef}
+            onClick={close}
+          >
             <div
               className="bottom-sheet quick-note-sheet"
               role="dialog"
               aria-modal="true"
-              style={{ transform: dragY ? `translateY(${dragY}px)` : undefined }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div
-                className="sheet-drag-area"
-                onTouchStart={onDragStart}
-                onTouchMove={onDragMove}
-                onTouchEnd={onDragEnd}
-              >
+              {/* Handle is a visual affordance only — dismissal is intentionally
+                  limited to the X button and a backdrop tap so an accidental
+                  swipe while typing can't close the sheet and lose the note. */}
+              <div className="sheet-drag-area">
                 <span className="sheet-handle" />
               </div>
               <div className="sheet-body quick-note-body">
