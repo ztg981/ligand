@@ -469,51 +469,53 @@ export default function Tasks({
                 {(task.done || taskMotion[task.id]) && <Icon.Check />}
               </button>
 
-              {editingId === task.id ? (
-                <input
-                  className="input"
-                  autoFocus
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitEdit();
-                    if (e.key === "Escape") {
-                      setEditingId(null);
-                      setEditText("");
-                    }
-                  }}
-                  onBlur={commitEdit}
-                />
-              ) : (
-                <span
-                  className="task-name"
-                  onClick={() => !isMobile && startEdit(task)}
-                  onTouchStart={handlePressStart(task)}
-                  onTouchMove={handlePressMove}
-                  onTouchEnd={handlePressEnd}
-                  onTouchCancel={handlePressEnd}
-                  title={isMobile ? "Hold to edit" : "Click to edit"}
-                  style={{ cursor: isMobile ? "default" : "text" }}
-                >
-                  {task.text}
-                </span>
-              )}
-
-              <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {task.repeat && (
+              <span className="taskrow-main">
+                {editingId === task.id ? (
+                  <input
+                    className="input taskrow-edit-input"
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit();
+                      if (e.key === "Escape") {
+                        setEditingId(null);
+                        setEditText("");
+                      }
+                    }}
+                    onBlur={commitEdit}
+                  />
+                ) : (
                   <span
-                    className="chip"
-                    title={repeatLabel(task.repeat)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                    className="task-name"
+                    onClick={() => !isMobile && startEdit(task)}
+                    onTouchStart={handlePressStart(task)}
+                    onTouchMove={handlePressMove}
+                    onTouchEnd={handlePressEnd}
+                    onTouchCancel={handlePressEnd}
+                    title={isMobile ? "Hold to edit" : "Click to edit"}
+                    style={{ cursor: isMobile ? "default" : "text" }}
                   >
-                    <Icon.Reset width={11} height={11} />
-                    {task.repeat.type === "daily"
-                      ? "Daily"
-                      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
+                    {task.text}
                   </span>
                 )}
-                <LabelChip task={task} goals={goals} />
-                <TermChip term={taskTerm(task)} />
+
+                <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap" }}>
+                  {task.repeat && (
+                    <span
+                      className="chip"
+                      title={repeatLabel(task.repeat)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      <Icon.Reset width={11} height={11} />
+                      {task.repeat.type === "daily"
+                        ? "Daily"
+                        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
+                    </span>
+                  )}
+                  <LabelChip task={task} goals={goals} />
+                  <TermChip term={taskTerm(task)} />
+                </span>
               </span>
 
               <span className="taskrow-actions">

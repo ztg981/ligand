@@ -1401,11 +1401,10 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 /* table-ish task row */
 .taskrow {
   --row-bg: var(--panel);
-  display: grid;
-  grid-template-columns: 22px 1fr auto auto;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 0;
+  padding: 8px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
   background: var(--row-bg);
@@ -1418,8 +1417,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .taskrow.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .taskrow + .taskrow { margin-top: 6px; }
 .taskrow .checkbox {
-  width: 18px; height: 18px;
-  border-radius: 5px;
+  width: 44px; height: 44px;
+  border-radius: 12px;
   border: 1px solid var(--line-strong);
   background: var(--panel);
   cursor: pointer;
@@ -1428,6 +1427,23 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   flex: none;
   transition: all 0.18s var(--ease);
 }
+.taskrow-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+}
+.taskrow-edit-input { width: 100%; min-width: 0; }
+.taskrow > .task-name,
+.taskrow > input.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 8px;
+}
+.taskrow > .chip { flex: 0 0 auto; }
 .taskrow.done .checkbox,
 .taskrow.completing .checkbox {
   background: var(--complete-green); border-color: transparent;
@@ -1442,13 +1458,15 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .taskrow.completing .checkbox svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .taskrow.unchecking .checkbox svg { animation: checkSpringReverse 220ms var(--ease) both; }
 .taskrow.done .task-name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink-4); }
-.task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
-.taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
+.task-name { min-width: 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 500; color: var(--ink); }
+.taskrow-chips { justify-content: flex-start; }
+.taskrow-actions { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0; }
 .taskrow-icon-btn {
+  width: 44px; height: 44px; flex: 0 0 44px;
   background: transparent; border: none; cursor: pointer;
-  color: var(--ink-3); padding: 4px;
+  color: var(--ink-3); padding: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: color 0.15s var(--ease), background 0.15s var(--ease);
 }
 .taskrow-icon-btn:hover { color: var(--accent-ink, var(--accent)); background: var(--panel-3); }
@@ -1542,14 +1560,22 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .habit-row + .habit-row { border-top: 1px solid var(--line); }
 .habit-name { font-size: 12.5px; font-weight: 500; min-width: 0; }
 .habit-name .sub { display: block; font-size: 10.5px; color: var(--ink-3); font-weight: 400; margin-top: 1px; }
-.habit-name-row { min-width: 0; }
-.habit-label-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habit-name-row { min-width: 0; width: 100%; display: flex; align-items: center; gap: 0 !important; }
+.habit-label-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Pencil edit button: hidden until the row is hovered (always shown on touch). */
-.habit-edit-btn { opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease); }
-.habit-row:hover .habit-edit-btn { opacity: 1; }
+.habit-edit-btn,
+.habit-del-btn {
+  flex: 0 0 44px;
+  width: 44px; height: 44px;
+  color: var(--ink-4);
+  opacity: 0;
+  transition: opacity 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.habit-row:hover .habit-edit-btn,
+.habit-row:hover .habit-del-btn { opacity: 1; }
 .habit-edit-btn:hover { color: var(--accent-ink, var(--accent)) !important; }
 .habit-edit-input { height: 28px; padding: 4px 8px; font-size: 12.5px; max-width: 200px; }
-@media (hover: none) { .habit-edit-btn { opacity: 0.7; } }
+@media (hover: none) { .habit-edit-btn, .habit-del-btn { opacity: 0.7; } }
 .habit-cell {
   width: 22px; height: 22px;
   border-radius: 6px;
@@ -3112,26 +3138,16 @@ button.upcoming-row:hover { background: var(--panel-3); }
      Taller padding + a bigger checkbox so the whole row reads as one easy
      tap target instead of the dense desktop row. */
   .taskrow {
-    grid-template-columns: 26px 1fr auto;
-    grid-template-areas:
-      "check name  actions"
-      "chips chips chips";
-    gap: 8px 10px;
-    /* Extra right clearance so the row's own actions never sit under the
-       fixed Focus/Tweaks FABs, which float in that same bottom-right
-       corner at almost every scroll position. */
-    padding: 14px 60px 14px 12px;
+    padding: 10px 8px;
   }
-  .taskrow > .checkbox { grid-area: check; width: 24px; height: 24px; }
-  .taskrow > .task-name,
-  .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; font-size: 14.5px; }
-  .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
-  .taskrow > .taskrow-actions { grid-area: actions; gap: 0; }
+  .taskrow-main { padding: 0 6px; }
+  .taskrow > input.input { min-width: 0; flex: 1; margin: 0 6px; }
+  .taskrow .task-name { font-size: 14.5px; }
   /* Edit/Delete are the primary way to edit on mobile now (a single tap on
      the task name does nothing, and a long-press isn't discoverable at a
      glance) - so they need a real 44px tap target, not a small icon. */
   .taskrow-icon-btn {
-    min-width: 44px; min-height: 44px;
+    width: 44px; height: 44px;
     border-radius: 10px;
   }
 
@@ -3894,13 +3910,13 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-habit-row.completing { animation: rowCompleteBounce 400ms var(--ease); }
 .ov-habit-row.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .ov-habit-check {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
-  text-align: left; cursor: pointer; padding: 9px 10px;
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0;
+  text-align: left; cursor: pointer; padding: 0;
   border: none; background: transparent; color: inherit;
 }
 .ov-habit-edit {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; border: none; border-left: 1px solid var(--line);
+  width: 44px; min-height: 44px; border: none; border-left: 1px solid var(--line);
   background: transparent; color: var(--ink-4); cursor: pointer;
   opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease);
 }
@@ -3909,7 +3925,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-habit-row.is-editing { padding: 9px 10px; align-items: center; gap: 10px; }
 .ov-habit-edit-input { flex: 1; min-width: 0; height: 30px; }
 .ov-habit-box {
-  flex: none; width: 20px; height: 20px; border-radius: 7px;
+  flex: 0 0 24px; width: 24px; height: 24px; margin: 10px; border-radius: 8px;
   border: 1.6px solid var(--line-strong); background: var(--panel);
   position: relative; transition: all 0.15s var(--ease);
 }
@@ -4000,7 +4016,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   width: 6px; height: 10px; border: solid var(--accent);
   border-width: 0 2px 2px 0; transform: rotate(40deg); opacity: 0.5;
 }
-.ov-habit-text { min-width: 0; display: flex; flex-direction: column; }
+.ov-habit-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 0 10px 0 0; }
 .ov-habit-name {
   font-size: 13px; font-weight: 500; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4120,15 +4136,12 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
      wrap up to 2 lines instead of single-line-ellipsis-truncating - users
      need to actually read the full habit name, so the row height simply
      expands to fit rather than hiding part of it. */
-  .ov-habit-check { padding: 10px 10px; gap: 10px; }
-  .ov-habit-box { width: 20px; height: 20px; }
+  .ov-habit-check { padding: 0; gap: 0; }
+  .ov-habit-box { width: 24px; height: 24px; }
   .ov-habit-text { flex-direction: column; gap: 1px; min-width: 0; }
   .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
   .ov-habit-goal::before { content: none; }
-  /* Extra right clearance, same reasoning as .taskrow above: with enough
-     habits the list runs the full page height, and rows land in the same
-     bottom-right corner the fixed Focus/Tweaks FABs float in. */
-  .ov-habit-row { padding-right: 60px; }
+  .ov-habit-row { padding-right: 0; }
 
   /* A long-press meant to check in a habit (or, on .taskrow, to trigger
      inline edit) shouldn't also select the row's text - browsers treat a

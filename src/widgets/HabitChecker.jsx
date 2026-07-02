@@ -175,7 +175,6 @@ export default function HabitChecker({
                           className="iconbtn sm habit-edit-btn"
                           title="Edit habit name"
                           onClick={() => startEdit(h)}
-                          style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                         >
                           <Icon.Pencil width={12} height={12} />
                         </button>
@@ -185,7 +184,6 @@ export default function HabitChecker({
                         title="Remove habit"
                         onConfirm={() => removeHabit(goal.id, h.id)}
                         requireConfirmation={confirmBeforeDelete}
-                        style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                         icon={<Icon.Trash width={12} height={12} />}
                       />
                     </span>
