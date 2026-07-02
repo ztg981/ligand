@@ -119,6 +119,26 @@ button, a, input, select, textarea, summary, label, [role="button"], [tabindex] 
 }
 button, a, [role="button"] { touch-action: manipulation; }
 
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  .note-list-item,
+  .home-glance-pill,
+  .ov-goal-card,
+  .card.hover {
+    transform-origin: center;
+    transition: transform 0.12s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  }
+  button:active,
+  [role="button"]:active,
+  .note-list-item:active,
+  .home-glance-pill:active,
+  .ov-goal-card:active,
+  .card.hover:active {
+    transform: scale(0.98);
+  }
+}
+
 /* ============================================================
    App shell
    ============================================================ */
@@ -381,6 +401,13 @@ button, a, [role="button"] { touch-action: manipulation; }
    ============================================================ */
 .body { display: block; }
 .content { min-width: 0; }
+.screen-transition {
+  animation: screenSwitchIn 150ms var(--ease) both;
+}
+@keyframes screenSwitchIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .goal-sidebar { display: none; }
 
 @media (min-width: 768px) {
@@ -1587,6 +1614,15 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   min-height: 160px;
   font-size: 16px; font-weight: 600; color: var(--accent-ink, var(--accent));
   animation: badgeToastIn 0.25s var(--ease);
+}
+.quick-note-saved svg {
+  transform-origin: center;
+  animation: quickNoteCheckPulse 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes quickNoteCheckPulse {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  55% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* habit dots row */
@@ -3044,8 +3080,17 @@ button.upcoming-row:hover { background: var(--panel-3); }
 }
 .bottom-nav-ic {
   display: inline-flex; align-items: center; justify-content: center;
+  transform-origin: center;
 }
 .bottom-nav-ic svg { width: 18px; height: 18px; }
+.bottom-nav-item.active .bottom-nav-ic {
+  animation: bottomTabSpring 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes bottomTabSpring {
+  0% { transform: scale(1); }
+  62% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
 .bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .bottom-nav-item.active .bottom-nav-label { font-weight: 750; }
 

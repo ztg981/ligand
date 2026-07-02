@@ -924,7 +924,11 @@ export default function App() {
         />
 
         <div className="body">
-          <div className="content">{screen}</div>
+          <div className="content">
+            <div className="screen-transition" key={`${tab}:${activeGoal ?? ""}`}>
+              {screen}
+            </div>
+          </div>
           {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}
           <GoalSidebar
             goals={orderedActiveGoals}
