@@ -2984,9 +2984,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
     z-index: 70;
     /* Frosted glass — the standard iOS nav treatment. Stronger blur than
        desktop and a more opaque surface so content reads cleanly through it. */
-    background: color-mix(in oklab, var(--panel) 85%, transparent);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
     backdrop-filter: blur(20px) saturate(140%);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
+    isolation: isolate;
   }
   /* Subtle fade just below the floating nav pill: content scrolling up behind
      the nav dissolves into the page background instead of hard-cutting at the
@@ -3000,9 +3001,11 @@ button.upcoming-row:hover { background: var(--panel-3); }
     top: 100%;
     height: 22px;
     pointer-events: none;
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
     background: linear-gradient(
       to bottom,
-      color-mix(in oklab, var(--bg) 72%, transparent),
+      color-mix(in srgb, var(--bg) 68%, transparent),
       transparent
     );
   }
