@@ -15,6 +15,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const BASE_LABELS = ["Today", "Urgent", "General"];
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
+const COMPLETE_ANIM_MS = 450;
 
 // Map a label/goal to a chip style so the list reads at a glance.
 function LabelChip({ task, goals }) {
@@ -171,10 +172,18 @@ export default function Tasks({
 
   // --- mobile long-press-to-edit state ---
   const [pressingId, setPressingId] = useState(null);
+  const [taskMotion, setTaskMotion] = useState({});
   const pressTimer = useRef(null);
   const pressStart = useRef({ x: 0, y: 0 });
+  const motionTimers = useRef({});
 
-  useEffect(() => () => clearTimeout(pressTimer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(pressTimer.current);
+      Object.values(motionTimers.current).forEach(clearTimeout);
+    },
+    []
+  );
 
   const parseRepeat = (v) => {
     if (v === "daily") return { type: "daily" };
@@ -213,6 +222,24 @@ export default function Tasks({
     }
     setEditingId(null);
     setEditText("");
+  };
+
+  const markTaskMotion = (taskId, mode) => {
+    clearTimeout(motionTimers.current[taskId]);
+    setTaskMotion((current) => ({ ...current, [taskId]: mode }));
+    motionTimers.current[taskId] = setTimeout(() => {
+      setTaskMotion((current) => {
+        const next = { ...current };
+        delete next[taskId];
+        return next;
+      });
+      delete motionTimers.current[taskId];
+    }, COMPLETE_ANIM_MS);
+  };
+
+  const handleTaskToggle = (task) => {
+    markTaskMotion(task.id, task.done ? "unchecking" : "completing");
+    toggleTask(task.id);
   };
 
   // Long-press (mobile only): a short tap does nothing but a subtle
@@ -430,15 +457,16 @@ export default function Tasks({
               className={
                 "taskrow" +
                 (task.done ? " done" : "") +
+                (taskMotion[task.id] ? " " + taskMotion[task.id] : "") +
                 (pressingId === task.id ? " pressing" : "")
               }
             >
               <button
                 className="checkbox"
-                onClick={() => toggleTask(task.id)}
+                onClick={() => handleTaskToggle(task)}
                 title={task.done ? "Mark not done" : "Mark done"}
               >
-                {task.done && <Icon.Check />}
+                {(task.done || taskMotion[task.id]) && <Icon.Check />}
               </button>
 
               {editingId === task.id ? (

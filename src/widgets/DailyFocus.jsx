@@ -5,6 +5,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CHECK_HOLD_MS = 300;
 const CHECK_TOUCH_MOVE_TOLERANCE = 10;
+const COMPLETE_ANIM_MS = 450;
 
 /* DailyFocus - "what needs attention today" across every goal: habits not
    yet checked in (with inline quick check-in), Today/Urgent tasks not done,
@@ -41,12 +42,40 @@ export default function DailyFocus({
   const checkPressStart = useRef({ x: 0, y: 0 });
   // Which habit's checkbox is currently mid-hold (drives the fill animation).
   const [pressingId, setPressingId] = useState(null);
+  const [settlingHabits, setSettlingHabits] = useState({});
+  const settleTimers = useRef({});
   const cancelHold = () => {
     clearTimeout(checkPressTimer.current);
     checkPressTimer.current = null;
     setPressingId(null);
   };
-  useEffect(() => () => clearTimeout(checkPressTimer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(checkPressTimer.current);
+      Object.values(settleTimers.current).forEach(clearTimeout);
+    },
+    []
+  );
+
+  const habitKey = (goalId, habitId) => goalId + "-" + habitId;
+  const markHabitSettling = (goalId, habitId, mode = "completing") => {
+    const key = habitKey(goalId, habitId);
+    clearTimeout(settleTimers.current[key]);
+    setSettlingHabits((current) => ({ ...current, [key]: mode }));
+    settleTimers.current[key] = setTimeout(() => {
+      setSettlingHabits((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      delete settleTimers.current[key];
+    }, COMPLETE_ANIM_MS);
+  };
+
+  const completeHabit = (goalId, habitId) => {
+    markHabitSettling(goalId, habitId, "completing");
+    checkInHabit(goalId, habitId, today);
+  };
 
   const handleCheckTouchStart = (goalId, habitId) => (e) => {
     const pt = e.touches[0];
@@ -57,7 +86,7 @@ export default function DailyFocus({
     checkPressTimer.current = setTimeout(() => {
       checkPressTimer.current = null;
       setPressingId(null);
-      checkInHabit(goalId, habitId, today);
+      completeHabit(goalId, habitId);
     }, CHECK_HOLD_MS);
   };
   const handleCheckTouchMove = (e) => {
@@ -77,7 +106,7 @@ export default function DailyFocus({
       checkWasTouch.current = false;
       return;
     }
-    checkInHabit(goalId, habitId, today);
+    completeHabit(goalId, habitId);
   };
 
   const startEditHabit = (goalId, habit) => {
@@ -111,6 +140,13 @@ export default function DailyFocus({
   });
   const hasCheckedHabits = allHabits.length > openHabits.length;
   const habitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
+  const hasSettlingHabits = Object.keys(settlingHabits).length > 0;
+  const visibleHabitKeys = new Set(habitsToShow.map(({ goalId, habit }) => habitKey(goalId, habit.id)));
+  const settlingHabitItems = allHabits.filter(({ goalId, habit }) => {
+    const key = habitKey(goalId, habit.id);
+    return settlingHabits[key] && !visibleHabitKeys.has(key);
+  });
+  const visibleHabits = [...habitsToShow, ...settlingHabitItems];
 
   // Tasks labeled Today/Urgent that aren't done yet.
   const focusTasks = tasks.filter(
@@ -120,7 +156,17 @@ export default function DailyFocus({
   const overdue = goals.filter((g) => isGoalOverdue(g));
 
   const allCaughtUp =
-    openHabits.length === 0 && focusTasks.length === 0 && overdue.length === 0;
+    openHabits.length === 0 && !hasSettlingHabits && focusTasks.length === 0 && overdue.length === 0;
+
+  const habitRowClass = (goalId, habit, checked = false, extra = "") =>
+    [
+      "ov-habit-row",
+      checked && "checked",
+      settlingHabits[habitKey(goalId, habit.id)],
+      extra,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
   return (
     <div className="card ov-focus-card">
@@ -151,7 +197,7 @@ export default function DailyFocus({
           {isMobile && showAllHabits && hasCheckedHabits && (
             <div className="stack" style={{ gap: 6, width: "100%" }}>
               {allHabits.map(({ goalId, goalName, habit }) => (
-                <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
+                <div key={goalId + "-" + habit.id} className={habitRowClass(goalId, habit, true)}>
                   <span className="ov-habit-check" style={{ cursor: "default" }}>
                     <span className="ov-habit-box checked" aria-hidden="true">
                       <Icon.Check width={11} height={11} />
@@ -176,7 +222,7 @@ export default function DailyFocus({
                 <span className="ov-count">{openHabits.length}</span>
               </div>
               <div className="stack" style={{ gap: 6 }}>
-                {habitsToShow.map(({ goalId, goalName, habit, checked }) => {
+                {visibleHabits.map(({ goalId, goalName, habit, checked }) => {
                   const isEditing =
                     editingHabit &&
                     editingHabit.goalId === goalId &&
@@ -185,7 +231,7 @@ export default function DailyFocus({
                     return (
                       <div
                         key={goalId + "-" + habit.id}
-                        className="ov-habit-row is-editing"
+                        className={habitRowClass(goalId, habit, false, "is-editing")}
                       >
                         <span className="ov-habit-box" aria-hidden="true" />
                         <input
@@ -210,7 +256,7 @@ export default function DailyFocus({
                   }
                   if (checked) {
                     return (
-                      <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
+                      <div key={goalId + "-" + habit.id} className={habitRowClass(goalId, habit, true)}>
                         <span className="ov-habit-check" style={{ cursor: "default" }}>
                           <span className="ov-habit-box checked" aria-hidden="true">
                             <Icon.Check width={11} height={11} />
@@ -224,7 +270,7 @@ export default function DailyFocus({
                     );
                   }
                   return (
-                    <div key={goalId + "-" + habit.id} className="ov-habit-row">
+                    <div key={goalId + "-" + habit.id} className={habitRowClass(goalId, habit, checked)}>
                       <button
                         type="button"
                         className="ov-habit-check"

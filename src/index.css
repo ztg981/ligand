@@ -29,6 +29,8 @@
   --accent-soft: oklch(0.92 0.04 var(--accent-h));
   --accent-glow: oklch(0.72 0.11 var(--accent-h) / 0.45);
   --accent-ink: oklch(0.42 0.10 var(--accent-h));
+  --complete-green: #22c55e;
+  --complete-flash: rgba(34, 197, 94, 0.15);
 
   --hue-lav: 290;
   --hue-amb: 70;
@@ -77,6 +79,7 @@
   --accent-soft: oklch(0.32 0.06 var(--accent-h));
   --accent-glow: oklch(0.7 0.15 var(--accent-h) / 0.55);
   --accent-ink: oklch(0.85 0.10 var(--accent-h));
+  --complete-flash: rgba(34, 197, 94, 0.18);
 
   --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
   --shadow-pop:  0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 4px rgba(0,0,0,0.35), 0 22px 48px -18px rgba(0,0,0,0.7);
@@ -1397,6 +1400,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 
 /* table-ish task row */
 .taskrow {
+  --row-bg: var(--panel);
   display: grid;
   grid-template-columns: 22px 1fr auto auto;
   align-items: center;
@@ -1404,11 +1408,14 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   padding: 9px 12px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: var(--row-bg);
   box-shadow: var(--shadow-card);
-  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
+  transform-origin: center;
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease), background 0.18s var(--ease);
 }
 .taskrow:hover { transform: translateY(-1px); box-shadow: var(--shadow-pop); }
+.taskrow.completing { animation: rowCompleteBounce 400ms var(--ease); }
+.taskrow.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .taskrow + .taskrow { margin-top: 6px; }
 .taskrow .checkbox {
   width: 18px; height: 18px;
@@ -1421,8 +1428,19 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   flex: none;
   transition: all 0.18s var(--ease);
 }
-.taskrow.done .checkbox { background: var(--accent); border-color: transparent; box-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow); color: white; }
-.taskrow.done .checkbox svg { width: 11px; height: 11px; }
+.taskrow.done .checkbox,
+.taskrow.completing .checkbox {
+  background: var(--complete-green); border-color: transparent;
+  box-shadow: 0 0 0 1px var(--complete-green), 0 0 8px rgba(34, 197, 94, 0.35);
+  color: white;
+}
+.taskrow.completing .checkbox { animation: checkboxCompleteGreen 360ms var(--ease); }
+.taskrow.unchecking .checkbox { animation: checkboxUncheck 260ms var(--ease) both; color: white; }
+.taskrow.done .checkbox svg,
+.taskrow.completing .checkbox svg,
+.taskrow.unchecking .checkbox svg { width: 11px; height: 11px; transform-origin: center; }
+.taskrow.completing .checkbox svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.taskrow.unchecking .checkbox svg { animation: checkSpringReverse 220ms var(--ease) both; }
 .taskrow.done .task-name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink-4); }
 .task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
 .taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
@@ -1514,7 +1532,13 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 
 /* habit dots row */
-.habit-row { display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px; padding: 8px 4px; }
+.habit-row {
+  --row-bg: transparent;
+  display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px;
+  padding: 8px 4px; border-radius: var(--r-md); transform-origin: center;
+}
+.habit-row.completing { animation: rowCompleteBounce 400ms var(--ease); }
+.habit-row.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .habit-row + .habit-row { border-top: 1px solid var(--line); }
 .habit-name { font-size: 12.5px; font-weight: 500; min-width: 0; }
 .habit-name .sub { display: block; font-size: 10.5px; color: var(--ink-3); font-weight: 400; margin-top: 1px; }
@@ -1537,7 +1561,16 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   color: var(--ink-3);
   transition: all 0.18s var(--ease);
 }
-.habit-cell.done { background: var(--accent); border-color: transparent; color: white; box-shadow: 0 0 0 1px var(--accent), 0 0 5px var(--accent-glow); }
+.habit-cell.done,
+.habit-cell.completing {
+  background: var(--complete-green); border-color: transparent; color: white;
+  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
+}
+.habit-cell.completing { animation: checkboxCompleteGreen 360ms var(--ease); }
+.habit-cell.unchecking { animation: checkboxUncheck 260ms var(--ease) both; color: white; }
+.habit-cell svg { transform-origin: center; }
+.habit-cell.completing svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.habit-cell.unchecking svg { animation: checkSpringReverse 220ms var(--ease) both; }
 .habit-cell.skip { background: oklch(0.94 0.05 var(--hue-amb)); border-color: transparent; color: oklch(0.45 0.10 var(--hue-amb)); }
 [data-theme="dark"] .habit-cell.skip { background: oklch(0.32 0.06 var(--hue-amb)); color: oklch(0.85 0.10 var(--hue-amb)); }
 .habit-cell.reflect { background: oklch(0.94 0.05 var(--hue-lav)); border-color: transparent; color: oklch(0.45 0.10 var(--hue-lav)); }
@@ -3813,7 +3846,8 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-habit-row.checked { opacity: 0.6; }
 .ov-habit-row.checked .ov-habit-name { text-decoration: line-through; text-decoration-color: var(--ink-4); }
 .ov-habit-box.checked {
-  background: var(--accent); border-color: transparent; color: white;
+  background: var(--complete-green); border-color: transparent; color: white;
+  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ov-caught-ic {
@@ -3849,12 +3883,16 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 /* Quick habit check-in rows */
 .ov-habit-row {
+  --row-bg: var(--panel-2);
   display: flex; align-items: stretch; gap: 0;
   width: 100%; border-radius: var(--r-md); overflow: hidden;
-  border: 1px solid var(--line); background: var(--panel-2);
-  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+  border: 1px solid var(--line); background: var(--row-bg);
+  transform-origin: center;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.16s var(--ease);
 }
 .ov-habit-row:hover { background: var(--panel-3); border-color: var(--line-strong); }
+.ov-habit-row.completing { animation: rowCompleteBounce 400ms var(--ease); }
+.ov-habit-row.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .ov-habit-check {
   flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
   text-align: left; cursor: pointer; padding: 9px 10px;
@@ -3875,6 +3913,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   border: 1.6px solid var(--line-strong); background: var(--panel);
   position: relative; transition: all 0.15s var(--ease);
 }
+.ov-habit-row.completing .ov-habit-box {
+  background: var(--complete-green); border-color: transparent; color: white;
+  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
+  animation: checkboxCompleteGreen 360ms var(--ease);
+}
+.ov-habit-row.unchecking .ov-habit-box { animation: checkboxUncheck 260ms var(--ease) both; }
+.ov-habit-box svg { transform-origin: center; }
+.ov-habit-row.completing .ov-habit-box svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.ov-habit-row.unchecking .ov-habit-box svg { animation: checkSpringReverse 220ms var(--ease) both; }
 /* Hold-to-check fill (mobile): while the checkbox is held, an accent fill
    grows to fill the circle over 300ms — see CHECK_HOLD_MS in DailyFocus.jsx.
    Releasing early removes .pressing, so the fill resets with no check. */
@@ -3892,6 +3939,58 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 @keyframes habitHoldFill {
   from { transform: scale(0.2); opacity: 0.3; }
   to { transform: scale(1); opacity: 0.95; }
+}
+@keyframes rowCompleteBounce {
+  0% { background: var(--row-bg); transform: scale(1); }
+  36% { background: var(--complete-flash); transform: scale(1.02); }
+  100% { background: var(--row-bg); transform: scale(1); }
+}
+@keyframes rowUncheckBounce {
+  0% { background: var(--complete-flash); transform: scale(1.01); }
+  100% { background: var(--row-bg); transform: scale(1); }
+}
+@keyframes checkboxCompleteGreen {
+  0% {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow);
+    transform: scale(1);
+  }
+  58% {
+    background: var(--complete-green);
+    border-color: var(--complete-green);
+    box-shadow: 0 0 0 1px var(--complete-green), 0 0 10px rgba(34, 197, 94, 0.4);
+    transform: scale(1.06);
+  }
+  100% {
+    background: var(--complete-green);
+    border-color: var(--complete-green);
+    box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
+    transform: scale(1);
+  }
+}
+@keyframes checkboxUncheck {
+  0% {
+    background: var(--complete-green);
+    border-color: var(--complete-green);
+    box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
+    transform: scale(1);
+  }
+  100% {
+    background: var(--panel);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-inset);
+    transform: scale(0.96);
+  }
+}
+@keyframes checkSpring {
+  0% { transform: scale(0); }
+  68% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+@keyframes checkSpringReverse {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0); opacity: 0; }
 }
 .ov-habit-check:hover .ov-habit-box {
   border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
