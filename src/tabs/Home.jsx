@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { todayKey, goalTargetDate, isGoalOverdue, isCheckedOn } from "../lib/model.js";
+import { todayKey, goalTargetDate, isGoalOverdue } from "../lib/model.js";
 import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai.js";
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
@@ -55,10 +55,8 @@ export default function Home({
   checkInHabit,
   updateHabit,
   onQuickCapture,
-  onGoToOverview,
 }) {
   const [reviewDates, setReviewDates] = useState({});
-  const today = todayKey();
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);
   const doneCount = tasks.length - activeTasks.length;
@@ -81,17 +79,6 @@ export default function Home({
 
   const message = encouragingMessage({ doneCount, activeCount: activeTasks.length, tone });
   const summary = summarizeProgress({ goals, tasks });
-  const habitProgress = useMemo(() => {
-    let total = 0;
-    let done = 0;
-    goals.forEach((g) => {
-      (g.habits || []).forEach((habit) => {
-        total += 1;
-        if (isCheckedOn(habit, today)) done += 1;
-      });
-    });
-    return { done, total };
-  }, [goals, today]);
 
   return (
     <>
@@ -136,19 +123,7 @@ export default function Home({
           checkInHabit={checkInHabit}
           updateHabit={updateHabit}
           onOpenGoal={onOpenGoal}
-          hideHabits
         />
-
-        {habitProgress.total > 0 && (
-          <button
-            type="button"
-            className="home-habit-summary"
-            onClick={onGoToOverview}
-          >
-            <span>{habitProgress.done} of {habitProgress.total} habits done today</span>
-            <Icon.Arrow width={14} height={14} />
-          </button>
-        )}
 
         <button
           type="button"

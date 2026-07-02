@@ -15,7 +15,6 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const BASE_LABELS = ["Today", "Urgent", "General"];
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
-const COMPLETE_ANIM_MS = 700;
 
 // Map a label/goal to a chip style so the list reads at a glance.
 function LabelChip({ task, goals }) {
@@ -172,18 +171,10 @@ export default function Tasks({
 
   // --- mobile long-press-to-edit state ---
   const [pressingId, setPressingId] = useState(null);
-  const [taskMotion, setTaskMotion] = useState({});
   const pressTimer = useRef(null);
   const pressStart = useRef({ x: 0, y: 0 });
-  const motionTimers = useRef({});
 
-  useEffect(
-    () => () => {
-      clearTimeout(pressTimer.current);
-      Object.values(motionTimers.current).forEach(clearTimeout);
-    },
-    []
-  );
+  useEffect(() => () => clearTimeout(pressTimer.current), []);
 
   const parseRepeat = (v) => {
     if (v === "daily") return { type: "daily" };
@@ -224,24 +215,6 @@ export default function Tasks({
     setEditText("");
   };
 
-  const markTaskMotion = (taskId, mode) => {
-    clearTimeout(motionTimers.current[taskId]);
-    setTaskMotion((current) => ({ ...current, [taskId]: mode }));
-    motionTimers.current[taskId] = setTimeout(() => {
-      setTaskMotion((current) => {
-        const next = { ...current };
-        delete next[taskId];
-        return next;
-      });
-      delete motionTimers.current[taskId];
-    }, COMPLETE_ANIM_MS);
-  };
-
-  const handleTaskToggle = (task) => {
-    markTaskMotion(task.id, task.done ? "unchecking" : "completing");
-    toggleTask(task.id);
-  };
-
   // Long-press (mobile only): a short tap does nothing but a subtle
   // highlight; holding for LONG_PRESS_MS opens inline edit. Prevents the
   // "tapped a task while scrolling and accidentally started editing it"
@@ -277,9 +250,7 @@ export default function Tasks({
   // Filter + sort: matches first, active before done, newest first.
   const visible = useMemo(() => {
     return tasks
-      .filter((t) =>
-        taskMotion[t.id] ? true : status === "all" ? true : status === "done" ? t.done : !t.done
-      )
+      .filter((t) => (status === "all" ? true : status === "done" ? t.done : !t.done))
       .filter((t) => {
         if (filter === "all") return true;
         if (filter.startsWith("goal:")) return t.goalId === filter.slice(5);
@@ -287,7 +258,7 @@ export default function Tasks({
         return true;
       })
       .sort((a, b) => Number(a.done) - Number(b.done) || b.id.localeCompare(a.id));
-  }, [tasks, status, filter, taskMotion]);
+  }, [tasks, status, filter]);
 
   const counts = useMemo(
     () => ({
@@ -296,24 +267,6 @@ export default function Tasks({
       done: tasks.filter((t) => t.done).length,
     }),
     [tasks]
-  );
-
-  const statusToggle = (
-    <div className="seg tasks-status-toggle">
-      {[
-        ["active", `Active${counts.active ? " " + counts.active : ""}`],
-        ["done", `Done${counts.done ? " " + counts.done : ""}`],
-        ["all", "All"],
-      ].map(([v, label]) => (
-        <button
-          key={v}
-          className={status === v ? "active" : ""}
-          onClick={() => setStatus(v)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
   );
 
   return (
@@ -327,6 +280,17 @@ export default function Tasks({
           </p>
         </div>
       </div>
+
+      {/* Mobile: a compact trigger that opens the full form in a bottom
+         sheet, so the task list gets almost the whole screen instead of a
+         3-row form eating the top. Desktop keeps the inline bar below. */}
+      <button
+        type="button"
+        className="tasks-add-mobile-btn"
+        onClick={() => setShowAddSheet(true)}
+      >
+        <Icon.Plus /> Add task
+      </button>
 
       {/* Add bar - desktop/tablet only (hidden on mobile via CSS). */}
       <div className="card tasks-addbar-desktop" style={{ marginBottom: 14 }}>
@@ -353,20 +317,6 @@ export default function Tasks({
             Add
           </button>
         </div>
-      </div>
-
-      <div className="tasks-top-row">
-        {/* Mobile: a compact trigger that opens the full form in a bottom
-           sheet, so the task list gets almost the whole screen instead of a
-           3-row form eating the top. Desktop keeps the inline bar above. */}
-        <button
-          type="button"
-          className="tasks-add-mobile-btn"
-          onClick={() => setShowAddSheet(true)}
-        >
-          <Icon.Plus /> Add task
-        </button>
-        {statusToggle}
       </div>
 
       {/* Mobile add-task bottom sheet */}
@@ -419,7 +369,7 @@ export default function Tasks({
         )}
 
       {/* Filters */}
-      <div className="tasks-filter-wrap">
+      <div className="row between tasks-filter-bar" style={{ marginBottom: 12, gap: 10 }}>
         <div className="row tasks-filter-chips" style={{ gap: 6 }}>
           <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
             All
@@ -480,65 +430,62 @@ export default function Tasks({
               className={
                 "taskrow" +
                 (task.done ? " done" : "") +
-                (taskMotion[task.id] ? " " + taskMotion[task.id] : "") +
                 (pressingId === task.id ? " pressing" : "")
               }
             >
               <button
                 className="checkbox"
-                onClick={() => handleTaskToggle(task)}
+                onClick={() => toggleTask(task.id)}
                 title={task.done ? "Mark not done" : "Mark done"}
               >
-                {(task.done || taskMotion[task.id]) && <Icon.Check />}
+                {task.done && <Icon.Check />}
               </button>
 
-              <span className="taskrow-main">
-                {editingId === task.id ? (
-                  <input
-                    className="input taskrow-edit-input"
-                    autoFocus
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") {
-                        setEditingId(null);
-                        setEditText("");
-                      }
-                    }}
-                    onBlur={commitEdit}
-                  />
-                ) : (
+              {editingId === task.id ? (
+                <input
+                  className="input"
+                  autoFocus
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitEdit();
+                    if (e.key === "Escape") {
+                      setEditingId(null);
+                      setEditText("");
+                    }
+                  }}
+                  onBlur={commitEdit}
+                />
+              ) : (
+                <span
+                  className="task-name"
+                  onClick={() => !isMobile && startEdit(task)}
+                  onTouchStart={handlePressStart(task)}
+                  onTouchMove={handlePressMove}
+                  onTouchEnd={handlePressEnd}
+                  onTouchCancel={handlePressEnd}
+                  title={isMobile ? "Hold to edit" : "Click to edit"}
+                  style={{ cursor: isMobile ? "default" : "text" }}
+                >
+                  {task.text}
+                </span>
+              )}
+
+              <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {task.repeat && (
                   <span
-                    className="task-name"
-                    onClick={() => !isMobile && startEdit(task)}
-                    onTouchStart={handlePressStart(task)}
-                    onTouchMove={handlePressMove}
-                    onTouchEnd={handlePressEnd}
-                    onTouchCancel={handlePressEnd}
-                    title={isMobile ? "Hold to edit" : "Click to edit"}
-                    style={{ cursor: isMobile ? "default" : "text" }}
+                    className="chip"
+                    title={repeatLabel(task.repeat)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
                   >
-                    {task.text}
+                    <Icon.Reset width={11} height={11} />
+                    {task.repeat.type === "daily"
+                      ? "Daily"
+                      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
                   </span>
                 )}
-
-                <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap" }}>
-                  {task.repeat && (
-                    <span
-                      className="chip"
-                      title={repeatLabel(task.repeat)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-                    >
-                      <Icon.Reset width={11} height={11} />
-                      {task.repeat.type === "daily"
-                        ? "Daily"
-                        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
-                    </span>
-                  )}
-                  <LabelChip task={task} goals={goals} />
-                  <TermChip term={taskTerm(task)} />
-                </span>
+                <LabelChip task={task} goals={goals} />
+                <TermChip term={taskTerm(task)} />
               </span>
 
               <span className="taskrow-actions">

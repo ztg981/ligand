@@ -29,8 +29,6 @@
   --accent-soft: oklch(0.92 0.04 var(--accent-h));
   --accent-glow: oklch(0.72 0.11 var(--accent-h) / 0.45);
   --accent-ink: oklch(0.42 0.10 var(--accent-h));
-  --complete-green: #22c55e;
-  --complete-flash: rgba(34, 197, 94, 0.15);
 
   --hue-lav: 290;
   --hue-amb: 70;
@@ -79,7 +77,6 @@
   --accent-soft: oklch(0.32 0.06 var(--accent-h));
   --accent-glow: oklch(0.7 0.15 var(--accent-h) / 0.55);
   --accent-ink: oklch(0.85 0.10 var(--accent-h));
-  --complete-flash: rgba(34, 197, 94, 0.18);
 
   --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.3), 0 12px 28px -14px rgba(0,0,0,0.55);
   --shadow-pop:  0 1px 0 rgba(255,255,255,0.06) inset, 0 2px 4px rgba(0,0,0,0.35), 0 22px 48px -18px rgba(0,0,0,0.7);
@@ -118,26 +115,6 @@ button, a, input, select, textarea, summary, label, [role="button"], [tabindex] 
   -webkit-tap-highlight-color: transparent;
 }
 button, a, [role="button"] { touch-action: manipulation; }
-
-@media (hover: none) and (pointer: coarse) {
-  button,
-  [role="button"],
-  .note-list-item,
-  .home-glance-pill,
-  .ov-goal-card,
-  .card.hover {
-    transform-origin: center;
-    transition: transform 0.12s var(--ease), background 0.15s var(--ease), color 0.15s var(--ease), box-shadow 0.15s var(--ease);
-  }
-  button:active,
-  [role="button"]:active,
-  .note-list-item:active,
-  .home-glance-pill:active,
-  .ov-goal-card:active,
-  .card.hover:active {
-    transform: scale(0.98);
-  }
-}
 
 /* ============================================================
    App shell
@@ -191,7 +168,6 @@ button, a, [role="button"] { touch-action: manipulation; }
    Top nav
    ============================================================ */
 .topbar {
-  --topbar-backdrop-filter: blur(14px) saturate(130%);
   position: sticky;
   top: 12px;
   z-index: 20;
@@ -208,7 +184,6 @@ button, a, [role="button"] { touch-action: manipulation; }
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
-.topbar-fade { display: none; }
 .brand {
   display: flex;
   align-items: center;
@@ -403,13 +378,6 @@ button, a, [role="button"] { touch-action: manipulation; }
    ============================================================ */
 .body { display: block; }
 .content { min-width: 0; }
-.screen-transition {
-  animation: screenSwitchIn 150ms var(--ease) both;
-}
-@keyframes screenSwitchIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 .goal-sidebar { display: none; }
 
 @media (min-width: 768px) {
@@ -1429,25 +1397,22 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 
 /* table-ish task row */
 .taskrow {
-  --row-bg: var(--panel);
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto;
   align-items: center;
-  gap: 0;
-  padding: 8px;
+  gap: 10px;
+  padding: 9px 12px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
-  background: var(--row-bg);
+  background: var(--panel);
   box-shadow: var(--shadow-card);
-  transform-origin: center;
-  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease), background 0.18s var(--ease);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
 }
 .taskrow:hover { transform: translateY(-1px); box-shadow: var(--shadow-pop); }
-.taskrow.completing { animation: rowCompleteBounce 400ms var(--ease); }
-.taskrow.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .taskrow + .taskrow { margin-top: 6px; }
 .taskrow .checkbox {
-  width: 44px; height: 44px;
-  border-radius: 12px;
+  width: 18px; height: 18px;
+  border-radius: 5px;
   border: 1px solid var(--line-strong);
   background: var(--panel);
   cursor: pointer;
@@ -1456,46 +1421,16 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   flex: none;
   transition: all 0.18s var(--ease);
 }
-.taskrow-main {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 8px;
-}
-.taskrow-edit-input { width: 100%; min-width: 0; }
-.taskrow > .task-name,
-.taskrow > input.input {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0 8px;
-}
-.taskrow > .chip { flex: 0 0 auto; }
-.taskrow.done .checkbox,
-.taskrow.completing .checkbox {
-  background: var(--complete-green); border-color: transparent;
-  box-shadow: 0 0 0 1px var(--complete-green), 0 0 8px rgba(34, 197, 94, 0.35);
-  color: white;
-}
-.taskrow.completing .checkbox { animation: checkboxCompleteGreen 360ms var(--ease); }
-.taskrow.unchecking .checkbox { animation: checkboxUncheck 260ms var(--ease) both; color: white; }
-.taskrow.done .checkbox svg,
-.taskrow.completing .checkbox svg,
-.taskrow.unchecking .checkbox svg { width: 11px; height: 11px; transform-origin: center; }
-.taskrow.completing .checkbox svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.taskrow.unchecking .checkbox svg { animation: checkSpringReverse 220ms var(--ease) both; }
+.taskrow.done .checkbox { background: var(--accent); border-color: transparent; box-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow); color: white; }
+.taskrow.done .checkbox svg { width: 11px; height: 11px; }
 .taskrow.done .task-name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--ink-4); }
-.task-name { min-width: 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 500; color: var(--ink); }
-.taskrow-chips { justify-content: flex-start; }
-.taskrow-actions { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0; }
+.task-name { font-size: 13px; font-weight: 500; color: var(--ink); }
+.taskrow-actions { display: inline-flex; align-items: center; gap: 2px; }
 .taskrow-icon-btn {
-  width: 44px; height: 44px; flex: 0 0 44px;
   background: transparent; border: none; cursor: pointer;
-  color: var(--ink-3); padding: 0;
+  color: var(--ink-3); padding: 4px;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 10px;
+  border-radius: 8px;
   transition: color 0.15s var(--ease), background 0.15s var(--ease);
 }
 .taskrow-icon-btn:hover { color: var(--accent-ink, var(--accent)); background: var(--panel-3); }
@@ -1503,57 +1438,17 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    feedback that something is happening before the 500ms edit trigger. */
 .taskrow.pressing { background: var(--panel-3); border-color: var(--line-strong); }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
-.tasks-top-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.tasks-status-toggle {
-  flex: none;
-}
-.tasks-status-toggle button {
-  height: 30px;
-  padding: 0 9px;
-  font-size: 11.5px;
-}
-.tasks-filter-wrap {
-  position: relative;
-  width: 100%;
-  margin-bottom: 12px;
-}
-.tasks-filter-wrap > .seg { display: none; }
-.tasks-filter-wrap::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 2px;
-  width: 34px;
-  pointer-events: none;
-  background: linear-gradient(to right, transparent, var(--bg));
-}
-.tasks-filter-chips {
-  flex-wrap: nowrap;
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 0 34px 2px 0;
-}
-.tasks-filter-chips .chip {
-  flex: none;
-  border-radius: 999px;
-}
+.tasks-filter-bar { flex-wrap: wrap; }
+.tasks-filter-chips { flex-wrap: wrap; }
 
 /* Mobile compact "+ Add task" trigger - hidden on desktop/tablet, where the
    inline bar (.tasks-addbar-desktop) is used instead. See the mobile
    override above (max-width: 640px) that flips which one shows. */
 .tasks-add-mobile-btn {
   display: none;
-  flex: 1 1 auto;
-  width: auto;
+  width: 100%;
   align-items: center; justify-content: center; gap: 8px;
-  height: 46px; margin-bottom: 0;
+  height: 46px; margin-bottom: 12px;
   border-radius: var(--r-lg);
   border: 1px dashed var(--line-strong);
   background: var(--panel-2);
@@ -1617,43 +1512,20 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   font-size: 16px; font-weight: 600; color: var(--accent-ink, var(--accent));
   animation: badgeToastIn 0.25s var(--ease);
 }
-.quick-note-saved svg {
-  transform-origin: center;
-  animation: quickNoteCheckPulse 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes quickNoteCheckPulse {
-  0% { transform: scale(0.8); opacity: 0.7; }
-  55% { transform: scale(1.25); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
 
 /* habit dots row */
-.habit-row {
-  --row-bg: transparent;
-  display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px;
-  padding: 8px 4px; border-radius: var(--r-md); transform-origin: center;
-}
-.habit-row.completing { animation: rowCompleteBounce 400ms var(--ease); }
-.habit-row.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
+.habit-row { display: grid; grid-template-columns: 1fr repeat(7, 22px); align-items: center; gap: 4px; padding: 8px 4px; }
 .habit-row + .habit-row { border-top: 1px solid var(--line); }
 .habit-name { font-size: 12.5px; font-weight: 500; min-width: 0; }
 .habit-name .sub { display: block; font-size: 10.5px; color: var(--ink-3); font-weight: 400; margin-top: 1px; }
-.habit-name-row { min-width: 0; width: 100%; display: flex; align-items: center; gap: 0 !important; }
-.habit-label-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.habit-name-row { min-width: 0; }
+.habit-label-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Pencil edit button: hidden until the row is hovered (always shown on touch). */
-.habit-edit-btn,
-.habit-del-btn {
-  flex: 0 0 44px;
-  width: 44px; height: 44px;
-  color: var(--ink-4);
-  opacity: 0;
-  transition: opacity 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
-}
-.habit-row:hover .habit-edit-btn,
-.habit-row:hover .habit-del-btn { opacity: 1; }
+.habit-edit-btn { opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease); }
+.habit-row:hover .habit-edit-btn { opacity: 1; }
 .habit-edit-btn:hover { color: var(--accent-ink, var(--accent)) !important; }
 .habit-edit-input { height: 28px; padding: 4px 8px; font-size: 12.5px; max-width: 200px; }
-@media (hover: none) { .habit-edit-btn, .habit-del-btn { opacity: 0.7; } }
+@media (hover: none) { .habit-edit-btn { opacity: 0.7; } }
 .habit-cell {
   width: 22px; height: 22px;
   border-radius: 6px;
@@ -1665,16 +1537,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   color: var(--ink-3);
   transition: all 0.18s var(--ease);
 }
-.habit-cell.done,
-.habit-cell.completing {
-  background: var(--complete-green); border-color: transparent; color: white;
-  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
-}
-.habit-cell.completing { animation: checkboxCompleteGreen 360ms var(--ease); }
-.habit-cell.unchecking { animation: checkboxUncheck 260ms var(--ease) both; color: white; }
-.habit-cell svg { transform-origin: center; }
-.habit-cell.completing svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.habit-cell.unchecking svg { animation: checkSpringReverse 220ms var(--ease) both; }
+.habit-cell.done { background: var(--accent); border-color: transparent; color: white; box-shadow: 0 0 0 1px var(--accent), 0 0 5px var(--accent-glow); }
 .habit-cell.skip { background: oklch(0.94 0.05 var(--hue-amb)); border-color: transparent; color: oklch(0.45 0.10 var(--hue-amb)); }
 [data-theme="dark"] .habit-cell.skip { background: oklch(0.32 0.06 var(--hue-amb)); color: oklch(0.85 0.10 var(--hue-amb)); }
 .habit-cell.reflect { background: oklch(0.94 0.05 var(--hue-lav)); border-color: transparent; color: oklch(0.45 0.10 var(--hue-lav)); }
@@ -3082,17 +2945,8 @@ button.upcoming-row:hover { background: var(--panel-3); }
 }
 .bottom-nav-ic {
   display: inline-flex; align-items: center; justify-content: center;
-  transform-origin: center;
 }
 .bottom-nav-ic svg { width: 18px; height: 18px; }
-.bottom-nav-item.active .bottom-nav-ic {
-  animation: bottomTabSpring 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes bottomTabSpring {
-  0% { transform: scale(1); }
-  62% { transform: scale(1.15); }
-  100% { transform: scale(1); }
-}
 .bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .bottom-nav-item.active .bottom-nav-label { font-weight: 750; }
 
@@ -3120,7 +2974,6 @@ button.upcoming-row:hover { background: var(--panel-3); }
      issue) - fixed positioning sidesteps it entirely. Taken out of layout
      flow, so .shell's top padding above is sized to clear it. */
   .topbar {
-    --topbar-backdrop-filter: blur(20px) saturate(140%);
     position: fixed;
     top: env(safe-area-inset-top, 0px);
     left: 8px;
@@ -3131,28 +2984,25 @@ button.upcoming-row:hover { background: var(--panel-3); }
     z-index: 70;
     /* Frosted glass — the standard iOS nav treatment. Stronger blur than
        desktop and a more opaque surface so content reads cleanly through it. */
-    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    background: color-mix(in oklab, var(--panel) 85%, transparent);
     backdrop-filter: blur(20px) saturate(140%);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
-    isolation: isolate;
   }
   /* Subtle fade just below the floating nav pill: content scrolling up behind
      the nav dissolves into the page background instead of hard-cutting at the
      pill's lower edge. Spans the full viewport width (past the pill's side
      insets) and never intercepts taps. */
-  .topbar-fade {
-    display: block;
+  .topbar::after {
+    content: "";
     position: absolute;
     left: -8px;
     right: -8px;
     top: 100%;
     height: 22px;
     pointer-events: none;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
     background: linear-gradient(
       to bottom,
-      color-mix(in srgb, var(--bg) 68%, transparent),
+      color-mix(in oklab, var(--bg) 72%, transparent),
       transparent
     );
   }
@@ -3226,26 +3076,44 @@ button.upcoming-row:hover { background: var(--panel-3); }
      Taller padding + a bigger checkbox so the whole row reads as one easy
      tap target instead of the dense desktop row. */
   .taskrow {
-    padding: 10px 8px;
+    grid-template-columns: 26px 1fr auto;
+    grid-template-areas:
+      "check name  actions"
+      "chips chips chips";
+    gap: 8px 10px;
+    /* Extra right clearance so the row's own actions never sit under the
+       fixed Focus/Tweaks FABs, which float in that same bottom-right
+       corner at almost every scroll position. */
+    padding: 14px 60px 14px 12px;
   }
-  .taskrow-main { padding: 0 6px; }
-  .taskrow > input.input { min-width: 0; flex: 1; margin: 0 6px; }
-  .taskrow .task-name { font-size: 14.5px; }
+  .taskrow > .checkbox { grid-area: check; width: 24px; height: 24px; }
+  .taskrow > .task-name,
+  .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; font-size: 14.5px; }
+  .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
+  .taskrow > .taskrow-actions { grid-area: actions; gap: 0; }
   /* Edit/Delete are the primary way to edit on mobile now (a single tap on
      the task name does nothing, and a long-press isn't discoverable at a
      glance) - so they need a real 44px tap target, not a small icon. */
   .taskrow-icon-btn {
-    width: 44px; height: 44px;
+    min-width: 44px; min-height: 44px;
     border-radius: 10px;
   }
 
-  .tasks-top-row { align-items: stretch; }
-  .tasks-status-toggle button {
-    height: 34px;
-    padding: 0 8px;
-    font-size: 11px;
+  /* Filter chips scroll horizontally instead of wrapping to a second/third
+     line, which ate a lot of vertical space once a few goals existed. The
+     chip row is the one that shrinks/scrolls; the Active/Done/All segment
+     keeps its full size next to it. */
+  .tasks-filter-bar { flex-wrap: nowrap; }
+  .tasks-filter-bar > .seg { flex: none; }
+  .tasks-filter-chips {
+    flex: 1 1 0%;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
   }
-  .tasks-filter-chips .chip { min-height: 32px; }
+  .tasks-filter-chips .chip { flex: none; }
 }
 
 /* ============================================================
@@ -3942,8 +3810,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-habit-row.checked { opacity: 0.6; }
 .ov-habit-row.checked .ov-habit-name { text-decoration: line-through; text-decoration-color: var(--ink-4); }
 .ov-habit-box.checked {
-  background: var(--complete-green); border-color: transparent; color: white;
-  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
+  background: var(--accent); border-color: transparent; color: white;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ov-caught-ic {
@@ -3979,24 +3846,20 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 /* Quick habit check-in rows */
 .ov-habit-row {
-  --row-bg: var(--panel-2);
   display: flex; align-items: stretch; gap: 0;
   width: 100%; border-radius: var(--r-md); overflow: hidden;
-  border: 1px solid var(--line); background: var(--row-bg);
-  transform-origin: center;
-  transition: background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.16s var(--ease);
+  border: 1px solid var(--line); background: var(--panel-2);
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
 }
 .ov-habit-row:hover { background: var(--panel-3); border-color: var(--line-strong); }
-.ov-habit-row.completing { animation: rowCompleteBounce 400ms var(--ease); }
-.ov-habit-row.unchecking { animation: rowUncheckBounce 260ms var(--ease); }
 .ov-habit-check {
-  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0;
-  text-align: left; cursor: pointer; padding: 0;
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  text-align: left; cursor: pointer; padding: 9px 10px;
   border: none; background: transparent; color: inherit;
 }
 .ov-habit-edit {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; min-height: 44px; border: none; border-left: 1px solid var(--line);
+  width: 34px; border: none; border-left: 1px solid var(--line);
   background: transparent; color: var(--ink-4); cursor: pointer;
   opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease);
 }
@@ -4005,19 +3868,10 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .ov-habit-row.is-editing { padding: 9px 10px; align-items: center; gap: 10px; }
 .ov-habit-edit-input { flex: 1; min-width: 0; height: 30px; }
 .ov-habit-box {
-  flex: 0 0 24px; width: 24px; height: 24px; margin: 10px; border-radius: 8px;
+  flex: none; width: 20px; height: 20px; border-radius: 7px;
   border: 1.6px solid var(--line-strong); background: var(--panel);
   position: relative; transition: all 0.15s var(--ease);
 }
-.ov-habit-row.completing .ov-habit-box {
-  background: var(--complete-green); border-color: transparent; color: white;
-  box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
-  animation: checkboxCompleteGreen 360ms var(--ease);
-}
-.ov-habit-row.unchecking .ov-habit-box { animation: checkboxUncheck 260ms var(--ease) both; }
-.ov-habit-box svg { transform-origin: center; }
-.ov-habit-row.completing .ov-habit-box svg { animation: checkSpring 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.ov-habit-row.unchecking .ov-habit-box svg { animation: checkSpringReverse 220ms var(--ease) both; }
 /* Hold-to-check fill (mobile): while the checkbox is held, an accent fill
    grows to fill the circle over 300ms — see CHECK_HOLD_MS in DailyFocus.jsx.
    Releasing early removes .pressing, so the fill resets with no check. */
@@ -4036,58 +3890,6 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   from { transform: scale(0.2); opacity: 0.3; }
   to { transform: scale(1); opacity: 0.95; }
 }
-@keyframes rowCompleteBounce {
-  0% { background: var(--row-bg); transform: scale(1); }
-  36% { background: var(--complete-flash); transform: scale(1.02); }
-  100% { background: var(--row-bg); transform: scale(1); }
-}
-@keyframes rowUncheckBounce {
-  0% { background: var(--complete-flash); transform: scale(1.01); }
-  100% { background: var(--row-bg); transform: scale(1); }
-}
-@keyframes checkboxCompleteGreen {
-  0% {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px var(--accent), 0 0 8px var(--accent-glow);
-    transform: scale(1);
-  }
-  58% {
-    background: var(--complete-green);
-    border-color: var(--complete-green);
-    box-shadow: 0 0 0 1px var(--complete-green), 0 0 10px rgba(34, 197, 94, 0.4);
-    transform: scale(1.06);
-  }
-  100% {
-    background: var(--complete-green);
-    border-color: var(--complete-green);
-    box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
-    transform: scale(1);
-  }
-}
-@keyframes checkboxUncheck {
-  0% {
-    background: var(--complete-green);
-    border-color: var(--complete-green);
-    box-shadow: 0 0 0 1px var(--complete-green), 0 0 6px rgba(34, 197, 94, 0.35);
-    transform: scale(1);
-  }
-  100% {
-    background: var(--panel);
-    border-color: var(--line-strong);
-    box-shadow: var(--shadow-inset);
-    transform: scale(0.96);
-  }
-}
-@keyframes checkSpring {
-  0% { transform: scale(0); }
-  68% { transform: scale(1.3); }
-  100% { transform: scale(1); }
-}
-@keyframes checkSpringReverse {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0); opacity: 0; }
-}
 .ov-habit-check:hover .ov-habit-box {
   border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -4096,7 +3898,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   width: 6px; height: 10px; border: solid var(--accent);
   border-width: 0 2px 2px 0; transform: rotate(40deg); opacity: 0.5;
 }
-.ov-habit-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 0 10px 0 0; }
+.ov-habit-text { min-width: 0; display: flex; flex-direction: column; }
 .ov-habit-name {
   font-size: 13px; font-weight: 500; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4216,12 +4018,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
      wrap up to 2 lines instead of single-line-ellipsis-truncating - users
      need to actually read the full habit name, so the row height simply
      expands to fit rather than hiding part of it. */
-  .ov-habit-check { padding: 0; gap: 0; }
-  .ov-habit-box { width: 24px; height: 24px; }
+  .ov-habit-check { padding: 10px 10px; gap: 10px; }
+  .ov-habit-box { width: 20px; height: 20px; }
   .ov-habit-text { flex-direction: column; gap: 1px; min-width: 0; }
   .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
   .ov-habit-goal::before { content: none; }
-  .ov-habit-row { padding-right: 0; }
+  /* Extra right clearance, same reasoning as .taskrow above: with enough
+     habits the list runs the full page height, and rows land in the same
+     bottom-right corner the fixed Focus/Tweaks FABs float in. */
+  .ov-habit-row { padding-right: 60px; }
 
   /* A long-press meant to check in a habit (or, on .taskrow, to trigger
      inline edit) shouldn't also select the row's text - browsers treat a
@@ -4262,14 +4067,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
      height/padding tie and leave this at the generic small-button size. */
   .btn.location-add-btn { height: 40px; padding: 0 14px; font-size: 13px; }
   .location-remove-btn { width: 32px; height: 32px; }
-  .mood-row {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
-  }
-  .mood-row > span { flex: none; }
-  .mood-chip { flex: none; min-height: 32px; padding: 5px 10px; font-size: 13px; }
+  .mood-chip { min-height: 38px; padding: 0 14px; font-size: 13px; }
   .journal-entries { gap: 16px; }
   .journal-entry { padding-top: 14px; }
   .journal-entry-text { font-size: 14.5px; }
@@ -4497,21 +4295,6 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .home-quick-capture:active { transform: translateY(1px); }
 .home-quick-capture svg { width: 17px; height: 17px; }
-
-.home-habit-summary {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  width: 100%; min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink-2);
-  font-size: 13.5px; font-weight: 650;
-  cursor: pointer;
-  box-shadow: var(--shadow-card);
-}
-.home-habit-summary svg { flex: none; color: var(--accent-ink, var(--accent)); }
-.home-habit-summary:active { background: var(--panel-2); }
 
 .home-goals-glance {
   display: flex; gap: 8px;

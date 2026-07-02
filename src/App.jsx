@@ -682,7 +682,6 @@ export default function App() {
             checkInHabit={store.checkInHabit}
             updateHabit={store.updateHabit}
             onQuickCapture={handleQuickCapture}
-            onGoToOverview={() => setTab("overview")}
           />
         );
       case "overview":
@@ -924,11 +923,7 @@ export default function App() {
         />
 
         <div className="body">
-          <div className="content">
-            <div className="screen-transition" key={`${tab}:${activeGoal ?? ""}`}>
-              {screen}
-            </div>
-          </div>
+          <div className="content">{screen}</div>
           {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}
           <GoalSidebar
             goals={orderedActiveGoals}

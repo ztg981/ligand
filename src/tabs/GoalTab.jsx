@@ -840,9 +840,16 @@ function GoalTasks({
 
             <button
               type="button"
-              className="taskrow-icon-btn"
               onClick={() => startEdit(task)}
               title="Edit"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--ink-3)",
+                padding: 4,
+                display: "inline-flex",
+              }}
             >
               <Icon.Edit width={14} height={14} />
             </button>
@@ -851,7 +858,15 @@ function GoalTasks({
               onConfirm={() => removeTask(task.id)}
               requireConfirmation={confirmBeforeDelete}
               title="Delete"
-              className="taskrow-icon-btn"
+              className=""
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--ink-3)",
+                padding: 4,
+                display: "inline-flex",
+              }}
               icon={<Icon.Trash width={14} height={14} />}
             />
           </div>

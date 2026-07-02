@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { todayKey, shiftDay, isCheckedOn, currentStreak } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
@@ -10,7 +10,6 @@ import ConfirmButton from "../components/ConfirmButton.jsx";
    - Streaks PAUSE rather than shatter (see currentStreak in model.js). */
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
-const COMPLETE_ANIM_MS = 450;
 
 function last7() {
   const today = todayKey();
@@ -30,20 +29,11 @@ export default function HabitChecker({
   const [name, setName] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
-  const [settlingCells, setSettlingCells] = useState({});
   // Set true by Escape so the unmount-triggered onBlur skips the save.
   const cancelEditRef = useRef(false);
-  const settleTimers = useRef({});
   const days = useMemo(() => last7(), []);
   const today = todayKey();
   const habits = goal.habits || [];
-
-  useEffect(
-    () => () => {
-      Object.values(settleTimers.current).forEach(clearTimeout);
-    },
-    []
-  );
 
   const submit = () => {
     const n = name.trim();
@@ -70,26 +60,6 @@ export default function HabitChecker({
     }
     setEditingId(null);
     setEditText("");
-  };
-
-  const cellKey = (habitId, day) => habitId + "-" + day;
-  const markCellSettling = (habitId, day, mode) => {
-    const key = cellKey(habitId, day);
-    clearTimeout(settleTimers.current[key]);
-    setSettlingCells((current) => ({ ...current, [key]: mode }));
-    settleTimers.current[key] = setTimeout(() => {
-      setSettlingCells((current) => {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      });
-      delete settleTimers.current[key];
-    }, COMPLETE_ANIM_MS);
-  };
-
-  const handleHabitCellClick = (habit, day, isOn) => {
-    markCellSettling(habit.id, day, isOn ? "unchecking" : "completing");
-    checkInHabit(goal.id, habit.id, day);
   };
 
   return (
@@ -144,9 +114,8 @@ export default function HabitChecker({
 
           {habits.map((h) => {
             const streak = currentStreak(h, today);
-            const rowMode = days.map((d) => settlingCells[cellKey(h.id, d)]).find(Boolean);
             return (
-              <div key={h.id} className={["habit-row", rowMode].filter(Boolean).join(" ")}>
+              <div key={h.id} className="habit-row">
                 <div className="habit-name">
                   {editingId === h.id ? (
                     <input
@@ -175,6 +144,7 @@ export default function HabitChecker({
                           className="iconbtn sm habit-edit-btn"
                           title="Edit habit name"
                           onClick={() => startEdit(h)}
+                          style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                         >
                           <Icon.Pencil width={12} height={12} />
                         </button>
@@ -184,6 +154,7 @@ export default function HabitChecker({
                         title="Remove habit"
                         onConfirm={() => removeHabit(goal.id, h.id)}
                         requireConfirmation={confirmBeforeDelete}
+                        style={{ width: 22, height: 22, color: "var(--ink-4)" }}
                         icon={<Icon.Trash width={12} height={12} />}
                       />
                     </span>
@@ -198,7 +169,6 @@ export default function HabitChecker({
                 </div>
                 {days.map((d) => {
                   const on = isCheckedOn(h, d);
-                  const mode = settlingCells[cellKey(h.id, d)];
                   const isToday = d === today;
                   return (
                     <button
@@ -206,16 +176,15 @@ export default function HabitChecker({
                       key={d}
                       className={[
                         "habit-cell",
-                        (on || mode === "completing") && "done",
-                        mode,
+                        on && "done",
                         isToday && "today",
                       ]
                         .filter(Boolean)
                         .join(" ")}
                       title={`${h.name} · ${d}`}
-                      onClick={() => handleHabitCellClick(h, d, on)}
+                      onClick={() => checkInHabit(goal.id, h.id, d)}
                     >
-                      {on || mode ? <Icon.Check width={11} height={11} /> : ""}
+                      {on ? <Icon.Check width={11} height={11} /> : ""}
                     </button>
                   );
                 })}
