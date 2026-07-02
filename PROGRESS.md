@@ -21,6 +21,12 @@ Follow-up: shifted the desktop Focus pill right by centering it on the same
 1280px that both controls share the same centerline, and at 375px that mobile
 quick note/Tweaks alignment is unchanged.
 
+Follow-up 2: confirmed goal-health dots are driven by `goalHealth` (recent
+activity green, 3-6 quiet days amber, 7+ quiet days red, overdue red, recovery
+green), then reduced the desktop Focus pill from about 80px by 32px to about
+73px by 30px while preserving the Tweaks-center alignment. Verified on a fresh
+production preview at 1280px and checked mobile remained 44px.
+
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
 Wrapped the existing Vite/React web app in Electron so it ships as a native
