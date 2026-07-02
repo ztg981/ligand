@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Relative asset paths so the same build works both when served from the web
+  // root (Vercel / PWA) and when loaded over file:// inside the Electron shell
+  // (electron/main.js loads dist/index.html directly in the packaged app).
+  base: './',
   plugins: [
     react(),
     VitePWA({

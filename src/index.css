@@ -4746,3 +4746,42 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .wp-foot-actions { flex-direction: column; }
   .wp-foot-actions .btn { width: 100%; justify-content: center; }
 }
+
+/* ============================================================
+   Electron desktop shell — custom titlebar + layout offsets.
+   Active only inside Electron (html[data-electron="true"]); the native
+   title bar is hidden (see electron/main.js) and the OS draws just the
+   window controls as an overlay. This 40px strip fills the rest of that
+   band with the app identity and a draggable region so the window can be
+   moved. Entirely inert in the browser / PWA build.
+   ============================================================ */
+.electron-titlebar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 40px;
+  z-index: 100; /* above the sticky topbar (20), below modals/sheets (200) */
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag; /* the strip is the window's drag handle */
+  user-select: none;
+}
+.electron-titlebar-brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em;
+  color: var(--ink-2);
+}
+.electron-titlebar-dot {
+  width: 10px; height: 10px; border-radius: 3px;
+  background: linear-gradient(135deg, #558cb9, #b6aaff);
+}
+/* macOS draws its traffic-light controls on the LEFT — clear space for them. */
+html[data-electron-platform="darwin"] .electron-titlebar { padding-left: 82px; }
+
+/* Reserve the 40px band: push content down and park the sticky chrome below
+   the titlebar so nothing tucks underneath it. */
+html[data-electron="true"] .shell { padding-top: calc(var(--shell-py) + 40px); }
+html[data-electron="true"] .topbar { top: 52px; }
+html[data-electron="true"] .goal-sidebar { top: 124px; }

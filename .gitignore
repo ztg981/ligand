@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Electron build output (installers/binaries) — never commit
+dist-electron
+
 # Environment variables (Supabase keys, etc.) — never commit
 .env
 .env.local

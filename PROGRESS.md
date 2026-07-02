@@ -2,6 +2,61 @@
 
 _Session date: 2026-06-14 (updated 2026-07-01)_
 
+## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
+
+Wrapped the existing Vite/React web app in Electron so it ships as a native
+Windows desktop app (`.exe` installer via NSIS) — **an addition, not a
+replacement**: the web/PWA build and Vercel deploy are untouched.
+
+**Tooling** (`electron`, `electron-builder`, `concurrently`, `wait-on` as
+devDependencies). `package.json` gains `main: electron/main.js`, three scripts
+(`electron`, `electron:dev`, `electron:build`), and an electron-builder `build`
+block (appId `com.ligand.app`, productName `Ligand`, output `dist-electron`,
+win→nsis / mac→dmg, icon `public/pwa-512.png`).
+
+**Main process** (`electron/main.js`, CommonJS via a local
+`electron/package.json` `{"type":"commonjs"}` so the root ESM package doesn't
+force `.mjs` gymnastics): a 1280×800 (min 1280×800, resizable) BrowserWindow
+with `backgroundColor #15161a` (no white flash), `titleBarStyle: "hidden"` +
+a dark `titleBarOverlay` (native min/max/close, themed), `Menu.setApplicationMenu(null)`,
+secure `webPreferences` (contextIsolation on, nodeIntegration off, preload),
+external http(s) links routed to the real browser via `setWindowOpenHandler` /
+`will-navigate`. Loads `http://localhost:5173` in dev and `dist/index.html`
+over `file://` when packaged (keyed off `app.isPackaged`, overridable with
+`ELECTRON_START_URL`).
+
+**Preload** (`electron/preload.js`): exposes a minimal read-only
+`window.electron = { isElectron, platform }` over `contextBridge`.
+
+**Renderer**: `useElectron()` detects the shell and stamps
+`<html data-electron / data-electron-platform>`; `ElectronTitlebar` renders a
+40px draggable dark titlebar (`-webkit-app-region: drag`) with the app name,
+mounted at the root in `main.jsx` so it shows on every screen (auth, loading,
+app). CSS reserves the 40px band (`.shell` padding-top +40, `.topbar` sticky
+top → 52px, `.goal-sidebar` → 124px) only under `html[data-electron="true"]`.
+All of this is inert in the browser (`window.electron` undefined → titlebar
+renders nothing, no attribute, no offsets).
+
+**Vite**: `base: './'` so the same build's asset paths resolve both from the
+web root (Vercel/PWA) and over `file://` in the packaged app. Verified the
+built `index.html` references `./assets/...` and the web build still renders +
+registers its service worker with zero console errors.
+
+**Verified**: web production build unaffected (renders, SW active, no Electron
+titlebar/attribute). Electron end-to-end via a headless smoke window (removed
+after) against both the dev server and the packaged `file://` build — Electron
+detected (win32), titlebar present, main app renders, sticky offsets correct
+(`.topbar` top 52px, `.shell` padding-top 54px). Installer built:
+**`Ligand Setup 0.0.0.exe`, 122 MB** (NSIS, x64).
+
+**Note — building on this machine:** Windows *Controlled Folder Access* on the
+`Documents` folder blocks electron-builder's extract→rename step (`EPERM` on
+`dist-electron/win-unpacked.tmp`). Building to a location outside `Documents`
+(e.g. `--config.directories.output="%TEMP%\ligand-electron-out"`) succeeds, or
+allow node/electron-builder through Controlled Folder Access, or keep the repo
+outside `Documents`. `dist-electron/` is gitignored — binaries are never
+committed.
+
 ## Phase 11 — Hooks fix + native-feel mobile polish (2026-07-02, Claude Code)
 
 Clean baseline confirmed first (`npm run build` green, working tree clean).
