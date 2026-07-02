@@ -533,6 +533,8 @@ button, a, [role="button"] { touch-action: manipulation; }
 .iconbtn svg { width: 14px; height: 14px; }
 
 .iconbtn.tweaks-fab {
+  width: 44px;
+  height: 44px;
   background: color-mix(in oklab, var(--panel) 62%, transparent);
   border-color: color-mix(in oklab, var(--line-strong) 72%, transparent);
   box-shadow: var(--shadow-pop);
@@ -3353,6 +3355,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
    never overlaps it either. */
 .hf-fab {
   position: fixed; bottom: 76px; right: 20px; z-index: 70;
+  transform: translateX(calc((100% - 44px) / 2));
   display: inline-flex; align-items: center; gap: 6px;
   height: 32px; padding: 0 13px;
   border-radius: 16px;
@@ -3366,7 +3369,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
   transition: transform 0.16s var(--ease), color 0.16s, background 0.16s, box-shadow 0.16s, border-color 0.16s;
 }
 .hf-fab:hover {
-  transform: translateY(-1px);
+  transform: translateX(calc((100% - 44px) / 2)) translateY(-1px);
   color: var(--ink);
   background: color-mix(in oklab, var(--panel) 72%, transparent);
 }

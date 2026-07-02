@@ -16,6 +16,11 @@ desktop and 375px mobile with zero browser console warnings/errors. The open
 4174 tab had an old PWA cache, so the fresh build was visually verified on
 port 4175.
 
+Follow-up: shifted the desktop Focus pill right by centering it on the same
+44px column as the Tweaks FAB. Verified on a fresh production preview at
+1280px that both controls share the same centerline, and at 375px that mobile
+quick note/Tweaks alignment is unchanged.
+
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
 Wrapped the existing Vite/React web app in Electron so it ships as a native
