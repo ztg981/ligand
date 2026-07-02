@@ -4411,6 +4411,21 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .home-quick-capture:active { transform: translateY(1px); }
 .home-quick-capture svg { width: 17px; height: 17px; }
 
+.home-habit-summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-2);
+  font-size: 13.5px; font-weight: 650;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+.home-habit-summary svg { flex: none; color: var(--accent-ink, var(--accent)); }
+.home-habit-summary:active { background: var(--panel-2); }
+
 .home-goals-glance {
   display: flex; gap: 8px;
   overflow-x: auto;

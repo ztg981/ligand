@@ -18,6 +18,7 @@ export default function DailyFocus({
   checkInHabit,
   updateHabit,
   onOpenGoal,
+  hideHabits = false,
 }) {
   const today = todayKey();
   const isMobile = useIsMobile(640);
@@ -139,7 +140,8 @@ export default function DailyFocus({
     });
   });
   const hasCheckedHabits = allHabits.length > openHabits.length;
-  const habitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
+  const displayOpenHabits = hideHabits ? [] : openHabits;
+  const habitsToShow = !hideHabits && isMobile && showAllHabits ? allHabits : displayOpenHabits;
   const hasSettlingHabits = Object.keys(settlingHabits).length > 0;
   const visibleHabitKeys = new Set(habitsToShow.map(({ goalId, habit }) => habitKey(goalId, habit.id)));
   const settlingHabitItems = allHabits.filter(({ goalId, habit }) => {
@@ -156,7 +158,7 @@ export default function DailyFocus({
   const overdue = goals.filter((g) => isGoalOverdue(g));
 
   const allCaughtUp =
-    openHabits.length === 0 && !hasSettlingHabits && focusTasks.length === 0 && overdue.length === 0;
+    displayOpenHabits.length === 0 && !hasSettlingHabits && focusTasks.length === 0 && overdue.length === 0;
 
   const habitRowClass = (goalId, habit, checked = false, extra = "") =>
     [
@@ -167,6 +169,10 @@ export default function DailyFocus({
     ]
       .filter(Boolean)
       .join(" ");
+
+  if (hideHabits && focusTasks.length === 0 && overdue.length === 0) {
+    return null;
+  }
 
   return (
     <div className="card ov-focus-card">
@@ -185,7 +191,7 @@ export default function DailyFocus({
             <div className="ov-caught-title">You're all caught up.</div>
             <div className="ov-caught-sub">Great work today.</div>
           </div>
-          {isMobile && hasCheckedHabits && (
+          {!hideHabits && isMobile && hasCheckedHabits && (
             <button
               type="button"
               className="ov-habits-toggle ov-habits-toggle-caughtup"
@@ -194,7 +200,7 @@ export default function DailyFocus({
               {showAllHabits ? "Hide habits" : `Show all ${allHabits.length} habits`}
             </button>
           )}
-          {isMobile && showAllHabits && hasCheckedHabits && (
+          {!hideHabits && isMobile && showAllHabits && hasCheckedHabits && (
             <div className="stack" style={{ gap: 6, width: "100%" }}>
               {allHabits.map(({ goalId, goalName, habit }) => (
                 <div key={goalId + "-" + habit.id} className={habitRowClass(goalId, habit, true)}>
@@ -215,7 +221,7 @@ export default function DailyFocus({
       ) : (
         <div className="ov-focus-grid">
           {/* Quick habit check-in */}
-          {(openHabits.length > 0 || (isMobile && showAllHabits)) && (
+          {!hideHabits && (openHabits.length > 0 || (isMobile && showAllHabits)) && (
             <div className="ov-focus-col">
               <div className="ov-focus-label">
                 Habits to check in

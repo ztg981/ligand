@@ -682,6 +682,7 @@ export default function App() {
             checkInHabit={store.checkInHabit}
             updateHabit={store.updateHabit}
             onQuickCapture={handleQuickCapture}
+            onGoToOverview={() => setTab("overview")}
           />
         );
       case "overview":
