@@ -4,6 +4,11 @@ import { recoveryFallback } from "./recovery.js";
 
 // Cache duration: 24 hours
 const CACHE_TTL = 24 * 60 * 60 * 1000;
+let aiGuestMode = false;
+
+export function setAiGuestMode(isGuest) {
+  aiGuestMode = Boolean(isGuest);
+}
 
 function getCacheKey(goalId, action) {
   return `ligand.aiCache.${goalId}.${action}`;
@@ -140,6 +145,9 @@ const WEEKLY_FALLBACK =
  */
 export async function fetchWeeklyReview(context, forceRefresh = false) {
   const weekKey = getISOWeekKey();
+  if (aiGuestMode) {
+    return { text: WEEKLY_FALLBACK, source: "logged-out", week: weekKey };
+  }
   // Privacy gate: weekly review off → quiet static fallback, no API call.
   const priv = getPrivacySettings();
   if (!priv.aiWeeklyReview) {
@@ -215,6 +223,9 @@ export async function fetchWeeklyReview(context, forceRefresh = false) {
 }
 
 export async function fetchAiInsight(goalId, action, context, forceRefresh = false) {
+  if (aiGuestMode) {
+    return { text: getFallback(action), source: "logged-out" };
+  }
   // Privacy gate: if this feature is toggled off, never call the API — show the
   // static fallback quietly (source "off" renders with no badge in the UI).
   const priv = getPrivacySettings();
@@ -335,4 +346,3 @@ export async function fetchAiInsight(goalId, action, context, forceRefresh = fal
     return { text: getFallback(action), source: "fallback" };
   }
 }
-

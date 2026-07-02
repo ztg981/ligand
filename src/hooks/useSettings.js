@@ -9,7 +9,7 @@ const STORAGE_KEY = "ligand.settings";
 
 export const SETTINGS_DEFAULTS = {
   profile: {
-    name: "Maya", // shown in the dashboard greeting
+    name: "Guest", // shown in the dashboard greeting
   },
   notifications: {
     enabled: false, // master switch (placeholder for now)
@@ -19,7 +19,7 @@ export const SETTINGS_DEFAULTS = {
   },
   habits: {
     showStreaks: true,
-    weekStartsMonday: false,
+    weekStartsMonday: true,
   },
   assistant: {
     encouragement: true, // the warm dashboard lines

@@ -89,6 +89,7 @@ export default function Settings({
   customWallpapers = [],
   setCustomWallpapers,
   hasRecoveryGoal = false,
+  isGuest = false,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -174,6 +175,8 @@ export default function Settings({
   };
 
   const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {} } = settings;
+  const aiLocked = isGuest;
+  const aiLockedHint = "Sign in to use AI features.";
 
   return (
     <>
@@ -665,39 +668,53 @@ export default function Settings({
         {/* AI & Privacy */}
         <Section icon={<Icon.Cloud />} title="AI & Privacy">
           <p style={{ fontSize: 11.5, color: "var(--ink-4)", margin: "0 0 12px", lineHeight: 1.5 }}>
-            When AI features are on, summarized data is sent to Google's Gemini
-            API to generate insights. Google does not use this data to train
-            their models (paid API tier). Your data is never sold.
+            {aiLocked
+              ? "AI features are available when you sign in. Guest mode keeps everything local on this device."
+              : "When AI features are on, summarized data is sent to Google's Gemini API to generate insights. Google does not use this data to train their models (paid API tier). Your data is never sold."}
           </p>
-          <Row name="AI goal insights" hint="Goal summary and 'At a glance' suggestions">
+          <Row
+            name="AI goal insights"
+            hint={aiLocked ? aiLockedHint : "Goal summary and 'At a glance' suggestions"}
+            className={aiLocked ? "setting-row-locked" : ""}
+          >
             <Switch
-              checked={ai.aiGoalInsights !== false}
-              onChange={(v) => setSection("ai", { aiGoalInsights: v })}
+              checked={!aiLocked && ai.aiGoalInsights !== false}
+              onChange={(v) => !aiLocked && setSection("ai", { aiGoalInsights: v })}
+              disabled={aiLocked}
             />
           </Row>
-          <Row name="AI weekly review" hint="The 'Your week' card on Home">
+          <Row
+            name="AI weekly review"
+            hint={aiLocked ? aiLockedHint : "The 'Your week' card on Home"}
+            className={aiLocked ? "setting-row-locked" : ""}
+          >
             <Switch
-              checked={ai.aiWeeklyReview !== false}
-              onChange={(v) => setSection("ai", { aiWeeklyReview: v })}
+              checked={!aiLocked && ai.aiWeeklyReview !== false}
+              onChange={(v) => !aiLocked && setSection("ai", { aiWeeklyReview: v })}
+              disabled={aiLocked}
             />
           </Row>
           <Row
             name="Include journal text in AI context"
-            hint="Your journal text stays on your device when this is off - AI only sees aggregate stats (tasks done, check-in counts, streaks)."
+            hint={aiLocked ? aiLockedHint : "Your journal text stays on your device when this is off - AI only sees aggregate stats (tasks done, check-in counts, streaks)."}
+            className={aiLocked ? "setting-row-locked" : ""}
           >
             <Switch
-              checked={ai.includeJournalText === true}
-              onChange={(v) => setSection("ai", { includeJournalText: v })}
+              checked={!aiLocked && ai.includeJournalText === true}
+              onChange={(v) => !aiLocked && setSection("ai", { includeJournalText: v })}
+              disabled={aiLocked}
             />
           </Row>
           {hasRecoveryGoal && (
             <Row
               name="AI recovery insights"
-              hint="Recovery data is kept private by default - nothing from a recovery tracker is sent to AI unless this is on."
+              hint={aiLocked ? aiLockedHint : "Recovery data is kept private by default - nothing from a recovery tracker is sent to AI unless this is on."}
+              className={aiLocked ? "setting-row-locked" : ""}
             >
               <Switch
-                checked={ai.aiRecoveryInsights === true}
-                onChange={(v) => setSection("ai", { aiRecoveryInsights: v })}
+                checked={!aiLocked && ai.aiRecoveryInsights === true}
+                onChange={(v) => !aiLocked && setSection("ai", { aiRecoveryInsights: v })}
+                disabled={aiLocked}
               />
             </Row>
           )}

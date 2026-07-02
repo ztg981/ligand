@@ -40,6 +40,12 @@ Follow-up 4: moved the desktop Tweaks FAB slightly left after visual review
 while keeping the Focus pill in place and leaving mobile FAB sizing/placement
 unchanged.
 
+Follow-up 5: moved the desktop Focus pill down so its gap above Tweaks matches
+Tweaks' bottom-page gap. Guest mode now defaults the visible profile name to
+"Guest", forces AI settings off/disabled with sign-in guidance, blocks AI calls
+at the helper layer while signed out, and defaults weeks to Monday (with a
+guest migration for old Sunday-default settings).
+
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
 Wrapped the existing Vite/React web app in Electron so it ships as a native

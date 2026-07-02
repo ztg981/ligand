@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import OfflineBanner from "./components/OfflineBanner.jsx";
 import { playBgMusic, stopBgMusic, setBgMusicVolume, isBgMusicPlaying } from "./lib/bgMusicPlayer.js";
@@ -24,6 +24,7 @@ import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { todayKey, daysBetween, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import { wallpaperById } from "./lib/wallpaper.js";
+import { setAiGuestMode } from "./lib/aiApi.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
 import Pomodoro from "./tabs/Pomodoro.jsx";
@@ -88,6 +89,7 @@ export default function App() {
   // button (see the FAB render further down) - desktop keeps Hyperfocus.
   const isMobile = useIsMobile(768);
   const { settings, setSection, reset: resetSettings } = useSettings();
+  const isGuest = !session;
   const notif = useNotifications({ enabled: settings.notifications.enabled });
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
@@ -95,6 +97,54 @@ export default function App() {
   const [showTweaks, setShowTweaks] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+
+  useLayoutEffect(() => {
+    setAiGuestMode(isGuest);
+  }, [isGuest]);
+
+  useEffect(() => {
+    if (!isGuest) return;
+    if ((settings.profile?.name || "").trim() === "Maya") {
+      setSection("profile", { name: "Guest" });
+    }
+  }, [isGuest, settings.profile?.name, setSection]);
+
+  useEffect(() => {
+    if (!isGuest) return;
+    const ai = settings.ai || {};
+    if (
+      ai.aiGoalInsights !== false ||
+      ai.aiWeeklyReview !== false ||
+      ai.includeJournalText === true ||
+      ai.aiRecoveryInsights === true
+    ) {
+      setSection("ai", {
+        aiGoalInsights: false,
+        aiWeeklyReview: false,
+        includeJournalText: false,
+        aiRecoveryInsights: false,
+      });
+    }
+  }, [
+    isGuest,
+    settings.ai?.aiGoalInsights,
+    settings.ai?.aiWeeklyReview,
+    settings.ai?.includeJournalText,
+    settings.ai?.aiRecoveryInsights,
+    setSection,
+  ]);
+
+  useEffect(() => {
+    if (!isGuest || settings.habits?.weekStartsMonday === true) return;
+    try {
+      const key = "ligand.guestWeekStartMondayDefault.v1";
+      if (window.localStorage.getItem(key)) return;
+      window.localStorage.setItem(key, "1");
+    } catch {
+      // If localStorage is unavailable, still apply the in-memory preference.
+    }
+    setSection("habits", { weekStartsMonday: true });
+  }, [isGuest, settings.habits?.weekStartsMonday, setSection]);
 
   // --- Hyperfocus mode: a dramatic dark-red "locked in" theme. State persists
   // across reloads; the data-hyperfocus attribute on <html> drives all the CSS.
@@ -141,6 +191,10 @@ export default function App() {
   // the nav, pickers and dashboards until restored or permanently deleted.
   const activeGoals = goals.filter((g) => g.status !== "archived");
   const archivedGoals = goals.filter((g) => g.status === "archived");
+  const userDisplayName =
+    isGuest && (settings.profile?.name || "").trim() === "Maya"
+      ? "Guest"
+      : settings.profile?.name || (isGuest ? "Guest" : "You");
 
   // Reorder active goals based on the stored goalOrder array.
   // Any goals not listed in goalOrder (e.g. newly created ones) fall back to the end
@@ -673,7 +727,7 @@ export default function App() {
               setActiveGoal(id);
               setTab("goal");
             }}
-            userName={settings.profile.name}
+            userName={userDisplayName}
             showEncouragement={settings.assistant.encouragement}
             tone={settings.assistant.tone}
             daysAway={daysAway}
@@ -841,6 +895,7 @@ export default function App() {
             customWallpapers={customWallpapers}
             setCustomWallpapers={setCustomWallpapers}
             hasRecoveryGoal={activeGoals.some((g) => g.type === "recovery")}
+            isGuest={isGuest}
           />
         );
       default:
@@ -910,7 +965,7 @@ export default function App() {
           unreadCount={notif.unreadCount}
           onOpenNotifications={notif.markAllRead}
           onClearNotifications={notif.clearAll}
-          userName={settings.profile.name}
+          userName={userDisplayName}
           onOpenSettings={() => setTab("settings")}
           onOpenBadges={() => setShowBadges(true)}
           onClearData={store.resetData}
