@@ -2940,6 +2940,13 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .bottom-nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .bottom-nav-item.active .bottom-nav-label { font-weight: 750; }
 
+/* Hide scrollbars on mobile (scrolling still works) — the visible track/thumb
+   reads as "web page" on a touch device where you flick to scroll anyway. */
+@media (max-width: 768px) {
+  * { scrollbar-width: none; }
+  *::-webkit-scrollbar { display: none; }
+}
+
 /* ---- Phone (≤640px) ---- */
 @media (max-width: 640px) {
   .shell {
