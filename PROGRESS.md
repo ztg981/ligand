@@ -1,6 +1,43 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-07-01)_
+_Session date: 2026-06-14 (updated 2026-07-02)_
+
+## Phase 13 - Mobile nav + interaction polish follow-up (2026-07-02, Codex)
+
+Started from a clean baseline and kept each requested section in its own commit.
+Production build verification stayed green throughout.
+
+**Critical nav blur** (`fef79a7`, `e6ed360`): mobile `.topbar` now uses a
+theme-derived translucent background (`color-mix` from the app background),
+`backdrop-filter: blur(20px)`, `-webkit-backdrop-filter: blur(20px)`, and a
+bottom-edge fade element that carries the same blur into transparent content.
+The production bundle was checked directly because the CSS optimizer preserved
+the prefixed filter differently from source; the runtime inline style keeps the
+unprefixed filter active while source/built CSS retain the prefixed rule.
+
+**Section 1** (`a7f5b13`, `41424fc`, `1f55ae3`): habit and task completions now
+use the green finish color, row flash/bounce, spring checkmark, reverse uncheck
+motion, and settling timers so filtered task rows remain visible until the
+animation has time to play.
+
+**Sections 2-5** (`368e07c`, `0b32a35`, `3253644`, `d18c9ee`): habit/task rows
+now use fixed 44px checkbox and action lanes with flexible text content; mobile
+Home hides the full habit checklist in favor of the compact Overview link when
+habits exist; Journal mood chips stay on one row at 375px; Tasks has the
+compact status toggle beside Add task plus horizontally scrolling pill filters
+with a right-edge fade.
+
+**Section 6** (`f862c74`): tab switches, bottom tab icons, coarse-pointer taps,
+and quick-note saved state now have small motion cues, all covered by the
+existing reduced-motion guard.
+
+**Verified on production preview** (`npm run preview`, port 4174): 375px mobile
+and 1280px desktop. Light and dark mobile nav both reported 20px blur, themed
+semi-transparent backgrounds, and the gradient fade while content scrolled
+under the fixed bar. Mobile Tasks, Journal, quick note, tab motion, guest mode,
+and desktop sidebar layout were checked with zero browser console warnings or
+errors. Final `npm run build` passed; only the existing Vite large-chunk warning
+remains.
 
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
