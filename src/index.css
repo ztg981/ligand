@@ -3863,6 +3863,24 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   border: 1.6px solid var(--line-strong); background: var(--panel);
   position: relative; transition: all 0.15s var(--ease);
 }
+/* Hold-to-check fill (mobile): while the checkbox is held, an accent fill
+   grows to fill the circle over 300ms — see CHECK_HOLD_MS in DailyFocus.jsx.
+   Releasing early removes .pressing, so the fill resets with no check. */
+.ov-habit-box::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--accent); transform: scale(0); transform-origin: center;
+  opacity: 0; pointer-events: none;
+}
+.ov-habit-box.pressing {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.ov-habit-box.pressing::before {
+  animation: habitHoldFill 300ms linear forwards;
+}
+@keyframes habitHoldFill {
+  from { transform: scale(0.2); opacity: 0.3; }
+  to { transform: scale(1); opacity: 0.95; }
+}
 .ov-habit-check:hover .ov-habit-box {
   border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
 }
