@@ -1474,17 +1474,57 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    feedback that something is happening before the 500ms edit trigger. */
 .taskrow.pressing { background: var(--panel-3); border-color: var(--line-strong); }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
-.tasks-filter-bar { flex-wrap: wrap; }
-.tasks-filter-chips { flex-wrap: wrap; }
+.tasks-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tasks-status-toggle {
+  flex: none;
+}
+.tasks-status-toggle button {
+  height: 30px;
+  padding: 0 9px;
+  font-size: 11.5px;
+}
+.tasks-filter-wrap {
+  position: relative;
+  width: 100%;
+  margin-bottom: 12px;
+}
+.tasks-filter-wrap > .seg { display: none; }
+.tasks-filter-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 2px;
+  width: 34px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg));
+}
+.tasks-filter-chips {
+  flex-wrap: nowrap;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 34px 2px 0;
+}
+.tasks-filter-chips .chip {
+  flex: none;
+  border-radius: 999px;
+}
 
 /* Mobile compact "+ Add task" trigger - hidden on desktop/tablet, where the
    inline bar (.tasks-addbar-desktop) is used instead. See the mobile
    override above (max-width: 640px) that flips which one shows. */
 .tasks-add-mobile-btn {
   display: none;
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   align-items: center; justify-content: center; gap: 8px;
-  height: 46px; margin-bottom: 12px;
+  height: 46px; margin-bottom: 0;
   border-radius: var(--r-lg);
   border: 1px dashed var(--line-strong);
   background: var(--panel-2);
@@ -3151,21 +3191,13 @@ button.upcoming-row:hover { background: var(--panel-3); }
     border-radius: 10px;
   }
 
-  /* Filter chips scroll horizontally instead of wrapping to a second/third
-     line, which ate a lot of vertical space once a few goals existed. The
-     chip row is the one that shrinks/scrolls; the Active/Done/All segment
-     keeps its full size next to it. */
-  .tasks-filter-bar { flex-wrap: nowrap; }
-  .tasks-filter-bar > .seg { flex: none; }
-  .tasks-filter-chips {
-    flex: 1 1 0%;
-    min-width: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
+  .tasks-top-row { align-items: stretch; }
+  .tasks-status-toggle button {
+    height: 34px;
+    padding: 0 8px;
+    font-size: 11px;
   }
-  .tasks-filter-chips .chip { flex: none; }
+  .tasks-filter-chips .chip { min-height: 32px; }
 }
 
 /* ============================================================

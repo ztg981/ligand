@@ -296,6 +296,24 @@ export default function Tasks({
     [tasks]
   );
 
+  const statusToggle = (
+    <div className="seg tasks-status-toggle">
+      {[
+        ["active", `Active${counts.active ? " " + counts.active : ""}`],
+        ["done", `Done${counts.done ? " " + counts.done : ""}`],
+        ["all", "All"],
+      ].map(([v, label]) => (
+        <button
+          key={v}
+          className={status === v ? "active" : ""}
+          onClick={() => setStatus(v)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="page-head">
@@ -307,17 +325,6 @@ export default function Tasks({
           </p>
         </div>
       </div>
-
-      {/* Mobile: a compact trigger that opens the full form in a bottom
-         sheet, so the task list gets almost the whole screen instead of a
-         3-row form eating the top. Desktop keeps the inline bar below. */}
-      <button
-        type="button"
-        className="tasks-add-mobile-btn"
-        onClick={() => setShowAddSheet(true)}
-      >
-        <Icon.Plus /> Add task
-      </button>
 
       {/* Add bar - desktop/tablet only (hidden on mobile via CSS). */}
       <div className="card tasks-addbar-desktop" style={{ marginBottom: 14 }}>
@@ -344,6 +351,20 @@ export default function Tasks({
             Add
           </button>
         </div>
+      </div>
+
+      <div className="tasks-top-row">
+        {/* Mobile: a compact trigger that opens the full form in a bottom
+           sheet, so the task list gets almost the whole screen instead of a
+           3-row form eating the top. Desktop keeps the inline bar above. */}
+        <button
+          type="button"
+          className="tasks-add-mobile-btn"
+          onClick={() => setShowAddSheet(true)}
+        >
+          <Icon.Plus /> Add task
+        </button>
+        {statusToggle}
       </div>
 
       {/* Mobile add-task bottom sheet */}
@@ -396,7 +417,7 @@ export default function Tasks({
         )}
 
       {/* Filters */}
-      <div className="row between tasks-filter-bar" style={{ marginBottom: 12, gap: 10 }}>
+      <div className="tasks-filter-wrap">
         <div className="row tasks-filter-chips" style={{ gap: 6 }}>
           <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
             All
