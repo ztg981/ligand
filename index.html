@@ -36,6 +36,9 @@
     <meta name="apple-mobile-web-app-title" content="Ligand" />
     <meta name="description" content="Focus, habits, and goals - designed for ADHD" />
     <title>Ligand</title>
+    <!-- Dark base color painted before React (and CSS) load, so returning to
+         the app or launching it from the home screen never flashes white. -->
+    <style>html { background-color: #15161a; }</style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -13,7 +13,7 @@ export const TWEAK_DEFAULTS = {
   theme: "light", // "light" | "dark" | "auto" (auto follows the OS color scheme)
   accent: 245, // hue angle
   ambient: 60, // 0–100 (%)
-  radius: 12, // 4–20 (px)
+  radius: 16, // 4–20 (px) — softer corners out of the box for new users
   density: "compact", // "compact" | "comfy"
 };
 

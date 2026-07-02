@@ -86,6 +86,9 @@
 
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
+/* No rubber-band overscroll — pulling past the top/bottom shouldn't expose a
+   flash of the page background behind the app (reads more native). */
+html, body { overscroll-behavior: none; }
 /* Reserve the vertical scrollbar lane at all times so the flush-right goal
    sidebar never shifts 15px (or butts against the scrollbar) when switching
    between a tall tab and a short one. */
@@ -106,6 +109,12 @@ body {
 }
 
 button { font: inherit; color: inherit; }
+/* Native touch feel: kill the grey tap-flash on interactive elements, and let
+   the browser skip the 300ms double-tap-zoom delay on anything tappable. */
+button, a, input, select, textarea, summary, label, [role="button"], [tabindex] {
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, [role="button"] { touch-action: manipulation; }
 
 /* ============================================================
    App shell
