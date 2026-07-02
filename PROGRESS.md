@@ -1,6 +1,20 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-07-01)_
+_Session date: 2026-06-14 (updated 2026-07-02)_
+
+## Phase 13 - Floating control glass polish (2026-07-02, Codex)
+
+Adjusted the bottom-right floating Focus and Tweaks controls so they behave
+more like the frosted topbar: the button surfaces now use translucent
+theme-panel backgrounds, softer borders, and backdrop blur/saturation without
+reducing icon or label opacity. This keeps goal/sidebar content visible under
+the controls when they overlap.
+
+**Verified**: `npm run build` passed with only the existing Vite large-chunk
+warning. `npm run preview` was checked on the production build at 1280px
+desktop and 375px mobile with zero browser console warnings/errors. The open
+4174 tab had an old PWA cache, so the fresh build was visually verified on
+port 4175.
 
 ## Phase 12 — Electron desktop shell (2026-07-02, Claude Code)
 
