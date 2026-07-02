@@ -500,6 +500,11 @@ export default function TopNav({
     }
   };
 
+  const backdropStyle = {
+    backdropFilter: "var(--topbar-backdrop-filter, blur(14px) saturate(130%))",
+    WebkitBackdropFilter: "var(--topbar-backdrop-filter, blur(14px) saturate(130%))",
+  };
+
   return (
     <>
       <DndContext
@@ -507,7 +512,8 @@ export default function TopNav({
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="topbar">
+        <div className="topbar" style={backdropStyle}>
+        <span className="topbar-fade" aria-hidden="true" style={backdropStyle} />
         <div className="brand">
           <span className="brand-dot" />
           <span className="brand-name">Ligand</span>
