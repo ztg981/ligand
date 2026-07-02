@@ -393,18 +393,17 @@ export default function RecoveryGoalTab({
   const inputRef = useRef(null);
   const celebratedRef = useRef(false);
 
-  if (!goal) return null;
-
-  const rd = goal.recoveryData || {};
-  const days = recoveryDays(rd.startDate);
-  const label = rd.label || goal.name;
-  const reachedDays = rd.milestonesReached || [];
+  // Hooks must run unconditionally, so both effects live ABOVE the `!goal`
+  // early return below. Each guards on `goal` internally instead.
 
   // Celebrate newly reached milestones once per mount.
   useEffect(() => {
-    if (celebratedRef.current) return;
+    if (!goal || celebratedRef.current) return;
     celebratedRef.current = true;
-    const fresh = newlyReachedMilestones(days, reachedDays);
+    const rd0 = goal.recoveryData || {};
+    const days0 = recoveryDays(rd0.startDate);
+    const reached0 = rd0.milestonesReached || [];
+    const fresh = newlyReachedMilestones(days0, reached0);
     if (fresh.length === 0) return;
     // Chime and show the highest newly reached milestone.
     ding(0.4);
@@ -412,8 +411,8 @@ export default function RecoveryGoalTab({
     // Persist all newly reached milestones.
     updateGoal(goal.id, {
       recoveryData: {
-        ...rd,
-        milestonesReached: [...reachedDays, ...fresh.map((m) => m.days)],
+        ...rd0,
+        milestonesReached: [...reached0, ...fresh.map((m) => m.days)],
       },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -425,6 +424,13 @@ export default function RecoveryGoalTab({
       inputRef.current.select();
     }
   }, [renaming]);
+
+  if (!goal) return null;
+
+  const rd = goal.recoveryData || {};
+  const days = recoveryDays(rd.startDate);
+  const label = rd.label || goal.name;
+  const reachedDays = rd.milestonesReached || [];
 
   const saveRename = () => {
     const name = draft.trim();
