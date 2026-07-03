@@ -5,7 +5,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CHECK_HOLD_MS = 300;
 const CHECK_TOUCH_MOVE_TOLERANCE = 10;
-const COMPLETION_BURST_MS = 760;
+const COMPLETION_BURST_MS = 670;
 const habitKey = (goalId, habitId) => goalId + "-" + habitId;
 
 /* DailyFocus - "what needs attention today" across every goal: habits not

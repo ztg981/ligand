@@ -21,6 +21,8 @@ flashes green, then fades/slides out instead of being removed instantly.
 Follow-up 3: slowed that completion burst slightly and preserved the original
 habit order while a completed habit animates out, fixing the mid-list habit jump
 to the bottom.
+Follow-up 4: tuned the visible completion burst from 0.76s to 0.67s after
+on-device testing felt a little too slow.
 
 ## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
 
