@@ -2,6 +2,29 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 17 — Safari nav blur: the ACTUAL root cause (mix-blend-mode) (2026-07-03, Claude Code)
+
+Phases 15–16 (oklab→srgb, rgba, prefix preservation) were red herrings for
+iOS 26.5 (Safari 26), which supports color-mix and unprefixed backdrop-filter —
+so those changes couldn't move the needle on-device ("looks the same"). The
+deployed CSS was confirmed correct; the blur still didn't render because of two
+compositing antagonists sitting in the nav's backdrop that WebKit honors and
+Chromium ignores (hence "works in Chromium, broken in Safari"):
+
+1. **`mix-blend-mode` on the `.ambient` blobs** — a single blended element
+   anywhere in the backdrop disables `backdrop-filter` in Safari. This is the
+   primary cause and it predates every prior "fix." Hidden `.ambient` on phones
+   (`@media max-width:640px { .ambient { display:none } }`).
+2. **`background-attachment: fixed` on `<body>`** — breaks fixed-element
+   backdrop-filter on iOS (never truly supported there). Set to `scroll` on
+   phones.
+
+Also promoted the nav to its own GPU layer (`transform: translateZ(0)` +
+`-webkit-` on the mobile `.topbar`), the standard iOS enabler for
+backdrop-filter on a `position:fixed` element. Verified in Chromium (blur + rgba
+intact, no regression); the on-device confirmation is a Safari **Private tab**
+(bypasses the persistent PWA service worker cache).
+
 ## Phase 16 — Safari nav blur: the real root cause (2026-07-03, Claude Code)
 
 The mobile nav was still transparent (no frost) on iOS Safari despite Phase 15.

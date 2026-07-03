@@ -3090,6 +3090,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
     background: rgba(250, 246, 240, 0.85);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
+    /* Force the nav onto its own GPU layer — iOS Safari often refuses to paint
+       backdrop-filter on a position:fixed element unless it's promoted. */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   [data-theme="dark"] .topbar {
     background: rgba(21, 22, 26, 0.85);
@@ -3112,6 +3116,18 @@ button.upcoming-row:hover { background: var(--panel-3); }
   [data-theme="dark"] .topbar::after {
     background: linear-gradient(to bottom, rgba(21, 22, 26, 0.72), transparent);
   }
+
+  /* --- The two remaining Safari backdrop-filter killers (both sit in the
+     nav's backdrop and both are ignored by Chromium but honored by WebKit,
+     which is why the blur worked in Chromium but not on iOS): --- */
+  /* 1. mix-blend-mode: a single blended element anywhere in the backdrop
+     disables backdrop-filter in Safari. The ambient blobs use it — drop the
+     decorative glow on phones so the frosted nav can actually blur. */
+  .ambient { display: none; }
+  /* 2. background-attachment: fixed on <body> also breaks fixed-element
+     backdrop-filter on iOS (and iOS never truly supported it anyway). */
+  body { background-attachment: scroll; }
+
   .brand { padding: 0 4px; }
   .brand-name { display: none; } /* dot alone keeps identity, saves width */
 
