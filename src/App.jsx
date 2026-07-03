@@ -35,6 +35,7 @@ import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
 import Habits from "./tabs/Habits.jsx";
 import Settings from "./tabs/Settings.jsx";
+import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
@@ -607,9 +608,17 @@ export default function App() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
+  // Mobile keeps its OWN theme preference (ligand.mobileTheme), fully separate
+  // from the desktop `tweaks.theme`, so flipping light/dark on a phone never
+  // changes the PC and vice-versa. Default: auto (follow the system scheme).
+  const [mobileTheme, setMobileTheme] = useLocalStorage("ligand.mobileTheme", "auto");
+  const themeChoice = isMobile ? mobileTheme : tweaks.theme;
+  const setThemeChoice = (val) =>
+    isMobile ? setMobileTheme(val) : set({ theme: val });
+
   // The actual light/dark to apply: "auto" follows the OS, otherwise the
   // explicit choice. A wallpaper's tone still wins over this (handled below).
-  const resolvedTheme = tweaks.theme === "auto" ? systemTheme : tweaks.theme;
+  const resolvedTheme = themeChoice === "auto" ? systemTheme : themeChoice;
 
   // Apply the chosen wallpaper. The gradient (or photo for custom) is painted
   // behind the ambient blobs via --app-bg; the wallpaper's tone drives the
@@ -882,6 +891,28 @@ export default function App() {
           />
         );
       case "settings":
+        // Phones get a simplified, mobile-focused settings list; the full
+        // desktop Settings (Pomodoro, wallpaper, AI config, density, etc.)
+        // stays desktop-only where it applies.
+        if (isMobile) {
+          return (
+            <MobileSettings
+              mobileTheme={mobileTheme}
+              setMobileTheme={setMobileTheme}
+              tweaks={tweaks}
+              setTweak={set}
+              settings={settings}
+              setSection={setSection}
+              requestNotifyPermission={notif.requestPermission}
+              notifyPermission={notif.permission}
+              accountEmail={user?.email ?? null}
+              onSignOut={async () => {
+                await signOut();
+              }}
+              onRequestAuth={() => setAuthRequested(true)}
+            />
+          );
+        }
         return (
           <Settings
             tweaks={tweaks}
@@ -963,7 +994,7 @@ export default function App() {
           onAddGoal={() => setShowGoalModal(true)}
           onArchiveGoal={handleArchiveGoal}
           theme={resolvedTheme}
-          toggleTheme={() => set({ theme: resolvedTheme === "dark" ? "light" : "dark" })}
+          toggleTheme={() => setThemeChoice(resolvedTheme === "dark" ? "light" : "dark")}
           onOpenSearch={() => setShowSearch(true)}
           notifications={notif.items}
           unreadCount={notif.unreadCount}
