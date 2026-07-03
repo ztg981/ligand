@@ -3163,12 +3163,11 @@ button.upcoming-row:hover { background: var(--panel-3); }
       "check name  actions"
       "chips chips chips";
     gap: 8px 10px;
-    /* Extra right clearance so the row's own actions never sit under the
-       fixed Focus/Tweaks FABs, which float in that same bottom-right
-       corner at almost every scroll position. */
-    padding: 14px 60px 14px 12px;
+    /* No reserved right column — the name fills the row (the Focus/Tweaks FABs
+       are compact now and no longer need per-row clearance). */
+    padding: 14px 12px;
   }
-  .taskrow > .checkbox { grid-area: check; width: 24px; height: 24px; }
+  .taskrow > .checkbox { grid-area: check; width: 26px; height: 26px; }
   .taskrow > .task-name,
   .taskrow > input.input { grid-area: name; min-width: 0; overflow-wrap: anywhere; font-size: 14.5px; }
   .taskrow > .taskrow-chips { grid-area: chips; justify-content: flex-start !important; }
@@ -3956,7 +3955,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .ov-habit-edit {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; border: none; border-left: 1px solid var(--line);
+  width: 44px; border: none; border-left: 1px solid var(--line);
   background: transparent; color: var(--ink-4); cursor: pointer;
   opacity: 0; transition: opacity 0.15s var(--ease), color 0.15s var(--ease);
 }
@@ -3995,7 +3994,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   width: 6px; height: 10px; border: solid var(--accent);
   border-width: 0 2px 2px 0; transform: rotate(40deg); opacity: 0.5;
 }
-.ov-habit-text { min-width: 0; display: flex; flex-direction: column; }
+.ov-habit-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ov-habit-name {
   font-size: 13px; font-weight: 500; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4105,7 +4104,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 @media (max-width: 640px) {
   .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
   .ov-goals-grid { grid-template-columns: 1fr; }
-  .ov-habit-edit { opacity: 0.7; width: 38px; }
+  .ov-habit-edit { opacity: 0.7; width: 44px; }
   /* Tasks still wrap (they're usually one-off, worth reading in full);
      habit name/goal go one-line + compact instead (see below) since a
      habit list can run to a dozen-plus rows and needs to stay scannable. */
@@ -4120,11 +4119,6 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .ov-habit-text { flex-direction: column; gap: 1px; min-width: 0; }
   .ov-habit-name { white-space: normal; overflow: visible; text-overflow: clip; }
   .ov-habit-goal::before { content: none; }
-  /* Extra right clearance, same reasoning as .taskrow above: with enough
-     habits the list runs the full page height, and rows land in the same
-     bottom-right corner the fixed Focus/Tweaks FABs float in. */
-  .ov-habit-row { padding-right: 60px; }
-
   /* A long-press meant to check in a habit (or, on .taskrow, to trigger
      inline edit) shouldn't also select the row's text - browsers treat a
      sustained press on text as a selection gesture by default. */
