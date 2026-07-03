@@ -20,8 +20,8 @@ export default function DailyFocus({
   updateHabit,
   onOpenGoal,
   // On the mobile Home tab the full habit checklist is replaced by a single
-  // "X of Y habits done today →" line that jumps to Overview (which keeps the
-  // full list). Off everywhere else (e.g. Overview itself).
+  // "X of Y habits done today →" line that jumps to the Habits tab (which keeps
+  // the full list). Off everywhere else (e.g. the Habits tab itself).
   habitsSummaryOnMobile = false,
   onOpenHabits,
 }) {

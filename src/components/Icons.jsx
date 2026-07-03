@@ -26,6 +26,12 @@ export const Icon = {
   ),
   Bolt: make(<path d="M8.5 1.5L3 9h4l-.5 5.5L12 7H8l.5-5.5z" />),
   Check: make(<path d="M3 8.5L6.5 12 13 4.5" />),
+  CheckCircle: make(
+    <>
+      <circle cx="8" cy="8" r="6.2" />
+      <path d="M5.3 8.1l1.9 1.9 3.6-3.9" />
+    </>
+  ),
   Timer: make(
     <>
       <circle cx="8" cy="9" r="5" />

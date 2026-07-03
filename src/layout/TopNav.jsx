@@ -304,7 +304,7 @@ function SyncPill({ status }) {
 
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
-  { id: "overview", label: "Overview", icon: <Icon.Grid /> },
+  { id: "habits", label: "Habits", icon: <Icon.CheckCircle /> },
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
   { id: "journal", label: "Journal", icon: <Icon.Book /> },
@@ -318,7 +318,7 @@ const TOOLS = [
 // session) and Settings (infrequent) move to the avatar overflow menu
 // instead of crowding the bar - both still one tap away, just not in the
 // thumb zone.
-const BOTTOM_NAV_IDS = ["home", "tasks", "notes", "journal", "overview"];
+const BOTTOM_NAV_IDS = ["home", "tasks", "notes", "journal", "habits"];
 
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator

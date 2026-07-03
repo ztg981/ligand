@@ -33,7 +33,7 @@ import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
 import FitnessGoalTab from "./components/FitnessGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
-import Overview from "./tabs/Overview.jsx";
+import Habits from "./tabs/Habits.jsx";
 import Settings from "./tabs/Settings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
@@ -724,7 +724,7 @@ export default function App() {
             journal={store.journal}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
-            onGoToOverview={() => setTab("overview")}
+            onGoToHabits={() => setTab("habits")}
             onSnoozeGoal={store.snoozeGoalReview}
             onReviseGoalDate={store.reviseGoalTargetDate}
             onArchiveGoal={handleArchiveGoal}
@@ -743,9 +743,9 @@ export default function App() {
             onQuickCapture={handleQuickCapture}
           />
         );
-      case "overview":
+      case "habits":
         return (
-          <Overview
+          <Habits
             goals={activeGoals}
             tasks={store.tasks}
             checkInHabit={store.checkInHabit}
