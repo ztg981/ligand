@@ -5,6 +5,8 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CHECK_HOLD_MS = 300;
 const CHECK_TOUCH_MOVE_TOLERANCE = 10;
+const COMPLETION_BURST_MS = 560;
+const habitKey = (goalId, habitId) => goalId + "-" + habitId;
 
 /* DailyFocus - "what needs attention today" across every goal: habits not
    yet checked in (with inline quick check-in), Today/Urgent tasks not done,
@@ -46,12 +48,28 @@ export default function DailyFocus({
   const checkPressStart = useRef({ x: 0, y: 0 });
   // Which habit's checkbox is currently mid-hold (drives the fill animation).
   const [pressingId, setPressingId] = useState(null);
+  const [habitBurst, setHabitBurst] = useState(null); // { id }
+  const habitBurstTimer = useRef(null);
   const cancelHold = () => {
     clearTimeout(checkPressTimer.current);
     checkPressTimer.current = null;
     setPressingId(null);
   };
-  useEffect(() => () => clearTimeout(checkPressTimer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(checkPressTimer.current);
+      clearTimeout(habitBurstTimer.current);
+    },
+    []
+  );
+
+  const completeHabit = (goalId, habitId) => {
+    const id = habitKey(goalId, habitId);
+    clearTimeout(habitBurstTimer.current);
+    setHabitBurst({ id });
+    checkInHabit(goalId, habitId, today);
+    habitBurstTimer.current = setTimeout(() => setHabitBurst(null), COMPLETION_BURST_MS);
+  };
 
   const handleCheckTouchStart = (goalId, habitId) => (e) => {
     const pt = e.touches[0];
@@ -62,7 +80,7 @@ export default function DailyFocus({
     checkPressTimer.current = setTimeout(() => {
       checkPressTimer.current = null;
       setPressingId(null);
-      checkInHabit(goalId, habitId, today);
+      completeHabit(goalId, habitId);
     }, CHECK_HOLD_MS);
   };
   const handleCheckTouchMove = (e) => {
@@ -82,7 +100,7 @@ export default function DailyFocus({
       checkWasTouch.current = false;
       return;
     }
-    checkInHabit(goalId, habitId, today);
+    completeHabit(goalId, habitId);
   };
 
   const startEditHabit = (goalId, habit) => {
@@ -115,7 +133,15 @@ export default function DailyFocus({
     });
   });
   const hasCheckedHabits = allHabits.length > openHabits.length;
-  const habitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
+  const activeHabitBurstId = habitBurst?.id;
+  const baseHabitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
+  const habitsToShow = (() => {
+    if (!activeHabitBurstId || baseHabitsToShow.some(({ goalId, habit }) => habitKey(goalId, habit.id) === activeHabitBurstId)) {
+      return baseHabitsToShow;
+    }
+    const completed = allHabits.find(({ goalId, habit }) => habitKey(goalId, habit.id) === activeHabitBurstId);
+    return completed ? [...baseHabitsToShow, completed] : baseHabitsToShow;
+  })();
 
   // Mobile Home summary line (see prop docstring). When active, the habit
   // checklist is hidden here and its progress is shown as one tappable line.
@@ -133,7 +159,7 @@ export default function DailyFocus({
   const allCaughtUp =
     focusTasks.length === 0 &&
     overdue.length === 0 &&
-    (showHabitSummary || openHabits.length === 0);
+    (showHabitSummary || (openHabits.length === 0 && !activeHabitBurstId));
 
   return (
     <div className="card ov-focus-card">
@@ -203,6 +229,10 @@ export default function DailyFocus({
               </div>
               <div className="stack" style={{ gap: 6 }}>
                 {habitsToShow.map(({ goalId, goalName, habit, checked }) => {
+                  const rowId = habitKey(goalId, habit.id);
+                  const localCompleted = activeHabitBurstId === rowId;
+                  const rowChecked = checked || localCompleted;
+                  const shouldLeave = localCompleted && !(isMobile && showAllHabits);
                   const isEditing =
                     editingHabit &&
                     editingHabit.goalId === goalId &&
@@ -234,9 +264,16 @@ export default function DailyFocus({
                       </div>
                     );
                   }
-                  if (checked) {
+                  if (rowChecked) {
                     return (
-                      <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
+                      <div
+                        key={rowId}
+                        className={
+                          "ov-habit-row checked" +
+                          (localCompleted ? " check-burst" : "") +
+                          (shouldLeave ? " leaving-burst" : "")
+                        }
+                      >
                         <span className="ov-habit-check" style={{ cursor: "default" }}>
                           <span className="ov-habit-box checked" aria-hidden="true">
                             <Icon.Check width={11} height={11} />
@@ -250,7 +287,7 @@ export default function DailyFocus({
                     );
                   }
                   return (
-                    <div key={goalId + "-" + habit.id} className="ov-habit-row">
+                    <div key={rowId} className="ov-habit-row">
                       <button
                         type="button"
                         className="ov-habit-check"
@@ -264,7 +301,7 @@ export default function DailyFocus({
                         <span
                           className={
                             "ov-habit-box" +
-                            (pressingId === goalId + "-" + habit.id ? " pressing" : "")
+                            (pressingId === rowId ? " pressing" : "")
                           }
                           aria-hidden="true"
                         />

@@ -14,6 +14,11 @@ Follow-up: moved only the desktop/PC Focus pill slightly down (`bottom: 62px`
 at `min-width: 769px`) so it sits closer to the Tweaks button while preserving
 the phone Quick Note/Focus placement.
 
+Follow-up 2: made task/habit completion feedback visible. Tasks now stay in the
+current Active/Done filter for a short burst window before disappearing, and
+habits use the same local burst state so a completed habit row renders checked,
+flashes green, then fades/slides out instead of being removed instantly.
+
 ## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
 
 On-device feedback: the floating pill DOES frost now (the Phase 17

@@ -15,6 +15,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const BASE_LABELS = ["Today", "Urgent", "General"];
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
+const COMPLETION_BURST_MS = 560;
 
 // Map a label/goal to a chip style so the list reads at a glance.
 function LabelChip({ task, goals }) {
@@ -186,7 +187,7 @@ export default function Tasks({
     toggleTask(task.id);
     clearTimeout(burstTimer.current);
     setBurst({ id: task.id, kind });
-    burstTimer.current = setTimeout(() => setBurst(null), 450);
+    burstTimer.current = setTimeout(() => setBurst(null), COMPLETION_BURST_MS);
   };
 
   const parseRepeat = (v) => {
@@ -263,15 +264,29 @@ export default function Tasks({
   // Filter + sort: matches first, active before done, newest first.
   const visible = useMemo(() => {
     return tasks
-      .filter((t) => (status === "all" ? true : status === "done" ? t.done : !t.done))
+      .filter((t) => {
+        const leavingActive = burst?.id === t.id && burst.kind === "check" && status === "active";
+        const leavingDone = burst?.id === t.id && burst.kind === "uncheck" && status === "done";
+        if (leavingActive || leavingDone) return true;
+        return status === "all" ? true : status === "done" ? t.done : !t.done;
+      })
       .filter((t) => {
         if (filter === "all") return true;
         if (filter.startsWith("goal:")) return t.goalId === filter.slice(5);
         if (filter.startsWith("label:")) return !t.goalId && t.label === filter.slice(6);
         return true;
       })
-      .sort((a, b) => Number(a.done) - Number(b.done) || b.id.localeCompare(a.id));
-  }, [tasks, status, filter]);
+      .sort((a, b) => {
+        const effectiveDone = (t) => {
+          const leavingActive = burst?.id === t.id && burst.kind === "check" && status === "active";
+          const leavingDone = burst?.id === t.id && burst.kind === "uncheck" && status === "done";
+          if (leavingActive) return false;
+          if (leavingDone) return true;
+          return t.done;
+        };
+        return Number(effectiveDone(a)) - Number(effectiveDone(b)) || b.id.localeCompare(a.id);
+      });
+  }, [tasks, status, filter, burst]);
 
   const counts = useMemo(
     () => ({
@@ -452,95 +467,102 @@ export default function Tasks({
         </div>
       ) : (
         <div>
-          {visible.map((task) => (
-            <div
-              key={task.id}
-              id={"task-" + task.id}
-              className={
-                "taskrow" +
-                (task.done ? " done" : "") +
-                (pressingId === task.id ? " pressing" : "") +
-                (burst?.id === task.id
-                  ? burst.kind === "check"
-                    ? " check-burst"
-                    : " uncheck-burst"
-                  : "")
-              }
-            >
-              <button
-                className="checkbox"
-                onClick={() => handleToggle(task)}
-                title={task.done ? "Mark not done" : "Mark done"}
+          {visible.map((task) => {
+            const leaving =
+              burst?.id === task.id &&
+              ((burst.kind === "check" && status === "active") ||
+                (burst.kind === "uncheck" && status === "done"));
+            return (
+              <div
+                key={task.id}
+                id={"task-" + task.id}
+                className={
+                  "taskrow" +
+                  (task.done ? " done" : "") +
+                  (pressingId === task.id ? " pressing" : "") +
+                  (burst?.id === task.id
+                    ? burst.kind === "check"
+                      ? " check-burst"
+                      : " uncheck-burst"
+                    : "") +
+                  (leaving ? " leaving-burst" : "")
+                }
               >
-                {task.done && <Icon.Check />}
-              </button>
-
-              {editingId === task.id ? (
-                <input
-                  className="input"
-                  autoFocus
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitEdit();
-                    if (e.key === "Escape") {
-                      setEditingId(null);
-                      setEditText("");
-                    }
-                  }}
-                  onBlur={commitEdit}
-                />
-              ) : (
-                <span
-                  className="task-name"
-                  onClick={() => !isMobile && startEdit(task)}
-                  onTouchStart={handlePressStart(task)}
-                  onTouchMove={handlePressMove}
-                  onTouchEnd={handlePressEnd}
-                  onTouchCancel={handlePressEnd}
-                  title={isMobile ? "Hold to edit" : "Click to edit"}
-                  style={{ cursor: isMobile ? "default" : "text" }}
-                >
-                  {task.text}
-                </span>
-              )}
-
-              <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                {task.repeat && (
-                  <span
-                    className="chip"
-                    title={repeatLabel(task.repeat)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-                  >
-                    <Icon.Reset width={11} height={11} />
-                    {task.repeat.type === "daily"
-                      ? "Daily"
-                      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
-                  </span>
-                )}
-                <LabelChip task={task} goals={goals} />
-                <TermChip term={taskTerm(task)} />
-              </span>
-
-              <span className="taskrow-actions">
                 <button
-                  className="taskrow-icon-btn"
-                  onClick={() => startEdit(task)}
-                  title="Edit"
+                  className="checkbox"
+                  onClick={() => handleToggle(task)}
+                  title={task.done ? "Mark not done" : "Mark done"}
                 >
-                  <Icon.Edit width={14} height={14} />
+                  {task.done && <Icon.Check />}
                 </button>
 
-                <ConfirmButton
-                  onConfirm={() => removeTask(task.id)}
-                  requireConfirmation={confirmBeforeDelete}
-                  title="Delete"
-                  className="taskrow-icon-btn"
-                  icon={<Icon.Trash width={14} height={14} />}
-                />
-              </span>
-            </div>
-          ))}
+                {editingId === task.id ? (
+                  <input
+                    className="input"
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit();
+                      if (e.key === "Escape") {
+                        setEditingId(null);
+                        setEditText("");
+                      }
+                    }}
+                    onBlur={commitEdit}
+                  />
+                ) : (
+                  <span
+                    className="task-name"
+                    onClick={() => !isMobile && startEdit(task)}
+                    onTouchStart={handlePressStart(task)}
+                    onTouchMove={handlePressMove}
+                    onTouchEnd={handlePressEnd}
+                    onTouchCancel={handlePressEnd}
+                    title={isMobile ? "Hold to edit" : "Click to edit"}
+                    style={{ cursor: isMobile ? "default" : "text" }}
+                  >
+                    {task.text}
+                  </span>
+                )}
+
+                <span className="taskrow-chips row" style={{ gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {task.repeat && (
+                    <span
+                      className="chip"
+                      title={repeatLabel(task.repeat)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      <Icon.Reset width={11} height={11} />
+                      {task.repeat.type === "daily"
+                        ? "Daily"
+                        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
+                    </span>
+                  )}
+                  <LabelChip task={task} goals={goals} />
+                  <TermChip term={taskTerm(task)} />
+                </span>
+
+                <span className="taskrow-actions">
+                  <button
+                    className="taskrow-icon-btn"
+                    onClick={() => startEdit(task)}
+                    title="Edit"
+                  >
+                    <Icon.Edit width={14} height={14} />
+                  </button>
+
+                  <ConfirmButton
+                    onConfirm={() => removeTask(task.id)}
+                    requireConfirmation={confirmBeforeDelete}
+                    title="Delete"
+                    className="taskrow-icon-btn"
+                    icon={<Icon.Trash width={14} height={14} />}
+                  />
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
     </>

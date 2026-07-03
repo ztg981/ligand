@@ -1466,27 +1466,38 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    ~0.4s: the checkmark springs in, a green wash flashes over the row, and the
    row bounces. Unchecking gets .uncheck-burst (a bounce, no green). All of it
    is disabled under either reduced-motion signal. */
-@keyframes checkPopSpring { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
-@keyframes rowBurstBounce { 0% { transform: scale(1.02); } 100% { transform: scale(1); } }
+@keyframes checkPopSpring { 0% { transform: scale(0); } 55% { transform: scale(1.34); } 100% { transform: scale(1); } }
+@keyframes rowBurstBounce { 0% { transform: scale(1); } 38% { transform: scale(1.018); } 100% { transform: scale(1); } }
 @keyframes rowBurstFlash { from { opacity: 1; } to { opacity: 0; } }
+@keyframes rowCompleteLeave {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  42% { opacity: 1; transform: translateY(-1px) scale(1.014); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.985); }
+}
 
 .taskrow.check-burst,
-.ov-habit-row.check-burst { position: relative; animation: rowBurstBounce 0.4s ease-out; }
+.ov-habit-row.check-burst { position: relative; animation: rowBurstBounce 0.56s ease-out; }
 .taskrow.uncheck-burst,
-.ov-habit-row.uncheck-burst { animation: rowBurstBounce 0.3s ease-out; }
+.ov-habit-row.uncheck-burst { animation: rowBurstBounce 0.36s ease-out; }
 .taskrow.check-burst::after,
 .ov-habit-row.check-burst::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit;
-  pointer-events: none; background: rgba(34, 197, 94, 0.15);
-  animation: rowBurstFlash 0.4s ease-out forwards;
+  pointer-events: none; background: rgba(34, 197, 94, 0.26);
+  animation: rowBurstFlash 0.56s ease-out forwards;
 }
 .taskrow.check-burst .checkbox svg,
 .ov-habit-row.check-burst .ov-habit-box svg {
-  animation: checkPopSpring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: checkPopSpring 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.taskrow.leaving-burst,
+.ov-habit-row.leaving-burst {
+  animation: rowCompleteLeave 0.56s ease-in forwards;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .taskrow.check-burst, .ov-habit-row.check-burst,
+  .taskrow.leaving-burst, .ov-habit-row.leaving-burst,
   .taskrow.uncheck-burst, .ov-habit-row.uncheck-burst,
   .taskrow.check-burst::after, .ov-habit-row.check-burst::after,
   .taskrow.check-burst .checkbox svg, .ov-habit-row.check-burst .ov-habit-box svg { animation: none; }
@@ -1494,6 +1505,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 [data-reduce-motion="true"] .taskrow.check-burst,
 [data-reduce-motion="true"] .ov-habit-row.check-burst,
+[data-reduce-motion="true"] .taskrow.leaving-burst,
+[data-reduce-motion="true"] .ov-habit-row.leaving-burst,
 [data-reduce-motion="true"] .taskrow.uncheck-burst,
 [data-reduce-motion="true"] .ov-habit-row.uncheck-burst,
 [data-reduce-motion="true"] .taskrow.check-burst .checkbox svg,
