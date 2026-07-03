@@ -983,7 +983,12 @@ export default function App() {
         />
 
         <div className="body">
-          <div className="content">{screen}</div>
+          {/* key={tab} remounts on tab switch so the fade/slide-in plays. */}
+          <div className="content">
+            <div className="tab-fade" key={tab}>
+              {screen}
+            </div>
+          </div>
           {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}
           <GoalSidebar
             goals={orderedActiveGoals}

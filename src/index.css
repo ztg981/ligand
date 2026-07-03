@@ -4908,3 +4908,42 @@ html[data-electron="true"] .topbar [role="button"],
 html[data-electron="true"] .topbar .goal-dropdown {
   -webkit-app-region: no-drag;
 }
+
+/* ============================================================
+   Micro-animations (Section 7). Small tactile touches; each one is disabled
+   under either reduced-motion signal — the OS setting (prefers-reduced-motion)
+   or the in-app toggle (html[data-reduce-motion="true"]).
+   ============================================================ */
+@keyframes tabFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.tab-fade { animation: tabFadeIn 150ms var(--ease); }
+
+/* Bottom-tab icon springs when its tab becomes active. */
+@keyframes navIconSpring { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.bottom-nav-item.active .bottom-nav-ic { animation: navIconSpring 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Tap feedback: a press-in shrink that springs back on release (via :active). */
+.btn:active:not(:disabled),
+.chip:active,
+.iconbtn:active:not(:disabled),
+.bottom-nav-item:active,
+.tasks-add-mobile-btn:active { transform: scale(0.98); }
+
+/* Note save: the checkmark pulses (reusing the completion spring) before the
+   quick-note sheet auto-closes. */
+.quick-note-saved svg { animation: checkPopSpring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-fade,
+  .bottom-nav-item.active .bottom-nav-ic,
+  .quick-note-saved svg { animation: none; }
+  .btn:active:not(:disabled), .chip:active, .iconbtn:active:not(:disabled),
+  .bottom-nav-item:active, .tasks-add-mobile-btn:active { transform: none; }
+}
+[data-reduce-motion="true"] .tab-fade,
+[data-reduce-motion="true"] .bottom-nav-item.active .bottom-nav-ic,
+[data-reduce-motion="true"] .quick-note-saved svg { animation: none; }
+[data-reduce-motion="true"] .btn:active:not(:disabled),
+[data-reduce-motion="true"] .chip:active,
+[data-reduce-motion="true"] .iconbtn:active:not(:disabled),
+[data-reduce-motion="true"] .bottom-nav-item:active,
+[data-reduce-motion="true"] .tasks-add-mobile-btn:active { transform: none; }
