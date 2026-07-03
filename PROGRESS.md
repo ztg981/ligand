@@ -10,6 +10,10 @@ corners even with the separate status-band cover. Locked only the phone
 `.topbar` radius to `14px`; the rest of the app still follows the user's
 corner-radius setting through the `--r-*` tokens.
 
+Follow-up: moved only the desktop/PC Focus pill slightly down (`bottom: 62px`
+at `min-width: 769px`) so it sits closer to the Tweaks button while preserving
+the phone Quick Note/Focus placement.
+
 ## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
 
 On-device feedback: the floating pill DOES frost now (the Phase 17

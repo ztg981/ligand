@@ -3527,6 +3527,9 @@ button.upcoming-row:hover { background: var(--panel-3); }
     0 10px 30px -10px rgba(0, 0, 0, 0.8);
   animation: hf-fab-glow 2.4s ease-in-out infinite alternate;
 }
+@media (min-width: 769px) {
+  .hf-fab { bottom: 62px; }
+}
 @keyframes hf-fab-glow {
   from {
     box-shadow:
