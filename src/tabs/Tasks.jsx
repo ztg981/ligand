@@ -282,6 +282,27 @@ export default function Tasks({
     [tasks]
   );
 
+  // The Active/Done/All status toggle. Rendered next to the mobile "Add task"
+  // button on phones, and inside the filter bar on desktop (the wrapper class
+  // controls which copy shows — see .tasks-status-seg-* in index.css).
+  const renderStatusSeg = (cls) => (
+    <div className={"seg " + cls}>
+      {[
+        ["active", `Active${counts.active ? " · " + counts.active : ""}`],
+        ["done", `Done${counts.done ? " · " + counts.done : ""}`],
+        ["all", "All"],
+      ].map(([v, label]) => (
+        <button
+          key={v}
+          className={status === v ? "active" : ""}
+          onClick={() => setStatus(v)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="page-head">
@@ -296,14 +317,19 @@ export default function Tasks({
 
       {/* Mobile: a compact trigger that opens the full form in a bottom
          sheet, so the task list gets almost the whole screen instead of a
-         3-row form eating the top. Desktop keeps the inline bar below. */}
-      <button
-        type="button"
-        className="tasks-add-mobile-btn"
-        onClick={() => setShowAddSheet(true)}
-      >
-        <Icon.Plus /> Add task
-      </button>
+         3-row form eating the top. The status toggle rides alongside it here
+         (freeing the filter row below for full-width chips). Desktop keeps the
+         inline bar + in-row toggle below. */}
+      <div className="tasks-mobile-actions">
+        <button
+          type="button"
+          className="tasks-add-mobile-btn"
+          onClick={() => setShowAddSheet(true)}
+        >
+          <Icon.Plus /> Add task
+        </button>
+        {renderStatusSeg("tasks-status-seg-mobile")}
+      </div>
 
       {/* Add bar - desktop/tablet only (hidden on mobile via CSS). */}
       <div className="card tasks-addbar-desktop" style={{ marginBottom: 14 }}>
@@ -383,46 +409,36 @@ export default function Tasks({
 
       {/* Filters */}
       <div className="row between tasks-filter-bar" style={{ marginBottom: 12, gap: 10 }}>
-        <div className="row tasks-filter-chips" style={{ gap: 6 }}>
-          <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-            All
-          </FilterChip>
-          {BASE_LABELS.map((l) => (
-            <FilterChip
-              key={l}
-              active={filter === `label:${l}`}
-              onClick={() => setFilter(`label:${l}`)}
-            >
-              {l}
+        {/* Chips scroll horizontally; the wrapper's right-edge fade hints at
+            more off-screen (see .tasks-filter-chips-wrap in index.css). */}
+        <div className="tasks-filter-chips-wrap">
+          <div className="row tasks-filter-chips" style={{ gap: 6 }}>
+            <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+              All
             </FilterChip>
-          ))}
-          {goals.map((g) => (
-            <FilterChip
-              key={g.id}
-              active={filter === `goal:${g.id}`}
-              onClick={() => setFilter(`goal:${g.id}`)}
-            >
-              <span className="swatch" style={{ background: g.color, boxShadow: "none" }} />
-              {g.name}
-            </FilterChip>
-          ))}
+            {BASE_LABELS.map((l) => (
+              <FilterChip
+                key={l}
+                active={filter === `label:${l}`}
+                onClick={() => setFilter(`label:${l}`)}
+              >
+                {l}
+              </FilterChip>
+            ))}
+            {goals.map((g) => (
+              <FilterChip
+                key={g.id}
+                active={filter === `goal:${g.id}`}
+                onClick={() => setFilter(`goal:${g.id}`)}
+              >
+                <span className="swatch" style={{ background: g.color, boxShadow: "none" }} />
+                {g.name}
+              </FilterChip>
+            ))}
+          </div>
         </div>
 
-        <div className="seg">
-          {[
-            ["active", `Active${counts.active ? " · " + counts.active : ""}`],
-            ["done", `Done${counts.done ? " · " + counts.done : ""}`],
-            ["all", "All"],
-          ].map(([v, label]) => (
-            <button
-              key={v}
-              className={status === v ? "active" : ""}
-              onClick={() => setStatus(v)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {renderStatusSeg("tasks-status-seg-desktop")}
       </div>
 
       {/* List */}

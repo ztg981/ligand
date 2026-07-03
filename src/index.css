@@ -1515,6 +1515,12 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .task-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 8px; align-items: center; }
 .tasks-filter-bar { flex-wrap: wrap; }
 .tasks-filter-chips { flex-wrap: wrap; }
+/* Wrapper around the scrolling chips (hosts the mobile right-edge fade). On
+   desktop it's a transparent flex cell so the layout is unchanged. */
+.tasks-filter-chips-wrap { flex: 1; min-width: 0; }
+/* The status toggle rides next to the mobile "Add task" button; this row is
+   phone-only (shown in the max-width:640 block). */
+.tasks-mobile-actions { display: none; }
 
 /* Mobile compact "+ Add task" trigger - hidden on desktop/tablet, where the
    inline bar (.tasks-addbar-desktop) is used instead. See the mobile
@@ -3184,17 +3190,33 @@ button.upcoming-row:hover { background: var(--panel-3); }
      line, which ate a lot of vertical space once a few goals existed. The
      chip row is the one that shrinks/scrolls; the Active/Done/All segment
      keeps its full size next to it. */
+  /* Status toggle sits beside the "Add task" button; the add button takes the
+     remaining width and the toggle stays compact. */
+  .tasks-mobile-actions { display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px; }
+  .tasks-mobile-actions .tasks-add-mobile-btn { flex: 1; width: auto; margin-bottom: 0; }
+  .tasks-status-seg-mobile { flex: none; }
+  .tasks-status-seg-mobile button { padding: 0 11px; font-size: 12px; }
+  .tasks-status-seg-desktop { display: none; } /* moved up into the actions row */
+
+  /* Filter chips take the full width and scroll horizontally; a right-edge
+     fade hints there are more off-screen. Chips are fully pill-shaped. */
   .tasks-filter-bar { flex-wrap: nowrap; }
-  .tasks-filter-bar > .seg { flex: none; }
+  .tasks-filter-chips-wrap { position: relative; flex: 1 1 100%; min-width: 0; }
   .tasks-filter-chips {
-    flex: 1 1 0%;
-    min-width: 0;
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
     padding-bottom: 2px;
   }
-  .tasks-filter-chips .chip { flex: none; }
+  .tasks-filter-chips::-webkit-scrollbar { display: none; }
+  .tasks-filter-chips .chip { flex: none; border-radius: 999px; }
+  .tasks-filter-chips-wrap::after {
+    content: "";
+    position: absolute; top: 0; bottom: 0; right: 0; width: 28px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--bg));
+  }
 }
 
 /* ============================================================
