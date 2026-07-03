@@ -9,4 +9,20 @@ contextBridge.exposeInMainWorld("electron", {
   isElectron: true,
   platform: process.platform, // "win32" | "darwin" | "linux"
   setTitleBarOverlay: (opts) => ipcRenderer.send("titlebar-overlay", opts),
+
+  // Auto-update bridge. The main process (electron-updater) fires these when a
+  // newer release is found / finished downloading; the renderer shows a subtle
+  // banner and calls quitAndInstall() to apply it. Each subscriber returns an
+  // unsubscribe fn so React effects can clean up.
+  onUpdateAvailable: (cb) => {
+    const handler = (_e, info) => cb(info);
+    ipcRenderer.on("update-available", handler);
+    return () => ipcRenderer.removeListener("update-available", handler);
+  },
+  onUpdateDownloaded: (cb) => {
+    const handler = (_e, info) => cb(info);
+    ipcRenderer.on("update-downloaded", handler);
+    return () => ipcRenderer.removeListener("update-downloaded", handler);
+  },
+  quitAndInstall: () => ipcRenderer.send("quit-and-install"),
 });

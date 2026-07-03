@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import OfflineBanner from "./components/OfflineBanner.jsx";
+import UpdateBanner from "./components/UpdateBanner.jsx";
 import { playBgMusic, stopBgMusic, setBgMusicVolume, isBgMusicPlaying } from "./lib/bgMusicPlayer.js";
 import { configure as configureUiSounds, ding, pop } from "./lib/uiSounds.js";
 import HyperfocusBackdrop from "./components/HyperfocusBackdrop.jsx";
@@ -984,6 +985,7 @@ export default function App() {
   return (
     <div className="app">
       <OfflineBanner />
+      <UpdateBanner />
       <div className="ambient">
         <span className="blob b1" />
         <span className="blob b2" />

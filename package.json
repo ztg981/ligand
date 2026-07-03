@@ -16,7 +16,9 @@
   "build": {
     "appId": "com.ligand.app",
     "productName": "Ligand",
-    "directories": { "output": "dist-electron" },
+    "directories": {
+      "output": "dist-electron"
+    },
     "win": {
       "target": "nsis",
       "icon": "public/ligand.ico"
@@ -25,13 +27,22 @@
       "target": "dmg",
       "icon": "public/pwa-512.png"
     },
-    "files": ["dist/**/*", "electron/**/*"]
+    "publish": {
+      "provider": "github",
+      "owner": "ztg981",
+      "repo": "ligand"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ]
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@supabase/supabase-js": "^2.108.1",
+    "electron-updater": "^6.8.9",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

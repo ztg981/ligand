@@ -7,6 +7,7 @@
 // unchanged — this is an additional shell, not a replacement.
 const { app, BrowserWindow, Menu, shell, ipcMain } = require("electron");
 const path = require("path");
+const { autoUpdater } = require("electron-updater");
 
 // Dev server URL. Present when running via `npm run electron` / `electron:dev`
 // (Vite is up); absent in a packaged app, where we load the built files.
@@ -91,8 +92,55 @@ function createWindow() {
   });
 }
 
+// Auto-update via electron-updater (GitHub Releases as the update server).
+// Only meaningful in a packaged app — in electron:dev there's no installer to
+// swap, and autoUpdater would just error, so we skip it entirely. The renderer
+// is told when an update is available and when it's finished downloading so it
+// can show a subtle, non-blocking banner; clicking it sends "quit-and-install".
+function setupAutoUpdates(win) {
+  if (!app.isPackaged) {
+    // Dev: nothing to update. Skip gracefully.
+    return;
+  }
+  // Download in the background; we surface the "restart to install" prompt in
+  // the UI rather than auto-quitting.
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  const send = (channel, payload) => {
+    if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
+  };
+
+  autoUpdater.on("update-available", (info) =>
+    send("update-available", { version: info?.version })
+  );
+  autoUpdater.on("update-downloaded", (info) =>
+    send("update-downloaded", { version: info?.version })
+  );
+  autoUpdater.on("error", (err) =>
+    send("update-error", String(err && err.message ? err.message : err))
+  );
+
+  // Silent check on startup; nothing is shown unless an update turns up.
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {
+    /* offline / no releases yet — stay silent */
+  });
+}
+
 app.whenReady().then(() => {
   createWindow();
+
+  // Renderer clicked "restart to install" — swap in the downloaded update.
+  ipcMain.on("quit-and-install", () => {
+    try {
+      autoUpdater.quitAndInstall();
+    } catch {
+      /* not packaged / nothing downloaded — ignore */
+    }
+  });
+
+  // Kick off the background update check once the window exists.
+  setupAutoUpdates(mainWindow);
 
   // The renderer flips the window-controls glyph color to match the active
   // theme (light nav → dark glyphs, dark nav → light glyphs). Fire-and-forget;
