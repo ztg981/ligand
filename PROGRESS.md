@@ -2,6 +2,47 @@
 
 _Session date: 2026-06-14 (updated 2026-07-03)_
 
+## Phase 22 — Home/Habits restructure, mobile settings, workout rebuild (2026-07-03, Claude Code)
+
+Large multi-section brief. Clean baseline first (`git status` clean, `npm run
+build` green). Committing after each sub-section; verified live via the preview
+tool at 375px and 1280px.
+
+### Section 1 — Home + Overview restructure (DONE)
+
+**1A — Overview renamed to Habits**: the Overview tab is now "Habits"
+everywhere (tab label, page title, tab id, bottom nav). New `Icon.CheckCircle`
+(checkmark-in-circle) is its icon. `Overview.jsx` became `Habits.jsx`, keeping
+the Today's Focus card + habit checklist + goals-to-review, minus the goals
+grid (which moved to Home).
+
+**1B — Home rebuilt**: new shared `widgets/GoalsGrid.jsx` (extracted from the
+old Overview grid). Desktop Home is two-column — main column: Needs attention,
+Goals to review, Your goals grid, Pick one thing, Progress, Upcoming; right
+column: Days showing up, weekly review, encouragement, Did you know. Mobile
+Home is a single-column stack that keeps the calm Today's-focus card (with the
+"X of Y habits done today ->" line to Habits) then goals grid at 2-per-row
+(densified so it never overflows 375px). Removed the "Capture a thought" button
+(the quick-note FAB covers it).
+
+**1C — Bottom tab bar** reordered to Home / Habits / Tasks / Notes / Journal.
+
+### Section 2 — Mobile-specific settings (DONE)
+
+Mobile theme is stored separately under `ligand.mobileTheme` (default `auto`),
+fully independent of the desktop `tweaks.theme` — `themeChoice`/`setThemeChoice`
+in `App.jsx` pick the store by viewport, so flipping theme on a phone never
+changes the PC and vice-versa (verified live: mobile set to dark, desktop
+stayed light). New `tabs/MobileSettings.jsx` renders on `<768px` instead of the
+full Settings: Appearance (theme + accent), Notifications (on/off + habit
+reminders), Habits (streaks), Sound (UI sounds + volume), Account (sign in/out
++ export), About (version). Desktop-only settings (Pomodoro, wallpaper, AI,
+density, radius, ambient) stay on the full desktop Settings page.
+
+### Section 3 — Workout tab rebuild (IN PROGRESS — details land as sub-sections commit)
+
+### Section 4 — Electron auto-update (pending)
+
 ## Phase 21 - Mobile nav radius locked (2026-07-03, Codex)
 
 On-device Safari follow-up: when the global corner-radius tweak makes the
