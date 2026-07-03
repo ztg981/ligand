@@ -3043,6 +3043,18 @@ button.upcoming-row:hover { background: var(--panel-3); }
   *::-webkit-scrollbar { display: none; }
 }
 
+/* Fallback for engines with NO backdrop-filter at all (neither prefixed nor
+   standard): make the mobile nav nearly opaque so it never shows the broken
+   transparent state. We test BOTH the -webkit- and standard forms so iOS/Safari
+   < 18 (which supports -webkit-backdrop-filter and CAN blur) still gets the real
+   frosted treatment above rather than this opaque fallback. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  @media (max-width: 768px) {
+    .topbar { background: rgba(250, 246, 240, 0.97) !important; }
+    [data-theme="dark"] .topbar { background: rgba(21, 22, 26, 0.97) !important; }
+  }
+}
+
 /* ---- Phone (≤640px) ---- */
 @media (max-width: 640px) {
   .shell {
@@ -3068,13 +3080,19 @@ button.upcoming-row:hover { background: var(--panel-3); }
     gap: 8px;
     padding: 7px 8px;
     z-index: 70;
-    /* Frosted glass — the standard iOS nav treatment. Uses color-mix in srgb
-       (far wider browser support than oklab, which was silently dropping the
-       whole declaration on some engines, leaving the nav transparent) so the
-       semi-opaque surface always paints and content genuinely blurs behind. */
-    background: color-mix(in srgb, var(--bg) 85%, transparent);
-    backdrop-filter: blur(20px);
+    /* Frosted glass — the standard iOS nav treatment. The surface MUST be a
+       hardcoded rgba(), NOT color-mix(): iOS Safari drops a color-mix()
+       background (especially with a var() inside) when the element also has a
+       backdrop-filter, leaving the nav fully transparent (content shows through
+       plainly). These rgba values are var(--bg) (light #faf6f0) at 0.85; the
+       dark override below matches the dark --bg (#15161a). -webkit- first, both
+       present, so the blur applies on Safari and Chromium alike. */
+    background: rgba(250, 246, 240, 0.85);
     -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  [data-theme="dark"] .topbar {
+    background: rgba(21, 22, 26, 0.85);
   }
   /* Subtle fade just below the floating nav pill: content scrolling up behind
      the nav dissolves into the page background instead of hard-cutting at the
@@ -3088,11 +3106,11 @@ button.upcoming-row:hover { background: var(--panel-3); }
     top: 100%;
     height: 22px;
     pointer-events: none;
-    background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--bg) 72%, transparent),
-      transparent
-    );
+    /* rgba, not color-mix — same Safari reason as the nav surface above. */
+    background: linear-gradient(to bottom, rgba(250, 246, 240, 0.72), transparent);
+  }
+  [data-theme="dark"] .topbar::after {
+    background: linear-gradient(to bottom, rgba(21, 22, 26, 0.72), transparent);
   }
   .brand { padding: 0 4px; }
   .brand-name { display: none; } /* dot alone keeps identity, saves width */

@@ -2,6 +2,37 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 16 — Safari nav blur: the real root cause (2026-07-03, Claude Code)
+
+The mobile nav was still transparent (no frost) on iOS Safari despite Phase 15.
+Two distinct root causes, both fixed:
+
+1. **`color-mix()` background** — iOS Safari drops a `color-mix()` background
+   (especially with a `var()` inside) on an element that also has a
+   `backdrop-filter`, so the nav surface never painted → fully transparent.
+   Replaced with hardcoded rgba matching the `--bg` tokens: light
+   `rgba(250,246,240,0.85)`, dark `[data-theme="dark"] .topbar` →
+   `rgba(21,22,26,0.85)` (the `::after` fade too). Theme is driven by the app's
+   `data-theme` attribute — which already resolves "auto" to the system scheme —
+   so no `prefers-color-scheme` rule (that would wrongly override a manual pick).
+
+2. **autoprefixer was stripping `-webkit-backdrop-filter`** — the two toolchain
+   layers each dropped a *different* prefix: esbuild's CSS minifier drops the
+   standard `backdrop-filter` (Phase 15, why `cssMinify:false`), and autoprefixer
+   (running unminified) removed the hand-written `-webkit-backdrop-filter` as
+   "outdated", leaving only the standard property — unsupported on iOS/Safari
+   < 18, so no blur. Set `autoprefixer: { remove: false }` so author prefixes are
+   preserved. The built CSS now carries BOTH forms (12 `-webkit-` + 14 standard).
+
+Also added an `@supports not ((-webkit-backdrop-filter: blur(1px)) or
+(backdrop-filter: blur(1px)))` fallback that makes the nav ~97% opaque only on
+engines with no backdrop-filter at all (never on iOS < 18, which can blur via
+`-webkit-`). Confirmed the ancestor chain (html→body→.app→.shell→.topbar) has no
+`overflow:hidden`/`transform`/`will-change`/`filter`, and the nav is
+`position:fixed`. Verified in Chromium (rgba bg + blur, light+dark, no regression)
+and by grepping the built CSS for both prefixes; deployed to Vercel for the
+on-device iPhone Safari check.
+
 ## Phase 15 — Mobile polish batch + production blur fix (2026-07-03, Claude Code)
 
 Seven mobile sections, each committed separately, then a build fix. Verified on
