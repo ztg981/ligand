@@ -8,6 +8,17 @@ export default defineConfig({
   // root (Vercel / PWA) and when loaded over file:// inside the Electron shell
   // (electron/main.js loads dist/index.html directly in the packaged app).
   base: './',
+  build: {
+    // Leave CSS unminified (JS is still minified). esbuild's CSS minifier
+    // collapses paired `backdrop-filter` + `-webkit-backdrop-filter` rules to
+    // the -webkit- form ONLY, which silently killed every frosted-glass blur in
+    // the production build on engines that support just the standard property
+    // (Chromium/Electron, Firefox, Safari 18+) — while we still need the
+    // -webkit- form for iOS/Safari < 18. cssTarget doesn't prevent the collapse,
+    // and switching to lightningcss would aggressively downlevel the app's heavy
+    // oklch()/color-mix() usage, so disabling CSS minification is the safe fix.
+    cssMinify: false,
+  },
   plugins: [
     react(),
     VitePWA({

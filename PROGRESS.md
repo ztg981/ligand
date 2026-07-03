@@ -2,6 +2,51 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 15 — Mobile polish batch + production blur fix (2026-07-03, Claude Code)
+
+Seven mobile sections, each committed separately, then a build fix. Verified on
+the production build (`vite preview`) at 375px and 1280px, light and dark, with
+zero console errors; desktop confirmed unaffected throughout.
+
+**S1 — Nav blur actually renders** (`116a1e6`): the mobile nav's frosted
+background used `color-mix(in oklab, …)`, unsupported on some engines, so the
+whole `background` was dropped and content showed through plainly. Switched the
+nav surface + bottom fade to `color-mix(in srgb, var(--bg) …)` with `blur(20px)`.
+
+**S2 — Green completion animation** (`02013c4`): checked task/habit checkboxes
+turn green (`#22c55e`); the habit hold-fill fills green; on user toggle a
+`.check-burst` springs the checkmark (scale 0→1.3→1), flashes a green wash and
+bounces the row (`.uncheck-burst` = quiet bounce). Wired into the Tasks tab.
+All disabled under `prefers-reduced-motion` / `data-reduce-motion`.
+
+**S3 — No empty right column** (`0cb333d`): removed the 60px right padding that
+cramped task/habit row text (old Focus-FAB clearance, no longer needed); the
+`1fr` name column reclaims it and `.ov-habit-text` is `flex:1` (edit → 44px).
+
+**S4 — Home habit summary on mobile** (`1aecd24`): the Home habit checklist is
+replaced on phones by one tappable line — "X of Y habits done today →" → Overview
+(which keeps the full list). New `habitsSummaryOnMobile` prop on DailyFocus.
+
+**S5 — Mood chips one line** (`fcc6e38`): the five Journal mood chips no longer
+wrap — `flex-wrap:nowrap` + `overflow-x:auto` (hidden scrollbar), compact chips.
+
+**S6 — Task filter bar** (`2c48dbd`): on mobile the Active/Done/All toggle moves
+next to "Add task" (compact); the filter chips go full-width with horizontal
+scroll, a right-edge fade, and fully-pill chips. Desktop layout unchanged.
+
+**S7 — Micro-animations** (`27bd3d0`): tab-switch fade+slide (150ms), bottom-tab
+icon spring, press-in `:active` scale on buttons/chips, quick-note save checkmark
+pulse — all off under reduced-motion.
+
+**Build fix — production frosted glass** (this commit): esbuild's CSS minifier
+was collapsing every paired `backdrop-filter` + `-webkit-backdrop-filter` rule
+to the `-webkit-` form only, so the blur vanished in the production build on
+engines supporting just the standard property (Chromium/Electron, Firefox,
+Safari 18+) — the true reason the nav read as unblurred. `cssTarget` doesn't
+prevent the collapse and lightningcss would downlevel the app's heavy
+oklch()/color-mix(), so `build.cssMinify` is set to `false` (JS still minified).
+The built CSS now carries both properties and the blur renders live.
+
 ## Phase 14 — Electron titlebar → Spotify/Discord style (2026-07-02, Claude Code)
 
 Replaced the separate custom titlebar strip (which looked bolted-on above the
