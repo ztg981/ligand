@@ -3071,42 +3071,43 @@ button.upcoming-row:hover { background: var(--panel-3); }
      sticking (doesn't reproduce in Chromium, but is a real, reported iOS
      issue) - fixed positioning sidesteps it entirely. Taken out of layout
      flow, so .shell's top padding above is sized to clear it. */
+  /* FULL-BLEED, not a floating pill: on a real iPhone the old inset pill
+     (top: safe-area, left/right: 8px) left the status-bar band and the side
+     gutters uncovered, so scrolling content passed visibly behind the clock
+     and around the pill — the whole top of the screen read as transparent
+     regardless of whether the pill itself blurred. Native iOS apps frost the
+     entire band from y=0; do the same: the bar starts at the true top edge,
+     spans edge to edge, and its top padding absorbs the notch/status bar. */
   .topbar {
     position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: 8px;
-    right: 8px;
-    margin: 6px 0 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
     gap: 8px;
-    padding: 7px 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 8px) 10px 8px;
     z-index: 70;
-    /* Frosted glass — the standard iOS nav treatment. The surface MUST be a
-       hardcoded rgba(), NOT color-mix(): iOS Safari drops a color-mix()
-       background (especially with a var() inside) when the element also has a
-       backdrop-filter, leaving the nav fully transparent (content shows through
-       plainly). These rgba values are var(--bg) (light #faf6f0) at 0.85; the
-       dark override below matches the dark --bg (#15161a). -webkit- first, both
-       present, so the blur applies on Safari and Chromium alike. */
+    border-radius: 0 0 var(--r-2xl) var(--r-2xl);
+    border-width: 0 0 1px; /* keep only the bottom hairline of the base border */
+    /* Hardcoded rgba (not color-mix) so the surface always paints; matches the
+       --bg tokens: light #faf6f0, dark #15161a (override below). */
     background: rgba(250, 246, 240, 0.85);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
-    /* Force the nav onto its own GPU layer — iOS Safari often refuses to paint
-       backdrop-filter on a position:fixed element unless it's promoted. */
+    /* Own GPU layer — iOS wants fixed backdrop-filter elements promoted. */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
   }
   [data-theme="dark"] .topbar {
     background: rgba(21, 22, 26, 0.85);
   }
-  /* Subtle fade just below the floating nav pill: content scrolling up behind
-     the nav dissolves into the page background instead of hard-cutting at the
-     pill's lower edge. Spans the full viewport width (past the pill's side
-     insets) and never intercepts taps. */
+  /* Subtle fade just below the bar: content scrolling up behind it dissolves
+     into the page background instead of hard-cutting at the lower edge. */
   .topbar::after {
     content: "";
     position: absolute;
-    left: -8px;
-    right: -8px;
+    left: 0;
+    right: 0;
     top: 100%;
     height: 22px;
     pointer-events: none;

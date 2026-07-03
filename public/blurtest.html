@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ligand blur test</title>
+<style>
+  /* Standalone diagnostic for iOS Safari backdrop-filter. No app CSS, no
+     service worker logic, no React — just fixed bars over a loud striped
+     background. If a bar is frosted (stripes smeared behind it), that variant
+     of backdrop-filter works on this browser. If the stripes stay crisp
+     through the bar, it doesn't. Visit /blurtest.html and scroll. */
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+  .bg {
+    height: 400vh;
+    background: repeating-linear-gradient(
+      45deg, #e5484d 0 40px, #3e63dd 40px 80px, #30a46c 80px 120px, #ffb224 120px 160px);
+  }
+  .bar {
+    position: fixed; left: 0; right: 0; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: #111;
+    background: rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.2);
+  }
+  #a { top: 0; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  #b { top: 74px; -webkit-backdrop-filter: blur(20px); }
+  #c { top: 148px; backdrop-filter: blur(20px); }
+  #d { top: 222px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+       transform: translateZ(0); }
+  #e { top: 296px; background: rgba(250, 246, 240, 0.85);
+       -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+</style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="bar" id="a">A — both prefixes</div>
+  <div class="bar" id="b">B — -webkit- only</div>
+  <div class="bar" id="c">C — standard only</div>
+  <div class="bar" id="d">D — both + translateZ(0)</div>
+  <div class="bar" id="e">E — app nav colors (0.85 cream)</div>
+</body>
+</html>

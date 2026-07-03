@@ -2,6 +2,31 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 18 — Mobile nav goes full-bleed (2026-07-03, Claude Code)
+
+Still "transparent" on the iPhone after Phase 17 — and the on-device screenshots
+finally showed why: the nav was a floating pill inset 8px from the sides and
+starting BELOW the safe-area, so on a real iPhone the status-bar band and the
+side gutters were simply uncovered. Scrolling content passed raw behind the
+clock and around the pill — the whole top of the screen read as transparent no
+matter what the pill itself did. Desktop Chromium never shows this because it
+has no status bar band (env(safe-area-inset-top) = 0).
+
+Fix: the mobile nav is now full-bleed, like native iOS apps — `top:0; left:0;
+right:0`, top padding `calc(env(safe-area-inset-top) + 8px)` so the frosted
+surface covers the notch/status-bar region, bottom-only corner rounding and
+hairline. Same rgba + blur(20px) + translateZ(0) treatment as Phase 17. The
+`::after` fade now spans the true full width. Desktop keeps the floating sticky
+pill (verified: sticky, left 28px, full rounding, ambient blobs + fixed body
+attachment intact).
+
+Also added `public/blurtest.html` — a standalone diagnostic (no app CSS, no SW
+logic) with five fixed bars over loud stripes: A both prefixes, B -webkit-only,
+C standard-only, D both+translateZ, E the app's exact nav colors. Visiting
+/blurtest.html on the phone tells us definitively which backdrop-filter forms
+iOS renders in this deployment, ending the guess-and-deploy loop if anything
+still looks off.
+
 ## Phase 17 — Safari nav blur: the ACTUAL root cause (mix-blend-mode) (2026-07-03, Claude Code)
 
 Phases 15–16 (oklab→srgb, rgba, prefix preservation) were red herrings for
