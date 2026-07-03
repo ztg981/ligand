@@ -1,6 +1,14 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-07-02)_
+_Session date: 2026-06-14 (updated 2026-07-03)_
+
+## Phase 21 - Mobile nav radius locked (2026-07-03, Codex)
+
+On-device Safari follow-up: when the global corner-radius tweak makes the
+floating mobile nav too round, scrolled text can peek through at the top
+corners even with the separate status-band cover. Locked only the phone
+`.topbar` radius to `14px`; the rest of the app still follows the user's
+corner-radius setting through the `--r-*` tokens.
 
 ## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
 

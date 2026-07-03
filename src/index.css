@@ -3084,6 +3084,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
     margin: 6px 0 0;
     gap: 8px;
     padding: 7px 8px;
+    border-radius: 14px;
     z-index: 70;
     /* Hardcoded rgba (not color-mix) so the surface always paints; matches the
        --bg tokens: light #faf6f0, dark #15161a (override below). */
