@@ -4171,7 +4171,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
      height/padding tie and leave this at the generic small-button size. */
   .btn.location-add-btn { height: 40px; padding: 0 14px; font-size: 13px; }
   .location-remove-btn { width: 32px; height: 32px; }
-  .mood-chip { min-height: 38px; padding: 0 14px; font-size: 13px; }
+  .mood-chip { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+  /* Keep all five moods on one line; if they overrun the width, scroll them
+     horizontally rather than wrapping to a second row (scrollbar hidden). */
+  .mood-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .mood-row::-webkit-scrollbar { display: none; }
+  .mood-row > .mood-chip { flex: 0 0 auto; }
+  .mood-row-label { flex: 0 0 auto; }
   .journal-entries { gap: 16px; }
   .journal-entry { padding-top: 14px; }
   .journal-entry-text { font-size: 14.5px; }

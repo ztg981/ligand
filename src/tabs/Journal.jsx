@@ -140,7 +140,7 @@ function SongForm({ onSave, onCancel }) {
         onChange={(e) => setNote(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
-      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+      <div className="row mood-row" style={{ gap: 6 }}>
         {MOODS.map((m) => (
           <button
             key={m.value}
@@ -290,8 +290,8 @@ export default function Journal({
             />
 
             {/* Optional mood */}
-            <div className="row" style={{ gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, color: "var(--ink-3)", marginRight: 2 }}>
+            <div className="row mood-row" style={{ gap: 6, marginTop: 10 }}>
+              <span className="mood-row-label" style={{ fontSize: 12, color: "var(--ink-3)", marginRight: 2 }}>
                 Mood
               </span>
               {MOODS.map((m) => (
