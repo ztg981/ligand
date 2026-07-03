@@ -86,6 +86,8 @@ export default function WorkoutLogger({
       setRest(null);
       return undefined;
     }
+    // Paused holds the countdown in place (effect stays mounted, no tick).
+    if (rest.paused) return undefined;
     const t = setTimeout(
       () => setRest((r) => (r ? { ...r, remaining: r.remaining - 1 } : null)),
       1000
@@ -95,8 +97,10 @@ export default function WorkoutLogger({
 
   const startRest = (exercise) => {
     const dur = exercise.type === "cardio" ? restCardio : restStrength;
-    setRest({ remaining: dur, total: dur, name: exercise.name });
+    setRest({ remaining: dur, total: dur, name: exercise.name, paused: false });
   };
+  const toggleRestPause = () =>
+    setRest((r) => (r ? { ...r, paused: !r.paused } : null));
   const adjustRest = (delta) =>
     setRest((r) =>
       r ? { ...r, remaining: Math.max(0, r.remaining + delta), total: r.total + delta } : null
@@ -443,14 +447,39 @@ export default function WorkoutLogger({
             aria-hidden="true"
           />
           <div className="wl-rest-inner">
-            <div className="wl-rest-info">
-              <span className="wl-rest-lbl">Rest</span>
-              <span className="wl-rest-ex">{rest.name}</span>
+            {/* Ring countdown (Pomodoro-style) with the remaining seconds in
+               the center. */}
+            <div className={"wl-rest-ring" + (rest.paused ? " paused" : "")}>
+              <svg viewBox="0 0 60 60" aria-hidden="true">
+                <circle className="wl-rest-ring-track" cx="30" cy="30" r="26" />
+                <circle
+                  className="wl-rest-ring-fill"
+                  cx="30"
+                  cy="30"
+                  r="26"
+                  style={{
+                    strokeDasharray: 2 * Math.PI * 26,
+                    strokeDashoffset:
+                      2 * Math.PI * 26 * (1 - rest.remaining / Math.max(1, rest.total)),
+                  }}
+                />
+              </svg>
+              <span className="wl-rest-count mono">{fmtElapsed(rest.remaining)}</span>
             </div>
-            <div className="wl-rest-count mono">{fmtElapsed(rest.remaining)}</div>
+            <div className="wl-rest-mid">
+              <span className="wl-rest-lbl">{rest.paused ? "Paused" : "Rest"}</span>
+              <span className="wl-rest-ex">Next up: {rest.name}</span>
+            </div>
             <div className="wl-rest-actions">
               <button className="wl-rest-adj" onClick={() => adjustRest(-15)} title="Subtract 15 seconds">
                 −15
+              </button>
+              <button
+                className="wl-rest-pause"
+                onClick={toggleRestPause}
+                title={rest.paused ? "Resume" : "Pause"}
+              >
+                {rest.paused ? <Icon.Play /> : <Icon.Pause />}
               </button>
               <button className="wl-rest-adj" onClick={() => adjustRest(15)} title="Add 15 seconds">
                 +15
