@@ -2,6 +2,30 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
+
+On-device feedback: the floating pill DOES frost now (the Phase 17
+mix-blend-mode removal was the blur fix), and the user prefers the pill over
+Phase 18's full-bleed bar — the only remaining problem was scrolled text
+peeking through the gap between the screen top and the pill (behind the iOS
+clock). Adopted the approach Instagram uses on Safari: leave the pill as-is
+and paint that band solid page-background so the top of the screen is simply
+blank.
+
+Reverted the mobile `.topbar` to the floating pill (top: safe-area, 8px side
+insets, full rounding) and added a `.topbar::before` band. Gotcha worth
+remembering: the pill's `transform: translateZ(0)` makes it the containing
+block for its own positioned descendants, so the band is laid out in PILL
+coordinates — `top: calc(-6px - env(safe-area-inset-top))` reaches the true
+screen top, `left/right: -8px` spans the side gutters, and the height tucks
+~12px under the pill so its rounded corners can't leak slivers of text.
+`background: var(--bg)` (solid token) follows light/dark automatically;
+`z-index: -1` keeps it behind the pill surface, above page content. The
+`::after` fade insets were restored to -8px. Verified at 375px light+dark
+(band solid #faf6f0 / #15161a, pill blur + rgba intact, dropdown/tabs work)
+and 1280px (desktop sticky pill, no band, ambient intact); zero console
+errors.
+
 ## Phase 18 — Mobile nav goes full-bleed (2026-07-03, Claude Code)
 
 Still "transparent" on the iPhone after Phase 17 — and the on-device screenshots
