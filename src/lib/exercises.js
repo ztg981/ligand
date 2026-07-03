@@ -28,17 +28,27 @@ export const MUSCLE_GROUPS = [
   "cardio",
 ];
 
-// Human labels for the onboarding equipment multi-select, each mapped to the
-// canonical equipment tags an exercise may carry. "Bodyweight only" is always
-// implicitly available; the generator treats it as a floor.
+// Human labels for the equipment multi-select, each mapped to the canonical
+// equipment tags an exercise may carry. Additive: pick everything you have.
+// Bodyweight movements are ALWAYS available (see availableTags) - bodyweight is
+// never a selectable option, so "I have nothing" still yields a full session.
 export const EQUIPMENT_OPTIONS = [
-  { id: "barbell", label: "Barbell", tags: ["barbell"] },
+  { id: "pullup-bar", label: "Pull-up bar", tags: ["pullup"] },
   { id: "dumbbell", label: "Dumbbells", tags: ["dumbbell"] },
+  { id: "barbell", label: "Barbell", tags: ["barbell"] },
   { id: "cable", label: "Cable machines", tags: ["cable", "machine"] },
-  { id: "bodyweight", label: "Bodyweight only", tags: ["bodyweight"] },
-  { id: "cardio", label: "Cardio equipment", tags: ["cardio"] },
   { id: "bands", label: "Resistance bands", tags: ["bands"] },
   { id: "kettlebell", label: "Kettlebells", tags: ["kettlebell"] },
+  { id: "cardio", label: "Cardio machines", tags: ["cardio"] },
+];
+
+// Quick presets for the "what do you have today?" session selector, so someone
+// at a hotel gym can switch their whole equipment set with one tap.
+export const EQUIPMENT_PRESETS = [
+  { id: "full-gym", label: "Full gym", equipment: ["pullup-bar", "dumbbell", "barbell", "cable", "bands", "kettlebell", "cardio"] },
+  { id: "home", label: "Home", equipment: ["dumbbell", "bands", "pullup-bar"] },
+  { id: "hotel", label: "Hotel gym", equipment: ["dumbbell", "cardio"] },
+  { id: "bodyweight", label: "Bodyweight", equipment: [] },
 ];
 
 const S = "strength";
@@ -55,8 +65,8 @@ export const EXERCISES = [
   { id: "chest-press-machine", name: "Chest Press Machine", muscleGroup: "chest", equipment: ["machine"], type: S },
 
   // ---- Back --------------------------------------------------
-  { id: "pull-up", name: "Pull-Up", muscleGroup: "back", equipment: ["bodyweight"], type: S, instructions: "Pull your chest toward the bar; control the descent." },
-  { id: "chin-up", name: "Chin-Up", muscleGroup: "back", equipment: ["bodyweight"], type: S },
+  { id: "pull-up", name: "Pull-Up", muscleGroup: "back", equipment: ["pullup"], type: S, instructions: "Pull your chest toward the bar; control the descent." },
+  { id: "chin-up", name: "Chin-Up", muscleGroup: "back", equipment: ["pullup"], type: S },
   { id: "bent-over-row", name: "Bent-Over Row", muscleGroup: "back", equipment: ["barbell"], type: S, instructions: "Hinge ~45°, flat back, row to the lower ribs." },
   { id: "lat-pulldown", name: "Lat Pulldown", muscleGroup: "back", equipment: ["machine", "cable"], type: S },
   { id: "seated-row", name: "Seated Row", muscleGroup: "back", equipment: ["machine", "cable"], type: S },

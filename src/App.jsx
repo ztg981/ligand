@@ -34,6 +34,7 @@ import FitnessGoalTab from "./components/FitnessGoalTab.jsx";
 import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
 import Habits from "./tabs/Habits.jsx";
+import WorkoutTab from "./tabs/WorkoutTab.jsx";
 import Settings from "./tabs/Settings.jsx";
 import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -888,6 +889,17 @@ export default function App() {
             removeNote={store.removeNote}
             autoOpenNoteId={quickCaptureNoteId}
             onAutoOpenHandled={() => setQuickCaptureNoteId(null)}
+          />
+        );
+      case "workout":
+        return (
+          <WorkoutTab
+            profile={store.fitnessProfile}
+            workouts={store.workouts}
+            templates={store.workoutTemplates}
+            addWorkout={store.addWorkout}
+            addTemplate={store.addTemplate}
+            updateFitnessProfile={store.updateFitnessProfile}
           />
         );
       case "settings":

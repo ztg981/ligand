@@ -124,6 +124,7 @@ function AvatarMenu({
   userName = "You",
   onOpenSettings,
   onOpenPomodoro,
+  onOpenJournal,
   onOpenBadges,
   onClearData,
   accountEmail = null,
@@ -193,6 +194,18 @@ function AvatarMenu({
               }}
             >
               <Icon.Timer /> Pomodoro
+            </button>
+
+            {/* Journal moved off the phone bottom bar to make room for Workout;
+               it lives here on mobile (hidden on desktop, where it's a top tab). */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenJournal?.();
+                close();
+              }}
+            >
+              <Icon.Book /> Journal
             </button>
 
             <button
@@ -309,6 +322,7 @@ const TOOLS = [
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
   { id: "journal", label: "Journal", icon: <Icon.Book /> },
   { id: "notes", label: "Notes", icon: <Icon.Note /> },
+  { id: "workout", label: "Workout", icon: <Icon.Dumbbell /> },
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
 
@@ -318,7 +332,7 @@ const TOOLS = [
 // session) and Settings (infrequent) move to the avatar overflow menu
 // instead of crowding the bar - both still one tap away, just not in the
 // thumb zone.
-const BOTTOM_NAV_IDS = ["home", "habits", "tasks", "notes", "journal"];
+const BOTTOM_NAV_IDS = ["home", "habits", "tasks", "workout", "notes"];
 
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
@@ -583,6 +597,7 @@ export default function TopNav({
             userName={userName}
             onOpenSettings={onOpenSettings}
             onOpenPomodoro={() => setTab("pomodoro")}
+            onOpenJournal={() => setTab("journal")}
             onOpenBadges={onOpenBadges}
             onClearData={onClearData}
             accountEmail={accountEmail}
