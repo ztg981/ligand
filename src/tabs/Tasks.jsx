@@ -15,7 +15,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 const BASE_LABELS = ["Today", "Urgent", "General"];
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
-const COMPLETION_BURST_MS = 560;
+const COMPLETION_BURST_MS = 760;
 
 // Map a label/goal to a chip style so the list reads at a glance.
 function LabelChip({ task, goals }) {

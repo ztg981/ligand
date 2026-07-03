@@ -5,7 +5,7 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 
 const CHECK_HOLD_MS = 300;
 const CHECK_TOUCH_MOVE_TOLERANCE = 10;
-const COMPLETION_BURST_MS = 560;
+const COMPLETION_BURST_MS = 760;
 const habitKey = (goalId, habitId) => goalId + "-" + habitId;
 
 /* DailyFocus - "what needs attention today" across every goal: habits not
@@ -136,11 +136,13 @@ export default function DailyFocus({
   const activeHabitBurstId = habitBurst?.id;
   const baseHabitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
   const habitsToShow = (() => {
-    if (!activeHabitBurstId || baseHabitsToShow.some(({ goalId, habit }) => habitKey(goalId, habit.id) === activeHabitBurstId)) {
-      return baseHabitsToShow;
-    }
-    const completed = allHabits.find(({ goalId, habit }) => habitKey(goalId, habit.id) === activeHabitBurstId);
-    return completed ? [...baseHabitsToShow, completed] : baseHabitsToShow;
+    const visibleHabitIds = new Set(
+      baseHabitsToShow.map(({ goalId, habit }) => habitKey(goalId, habit.id))
+    );
+    if (activeHabitBurstId) visibleHabitIds.add(activeHabitBurstId);
+    return allHabits.filter(({ goalId, habit }) =>
+      visibleHabitIds.has(habitKey(goalId, habit.id))
+    );
   })();
 
   // Mobile Home summary line (see prop docstring). When active, the habit

@@ -1463,7 +1463,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 
 /* ---- Completion feedback (Section 2) ----------------------------------
    When the user completes a task/habit, JS adds .check-burst to the row for
-   ~0.4s: the checkmark springs in, a green wash flashes over the row, and the
+   ~0.75s: the checkmark springs in, a green wash flashes over the row, and the
    row bounces. Unchecking gets .uncheck-burst (a bounce, no green). All of it
    is disabled under either reduced-motion signal. */
 @keyframes checkPopSpring { 0% { transform: scale(0); } 55% { transform: scale(1.34); } 100% { transform: scale(1); } }
@@ -1476,22 +1476,22 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 
 .taskrow.check-burst,
-.ov-habit-row.check-burst { position: relative; animation: rowBurstBounce 0.56s ease-out; }
+.ov-habit-row.check-burst { position: relative; animation: rowBurstBounce 0.76s ease-out; }
 .taskrow.uncheck-burst,
-.ov-habit-row.uncheck-burst { animation: rowBurstBounce 0.36s ease-out; }
+.ov-habit-row.uncheck-burst { animation: rowBurstBounce 0.42s ease-out; }
 .taskrow.check-burst::after,
 .ov-habit-row.check-burst::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit;
   pointer-events: none; background: rgba(34, 197, 94, 0.26);
-  animation: rowBurstFlash 0.56s ease-out forwards;
+  animation: rowBurstFlash 0.76s ease-out forwards;
 }
 .taskrow.check-burst .checkbox svg,
 .ov-habit-row.check-burst .ov-habit-box svg {
-  animation: checkPopSpring 0.46s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: checkPopSpring 0.54s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .taskrow.leaving-burst,
 .ov-habit-row.leaving-burst {
-  animation: rowCompleteLeave 0.56s ease-in forwards;
+  animation: rowCompleteLeave 0.76s ease-in forwards;
   pointer-events: none;
 }
 
