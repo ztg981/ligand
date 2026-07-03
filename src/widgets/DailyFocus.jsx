@@ -17,6 +17,11 @@ export default function DailyFocus({
   checkInHabit,
   updateHabit,
   onOpenGoal,
+  // On the mobile Home tab the full habit checklist is replaced by a single
+  // "X of Y habits done today →" line that jumps to Overview (which keeps the
+  // full list). Off everywhere else (e.g. Overview itself).
+  habitsSummaryOnMobile = false,
+  onOpenHabits,
 }) {
   const today = todayKey();
   const isMobile = useIsMobile(640);
@@ -112,6 +117,12 @@ export default function DailyFocus({
   const hasCheckedHabits = allHabits.length > openHabits.length;
   const habitsToShow = isMobile && showAllHabits ? allHabits : openHabits;
 
+  // Mobile Home summary line (see prop docstring). When active, the habit
+  // checklist is hidden here and its progress is shown as one tappable line.
+  const totalHabits = allHabits.length;
+  const doneHabits = totalHabits - openHabits.length;
+  const showHabitSummary = habitsSummaryOnMobile && isMobile && totalHabits > 0;
+
   // Tasks labeled Today/Urgent that aren't done yet.
   const focusTasks = tasks.filter(
     (t) => !t.done && (t.label === "Today" || t.label === "Urgent")
@@ -120,7 +131,9 @@ export default function DailyFocus({
   const overdue = goals.filter((g) => isGoalOverdue(g));
 
   const allCaughtUp =
-    openHabits.length === 0 && focusTasks.length === 0 && overdue.length === 0;
+    focusTasks.length === 0 &&
+    overdue.length === 0 &&
+    (showHabitSummary || openHabits.length === 0);
 
   return (
     <div className="card ov-focus-card">
@@ -129,6 +142,19 @@ export default function DailyFocus({
           <Icon.Spark /> Today's focus
         </div>
       </div>
+
+      {showHabitSummary && (
+        <button
+          type="button"
+          className="ov-habit-summary"
+          onClick={() => onOpenHabits?.()}
+        >
+          <span className="ov-habit-summary-text">
+            {doneHabits} of {totalHabits} habit{totalHabits === 1 ? "" : "s"} done today
+          </span>
+          <Icon.Arrow width={15} height={15} />
+        </button>
+      )}
 
       {allCaughtUp ? (
         <div className="ov-caught-up">
@@ -139,7 +165,7 @@ export default function DailyFocus({
             <div className="ov-caught-title">You're all caught up.</div>
             <div className="ov-caught-sub">Great work today.</div>
           </div>
-          {isMobile && hasCheckedHabits && (
+          {!showHabitSummary && isMobile && hasCheckedHabits && (
             <button
               type="button"
               className="ov-habits-toggle ov-habits-toggle-caughtup"
@@ -148,7 +174,7 @@ export default function DailyFocus({
               {showAllHabits ? "Hide habits" : `Show all ${allHabits.length} habits`}
             </button>
           )}
-          {isMobile && showAllHabits && hasCheckedHabits && (
+          {!showHabitSummary && isMobile && showAllHabits && hasCheckedHabits && (
             <div className="stack" style={{ gap: 6, width: "100%" }}>
               {allHabits.map(({ goalId, goalName, habit }) => (
                 <div key={goalId + "-" + habit.id} className="ov-habit-row checked">
@@ -168,8 +194,8 @@ export default function DailyFocus({
         </div>
       ) : (
         <div className="ov-focus-grid">
-          {/* Quick habit check-in */}
-          {(openHabits.length > 0 || (isMobile && showAllHabits)) && (
+          {/* Quick habit check-in (hidden when the mobile summary line is on) */}
+          {!showHabitSummary && (openHabits.length > 0 || (isMobile && showAllHabits)) && (
             <div className="ov-focus-col">
               <div className="ov-focus-label">
                 Habits to check in

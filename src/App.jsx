@@ -724,6 +724,7 @@ export default function App() {
             journal={store.journal}
             toggleTask={store.toggleTask}
             onGoToTasks={() => setTab("tasks")}
+            onGoToOverview={() => setTab("overview")}
             onSnoozeGoal={store.snoozeGoalReview}
             onReviseGoalDate={store.reviseGoalTargetDate}
             onArchiveGoal={handleArchiveGoal}

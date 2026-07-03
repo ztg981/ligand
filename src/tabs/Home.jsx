@@ -42,6 +42,7 @@ export default function Home({
   journal = [],
   toggleTask,
   onGoToTasks,
+  onGoToOverview,
   onSnoozeGoal,
   onReviseGoalDate,
   onArchiveGoal,
@@ -123,6 +124,8 @@ export default function Home({
           checkInHabit={checkInHabit}
           updateHabit={updateHabit}
           onOpenGoal={onOpenGoal}
+          habitsSummaryOnMobile
+          onOpenHabits={onGoToOverview}
         />
 
         <button
