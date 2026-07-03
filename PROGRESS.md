@@ -25,6 +25,8 @@ Follow-up 4: tuned the visible completion burst from 0.76s to 0.67s after
 on-device testing felt a little too slow.
 Follow-up 5: shortened the same completion burst again to 0.6s after another
 on-device timing pass.
+Follow-up 6: restored the completion burst timing to 0.56s while keeping the
+habit row order fix.
 
 ## Phase 19 — Pill nav + blank status-bar band (2026-07-03, Claude Code)
 
