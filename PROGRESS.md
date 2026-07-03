@@ -39,9 +39,70 @@ reminders), Habits (streaks), Sound (UI sounds + volume), Account (sign in/out
 + export), About (version). Desktop-only settings (Pomodoro, wallpaper, AI,
 density, radius, ambient) stay on the full desktop Settings page.
 
-### Section 3 — Workout tab rebuild (IN PROGRESS — details land as sub-sections commit)
+### Section 3 — Dedicated Workout tab (DONE)
 
-### Section 4 — Electron auto-update (pending)
+Workout is now a first-class main-nav tab instead of being buried inside a
+fitness goal. It works off the app-level `store.fitnessProfile` / `workouts` /
+`workoutTemplates` (data model unchanged), so no goal is required.
+
+- **3A — Nav**: `workout` added to the desktop top tabs (between Notes and
+  Settings) and the mobile bottom bar (Home / Habits / Tasks / Workout / Notes).
+  Journal moved to the avatar overflow menu on mobile. New `tabs/WorkoutTab.jsx`
+  hub reuses the proven `WorkoutLogger` (in-gym), `WorkoutPreview` (generated
+  plan review with per-exercise Swap), and `FitnessProgress`. First-run
+  `components/WorkoutSetup.jsx` collects experience / goal / equipment / days /
+  unit when there's no profile yet.
+- **3B — Equipment**: removed "Bodyweight only". `EQUIPMENT_OPTIONS` is now an
+  additive multi-select: Pull-up bar, Dumbbells, Barbell, Cable machines,
+  Resistance bands, Kettlebells, Cardio machines. Bodyweight is always available
+  (`availableTags` floor), never a checkbox. Pull-up/chin-up retagged to require
+  a `pullup` tag. New `components/EquipmentSheet.jsx` asks "what do you have
+  today?" at session start with quick presets (Full gym / Home / Hotel gym /
+  Bodyweight); it's also the hub quick-selector and writes the profile default.
+- **3C — Exercise browser**: new `components/ExerciseBrowser.jsx` visual card
+  grid (name, muscle-group chip, equipment chips, a simple SVG
+  `components/MuscleDiagram.jsx` silhouette highlighting the targeted muscles);
+  filter bar (All/Chest/Back/Shoulders/Arms/Legs/Core/Cardio), search, and a
+  "My equipment" filter. Tapping a card starts a session with it.
+- **3D — Hub**: Today's workout + equipment quick-selector + big Start button,
+  a stats strip (week count / week streak / volume), recent 3 sessions, and top
+  3 recent PRs (🏆).
+- **3E / 3G / 3H / 3I** reuse the existing in-gym logger (44px targets, 16px
+  inputs, no 375px overflow), intelligent generation, finish summary, and
+  progress view — all still working through the new hub.
+- **3F — Rest timer**: enhanced `WorkoutLogger`'s rest timer with a
+  Pomodoro-style ring countdown (seconds centered), a Pause/Resume button (holds
+  the countdown, dims the ring), and a "Next up: <exercise>" line, keeping the
+  existing -15/+15, skip, and end-of-rest vibrate.
+
+Verified live at 375px and 1280px, light + dark: setup → hub → equipment sheet
+→ generate → preview → in-gym logger → ring rest timer (pause freezes, resume
+ticks); exercise browser 1-col at 375px / 4-col at 1280px; zero console errors,
+no horizontal overflow.
+
+_Reuse note:_ the old fitness **goal type** (`FitnessGoalTab`) is left in place
+and untouched for existing users; both surfaces read the same app-level data.
+Session rating (Easy/Good/Hard) and difficulty-driven regeneration from 3G were
+not added on top of the existing generator this pass — a reasonable follow-up.
+
+### Section 4 — Electron auto-update (DONE)
+
+`electron-updater` added; `package.json` `build.publish` targets the
+`ztg981/ligand` GitHub repo as the free update server. `electron/main.js` runs a
+silent `checkForUpdatesAndNotify()` on startup **only when packaged** (skipped
+in `electron:dev`), forwards `update-available` / `update-downloaded` / `error`
+to the renderer, and handles a `quit-and-install` IPC. `electron/preload.js`
+exposes `onUpdateAvailable` / `onUpdateDownloaded` (each returns an unsubscribe
+fn) and `quitAndInstall`. New `components/UpdateBanner.jsx` shows a subtle,
+dismissable bottom banner once an update has downloaded and restarts on click —
+inert on web/PWA and in dev (verified: `window.electron` undefined → renders
+nothing, zero errors). Electron main/preload syntax-checked with `node --check`.
+
+**To publish a release:** `npm run electron:build -- --publish=always` (builds
+AND uploads the installer + update metadata to GitHub Releases). The app then
+picks it up on next launch. Note: auto-update only runs in the packaged app; it
+could not be end-to-end exercised in this headless environment (needs a signed
+release), but the web-loaded UI and IPC wiring are verified/validated.
 
 ## Phase 21 - Mobile nav radius locked (2026-07-03, Codex)
 
