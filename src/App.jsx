@@ -740,7 +740,6 @@ export default function App() {
             activeDays={activeDays}
             checkInHabit={store.checkInHabit}
             updateHabit={store.updateHabit}
-            onQuickCapture={handleQuickCapture}
           />
         );
       case "habits":

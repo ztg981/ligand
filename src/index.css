@@ -4198,7 +4198,13 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 @media (max-width: 640px) {
   .ov-focus-grid { grid-template-columns: 1fr; gap: 14px; }
-  .ov-goals-grid { grid-template-columns: 1fr; }
+  /* Compact goals grid on Home: 2 per row when the phone is wide enough,
+     dropping to a single column on the narrowest screens. Densify the stats
+     so two cards per row never overflow horizontally. */
+  .ov-goals-grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+  .ov-goal-card { gap: 10px; padding: 13px 13px 13px 15px; }
+  .ov-goal-stats { gap: 12px; }
+  .ov-stat-num { font-size: 20px; }
   .ov-habit-edit { opacity: 0.7; width: 44px; }
   /* Tasks still wrap (they're usually one-off, worth reading in full);
      habit name/goal go one-line + compact instead (see below) since a

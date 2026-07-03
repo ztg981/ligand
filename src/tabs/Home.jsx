@@ -7,6 +7,7 @@ import DidYouKnow from "../widgets/DidYouKnow.jsx";
 import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import WeeklyReview from "../widgets/WeeklyReview.jsx";
 import DailyFocus from "../widgets/DailyFocus.jsx";
+import GoalsGrid from "../widgets/GoalsGrid.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -55,7 +56,6 @@ export default function Home({
   activeDays = 0,
   checkInHabit,
   updateHabit,
-  onQuickCapture,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -80,6 +80,151 @@ export default function Home({
 
   const message = encouragingMessage({ doneCount, activeCount: activeTasks.length, tone });
   const summary = summarizeProgress({ goals, tasks });
+
+  // The overdue-goals review card - shared by the mobile stack and the desktop
+  // left column so plans-changed cleanup lives in one place.
+  const goalsToReview = overdueGoals.length > 0 && (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Calendar /> Goals to review
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+          {overdueGoals.length}
+        </span>
+      </div>
+      <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.45 }}>
+        Plans change. Want to clean this up? You can keep it, revise it, or let it go.
+      </p>
+      <div className="stack" style={{ gap: 10 }}>
+        {overdueGoals.map((g) => {
+          const target = goalTargetDate(g);
+          const draft = reviewDates[g.id] ?? target ?? todayKey();
+          return (
+            <div key={g.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+              <div className="row between" style={{ gap: 10, flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="row" style={{ gap: 6, fontSize: 13, flexWrap: "wrap" }}>
+                    <span className="chip rose">Review</span>
+                    <strong>{g.name}</strong>
+                  </div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 3 }}>
+                    Target date: {target}
+                  </div>
+                </div>
+                <button className="btn ghost sm" onClick={() => onOpenGoal?.(g.id)}>
+                  Open
+                </button>
+              </div>
+
+              <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <button className="btn ghost sm" onClick={() => onSnoozeGoal?.(g.id)}>
+                  Keep goal
+                </button>
+                <input
+                  type="date"
+                  className="input"
+                  value={draft}
+                  onChange={(e) =>
+                    setReviewDates((dates) => ({ ...dates, [g.id]: e.target.value }))
+                  }
+                  style={{ width: 140, flex: "none" }}
+                />
+                <button
+                  className="btn ghost sm"
+                  onClick={() => draft && onReviseGoalDate?.(g.id, draft)}
+                >
+                  Revise target date
+                </button>
+                {g.type !== "built-in" && (
+                  <button
+                    className="btn ghost sm"
+                    onClick={() => onArchiveGoal?.(g.id)}
+                    style={{ color: "oklch(0.55 0.16 20)" }}
+                  >
+                    Archive goal
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Needs attention - urgent, undone tasks. Shared between layouts.
+  const needsAttention = (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Bell /> Needs attention
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+          {urgent.length || ""}
+        </span>
+      </div>
+      {urgent.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
+          Nothing urgent right now. Take a breath.
+        </div>
+      ) : (
+        <div className="stack" style={{ gap: 8 }}>
+          {urgent.map((t) => (
+            <div key={t.id} className="row between">
+              <span className="row" style={{ gap: 6, fontSize: 13 }}>
+                <span className="chip rose">Urgent</span>
+                {t.text}
+              </span>
+              <button className="btn ghost sm" onClick={() => toggleTask(t.id)}>
+                <Icon.Check /> Done
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Pick one thing - the single easiest next action. Shared between layouts.
+  const pickOne = (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title">
+          <Icon.Spark /> Pick one thing
+        </div>
+      </div>
+      {smallWin ? (
+        <div className="row between" style={{ gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500 }}>{smallWin.text}</div>
+            <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
+              One small step is plenty for right now.
+            </div>
+          </div>
+          <button className="btn primary" onClick={() => toggleTask(smallWin.id)} style={{ flex: "none" }}>
+            <Icon.Check /> Done
+          </button>
+        </div>
+      ) : (
+        <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
+          Nothing queued up.{" "}
+          <button className="btn ghost sm" onClick={onGoToTasks} style={{ display: "inline-flex" }}>
+            <Icon.Plus /> Add a task
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const goalsSection = (
+    <div>
+      <div className="ov-section-label">
+        <Icon.Target /> Your goals
+      </div>
+      <GoalsGrid goals={goals} tasks={tasks} onOpenGoal={onOpenGoal} />
+    </div>
+  );
 
   return (
     <>
@@ -114,9 +259,11 @@ export default function Home({
         </div>
       )}
 
-      {/* ---- Phone-only daily driver: one focus section, a quick-capture
-         button, and a compact goals row - not a squished dashboard. The full
-         desktop grid below is hidden <768px via CSS (.home-desktop-grid). ---- */}
+      {/* ---- Phone-only single-column stack. Keeps the calm Today's-focus card
+         (with the "X of Y habits done today ->" line that jumps to Habits), then
+         needs-attention, the compact goals grid, and one motivating stat - light
+         and motivating, not a squished desktop dashboard. The full desktop grid
+         below is hidden <768px via CSS (.home-desktop-grid). ---- */}
       <div className="home-mobile-only">
         <DailyFocus
           goals={goals}
@@ -128,183 +275,29 @@ export default function Home({
           onOpenHabits={onGoToHabits}
         />
 
-        <button
-          type="button"
-          className="home-quick-capture"
-          onClick={onQuickCapture}
-        >
-          <Icon.Note /> Capture a thought
-        </button>
-
-        {goals.length > 0 && (
-          <div className="home-goals-glance">
-            {goals.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                className="home-glance-pill"
-                onClick={() => onOpenGoal?.(g.id)}
-              >
-                {g.type === "recovery" ? (
-                  <span className="gs-leaf">
-                    <Icon.Leaf />
-                  </span>
-                ) : (
-                  <span className="gs-dot" style={{ background: g.color }} />
-                )}
-                {g.name}
-              </button>
-            ))}
-          </div>
-        )}
+        {goalsToReview}
+        {urgent.length > 0 && needsAttention}
+        {pickOne}
+        {goalsSection}
+        <ProgressTracker goals={goals} tasks={tasks} />
+        <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
+        {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
+        <DidYouKnow />
       </div>
 
       <div className="grid grid-12 home-desktop-grid">
-        {/* Left column */}
+        {/* Left column - the main content */}
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
-          {/* Pick one thing */}
-          <div className="card">
-            <div className="card-head">
-              <div className="card-title">
-                <Icon.Spark /> Pick one thing
-              </div>
-            </div>
-            {smallWin ? (
-              <div className="row between" style={{ gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 500 }}>{smallWin.text}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
-                    One small step is plenty for right now.
-                  </div>
-                </div>
-                <button className="btn primary" onClick={() => toggleTask(smallWin.id)} style={{ flex: "none" }}>
-                  <Icon.Check /> Done
-                </button>
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-                Nothing queued up.{" "}
-                <button className="btn ghost sm" onClick={onGoToTasks} style={{ display: "inline-flex" }}>
-                  <Icon.Plus /> Add a task
-                </button>
-              </div>
-            )}
-          </div>
-
-          {overdueGoals.length > 0 && (
-            <div className="card">
-              <div className="card-head">
-                <div className="card-title">
-                  <Icon.Calendar /> Goals to review
-                </div>
-                <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  {overdueGoals.length}
-                </span>
-              </div>
-              <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.45 }}>
-                Plans change. Want to clean this up? You can keep it, revise it, or let it go.
-              </p>
-              <div className="stack" style={{ gap: 10 }}>
-                {overdueGoals.map((g) => {
-                  const target = goalTargetDate(g);
-                  const draft = reviewDates[g.id] ?? target ?? todayKey();
-                  return (
-                    <div
-                      key={g.id}
-                      style={{
-                        borderTop: "1px solid var(--line)",
-                        paddingTop: 10,
-                      }}
-                    >
-                      <div className="row between" style={{ gap: 10, flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="row" style={{ gap: 6, fontSize: 13, flexWrap: "wrap" }}>
-                            <span className="chip rose">Review</span>
-                            <strong>{g.name}</strong>
-                          </div>
-                          <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 3 }}>
-                            Target date: {target}
-                          </div>
-                        </div>
-                        <button className="btn ghost sm" onClick={() => onOpenGoal?.(g.id)}>
-                          Open
-                        </button>
-                      </div>
-
-                      <div className="row" style={{ gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                        <button className="btn ghost sm" onClick={() => onSnoozeGoal?.(g.id)}>
-                          Keep goal
-                        </button>
-                        <input
-                          type="date"
-                          className="input"
-                          value={draft}
-                          onChange={(e) =>
-                            setReviewDates((dates) => ({ ...dates, [g.id]: e.target.value }))
-                          }
-                          style={{ width: 140, flex: "none" }}
-                        />
-                        <button
-                          className="btn ghost sm"
-                          onClick={() => draft && onReviseGoalDate?.(g.id, draft)}
-                        >
-                          Revise target date
-                        </button>
-                        {g.type !== "built-in" && (
-                          <button
-                            className="btn ghost sm"
-                            onClick={() => onArchiveGoal?.(g.id)}
-                            style={{ color: "oklch(0.55 0.16 20)" }}
-                          >
-                            Archive goal
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Urgent */}
-          <div className="card">
-            <div className="card-head">
-              <div className="card-title">
-                <Icon.Bell /> Needs attention
-              </div>
-              <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                {urgent.length || ""}
-              </span>
-            </div>
-            {urgent.length === 0 ? (
-              <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-                Nothing urgent right now. Take a breath.
-              </div>
-            ) : (
-              <div className="stack" style={{ gap: 8 }}>
-                {urgent.map((t) => (
-                  <div key={t.id} className="row between">
-                    <span className="row" style={{ gap: 6, fontSize: 13 }}>
-                      <span className="chip rose">Urgent</span>
-                      {t.text}
-                    </span>
-                    <button className="btn ghost sm" onClick={() => toggleTask(t.id)}>
-                      <Icon.Check /> Done
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+          {needsAttention}
+          {goalsToReview}
+          {goalsSection}
+          {pickOne}
           <ProgressTracker goals={goals} tasks={tasks} />
+          <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
         </div>
 
-        {/* Right column */}
+        {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
-          <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
-
           {/* Days showing up - distinct calendar days the app was actually
               opened (never elapsed days, never more than once per day). */}
           {activeDays > 0 && (
@@ -330,6 +323,8 @@ export default function Home({
               </div>
             </div>
           )}
+
+          <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
 
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
 
@@ -357,8 +352,6 @@ export default function Home({
               </div>
             </div>
           )}
-
-          <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
 
           <DidYouKnow />
         </div>
