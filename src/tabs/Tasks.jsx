@@ -176,6 +176,19 @@ export default function Tasks({
 
   useEffect(() => () => clearTimeout(pressTimer.current), []);
 
+  // --- completion burst (Section 2): a transient class drives the green
+  // spring/flash/bounce when a task is checked (or a quiet bounce on uncheck).
+  const [burst, setBurst] = useState(null); // { id, kind: 'check' | 'uncheck' }
+  const burstTimer = useRef(null);
+  useEffect(() => () => clearTimeout(burstTimer.current), []);
+  const handleToggle = (task) => {
+    const kind = task.done ? "uncheck" : "check";
+    toggleTask(task.id);
+    clearTimeout(burstTimer.current);
+    setBurst({ id: task.id, kind });
+    burstTimer.current = setTimeout(() => setBurst(null), 450);
+  };
+
   const parseRepeat = (v) => {
     if (v === "daily") return { type: "daily" };
     if (v.startsWith("weekly:")) return { type: "weekly", weekday: Number(v.slice(7)) };
@@ -430,12 +443,17 @@ export default function Tasks({
               className={
                 "taskrow" +
                 (task.done ? " done" : "") +
-                (pressingId === task.id ? " pressing" : "")
+                (pressingId === task.id ? " pressing" : "") +
+                (burst?.id === task.id
+                  ? burst.kind === "check"
+                    ? " check-burst"
+                    : " uncheck-burst"
+                  : "")
               }
             >
               <button
                 className="checkbox"
-                onClick={() => toggleTask(task.id)}
+                onClick={() => handleToggle(task)}
                 title={task.done ? "Mark not done" : "Mark done"}
               >
                 {task.done && <Icon.Check />}
