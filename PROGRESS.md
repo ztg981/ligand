@@ -2,6 +2,33 @@
 
 _Session date: 2026-06-14 (updated 2026-07-02)_
 
+## Phase 14 — Electron titlebar → Spotify/Discord style (2026-07-02, Claude Code)
+
+Replaced the separate custom titlebar strip (which looked bolted-on above the
+nav) with the Spotify/Discord approach: no title bar at all — the app's own
+floating nav pill *is* the window's drag handle, and the native min/max/close
+controls sit as a transparent overlay in the top-right corner over the nav.
+
+- Removed `ElectronTitlebar.jsx` and its root mount; `useElectron()` now runs
+  from `App.jsx` (still stamps `<html data-electron>`).
+- `electron/main.js`: `titleBarOverlay` → `color: rgba(0,0,0,0)` (transparent so
+  the nav shows through), `height: 52`, initial `symbolColor #2a2722`. Added a
+  `titlebar-overlay` IPC handler calling `win.setTitleBarOverlay(...)`.
+- `electron/preload.js`: exposes `setTitleBarOverlay(opts)`.
+- `useElectron.js`: a `MutationObserver` on `<html data-theme>` recolors the
+  overlay glyphs per theme — dark glyphs (`#2a2722`) on the light nav, light
+  glyphs (`#f0eeec`) on the dark nav.
+- CSS: dropped the old titlebar styles + 40px layout offsets. Under
+  `html[data-electron]` the `.topbar` gets `-webkit-app-region: drag` with
+  `padding-right: 130px` (clears the native controls), and every interactive
+  child (`button/a/input/select/[role=button]/.goal-dropdown`) gets `no-drag`.
+
+**Verified** via a headless Electron smoke window: transparent overlay config
+constructs without error, `.topbar` app-region = drag / buttons = no-drag /
+padding-right 130px, and the overlay recolor fires on theme change
+(`#2a2722` → `#f0eeec`). Web/PWA build unaffected (all gated on `data-electron`,
+never set in the browser). Installer rebuilt: **`Ligand Setup 1.0.0.exe`, 122 MB**.
+
 ## Phase 13 - Floating control glass polish (2026-07-02, Codex)
 
 Adjusted the bottom-right floating Focus and Tweaks controls so they behave

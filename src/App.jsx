@@ -40,6 +40,7 @@ import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import QuickNoteFab from "./components/QuickNoteFab.jsx";
 import { useIsMobile } from "./hooks/useIsMobile.js";
+import { useElectron } from "./hooks/useElectron.js";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -88,6 +89,9 @@ export default function App() {
   // Below 768px, the Hyperfocus FAB is replaced by a quick-capture note
   // button (see the FAB render further down) - desktop keeps Hyperfocus.
   const isMobile = useIsMobile(768);
+  // Desktop shell detection: stamps <html data-electron> and keeps the native
+  // window-controls overlay themed. Inert in the browser/PWA build.
+  useElectron();
   const { settings, setSection, reset: resetSettings } = useSettings();
   const isGuest = !session;
   const notif = useNotifications({ enabled: settings.notifications.enabled });

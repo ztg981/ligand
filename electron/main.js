@@ -5,7 +5,7 @@
 // the built files from dist/index.html over file:// (which is why vite.config
 // uses base "./" so asset paths stay relative). The web/PWA build is
 // unchanged — this is an additional shell, not a replacement.
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell, ipcMain } = require("electron");
 const path = require("path");
 
 // Dev server URL. Present when running via `npm run electron` / `electron:dev`
@@ -35,14 +35,17 @@ function createWindow() {
     icon: path.join(__dirname, "..", "public", "pwa-512.png"),
     show: false, // reveal on ready-to-show to avoid a white flash
     autoHideMenuBar: true,
-    // Hidden native title bar with an overlay that keeps the min/max/close
-    // controls but paints them to match the dark theme (Windows/Linux). On
-    // macOS this yields the inset traffic-light buttons over our content.
+    // Spotify/Discord-style: no separate title bar. The native min/max/close
+    // controls are drawn as a transparent overlay in the top-right so they sit
+    // directly over the app's own nav pill, which serves as the drag handle
+    // (see -webkit-app-region in index.css). The symbol color starts dark (the
+    // app's default light theme) and is updated per-theme at runtime via the
+    // "titlebar-overlay" IPC below so the glyphs stay legible in both modes.
     titleBarStyle: "hidden",
     titleBarOverlay: {
-      color: THEME_BG,
-      symbolColor: THEME_INK,
-      height: 40,
+      color: "rgba(0, 0, 0, 0)", // transparent — the nav shows through
+      symbolColor: "#2a2722",
+      height: 52,
     },
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -90,6 +93,19 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+
+  // The renderer flips the window-controls glyph color to match the active
+  // theme (light nav → dark glyphs, dark nav → light glyphs). Fire-and-forget;
+  // guarded so a malformed payload or unsupported platform can't crash.
+  ipcMain.on("titlebar-overlay", (_event, opts) => {
+    if (mainWindow && opts && typeof opts === "object") {
+      try {
+        mainWindow.setTitleBarOverlay(opts);
+      } catch {
+        /* setTitleBarOverlay is Windows/Linux only — ignore elsewhere */
+      }
+    }
+  });
 
   // macOS: re-create a window when the dock icon is clicked and none are open.
   app.on("activate", () => {

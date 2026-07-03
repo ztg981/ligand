@@ -4802,40 +4802,27 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 
 /* ============================================================
-   Electron desktop shell — custom titlebar + layout offsets.
-   Active only inside Electron (html[data-electron="true"]); the native
-   title bar is hidden (see electron/main.js) and the OS draws just the
-   window controls as an overlay. This 40px strip fills the rest of that
-   band with the app identity and a draggable region so the window can be
-   moved. Entirely inert in the browser / PWA build.
+   Electron desktop shell — Spotify/Discord-style titlebar.
+   In the desktop app (html[data-electron="true"]) there is no separate title
+   bar: the app's own floating nav pill IS the window drag handle, and the
+   native min/max/close controls are drawn as a transparent overlay in the
+   top-right corner (electron/main.js). Everything here is inert in the browser
+   / PWA build, where the data-electron attribute is never set.
    ============================================================ */
-.electron-titlebar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 40px;
-  z-index: 100; /* above the sticky topbar (20), below modals/sheets (200) */
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  -webkit-app-region: drag; /* the strip is the window's drag handle */
-  user-select: none;
+/* The nav pill becomes the window's drag handle... */
+html[data-electron="true"] .topbar {
+  -webkit-app-region: drag;
+  /* ...with room on the right so the native window controls (~130px band in
+     the top-right corner) don't overlap the search / notifications / avatar. */
+  padding-right: 130px;
 }
-.electron-titlebar-brand {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: 12.5px; font-weight: 650; letter-spacing: 0.01em;
-  color: var(--ink-2);
+/* ...but every interactive element inside it opts back out so clicks, the goal
+   dropdown, and the tab buttons keep working. */
+html[data-electron="true"] .topbar button,
+html[data-electron="true"] .topbar a,
+html[data-electron="true"] .topbar input,
+html[data-electron="true"] .topbar select,
+html[data-electron="true"] .topbar [role="button"],
+html[data-electron="true"] .topbar .goal-dropdown {
+  -webkit-app-region: no-drag;
 }
-.electron-titlebar-dot {
-  width: 10px; height: 10px; border-radius: 3px;
-  background: linear-gradient(135deg, #558cb9, #b6aaff);
-}
-/* macOS draws its traffic-light controls on the LEFT — clear space for them. */
-html[data-electron-platform="darwin"] .electron-titlebar { padding-left: 82px; }
-
-/* Reserve the 40px band: push content down and park the sticky chrome below
-   the titlebar so nothing tucks underneath it. */
-html[data-electron="true"] .shell { padding-top: calc(var(--shell-py) + 40px); }
-html[data-electron="true"] .topbar { top: 52px; }
-html[data-electron="true"] .goal-sidebar { top: 124px; }
