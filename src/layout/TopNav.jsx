@@ -502,6 +502,7 @@ export default function TopNav({
 
   return (
     <>
+      <div className="topbar-status-cover" aria-hidden="true" />
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

@@ -201,6 +201,7 @@ button, a, [role="button"] { touch-action: manipulation; }
   backdrop-filter: blur(14px) saturate(130%);
   -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
+.topbar-status-cover { display: none; }
 .brand {
   display: flex;
   align-items: center;
@@ -3071,16 +3072,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
      sticking (doesn't reproduce in Chromium, but is a real, reported iOS
      issue) - fixed positioning sidesteps it entirely. Taken out of layout
      flow, so .shell's top padding above is sized to clear it. */
-  /* Floating frosted pill + a BLANK band above it. The pill frosts fine on
-     iOS, but it starts below the notch, so scrolled text peeked through the
-     gap between the screen top and the pill (behind the clock). Same answer
-     Instagram uses on Safari: paint that band solid page-background so the
-     top of the screen is simply blank. The band is the pill's ::before —
-     note the pill's transform makes IT the containing block for its own
-     fixed/absolute children, so the band is positioned in pill coordinates:
-     it reaches up past the safe-area to the true screen top, spans the 8px
-     side gutters, and tucks ~12px under the pill so the rounded top corners
-     can't leak a sliver of text beside them. */
+  /* Floating frosted pill plus a separate blank status-band. The cover is a
+     sibling behind .topbar instead of a negative pseudo-element inside it, so
+     Safari cannot composite the solid band into the transformed glass layer
+     and visually shave the pill's rounded top edge. */
   .topbar {
     position: fixed;
     top: env(safe-area-inset-top, 0px);
@@ -3101,17 +3096,6 @@ button.upcoming-row:hover { background: var(--panel-3); }
   }
   [data-theme="dark"] .topbar {
     background: rgba(21, 22, 26, 0.85);
-  }
-  .topbar::before {
-    content: "";
-    position: absolute;
-    left: -8px;
-    right: -8px;
-    top: calc(-6px - env(safe-area-inset-top, 0px)); /* up to viewport y=0 */
-    height: calc(env(safe-area-inset-top, 0px) + 18px); /* ends 12px below pill top */
-    background: var(--bg); /* solid token color — the "blank" Instagram look */
-    z-index: -1; /* behind the pill surface, above the page content */
-    pointer-events: none;
   }
   /* Subtle fade just below the pill: content scrolling up behind it dissolves
      into the page background instead of hard-cutting at the lower edge. */
@@ -3140,6 +3124,18 @@ button.upcoming-row:hover { background: var(--panel-3); }
   /* 2. background-attachment: fixed on <body> also breaks fixed-element
      backdrop-filter on iOS (and iOS never truly supported it anyway). */
   body { background-attachment: scroll; }
+
+  .topbar-status-cover {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px) + 8px);
+    background: var(--bg);
+    z-index: 69;
+    pointer-events: none;
+  }
 
   .brand { padding: 0 4px; }
   .brand-name { display: none; } /* dot alone keeps identity, saves width */
