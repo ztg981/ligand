@@ -346,3 +346,43 @@ export async function fetchAiInsight(goalId, action, context, forceRefresh = fal
     return { text: getFallback(action), source: "fallback" };
   }
 }
+
+/**
+ * Parse messy free-text gym notes into a structured workout via Gemini.
+ * Returns { ok: true, exercises } (raw parsed exercises) or { ok: false, error }.
+ * Not cached — every import is a fresh, one-off parse. Requires sign-in +
+ * Supabase; falls back to a clear error the caller can surface.
+ */
+export async function importWorkout(notes) {
+  const text = (notes || "").trim();
+  if (!text) return { ok: false, error: "Paste some notes first." };
+  if (aiGuestMode) return { ok: false, error: "Sign in to use AI import." };
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: "AI import needs a signed-in account." };
+  }
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      return { ok: false, error: "Sign in to use AI import." };
+    }
+    const { data, error } = await supabase.functions.invoke("gemini-insights", {
+      body: { action: "import_workout", context: { notes: text } },
+    });
+    if (error) throw new Error(error.message);
+    if (!data || !data.ok) {
+      throw new Error(`import not ok: ${JSON.stringify(data?.debug)}`);
+    }
+    const raw = (data.text || "").trim();
+    // Strip any accidental code fences, then pull the JSON object out.
+    const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("No JSON in response");
+    const parsed = JSON.parse(match[0]);
+    const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
+    if (!exercises.length) return { ok: false, error: "Couldn't find any exercises in that." };
+    return { ok: true, exercises };
+  } catch (err) {
+    debugLog("importWorkout failed:", err.message);
+    return { ok: false, error: "Import failed. Try rephrasing your notes." };
+  }
+}

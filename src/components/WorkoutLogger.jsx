@@ -9,8 +9,10 @@ import {
   workoutVolume,
   completedSetCount,
   exercisePR,
+  lastExercisePerformance,
+  estimateWorkoutMinutes,
 } from "../lib/model.js";
-import { searchExercises, findExercise } from "../lib/exercises.js";
+import { searchExercises, findExercise, MUSCLE_LABEL } from "../lib/exercises.js";
 
 /* WorkoutLogger - the in-gym flow. A full-screen layer (not a centered modal)
    so it works one-handed on a phone at the rack. Add exercises from the
@@ -24,6 +26,26 @@ function fmtElapsed(totalSec) {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// "Last time" reference line for an exercise, from its most recent prior set.
+function fmtLast(p, unit) {
+  if (!p) return null;
+  if (p.durationSec) return `Last time: ${Math.round(p.durationSec / 60)} min`;
+  if (p.weight != null) return `Last time: ${p.weight} ${unit} × ${p.reps ?? "-"}`;
+  return null;
+}
+
+// A short "focus" recap from the muscle groups a session covers.
+function focusLabel(exercises) {
+  const groups = [...new Set((exercises || []).map((e) => e.muscleGroup))].filter(
+    (g) => g && g !== "other"
+  );
+  if (!groups.length) return "";
+  const labels = groups.map((g) => (MUSCLE_LABEL[g] || g).toLowerCase());
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
 export default function WorkoutLogger({
@@ -46,12 +68,18 @@ export default function WorkoutLogger({
   const celebratedRef = useRef(new Set()); // exerciseIds already celebrated this session
 
   // Seed from a template/generated plan if provided, else start empty.
+  const wasSeeded = Boolean(initialExercises && initialExercises.length);
   const [exercises, setExercises] = useState(() =>
-    initialExercises && initialExercises.length
-      ? initialExercises
-      : []
+    wasSeeded ? initialExercises : []
   );
   const [showPicker, setShowPicker] = useState(!initialExercises);
+  // Session overview shown at the start of a seeded (planned) session — the
+  // "here's what's ahead" briefing a trainer would give before you begin.
+  const [showOverview, setShowOverview] = useState(wasSeeded);
+
+  // Prior best-per-exercise, so each movement can show "Last time: 135 × 8".
+  const lastPerf = (exerciseId) =>
+    exerciseId ? lastExercisePerformance(priorWorkouts, exerciseId) : null;
   const [query, setQuery] = useState("");
   const [summary, setSummary] = useState(null); // set on finish
   const [tmplName, setTmplName] = useState("");
@@ -230,7 +258,10 @@ export default function WorkoutLogger({
       volume: workoutVolume(workout),
       sets: completedSetCount(workout),
       durationSec,
+      focus: focusLabel(kept),
     });
+    try { ding(); } catch { /* best-effort */ }
+    try { navigator.vibrate?.([30, 40, 120]); } catch { /* fine */ }
     onFinish?.(workout);
   };
 
@@ -239,8 +270,13 @@ export default function WorkoutLogger({
     return createPortal(
       <div className="workout-logger" role="dialog" aria-modal="true">
         <div className="wl-summary">
-          <div className="wl-summary-ic"><Icon.Check /></div>
+          <div className="wl-summary-ic wl-summary-cele"><Icon.Check /></div>
           <h2 className="wl-summary-title">Workout complete</h2>
+          <p className="wl-summary-cheer">
+            {summary.focus
+              ? `Strong work on ${summary.focus}. That's in the bank.`
+              : "Strong work. That's in the bank."}
+          </p>
           <div className="wl-summary-stats">
             <div className="wl-sum-stat">
               <span className="wl-sum-num">{fmtElapsed(summary.durationSec)}</span>
@@ -323,6 +359,21 @@ export default function WorkoutLogger({
       </div>
 
       <div className="wl-body">
+        {/* Session overview — the pre-workout briefing for a planned session. */}
+        {showOverview && exercises.length > 0 && (
+          <div className="wl-overview">
+            <div className="wl-overview-eyebrow">Today's session</div>
+            <div className="wl-overview-line">
+              {exercises.length} exercise{exercises.length === 1 ? "" : "s"}
+              {" · "}~{estimateWorkoutMinutes(exercises, restStrength)} min
+              {focusLabel(exercises) ? ` · focus: ${focusLabel(exercises)}` : ""}
+            </div>
+            <button className="wl-overview-go" onClick={() => setShowOverview(false)}>
+              Let's go
+            </button>
+          </div>
+        )}
+
         {exercises.length === 0 && (
           <div className="wl-empty">
             <span className="wl-empty-ic"><Icon.Dumbbell /></span>
@@ -331,10 +382,16 @@ export default function WorkoutLogger({
           </div>
         )}
 
-        {exercises.map((ex) => (
+        {exercises.map((ex) => {
+          const lp = lastPerf(ex.exerciseId);
+          const lastLine = fmtLast(lp, unit);
+          return (
           <div key={ex.id} className="wl-ex card" data-cardio={ex.type === "cardio" ? "true" : "false"}>
             <div className="wl-ex-head">
-              <div className="wl-ex-name">{ex.name}</div>
+              <div className="wl-ex-head-main">
+                <div className="wl-ex-name">{ex.name}</div>
+                {lastLine && <div className="wl-ex-lasttime">{lastLine}</div>}
+              </div>
               <button
                 className="iconbtn sm"
                 onClick={() => removeExercise(ex.id)}
@@ -383,7 +440,7 @@ export default function WorkoutLogger({
                         type="number"
                         inputMode="decimal"
                         min="0"
-                        placeholder="0"
+                        placeholder={lp?.weight != null ? String(lp.weight) : "0"}
                         value={s.weight ?? ""}
                         onChange={(e) =>
                           patchSet(ex.id, s.id, {
@@ -396,7 +453,7 @@ export default function WorkoutLogger({
                         type="number"
                         inputMode="numeric"
                         min="0"
-                        placeholder="0"
+                        placeholder={lp?.reps != null ? String(lp.reps) : "0"}
                         value={s.reps ?? ""}
                         onChange={(e) =>
                           patchSet(ex.id, s.id, {
@@ -429,7 +486,8 @@ export default function WorkoutLogger({
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         <button className="btn wl-add-ex" onClick={() => setShowPicker(true)}>
           <Icon.Plus width={14} height={14} /> Add exercise

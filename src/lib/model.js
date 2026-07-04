@@ -226,6 +226,10 @@ export function createFitnessProfile({
     // Default rest between sets (seconds); cardio gets a shorter default.
     restStrengthSec: 90,
     restCardioSec: 30,
+    // Weekly training split, planned on desktop: { 0: ["chest","triceps"], ... }
+    // keyed Mon=0..Sun=6. Empty/absent day = rest. Read on mobile for the
+    // "ready for the gym" cue.
+    weeklyPlan: {},
     createdAt: todayKey(),
   };
 }
@@ -363,6 +367,49 @@ export function weeklyWorkoutStreak(workouts, refKey = todayKey()) {
 export function workoutsThisWeek(workouts, refKey = todayKey()) {
   const cutoff = shiftDay(refKey, -6);
   return (workouts || []).filter((w) => w.date >= cutoff && w.date <= refKey);
+}
+
+// The most recent PRIOR performance of an exercise: from the newest earlier
+// session that contained it, the heaviest completed set (or, for cardio, the
+// longest). Powers the "Last time: 135 × 8" reference in the gym so you always
+// know what to beat. Returns { date, weight, reps, durationSec } or null.
+export function lastExercisePerformance(workouts, exerciseId, beforeDate = null) {
+  if (!exerciseId) return null;
+  // Newest first.
+  const sorted = [...(workouts || [])].sort((a, b) =>
+    (b.date || "").localeCompare(a.date || "")
+  );
+  for (const w of sorted) {
+    if (beforeDate && w.date >= beforeDate) continue;
+    let best = null;
+    (w.exercises || []).forEach((ex) => {
+      if (ex.exerciseId !== exerciseId) return;
+      (ex.sets || []).forEach((s) => {
+        if (!s.done) return;
+        if (ex.type === "cardio") {
+          if (s.durationSec && (!best || s.durationSec > (best.durationSec || 0)))
+            best = { date: w.date, durationSec: s.durationSec };
+        } else if (s.weight != null) {
+          if (!best || s.weight > best.weight)
+            best = { date: w.date, weight: s.weight, reps: s.reps };
+        }
+      });
+    });
+    if (best) return best;
+  }
+  return null;
+}
+
+// A rough time estimate (minutes) for a planned/seeded session, from set count
+// and rest defaults. Used for the in-gym session overview ("~45 min").
+export function estimateWorkoutMinutes(exercises, restStrengthSec = 90) {
+  const totalSets = (exercises || []).reduce(
+    (n, ex) => n + (ex.sets?.length || 0),
+    0
+  );
+  // ~35s working time per set + the configured rest, plus a small setup buffer.
+  const secs = totalSets * (35 + restStrengthSec) + (exercises?.length || 0) * 30;
+  return Math.max(5, Math.round(secs / 60));
 }
 
 // ---- habit helpers (forgiving) ---------------------------------

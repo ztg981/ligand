@@ -17,6 +17,9 @@ import {
 } from "../lib/model.js";
 import { generateWorkout } from "../lib/workoutGen.js";
 import { MUSCLE_LABEL, findExercise } from "../lib/exercises.js";
+import WorkoutPlanner, { todayWeekday, splitLabel } from "../components/WorkoutPlanner.jsx";
+import WorkoutImport from "../components/WorkoutImport.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 // Turn a saved template's exercise plans into fresh, empty logger exercises.
 function planToLoggerExercises(template) {
@@ -91,7 +94,18 @@ export default function WorkoutTab({
   addTemplate,
   updateFitnessProfile,
 }) {
-  const [view, setView] = useState("hub"); // hub | progress | browse
+  const isMobile = useIsMobile(768);
+  const [view, setView] = useState("hub"); // hub | plan | progress | browse
+
+  // Today's planned focus from the weekly split (Mon=0..Sun=6). Drives the
+  // "ready for the gym" cue that connects PC planning to phone execution.
+  const weeklyPlan = profile?.weeklyPlan || {};
+  const todaysGroups = weeklyPlan[todayWeekday()] || [];
+  const todaysSplit = todaysGroups.length ? splitLabel(todaysGroups) : null;
+  const setDayPlan = (weekday, groups) =>
+    updateFitnessProfile?.({
+      weeklyPlan: { ...weeklyPlan, [weekday]: groups },
+    });
   const [logging, setLogging] = useState(null); // { exercises } | null
   const [preview, setPreview] = useState(null); // generated plan under review
   const [choosing, setChoosing] = useState(false); // start chooser
@@ -249,6 +263,12 @@ export default function WorkoutTab({
         <button className={view === "hub" ? "active" : ""} onClick={() => setView("hub")}>
           Today
         </button>
+        {/* Planning is a desktop workspace; the phone is for execution. */}
+        {!isMobile && (
+          <button className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}>
+            Plan
+          </button>
+        )}
         <button className={view === "browse" ? "active" : ""} onClick={() => setView("browse")}>
           Exercises
         </button>
@@ -265,6 +285,16 @@ export default function WorkoutTab({
         />
       )}
 
+      {view === "plan" && !isMobile && (
+        <>
+          <WorkoutPlanner plan={weeklyPlan} onChange={setDayPlan} />
+          <WorkoutImport
+            profile={profile}
+            onImported={(plan) => setPreview(plan)}
+          />
+        </>
+      )}
+
       {view === "browse" && (
         <ExerciseBrowser
           equipment={sessionEquipment}
@@ -279,9 +309,22 @@ export default function WorkoutTab({
             <div className="card-head">
               <div className="card-title"><Icon.Bolt /> Today's workout</div>
             </div>
-            <p className="fit-today-sub">
-              Build a session from your history, or start logging one yourself.
-            </p>
+            {todaysSplit ? (
+              <div className="wk-ready" role="status">
+                <span className="wk-ready-dot" />
+                <span className="wk-ready-text">
+                  <strong>Ready for the gym</strong>
+                  <span className="wk-ready-focus">
+                    {todaysSplit} · {todaysGroups.map((g) => MUSCLE_LABEL[g] || g).join(", ")}
+                  </span>
+                </span>
+              </div>
+            ) : (
+              <p className="fit-today-sub">
+                Build a session from your history, or start logging one yourself.
+                {!isMobile && " Set a weekly split in Plan to see today's focus here."}
+              </p>
+            )}
 
             <button
               type="button"

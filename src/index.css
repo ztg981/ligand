@@ -4735,8 +4735,49 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .wl-empty-sub { font-size: 12.5px; color: var(--ink-3); }
 
 .wl-ex { padding: 12px 14px; }
-.wl-ex-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.wl-ex-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.wl-ex-head-main { min-width: 0; }
 .wl-ex-name { font-size: 15px; font-weight: 650; color: var(--ink); }
+.wl-ex-lasttime {
+  font-size: 11.5px; color: var(--ink-3); margin-top: 2px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.wl-ex-lasttime::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); opacity: 0.7;
+}
+
+/* Session overview — the pre-workout briefing banner at the top of a planned
+   session (mobile execution: "here's what's ahead"). */
+.wl-overview {
+  background: color-mix(in oklab, var(--accent) 10%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--line));
+  border-radius: var(--r-lg, 14px);
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.wl-overview-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent-ink, var(--accent)); margin-bottom: 3px;
+}
+.wl-overview-line { font-size: 14px; color: var(--ink); font-weight: 550; line-height: 1.4; }
+.wl-overview-go {
+  margin-top: 10px; width: 100%; height: 38px; border-radius: 10px;
+  border: none; cursor: pointer; font-size: 13px; font-weight: 650;
+  background: var(--accent); color: var(--accent-ink, #fff);
+}
+.wl-overview-go:active { transform: translateY(1px); }
+
+/* Finish celebration: the check badge pops in. */
+.wl-summary-cele { animation: wl-cele-pop 0.5s var(--ease) both; }
+@keyframes wl-cele-pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+[data-reduce-motion="true"] .wl-summary-cele { animation: none; }
+.wl-summary-cheer {
+  font-size: 13.5px; color: var(--ink-3); margin: 2px 0 4px; text-align: center;
+}
 .wl-sets { display: flex; flex-direction: column; gap: 6px; }
 .wl-set-labels, .wl-set {
   display: grid;
@@ -4975,6 +5016,75 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    Workout tab (dedicated hub) - Phase 22 Section 3
    ============================================================ */
 .wk-today-card { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+/* "Ready for the gym" — today's planned split, surfaced from the PC weekly plan. */
+.wk-ready {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--line));
+}
+.wk-ready-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: none;
+  background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 22%, transparent);
+  animation: wk-ready-pulse 2.4s ease-in-out infinite;
+}
+@keyframes wk-ready-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+[data-reduce-motion="true"] .wk-ready-dot { animation: none; }
+.wk-ready-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.wk-ready-text strong { font-size: 14px; color: var(--ink); }
+.wk-ready-focus { font-size: 12px; color: var(--ink-3); text-transform: capitalize; }
+
+/* Weekly plan matrix (desktop planning workspace). */
+.wk-planner { margin-bottom: 14px; }
+.wk-planner-sub, .wk-import-sub {
+  font-size: 12.5px; color: var(--ink-3); margin: 0 0 12px; line-height: 1.45;
+}
+.wk-plan-grid {
+  display: grid;
+  grid-template-columns: 88px repeat(7, 1fr);
+  gap: 4px; align-items: stretch;
+}
+.wk-plan-corner { }
+.wk-plan-dayhead {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 4px 2px 6px; border-radius: 8px;
+}
+.wk-plan-dayhead.today { background: color-mix(in oklab, var(--accent) 12%, transparent); }
+.wk-plan-dayname { font-size: 12px; font-weight: 650; color: var(--ink-2); }
+.wk-plan-dayhead.today .wk-plan-dayname { color: var(--accent-ink, var(--accent)); }
+.wk-plan-daytype { font-size: 10px; color: var(--ink-4); height: 12px; }
+.wk-plan-rowlabel {
+  display: flex; align-items: center; font-size: 12.5px; color: var(--ink-2);
+  text-transform: capitalize; padding-right: 6px;
+}
+.wk-plan-cell {
+  height: 30px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--panel-3, var(--panel));
+  transition: background 0.14s var(--ease), border-color 0.14s;
+}
+.wk-plan-cell:hover { border-color: color-mix(in oklab, var(--accent) 50%, var(--line)); }
+.wk-plan-cell.today-col { border-color: color-mix(in oklab, var(--accent) 24%, var(--line)); }
+.wk-plan-cell.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 1px 3px color-mix(in oklab, var(--accent) 40%, transparent);
+}
+.wk-plan-foot, .wk-plan-footlabel { display: flex; align-items: center; justify-content: center; height: 22px; }
+.wk-plan-foot.today-col { background: color-mix(in oklab, var(--accent) 8%, transparent); border-radius: 6px; }
+.wk-plan-rest { font-size: 10px; color: var(--ink-4); }
+.wk-plan-clear {
+  width: 18px; height: 18px; border-radius: 50%; border: none; cursor: pointer;
+  background: transparent; color: var(--ink-4); font-size: 11px; line-height: 1;
+}
+.wk-plan-clear:hover { color: var(--danger, #d9534f); background: color-mix(in oklab, var(--danger, #d9534f) 12%, transparent); }
+
+/* AI workout import box. */
+.wk-import { margin-bottom: 14px; }
+.wk-import-box { width: 100%; resize: vertical; min-height: 64px; font-size: 14px; line-height: 1.45; }
+.wk-import-err { font-size: 12.5px; color: var(--danger, #d9534f); margin-top: 8px; }
+.wk-import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .wk-equip-quick {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   width: 100%; padding: 12px 14px; min-height: 46px;
