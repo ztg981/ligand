@@ -493,10 +493,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep the uiSounds module in sync with the setting.
+  // Keep the uiSounds module in sync with the setting (toggle + volume).
   useEffect(() => {
-    configureUiSounds({ enabled: settings.uiSounds?.enabled ?? true });
-  }, [settings.uiSounds?.enabled]);
+    configureUiSounds({
+      enabled: settings.uiSounds?.enabled ?? true,
+      volume: (settings.uiSounds?.volume ?? 75) / 100,
+    });
+  }, [settings.uiSounds?.enabled, settings.uiSounds?.volume]);
 
   // Background music — app-wide ambient loops. Plays across all tabs.
   // Off by default; only starts after the user explicitly enables it

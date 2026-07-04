@@ -78,7 +78,7 @@ export default function MobileSettings({
   onSignOut,
   onRequestAuth,
 }) {
-  const { notifications, habits, uiSounds = {}, wallpaper } = settings;
+  const { notifications, habits, uiSounds = {} } = settings;
   const [signingOut, setSigningOut] = useState(false);
   const loggedIn = Boolean(accountEmail);
 
@@ -165,14 +165,14 @@ export default function MobileSettings({
               onChange={(v) => setSection("uiSounds", { enabled: v })}
             />
           </Row>
-          <Row name="Volume" hint={`${wallpaper.volume ?? 40}%`}>
+          <Row name="Volume" hint={`${uiSounds.volume ?? 75}%`}>
             <div style={{ width: 130 }}>
               <Slider
-                value={wallpaper.volume ?? 40}
+                value={uiSounds.volume ?? 75}
                 min={0}
                 max={100}
                 step={5}
-                onChange={(v) => setSection("wallpaper", { volume: v })}
+                onChange={(v) => setSection("uiSounds", { volume: v })}
                 format={(v) => v + "%"}
               />
             </div>

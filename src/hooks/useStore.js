@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
-import { ding } from "../lib/uiSounds.js";
+import { taskDone, habitDone } from "../lib/uiSounds.js";
 import {
   seedData,
   createGoal,
@@ -172,7 +172,7 @@ export function useStore() {
       // the current snapshot and fired OUTSIDE the updater — state updaters must
       // stay pure (StrictMode invokes them twice, which double-fired the sound).
       const wasUndone = data.tasks.some((t) => t.id === id && !t.done);
-      if (wasUndone) ding();
+      if (wasUndone) taskDone();
       setData((d) => ({
         ...d,
         tasks: d.tasks.map((t) =>
@@ -223,7 +223,7 @@ export function useStore() {
         .find((g) => g.id === goalId)
         ?.habits.find((h) => h.id === habitId);
       const turnedOn = habit ? !habit.checkIns?.includes(dayKey) : false;
-      if (turnedOn) ding();
+      if (turnedOn) habitDone();
       setData((d) => ({
         ...d,
         goals: d.goals.map((g) =>

@@ -4,7 +4,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
-import { chime } from "../lib/notifications.js";
+import { pomodoroComplete, phaseChange } from "../lib/uiSounds.js";
 import {
   playAmbient,
   stopAmbient,
@@ -434,7 +434,13 @@ export default function Pomodoro({
 
   const pomo = usePomodoro({
     onPhaseEnd: ({ endedPhase }) => {
-      if (chimeEnabled) chime();
+      // A finished WORK block is a reward (descending bing-bong); a finished
+      // break is "back to focus" (rising lift). Both follow the Pomodoro chime
+      // setting, not the UI-sounds toggle.
+      if (chimeEnabled) {
+        if (endedPhase === PHASES.WORK) pomodoroComplete();
+        else phaseChange();
+      }
       // Log a completed focus block against its linked task's goal (if any).
       if (endedPhase === PHASES.WORK && focusEndRef.current) {
         const { taskId, work, tasks: ts } = focusEndRef.current;

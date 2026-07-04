@@ -44,6 +44,7 @@ export const SETTINGS_DEFAULTS = {
   },
   uiSounds: {
     enabled: true, // subtle click/pop/ding feedback on interactions
+    volume: 75,    // 0–100%; scales the whole UI sound palette
   },
   bgMusic: {
     enabled: false, // off by default; user must opt in — no autoplay

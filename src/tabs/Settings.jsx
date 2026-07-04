@@ -427,6 +427,20 @@ export default function Settings({
               onChange={(v) => setSection("uiSounds", { enabled: v })}
             />
           </Row>
+          {(uiSounds.enabled ?? true) && (
+            <Row name="Sound volume" hint={`${uiSounds.volume ?? 75}%`}>
+              <div style={{ width: 160 }}>
+                <Slider
+                  value={uiSounds.volume ?? 75}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onChange={(v) => setSection("uiSounds", { volume: v })}
+                  format={(v) => v + "%"}
+                />
+              </div>
+            </Row>
+          )}
           <Row
             name="Daily reminder"
             hint="Nudges you when you open the app after the set time - not a background alarm"
