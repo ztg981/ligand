@@ -7,6 +7,7 @@ import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import BlockerPanel from "../components/BlockerPanel.jsx";
+import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { FOCUS_MUSIC, spotifySearch, youtubeSearch } from "../lib/focusMusic.js";
 
@@ -91,6 +92,10 @@ export default function Settings({
   setCustomWallpapers,
   hasRecoveryGoal = false,
   isGuest = false,
+  alarms = [],
+  addAlarm,
+  updateAlarm,
+  removeAlarm,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -463,6 +468,14 @@ export default function Settings({
             </Row>
           )}
         </Section>
+
+        {/* Photo-scan alarms. */}
+        <AlarmsPanel
+          alarms={alarms}
+          addAlarm={addAlarm}
+          updateAlarm={updateAlarm}
+          removeAlarm={removeAlarm}
+        />
 
         {/* Focus-mode website blocker — desktop (Electron/Windows) only; the
            component self-gates to nothing on web/PWA and other platforms. */}

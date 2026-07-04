@@ -533,10 +533,12 @@ export default function TopNav({
         onDragEnd={handleDragEnd}
       >
         <div className="topbar">
-        <div className="brand">
+        {/* The logo doubles as a Home button (kept tight — just the mark +
+           wordmark, not the whole bar). */}
+        <button className="brand" onClick={() => setTab("home")} title="Home" aria-label="Home">
           <span className="brand-dot" />
           <span className="brand-name">Ligand</span>
-        </div>
+        </button>
 
         {/* Scrollable middle: main app tabs + goal tabs. This region can shrink
            and scroll horizontally on narrow screens, so the brand (left) and the

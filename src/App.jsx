@@ -42,6 +42,8 @@ import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import QuickNoteFab from "./components/QuickNoteFab.jsx";
+import AlarmOverlay from "./components/AlarmOverlay.jsx";
+import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useElectron } from "./hooks/useElectron.js";
 
@@ -89,6 +91,11 @@ export default function App() {
 
   const { tweaks, set } = useTweaks();
   const store = useStore();
+  // Photo-scan alarms: watch the clock and raise the firing alarm (if any).
+  const { firing: firingAlarm, dismiss: dismissAlarm } = useAlarms(
+    store.alarms,
+    store.updateAlarm
+  );
   // Below 768px, the Hyperfocus FAB is replaced by a quick-capture note
   // button (see the FAB render further down) - desktop keeps Hyperfocus.
   const isMobile = useIsMobile(768);
@@ -956,6 +963,10 @@ export default function App() {
                 await signOut();
               }}
               onRequestAuth={() => setAuthRequested(true)}
+              alarms={store.alarms}
+              addAlarm={store.addAlarm}
+              updateAlarm={store.updateAlarm}
+              removeAlarm={store.removeAlarm}
             />
           );
         }
@@ -977,6 +988,10 @@ export default function App() {
             setCustomWallpapers={setCustomWallpapers}
             hasRecoveryGoal={activeGoals.some((g) => g.type === "recovery")}
             isGuest={isGuest}
+            alarms={store.alarms}
+            addAlarm={store.addAlarm}
+            updateAlarm={store.updateAlarm}
+            removeAlarm={store.removeAlarm}
           />
         );
       default:
@@ -1144,6 +1159,10 @@ export default function App() {
       )}
 
       <BadgeCelebration queue={badgeToasts} onDismiss={dismissBadgeToast} />
+
+      {firingAlarm && (
+        <AlarmOverlay alarm={firingAlarm} onDismiss={dismissAlarm} />
+      )}
 
       <SearchModal
         open={showSearch}

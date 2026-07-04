@@ -205,6 +205,33 @@ export function createNote({ text = "" } = {}) {
   return { id: uid("note"), text, createdAt: now, updatedAt: now };
 }
 
+// A photo-scan alarm. To dismiss it you must photograph a specific object (the
+// stored targetPhoto), which forces you out of bed to wherever that object is.
+// days: array of weekdays it repeats on (Mon=0..Sun=6); empty = every day.
+// Only fires while the app is open (browsers can't wake a sleeping device).
+export function createAlarm({
+  label = "Alarm",
+  time = "07:00", // HH:MM, 24h
+  days = [], // [] = daily; otherwise Mon=0..Sun=6
+  targetPhoto = null, // data URL of the object to scan
+  targetLabel = "", // what the object is ("bathroom sink")
+  threshold = 70, // % similarity required to dismiss
+  enabled = true,
+} = {}) {
+  return {
+    id: uid("alarm"),
+    label,
+    time,
+    days,
+    targetPhoto,
+    targetLabel,
+    threshold,
+    enabled,
+    lastFired: null, // "YYYY-MM-DD" of the last day this alarm fired
+    createdAt: new Date().toISOString(),
+  };
+}
+
 // ---- fitness / workout factories -------------------------------
 // The user's training profile, set during the fitness-goal onboarding. One
 // per app (there's a single lifter). null until onboarding completes.
@@ -522,6 +549,7 @@ export function seedData() {
     countUps: [],
     journal: [], // app-wide reflections (per-goal reflections live on each goal)
     notes: [], // frictionless plain-text scratchpad (see Notes tab)
+    alarms: [], // photo-scan alarms (see Alarms in Settings)
     // Fitness / workout system. All start empty; a fitnessProfile is created
     // when the user makes their first Fitness goal and finishes onboarding.
     workouts: [], // logged sessions

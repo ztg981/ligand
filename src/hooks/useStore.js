@@ -9,6 +9,7 @@ import {
   createReflection,
   createCountUp,
   createNote,
+  createAlarm,
   createWorkout,
   createWorkoutTemplate,
   createFitnessProfile,
@@ -411,6 +412,29 @@ export function useStore() {
     [setData]
   );
 
+  // -- alarms (photo-scan alarms) --------------------------------
+  const addAlarm = useCallback(
+    (opts) => {
+      const alarm = createAlarm(opts);
+      setData((d) => ({ ...d, alarms: [alarm, ...(d.alarms || [])] }));
+      return alarm;
+    },
+    [setData]
+  );
+  const updateAlarm = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        alarms: (d.alarms || []).map((a) => (a.id === id ? { ...a, ...patch } : a)),
+      })),
+    [setData]
+  );
+  const removeAlarm = useCallback(
+    (id) =>
+      setData((d) => ({ ...d, alarms: (d.alarms || []).filter((a) => a.id !== id) })),
+    [setData]
+  );
+
   // -- workouts (logged sessions) --------------------------------
   // A completed session can be passed pre-built (from the logger) or by opts.
   const addWorkout = useCallback(
@@ -548,6 +572,9 @@ export function useStore() {
       addNote,
       updateNote,
       removeNote,
+      addAlarm,
+      updateAlarm,
+      removeAlarm,
       addWorkout,
       updateWorkout,
       deleteWorkout,
@@ -588,6 +615,9 @@ export function useStore() {
       addNote,
       updateNote,
       removeNote,
+      addAlarm,
+      updateAlarm,
+      removeAlarm,
       addWorkout,
       updateWorkout,
       deleteWorkout,
@@ -611,6 +641,7 @@ export function useStore() {
     countUps: data.countUps,
     journal: data.journal || [],
     notes: data.notes || [],
+    alarms: data.alarms || [],
     focusLog: data.focusLog || [],
     workouts: data.workouts || [],
     workoutTemplates: data.workoutTemplates || [],

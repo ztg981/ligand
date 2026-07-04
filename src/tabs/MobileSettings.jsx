@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS } from "../theme/useTweaks.js";
+import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import pkg from "../../package.json";
 
 /* MobileSettings - a simplified, phone-focused settings list shown instead of
@@ -77,6 +78,10 @@ export default function MobileSettings({
   accountEmail = null,
   onSignOut,
   onRequestAuth,
+  alarms = [],
+  addAlarm,
+  updateAlarm,
+  removeAlarm,
 }) {
   const { notifications, habits, uiSounds = {} } = settings;
   const [signingOut, setSigningOut] = useState(false);
@@ -202,6 +207,14 @@ export default function MobileSettings({
             </div>
           </Row>
         </Section>
+
+        {/* Alarms */}
+        <AlarmsPanel
+          alarms={alarms}
+          addAlarm={addAlarm}
+          updateAlarm={updateAlarm}
+          removeAlarm={removeAlarm}
+        />
 
         {/* Account */}
         <Section icon={<Icon.Cloud />} title="Account">
