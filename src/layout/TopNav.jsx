@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import GoalDropdown from "../components/GoalDropdown.jsx";
+import { useDropdown } from "../hooks/useDropdown.js";
 import {
   DndContext,
   PointerSensor,
@@ -38,20 +39,22 @@ function timeAgo(ts) {
 /* The notification bell: a dot badge when there are unread items, and a
    small dropdown listing the most recent few. Opening marks all as read. */
 function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
-  const [open, setOpen] = useState(false);
+  const { open, toggle, triggerRef, menuRef } = useDropdown();
 
-  const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    if (next) onOpen?.(); // opening clears the unread badge
+  const onToggle = () => {
+    if (!open) onOpen?.(); // opening clears the unread badge
+    toggle();
   };
 
   return (
     <div style={{ position: "relative" }}>
       <button
+        ref={triggerRef}
         className="iconbtn"
         title="Notifications"
-        onClick={toggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={onToggle}
         style={{ position: "relative" }}
       >
         <Icon.Bell />
@@ -72,47 +75,36 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
       </button>
 
       {open && (
-        <>
-          {/* click-away backdrop. onPointerDown (not just onClick) so the tap-
-             outside dismiss fires on iOS Safari, which drops click events on
-             non-interactive elements; cursor:pointer also nudges Safari to
-             treat the div as clickable. */}
-          <div
-            onPointerDown={() => setOpen(false)}
-            onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 90, cursor: "pointer" }}
-          />
-          <div className="notif-pop">
-            <div className="notif-pop-head">
-              <span>Notifications</span>
-              {items.length > 0 && (
-                <button className="btn ghost sm" onClick={onClear}>
-                  Clear
-                </button>
-              )}
-            </div>
-            {items.length === 0 ? (
-              <div className="notif-empty">
-                You're all caught up. Nudges will show up here.
-              </div>
-            ) : (
-              <div className="notif-list">
-                {items.slice(0, 8).map((n) => (
-                  <div key={n.id} className="notif-item">
-                    <span className="notif-ic">
-                      {NOTIF_ICON[n.type] || <Icon.Spark />}
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div className="notif-title">{n.title}</div>
-                      {n.body && <div className="notif-body">{n.body}</div>}
-                      <div className="notif-time">{timeAgo(n.ts)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        <div className="notif-pop" ref={menuRef} role="menu">
+          <div className="notif-pop-head">
+            <span>Notifications</span>
+            {items.length > 0 && (
+              <button className="btn ghost sm" onClick={onClear}>
+                Clear
+              </button>
             )}
           </div>
-        </>
+          {items.length === 0 ? (
+            <div className="notif-empty">
+              You're all caught up. Nudges will show up here.
+            </div>
+          ) : (
+            <div className="notif-list">
+              {items.slice(0, 8).map((n) => (
+                <div key={n.id} className="notif-item">
+                  <span className="notif-ic">
+                    {NOTIF_ICON[n.type] || <Icon.Spark />}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="notif-title">{n.title}</div>
+                    {n.body && <div className="notif-body">{n.body}</div>}
+                    <div className="notif-time">{timeAgo(n.ts)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -135,23 +127,25 @@ function AvatarMenu({
   onSignOut,
   onRequestAuth,
 }) {
-  const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const initial = ((userName || "").trim()[0] || "Y").toUpperCase();
   const loggedIn = Boolean(accountEmail);
 
-  const close = () => {
-    setOpen(false);
-    setConfirming(false);
-  };
+  // Reset the "clear data" confirm state whenever the menu closes.
+  const { open, toggle, close, triggerRef, menuRef } = useDropdown({
+    onClose: () => setConfirming(false),
+  });
 
   return (
     <div style={{ position: "relative" }}>
       <button
+        ref={triggerRef}
         className="iconbtn avatar-btn"
         title="You"
-        onClick={() => (open ? close() : setOpen(true))}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={toggle}
         style={{
           background: AVATAR_BG,
           color: "white",
@@ -164,15 +158,7 @@ function AvatarMenu({
       </button>
 
       {open && (
-        <>
-          {/* onPointerDown so tap-outside dismiss works on iOS Safari (see
-             NotificationBell for the full rationale). */}
-          <div
-            onPointerDown={close}
-            onClick={close}
-            style={{ position: "fixed", inset: 0, zIndex: 90, cursor: "pointer" }}
-          />
-          <div className="avatar-pop">
+        <div className="avatar-pop" ref={menuRef} role="menu">
             <div className="avatar-pop-head">
               <span className="avatar-pop-ic" style={{ background: AVATAR_BG }}>
                 {initial}
@@ -295,8 +281,7 @@ function AvatarMenu({
                 </div>
               </div>
             )}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

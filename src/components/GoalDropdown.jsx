@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { goalHealth } from "../lib/goalHealth.js";
+import { useDropdown } from "../hooks/useDropdown.js";
 
 /* GoalDropdown - the MOBILE-only (<768px) goal selector. The horizontal goal
    pills are far too cramped on a phone, so on mobile they're replaced by a
@@ -15,36 +16,32 @@ export default function GoalDropdown({
   onSelect,
   onAddGoal,
 }) {
-  const [open, setOpen] = useState(false);
+  const { open, toggle, close, triggerRef, menuRef } = useDropdown();
   // Pixel offset for the full-width sheet, measured from the button so the
   // panel drops just below the (pinned) top bar regardless of bar height.
   const [panelTop, setPanelTop] = useState(0);
-  const btnRef = useRef(null);
 
   // The button reflects the active goal when we're on a goal screen; otherwise
   // it's a neutral "Goals" prompt so it never implies you're inside a goal.
   const current = goals.find((g) => g.id === activeGoalId);
   const showCurrent = isGoalTab && current;
 
-  const toggle = () => {
-    setOpen((o) => {
-      const next = !o;
-      if (next && btnRef.current) {
-        setPanelTop(Math.round(btnRef.current.getBoundingClientRect().bottom + 8));
-      }
-      return next;
-    });
-  };
+  // Measure the drop position from the trigger each time the sheet opens.
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      setPanelTop(Math.round(triggerRef.current.getBoundingClientRect().bottom + 8));
+    }
+  }, [open, triggerRef]);
 
   const pick = (id) => {
     onSelect?.(id);
-    setOpen(false);
+    close();
   };
 
   return (
     <div className="goal-dropdown">
       <button
-        ref={btnRef}
+        ref={triggerRef}
         type="button"
         className="goal-dd-btn"
         aria-haspopup="listbox"
@@ -78,15 +75,11 @@ export default function GoalDropdown({
 
       {open && (
         <>
-          {/* onPointerDown so the tap-outside dismiss fires on iOS Safari,
-             which drops click events on non-interactive elements. */}
-          <div
-            className="goal-dd-backdrop"
-            onPointerDown={() => setOpen(false)}
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="goal-dd-panel" role="listbox" style={{ top: panelTop }}>
+          {/* Purely-visual dimming (pointer-events:none). Dismissal is handled by
+             useDropdown's document listener, so there's no backdrop to intercept
+             a trigger tap and cause a close-then-reopen. */}
+          <div className="goal-dd-backdrop" aria-hidden="true" />
+          <div className="goal-dd-panel" role="listbox" ref={menuRef} style={{ top: panelTop }}>
             {goals.length === 0 ? (
               <div className="goal-dd-empty">No goals yet.</div>
             ) : (
