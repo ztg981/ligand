@@ -1117,7 +1117,9 @@ export default function App() {
           action, and the same corner is more useful as a capture tool
           there. Desktop keeps Hyperfocus exactly as it was. */}
       {isMobile ? (
-        <QuickNoteFab addNote={store.addNote} />
+        // The Notes tab has its own "New note" FAB, so suppress the global
+        // quick-note FAB there — the phone shows exactly one floating button.
+        tab !== "notes" && <QuickNoteFab addNote={store.addNote} />
       ) : (
         <button
           className={"hf-fab" + (hyperfocus ? " active" : "")}

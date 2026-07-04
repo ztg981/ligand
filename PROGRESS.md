@@ -1,6 +1,139 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-07-03)_
+_Session date: 2026-06-14 (updated 2026-07-04)_
+
+## Phase 23 — Sound overhaul, em-dash cleanup, mobile fixes, workout depth, app blocker, photo alarm (2026-07-04, Claude Code)
+
+Large six-section brief plus additional tasks. Clean baseline first; committed
+after each section; verified live at 375px and 1280px, light + dark; `npm run
+build` green throughout; production `vite preview` (port 4173) cycled all tabs
+with **zero console errors** and a live service worker.
+
+### Section 1 — Sound effects overhaul (DONE)
+
+Rebuilt `src/lib/uiSounds.js` around one idea taken from the study-tracker
+sounds the user likes: a bare sine sounds cheap, so every voice adds a quiet
+**inharmonic bell partial at 2.76×** the fundamental (the "warm/real" chime
+ingredient), uses real musical intervals (rising = positive, descending =
+completion), and routes through a single master gain (volume) plus a gentle
+master low-pass that rounds off digital fizz.
+
+- New master toggle **and** volume: `configure({ enabled, volume })`, backed by
+  a new `uiSounds.volume` setting (default 75%) wired to the Sound volume slider
+  on both mobile and desktop (the mobile slider previously mis-pointed at
+  `wallpaper.volume`).
+- Distinct completion sounds: `habitDone` (light rising major third — habits
+  fire often, so it's the quickest), `taskDone` (fuller rising fifth with sub-
+  body), `ding` kept for badges/recovery/workout.
+- Pomodoro: `pomodoroComplete` (descending bing-bong reward on a finished work
+  block) vs `phaseChange` (rising lift when a break ends). Replaces the old flat
+  two-sine chime; follows the Pomodoro-chime setting, not the UI toggle.
+- Refined `click` (warmer, shorter), `tick` (organic ±detune so a fast drag
+  isn't robotic), `pop` (weightier). New `error()` (gentle descending, never a
+  buzzer) and `startAlarm()` (insistent looping triad that deliberately bypasses
+  the UI toggle — an alarm you set should always be audible; used by Section 6).
+- Reasoning for each choice documented inline in the file's header comment.
+
+### Section 2 — Em-dash cleanup (DONE)
+
+Previous passes swapped em dashes (—) for hyphens, which read awkwardly mid-
+sentence. Reworded **every** affected user-facing string into clean natural
+English (a period, comma, or restructured clause), not a dash of any kind:
+notification bodies, badge messages, science facts, AI fallback/encouragement/
+reentry copy (`ai.js`), recovery milestones, and empty-state/hint/placeholder/
+alert strings across every tab, widget and component (including multiline JSX
+text earlier greps missed). Zero em dashes remain in any rendered string; only
+code comments retain them.
+
+### Section 3 — Mobile UI fixes (DONE)
+
+- **3A dropdown dismiss on iOS Safari**: Safari drops click on non-interactive
+  elements, so the click-away backdrops behind the avatar menu, notification
+  popover, goal dropdown and quick-note sheet never dismissed on a tap outside.
+  Fixed by dismissing on `onPointerDown` (fires on iOS touch) in addition to
+  `onClick`, plus `cursor:pointer` to nudge Safari's clickability heuristic; the
+  quick-note scrim guards `e.target === e.currentTarget` so inner taps don't
+  close it.
+- **3B Tasks segmented control**: the Active/Done/All indicator was 36px pinned
+  to the top of a 46px stretched container (2px gap top, 8px bottom). Let the
+  seg buttons fill the full height so the active segment is a proper iOS-style
+  full-height inset pill (symmetric 2px inset, matching radius, clean shadow).
+- **3C Tweaks → Theme**: renamed the floating control to "Theme" (FAB tooltip +
+  panel header). Code identifiers left as-is.
+- **3D mobile layout reorg**: removed the floating Theme FAB on mobile, moved its
+  controls (mode, accent, corner radius, density) into a "Theme" section in
+  mobile Settings, and dropped the quick-note FAB into the old Theme-FAB spot so
+  the phone has exactly one floating button (also suppressed on the Notes tab,
+  which has its own New-note FAB). Desktop keeps the Theme FAB/panel.
+
+### Section 4 — Workout system (DONE)
+
+Philosophy implemented: **PC = planning, mobile = execution.**
+
+- **4A desktop planning**: a weekly training-split **matrix** (muscle groups ×
+  days, Plan view, desktop only) stored on `profile.weeklyPlan`; a "Ready for
+  the gym" indicator on Today that surfaces the day's planned split (the bridge
+  from plan to phone); and **AI workout import** — a new `import_workout` Edge
+  Function action parses messy notes ("chest day - bench heavy, some flyes,
+  dips") into a structured, editable plan (`WorkoutImport.jsx` +
+  `importWorkout()` with library name-matching for PR tracking). **Edge Function
+  redeployed** to project `auypprgibgftwpwuvxqa`.
+- **4B mobile execution** (in `WorkoutLogger`): a session-overview briefing at
+  the start of a planned session (count / time estimate / muscle focus); a
+  **"Last time: 135 lbs × 8"** reference per exercise with prior values as input
+  placeholders (`model.lastExercisePerformance`); a finish celebration (badge
+  pop, focus-aware cheer, chime + vibration). Rest-timer pause/resume already
+  existed from Phase 22 3F.
+- **4C premium ideas**: a **plate calculator** (`model.platesFor`) showing what
+  to load per side for barbell lifts (auto bar by unit, greedy largest-first),
+  and an **"up from last time"** green cue when a completed set tops the prior
+  best — both the features gym-goers love in Strong/Fitbod.
+
+### Section 5 — App blocker (Windows/Electron) (DONE)
+
+A Cold Turkey/Freedom-style focus blocker. `electron/appBlocker.js` rewrites the
+Windows hosts file, redirecting blocked domains to 127.0.0.1 between
+`# LIGAND-BLOCK-START/END` markers so cleanup is surgical (apply→clear restores
+the file byte-for-byte, verified). Reads unprivileged; elevates via **one**
+PowerShell `Start-Process -Verb RunAs` UAC prompt only when a direct write is
+denied (no prompt if already elevated). Presets Social/Video/Gaming/News + custom
+domains. Graceful edge cases: declined UAC → clean "cancelled" message; non-
+Windows/web → inert; crash/force-quit → `before-quit` clears when a block is
+present, and a leftover block is surfaced on next launch. `BlockerPanel.jsx` in
+desktop Settings (self-gates to nothing on web) with a motivating "You're in
+focus mode" state and an "auto-block whenever Hyperfocus is on" toggle wired in
+`App.jsx`. IPC `blocker:status/apply/clear` + preload bridge.
+
+### Section 6 — Alarm with photo scan (DONE) + additional tasks
+
+- **Photo-scan alarm**: dismiss requires photographing a specific object (sink,
+  kettle, door), forcing you up. `createAlarm` model + store actions; `useAlarms`
+  polls the clock and raises the due alarm once/day; `AlarmOverlay` is a full-
+  screen takeover with a persistent tone (`startAlarm`, bypasses the UI toggle) +
+  vibration, rear-camera scan, a **live match-% meter**, a dark-room hint, and a
+  press-and-hold escape hatch after several honest tries so no one is ever
+  trapped. `imageMatch.js` uses **brightness-invariant** similarity (downscaled
+  grayscale + normalised cross-correlation) so a dim 6am room still matches;
+  ~70% default threshold. `AlarmsPanel` management UI (desktop + mobile Settings)
+  with inline camera capture of the target. UI is **honest**: it states alarms
+  only ring while Ligand is open (a browser can't wake a sleeping device).
+  Verified fire→dismiss live.
+- **Pomodoro themes**: five new **pure-CSS** ambient scenes (no photo assets) —
+  Sunset, Cosmos, Ocean, Rain, Zen — bringing the picker to 13. All covered by
+  the global reduce-motion guard. Verified Cosmos renders its starfield live.
+- **Logo → Home**: the Ligand mark + wordmark (tight hitbox, not the whole bar)
+  is now a Home button on desktop and mobile.
+
+### Final verification — PASSED
+
+`npm run build` clean. Production `vite preview` (4173): all 8 tabs cycled at
+1280 and 375, light + dark, **zero console errors**, service worker active, no
+horizontal overflow (scrollWidth 375 at mobile). Logo→Home confirmed; mobile has
+a single floating button. Electron main/preload/appBlocker `node --check` clean;
+the hosts-file apply/clear roundtrip and plate-math were unit-verified. Note:
+the alarm camera + hosts-file UAC elevation can't be exercised end-to-end in this
+headless environment (no real camera / UAC), but the logic is verified and the
+non-camera alarm path fired and dismissed live.
 
 ## Phase 22 — Home/Habits restructure, mobile settings, workout rebuild (2026-07-03, Claude Code)
 
