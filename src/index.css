@@ -4682,6 +4682,18 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .pick-one-hide:hover { color: var(--ink-2); background: color-mix(in oklab, var(--ink) 8%, transparent); }
 [data-reduce-motion="true"] .pick-one-card { transition: none; }
 
+/* Compact mobile "days showing up" streak. */
+.home-streak-mobile { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.home-streak-ic {
+  width: 34px; height: 34px; flex: none; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in oklab, oklch(0.68 0.16 60) 16%, transparent);
+  color: oklch(0.68 0.16 60);
+}
+.home-streak-ic svg { width: 17px; height: 17px; }
+.home-streak-num { font-size: 15px; font-weight: 650; color: var(--ink); }
+.home-streak-sub { font-size: 11.5px; color: var(--ink-4); margin-top: 1px; }
+
 .home-quick-capture {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; min-height: 50px;

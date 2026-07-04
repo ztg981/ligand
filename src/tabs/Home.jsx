@@ -287,6 +287,27 @@ export default function Home({
           onOpenHabits={onGoToHabits}
         />
 
+        {/* Compact "days showing up" — same activeDays source as desktop, always
+            visible (a zero-state when there's no streak yet). */}
+        <div className="card home-streak-mobile">
+          <span className="home-streak-ic"><Icon.Flame /></span>
+          <div className="home-streak-text">
+            {activeDays > 0 ? (
+              <>
+                <div className="home-streak-num">
+                  {activeDays} {activeDays === 1 ? "day" : "days"} showing up
+                </div>
+                <div className="home-streak-sub">Quiet days never count against you.</div>
+              </>
+            ) : (
+              <>
+                <div className="home-streak-num">Start your streak today</div>
+                <div className="home-streak-sub">Just opening the app is enough to count.</div>
+              </>
+            )}
+          </div>
+        </div>
+
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
