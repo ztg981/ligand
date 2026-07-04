@@ -90,7 +90,7 @@ export default function HabitChecker({
 
       {habits.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-          No habits yet - add one small thing you'd like to return to. Missing a
+          No habits yet. Add one small thing you'd like to return to. Missing a
           day never breaks anything here.
         </div>
       ) : (

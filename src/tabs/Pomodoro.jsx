@@ -592,7 +592,7 @@ export default function Pomodoro({
           <h1 className="page-title">Pomodoro</h1>
           <p className="page-sub">
             An immersive focus timer. Adjust your blocks, pick a scene, and take
-            it one stretch at a time - breaks are part of the work.
+            it one stretch at a time. Breaks are part of the work.
           </p>
         </div>
         {/* Focus mode toggle - only shown when a session is running */}

@@ -243,7 +243,7 @@ export default function Journal({
           <div className="eyebrow">Reflect</div>
           <h1 className="page-title">Journal</h1>
           <p className="page-sub">
-            A quiet place to check in. A line is plenty - or skip it entirely.
+            A quiet place to check in. A line is plenty, or skip it entirely.
           </p>
         </div>
       </div>
@@ -395,7 +395,7 @@ export default function Journal({
             {journal.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
                 Nothing here yet. Whenever you write something, it'll appear
-                here - gently waiting, no pressure to keep a streak.
+                here, gently waiting, no pressure to keep a streak.
               </div>
             ) : (
               <div className="stack journal-entries">

@@ -24,7 +24,7 @@ export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = fa
       <div className="row between" style={{ marginBottom: 10 }}>
         <div className="row" style={{ gap: 6 }}>
           <span className="brand-dot" style={{ width: 14, height: 14 }} />
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Tweaks</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Theme</span>
         </div>
         <button className="iconbtn" style={{ width: 24, height: 24 }} onClick={onClose}>
           <Icon.Close />

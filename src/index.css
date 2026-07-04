@@ -3286,8 +3286,21 @@ button.upcoming-row:hover { background: var(--panel-3); }
      remaining width and the toggle stays compact. */
   .tasks-mobile-actions { display: flex; align-items: stretch; gap: 8px; margin-bottom: 12px; }
   .tasks-mobile-actions .tasks-add-mobile-btn { flex: 1; width: auto; margin-bottom: 0; }
-  .tasks-status-seg-mobile { flex: none; }
-  .tasks-status-seg-mobile button { padding: 0 11px; font-size: 12px; }
+  /* The actions row stretches the seg to match the "Add task" button height.
+     Let the seg's buttons fill that full height so the active segment is a
+     proper iOS-style full-height inset pill (2px inset all around, matching
+     radius) instead of a short 36px pill floating at the top. */
+  .tasks-status-seg-mobile { flex: none; align-items: stretch; padding: 2px; }
+  .tasks-status-seg-mobile button {
+    height: auto; align-self: stretch;
+    padding: 0 13px; font-size: 12px;
+  }
+  .tasks-status-seg-mobile button.active {
+    box-shadow: 0 1px 2px rgba(40,30,16,0.10), 0 0 0 0.5px rgba(40,30,16,0.04);
+  }
+  [data-theme="dark"] .tasks-status-seg-mobile button.active {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+  }
   .tasks-status-seg-desktop { display: none; } /* moved up into the actions row */
 
   /* Filter chips take the full width and scroll horizontally; a right-edge
@@ -3609,6 +3622,14 @@ button.upcoming-row:hover { background: var(--panel-3); }
   .hf-fab:hover { transform: none; }
   .hf-fab-label { display: none; }
   .hf-fab svg { width: 17px; height: 17px; }
+
+  /* The quick-note FAB is the ONLY floating button on mobile (the Theme/Tweaks
+     FAB is removed here — its controls moved into Settings). Drop it down into
+     the spot the Theme FAB used to hold, just above the bottom tab bar. */
+  .quick-note-fab {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+  }
 }
 
 /* ---- Full-screen animated backdrop ---- */

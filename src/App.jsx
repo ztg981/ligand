@@ -1052,14 +1052,18 @@ export default function App() {
         </div>
       </div>
 
-      {/* Floating Tweaks toggle */}
-      <button
-        className="iconbtn tweaks-fab"
-        title="Tweaks"
-        onClick={() => setShowTweaks((s) => !s)}
-      >
-        <Icon.Wand />
-      </button>
+      {/* Floating Theme toggle — desktop only. On mobile the theme controls
+          live in Settings and the corner is given to the quick-note FAB, so
+          the phone has just one floating button. */}
+      {!isMobile && (
+        <button
+          className="iconbtn tweaks-fab"
+          title="Theme"
+          onClick={() => setShowTweaks((s) => !s)}
+        >
+          <Icon.Wand />
+        </button>
+      )}
 
       {/* Floating Hyperfocus toggle (bottom-right, stacked above the Tweaks
           wand so it never overlaps it regardless of viewport width).

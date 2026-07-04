@@ -48,7 +48,7 @@ export default function HabitHeatmap({ goal, widgetSize = "medium" }) {
       {habits.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
           No habits yet. Add one in the Habits widget and your check-ins will
-          show up here - quiet days stay neutral, never red.
+          show up here. Quiet days stay neutral, never red.
         </div>
       ) : (
         <div className="stack" style={{ gap: 14 }}>

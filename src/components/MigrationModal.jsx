@@ -42,7 +42,7 @@ export default function MigrationModal({ onImport, onFresh }) {
           <p className="migrate-text">
             You already have goals, tasks or journal entries saved on this
             device. Would you like to import them into your new account so they
-            sync everywhere - or start with a clean slate?
+            sync everywhere, or start with a clean slate?
           </p>
 
           <div className="migrate-actions">

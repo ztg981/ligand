@@ -185,7 +185,7 @@ export default function Notes({
           <div className="eyebrow">Capture</div>
           <h1 className="page-title">Notes</h1>
           <p className="page-sub">
-            A quiet scratchpad. Just write - it saves itself.
+            A quiet scratchpad. Just write. It saves itself.
           </p>
         </div>
         <button

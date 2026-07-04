@@ -325,7 +325,7 @@ export default function Tasks({
           <div className="eyebrow">To-do</div>
           <h1 className="page-title">Tasks</h1>
           <p className="page-sub">
-            Everything you want to get to - labelled and filterable. One at a time is plenty.
+            Everything you want to get to, labelled and filterable. One at a time is plenty.
           </p>
         </div>
       </div>

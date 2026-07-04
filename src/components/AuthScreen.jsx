@@ -136,7 +136,7 @@ export default function AuthScreen({ onContinueAsGuest }) {
 
         {!isConfigured && (
           <div className="auth-error" role="alert">
-            Cloud accounts aren't configured in this build - you can still
+            Cloud accounts aren't configured in this build. You can still
             continue without an account.
           </div>
         )}

@@ -51,8 +51,8 @@ export default function CountUps({
 
       {countUps.length === 0 ? (
         <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-          No count-ups yet. Start one below - it counts up gently and never
-          resets on its own.
+          No count-ups yet. Start one below and it counts up gently, never
+          resetting on its own.
         </div>
       ) : (
         <div className="stack" style={{ gap: 10 }}>

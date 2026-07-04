@@ -40,7 +40,7 @@ export default function BadgesModal({ unlocked = [], onClose }) {
               <strong>
                 {earnedCount} / {BADGES.length}
               </strong>{" "}
-              badges earned - gentle nudges, never pressure.
+              badges earned. Gentle nudges, never pressure.
             </p>
           </div>
           <button type="button" className="iconbtn" title="Close" onClick={onClose}>

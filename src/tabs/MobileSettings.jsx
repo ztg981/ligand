@@ -93,9 +93,11 @@ export default function MobileSettings({
       </div>
 
       <div className="stack" style={{ gap: 12 }}>
-        {/* Appearance */}
-        <Section icon={<Icon.Wand />} title="Appearance">
-          <Row name="Theme" hint="This phone only. Your PC keeps its own theme">
+        {/* Theme (the mobile home for what used to be the floating Theme/Tweaks
+           panel on desktop). Theme is phone-local; accent, radius and density
+           are shared app-wide tweaks. */}
+        <Section icon={<Icon.Wand />} title="Theme">
+          <Row name="Mode" hint="This phone only. Your PC keeps its own theme">
             <Segmented
               value={mobileTheme}
               onChange={(v) => setMobileTheme?.(v)}
@@ -118,6 +120,28 @@ export default function MobileSettings({
                 />
               ))}
             </div>
+          </Row>
+          <Row name="Corner radius" hint={`${tweaks.radius}px`}>
+            <div style={{ width: 130 }}>
+              <Slider
+                value={tweaks.radius}
+                min={4}
+                max={20}
+                step={2}
+                onChange={(v) => setTweak?.({ radius: v })}
+                format={(v) => v + "px"}
+              />
+            </div>
+          </Row>
+          <Row name="Density">
+            <Segmented
+              value={tweaks.density}
+              onChange={(v) => setTweak?.({ density: v })}
+              options={[
+                { value: "compact", label: "Compact" },
+                { value: "comfy", label: "Comfy" },
+              ]}
+            />
           </Row>
         </Section>
 

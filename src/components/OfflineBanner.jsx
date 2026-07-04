@@ -29,7 +29,7 @@ export default function OfflineBanner() {
       aria-live="polite"
     >
       <span className="offline-banner-text">
-        You're offline - your data is safe and the app still works.
+        You're offline. Your data is safe and the app still works.
       </span>
       <button
         className="offline-banner-close"

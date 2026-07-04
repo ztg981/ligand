@@ -35,7 +35,7 @@ export default function CountUp({ countUp, widgetSize = "medium" }) {
       <div style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 2 }}>{countUp.label}</div>
       {!compact && (
         <div style={{ fontSize: big ? 13 : 11.5, color: "var(--ink-4)", marginTop: big ? 14 : 8 }}>
-          Counts up gently - quiet days never reset it.
+          Counts up gently. Quiet days never reset it.
         </div>
       )}
     </div>

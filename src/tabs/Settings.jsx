@@ -142,7 +142,7 @@ export default function Settings({
       // Soft warning (kept from before) - large files may not sync reliably.
       alert(
         `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
-          "For best results use an image under 1.5 MB - large files may not " +
+          "For best results use an image under 1.5 MB. Large files may not " +
           "sync reliably. Try resizing or compressing it first."
       );
     }
@@ -504,7 +504,7 @@ export default function Settings({
             </div>
           </Row>
           <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
-            Tracks: Rain, Stream, and Waves - all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
+            Tracks: Rain, Stream, and Waves, all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
           </p>
         </Section>
 
@@ -710,7 +710,7 @@ export default function Settings({
           </Row>
           <Row
             name="Include journal text in AI context"
-            hint={aiLocked ? aiLockedHint : "Your journal text stays on your device when this is off - AI only sees aggregate stats (tasks done, check-in counts, streaks)."}
+            hint={aiLocked ? aiLockedHint : "Your journal text stays on your device when this is off. AI only sees aggregate stats (tasks done, check-in counts, streaks)."}
             className={aiLocked ? "setting-row-locked" : ""}
           >
             <Switch
