@@ -82,6 +82,13 @@ export default function QuickNoteFab({ addNote }) {
             className="sheet-scrim quick-note-scrim"
             role="presentation"
             ref={scrimRef}
+            // onPointerDown (guarded to the scrim itself) so tap-outside
+            // dismiss fires on iOS Safari, which drops click on non-interactive
+            // elements. The target guard keeps taps inside the sheet from
+            // closing it.
+            onPointerDown={(e) => {
+              if (e.target === e.currentTarget) close();
+            }}
             onClick={close}
           >
             <div

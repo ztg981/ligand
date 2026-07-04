@@ -78,8 +78,11 @@ export default function GoalDropdown({
 
       {open && (
         <>
+          {/* onPointerDown so the tap-outside dismiss fires on iOS Safari,
+             which drops click events on non-interactive elements. */}
           <div
             className="goal-dd-backdrop"
+            onPointerDown={() => setOpen(false)}
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />

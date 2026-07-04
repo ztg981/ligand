@@ -73,10 +73,14 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
 
       {open && (
         <>
-          {/* click-away backdrop */}
+          {/* click-away backdrop. onPointerDown (not just onClick) so the tap-
+             outside dismiss fires on iOS Safari, which drops click events on
+             non-interactive elements; cursor:pointer also nudges Safari to
+             treat the div as clickable. */}
           <div
+            onPointerDown={() => setOpen(false)}
             onClick={() => setOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 90 }}
+            style={{ position: "fixed", inset: 0, zIndex: 90, cursor: "pointer" }}
           />
           <div className="notif-pop">
             <div className="notif-pop-head">
@@ -161,7 +165,13 @@ function AvatarMenu({
 
       {open && (
         <>
-          <div onClick={close} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
+          {/* onPointerDown so tap-outside dismiss works on iOS Safari (see
+             NotificationBell for the full rationale). */}
+          <div
+            onPointerDown={close}
+            onClick={close}
+            style={{ position: "fixed", inset: 0, zIndex: 90, cursor: "pointer" }}
+          />
           <div className="avatar-pop">
             <div className="avatar-pop-head">
               <span className="avatar-pop-ic" style={{ background: AVATAR_BG }}>
