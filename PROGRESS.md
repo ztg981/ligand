@@ -54,6 +54,106 @@ Plan: fix genuine gaps (S1 primitive, S2 rework, S3 verify, S6 throttle, S7C
 guided flow, S8 Pomodoro, S11 docs, S12 audit); verify the already-working
 sections rather than rebuild them.
 
+### Work completed this session
+
+- **S1 (done, committed):** new `useDropdown` shared primitive; removed backdrop
+  dismissal; avatar/notification/goal dropdowns refactored. Root cause + all six
+  test sequences documented in the commit. Fixes the flash-reopen race.
+- **S2 (done):** "Pick one thing" is now Hide-only, dismiss-for-the-day
+  (`ligand.pickOneHiddenDate`), never completes the task, collapse animation,
+  renders nothing (no reserved space) when absent.
+- **S3 (done):** audited all Phase-15 animations. Fixed the two weak ones — the
+  row-completion bounce (1.018 → 1.035) and the tab transition (opacity-only →
+  `pageEnter` slide-up+fade, 150ms). 3D/3E/3F confirmed present/correct;
+  reduce-motion confirmed off by default.
+- **S4C (done):** added the compact "days showing up" streak to mobile Home
+  (same `activeDays` source as desktop) with a "Start your streak today" zero-
+  state.
+- **S6 (done):** master `DynamicsCompressor` limiter + 40ms click throttle so
+  rapid interactions can't stack into painful loudness.
+- **S8 (done):** website-blocker auto-mode now follows Pomodoro focus/break
+  (Pomodoro reports focus state via `onFocusStateChange`), not just Hyperfocus.
+- **S5 / S9 / S10 / S7A / S7B / S7D / S7E / S7F:** verified present from Phase 23
+  (seg control, Theme rename + mobile Theme section, single mobile FAB, mobile
+  settings, photo alarm, 13 Pomodoro themes, logo→Home, em-dash-free copy,
+  desktop planner, AI import + deployed Edge Function, rest timer, plate calc).
+
+### S11 — Windows update status (honest audit)
+
+1. **Auto-updating implemented?** Yes, in code. `electron/main.js` runs
+   `autoUpdater.checkForUpdatesAndNotify()` on startup **only when packaged**;
+   `UpdateBanner.jsx` prompts a restart once an update downloads.
+2. **electron-updater configured?** Yes — `electron-updater@^6.8.9` dependency;
+   `package.json build.publish` → GitHub provider (`ztg981/ligand`) as the feed.
+3. **Does pushing to master update an installed Windows app?** **No.** There is
+   **no CI** (`.github/workflows` does not exist). Pushing source changes nothing
+   on any installed app. An installer must be built AND a GitHub Release
+   published before an installed app's auto-updater can see it.
+4. **Was a packaged Windows build created this session?** **No.** `dist-electron/`
+   holds only a stale `win-unpacked.tmp` (a leftover temp, gitignored); no `.exe`
+   exists. Building was not run here (a Windows build can't be meaningfully
+   verified in this headless sandbox, and Controlled Folder Access on Documents
+   blocks electron-builder's rename step — see Phase 12).
+5. **Was a release published?** **No.** `gh release list --repo ztg981/ligand`
+   returns empty — zero releases. So there is nothing for an installed app to
+   fetch.
+6. **How does the user update today?** Build the installer locally and run it
+   (there is no published release to download).
+7. **Exact installer command:** `npm run electron:build` (= `vite build &&
+   electron-builder`). To also publish to GitHub Releases (which is what actually
+   enables auto-update): `npm run electron:build -- --publish=always`. Build to a
+   path outside `Documents` if Controlled Folder Access blocks it, e.g.
+   `--config.directories.output="%TEMP%\ligand-electron-out"`.
+8. **Where is the installer placed?** `dist-electron/` (per
+   `build.directories.output`), e.g. `Ligand Setup 1.0.0.exe`.
+
+No updater code changes were made — the pipeline is correctly wired but simply
+has no published release. A GitHub Actions build-and-publish workflow would
+close the loop, but it needs Windows CI + signing that can't be verified from
+here, so it was intentionally not added blind.
+
+### S12 — Discoverability + regression audit
+
+**Exact feature locations:**
+- **Photo alarms:** Settings → "Alarms" card (both desktop Settings and mobile
+  Settings) → "Add alarm".
+- **Windows website blocker:** desktop Settings → "Focus block" card (Electron/
+  Windows only; renders nothing on web/PWA/other platforms).
+- **AI workout import:** Workout tab → "Plan" segment (desktop only) → "Import
+  from notes".
+- **Weekly workout planner:** Workout tab → "Plan" segment (desktop only) →
+  muscle-group × day matrix.
+- **Mobile Theme settings:** mobile Settings → "Theme" section (mode / accent /
+  corner radius / density).
+- **Sound controls:** desktop Settings → Notifications ("UI sounds" + "Sound
+  volume"); mobile Settings → "Sound" section (UI sounds + volume).
+
+**Regression checks (Chromium desktop + mobile emulation):**
+- Mobile FABs: exactly ONE floating button per tab — quick-note on Home/Tasks/
+  Workout/Habits, the New-note FAB on Notes (quick-note suppressed there), no
+  Theme FAB on mobile. No overlap.
+- No horizontal overflow at 375px. No unhandled promise rejections. No new
+  console errors from this session's work.
+- Electron-only APIs (`window.electron.blocker`, alarm camera) are all feature-
+  detected; inert on web.
+- **KNOWN PRE-EXISTING (not introduced this session):** App logs a React
+  "hooks order changed" warning on tab switches (documented since Phase 9;
+  hook #79 flips useMemo↔useCallback). All of App's hooks are top-level; the
+  mismatch comes from a child custom hook's internal count and was deferred by a
+  prior session as its own investigation. No functional breakage observed.
+
+### Remaining (not done this session)
+
+- **S7C — mobile guided workout execution:** the mobile logger still shows all
+  exercises in one scrolling list. A guided one-exercise-at-a-time flow (session
+  summary → per-exercise focus with set progress + last-session reference →
+  auto-rest with next-exercise preview → finish celebration) is NOT built. The
+  rest timer (7D), plate calc, last-time reference, session overview and finish
+  celebration already exist and would feed straight into it. Left for a focused
+  follow-up to avoid a half-built execution mode. Deferred cleanly with the
+  working list logger intact.
+- The pre-existing App hooks-order warning (above).
+
 ## Phase 23 — Sound overhaul, em-dash cleanup, mobile fixes, workout depth, app blocker, photo alarm (2026-07-04, Claude Code)
 
 Large six-section brief plus additional tasks. Clean baseline first; committed
