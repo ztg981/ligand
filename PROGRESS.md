@@ -2,6 +2,57 @@
 
 _Session date: 2026-06-14 (updated 2026-07-04)_
 
+## Phase 25 — Guided workout, hooks-warning investigation, Windows build (2026-07-04, Claude Code)
+
+### Priority 1 — Mobile guided workout execution (DONE, committed)
+
+On a phone, a seeded/planned workout now runs as a guided one-exercise-at-a-
+time flow in `src/components/WorkoutLogger.jsx` (`guided = isMobile && wasSeeded`).
+The scrolling list stays for desktop and free logging, so the desktop planner
+and plate calculator are untouched. Pre-start briefing → per-exercise focus
+(progress "Exercise 2/5" + "Set 1/4", last-time reference, +/- steppers with
+carry-forward, plate calc, Log-set) → auto-rest (pause/resume, ±15, skip, ring,
+vibration, "Next: set 2 of 3"/"Next: <exercise>") → completion state with
+Continue/Finish → Back/Skip nav preserving data → full-plan overlay → finish
+celebration. Verified live at 375px end-to-end; desktop still uses the list.
+Known limit: a mid-session reload returns to the hub (session isn't persisted
+until finished — same as the existing logger).
+
+### Priority 2 — React hooks-order warning (INVESTIGATED; does not reproduce)
+
+Goal was to reproduce the "hooks order changed" warning with a clean console,
+capture it, and fix the root cause. **It does not reproduce in the current
+build**, and the code is structurally free of the anti-patterns that cause it.
+Evidence gathered:
+
+- **StrictMode is ON** (`src/main.jsx`), so a genuine hook-order violation
+  surfaces reliably on mount (double-invoke). A **fresh reload logs zero React
+  warnings.**
+- **App is structurally correct.** Every one of App's hooks is a top-level
+  `const x = useY(...)` / `useEffect(...)` call (lines 53–766); the LAST hook is
+  at line 766 and App's only early return (`if (authLoading || syncHydrating)`)
+  is at line 1012 — so *all* hooks always run before any return, signed-in or
+  out. No hook sits in a conditional, loop, callback, or short-circuit; no hooks
+  live in the render/IIFE; no component is invoked as a function (grep-verified).
+- **Every custom hook App calls is clean** (no call-level conditional hooks):
+  useStore, useSupabaseSync, useNotifications, useBadges, useSettings, useTweaks,
+  usePomodoro, useElectron, useIsMobile, useAuth, useLocalStorage, useAlarms.
+  The `return`s inside them are all inside effect/callback bodies (fine).
+- **The historical root cause is already fixed:** Phase 11 P0 moved
+  RecoveryGoalTab's effects above its `if (!goal) return null` (confirmed still
+  correct at line 428). That was the documented conditional-hook bug.
+- **Repro attempts, all clean:** fresh reload; switching all 8 top tabs ×2;
+  opening/switching goal tabs of different types; opening every dropdown; back
+  to Home. Zero console errors/warnings each time.
+
+Honest conclusion: the warning seen in earlier sessions was resolved by prior
+fixes (chiefly the Phase 11 RecoveryGoalTab fix) and/or was a StrictMode +
+rapid-programmatic-click test artifact; it is not present now. No code change
+was fabricated to "fix" a non-existent defect. Real signed-in testing with a
+live Supabase session was not performed here (guest path only), but the signed-
+in render path is structurally safe because every hook precedes the
+`syncHydrating` early return.
+
 ## Phase 24 — Recovery & completion audit (2026-07-04, Claude Code)
 
 Baseline: `git status` clean, `npm run build` green (155 modules). Requirement
