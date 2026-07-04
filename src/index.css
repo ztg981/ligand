@@ -726,10 +726,11 @@ button, a, [role="button"] { touch-action: manipulation; }
    Page header
    ============================================================ */
 .page-head {
-  /* Every tab's content starts with .page-head, so a small fade here reads
-     as a gentle transition on every tab switch without animating each
-     tab's internals separately. */
-  animation: fadeIn 0.18s var(--ease);
+  /* Every tab's content starts with .page-head, so a small enter animation
+     here reads as a gentle transition on every tab switch without animating
+     each tab's internals separately. A slide-up + fade (not a bare opacity
+     fade) is what actually reads as movement. */
+  animation: pageEnter 0.15s var(--ease);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -1214,6 +1215,8 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   overflow: hidden;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* Tab-switch enter: subtle slide-up + fade (Section 3C). */
+@keyframes pageEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
 
 .widget-picker-modal {
@@ -1482,7 +1485,7 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    row bounces. Unchecking gets .uncheck-burst (a bounce, no green). All of it
    is disabled under either reduced-motion signal. */
 @keyframes checkPopSpring { 0% { transform: scale(0); } 55% { transform: scale(1.34); } 100% { transform: scale(1); } }
-@keyframes rowBurstBounce { 0% { transform: scale(1); } 38% { transform: scale(1.018); } 100% { transform: scale(1); } }
+@keyframes rowBurstBounce { 0% { transform: scale(1); } 34% { transform: scale(1.035); } 62% { transform: scale(0.996); } 100% { transform: scale(1); } }
 @keyframes rowBurstFlash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes rowCompleteLeave {
   0% { opacity: 1; transform: translateY(0) scale(1); }
