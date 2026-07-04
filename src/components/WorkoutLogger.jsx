@@ -14,6 +14,7 @@ import {
   platesFor,
 } from "../lib/model.js";
 import { searchExercises, findExercise, MUSCLE_LABEL } from "../lib/exercises.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 
 /* WorkoutLogger - the in-gym flow. A full-screen layer (not a centered modal)
    so it works one-handed on a phone at the rack. Add exercises from the
@@ -55,6 +56,7 @@ export default function WorkoutLogger({
   initialExercises = null,
   initialType = "strength",
   priorWorkouts = [],
+  workoutName = "Today's workout",
   onFinish,
   onCancel,
   onSaveTemplate, // (name, exercises) => void
@@ -62,6 +64,7 @@ export default function WorkoutLogger({
   const unit = profile?.weightUnit || "lbs";
   const restStrength = profile?.restStrengthSec || 90;
   const restCardio = profile?.restCardioSec || 30;
+  const isMobile = useIsMobile(768);
 
   // All-time best weight for an exercise coming INTO this session - the
   // baseline a completed set must beat to count as a personal record.
@@ -77,6 +80,15 @@ export default function WorkoutLogger({
   // Session overview shown at the start of a seeded (planned) session — the
   // "here's what's ahead" briefing a trainer would give before you begin.
   const [showOverview, setShowOverview] = useState(wasSeeded);
+
+  // Guided mode: on a phone, a seeded/planned workout runs one exercise at a
+  // time (execution) instead of the full scrolling list (which stays for
+  // desktop and for free logging). All data lives in the shared `exercises`
+  // state, so moving between exercises never loses anything.
+  const guided = isMobile && wasSeeded;
+  const [guidedStarted, setGuidedStarted] = useState(false);
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [showPlan, setShowPlan] = useState(false); // full-plan overlay in guided mode
 
   // Prior best-per-exercise, so each movement can show "Last time: 135 × 8".
   const lastPerf = (exerciseId) =>
@@ -240,6 +252,76 @@ export default function WorkoutLogger({
 
   const anyCompleted = exercises.some((e) => e.sets.some((s) => s.done));
 
+  // ---- guided-mode helpers -------------------------------------------------
+  // Adjust the current (first not-done) set of the current exercise by +/- a
+  // step, seeding from the last-session value when the field is still empty.
+  const adjustCur = (field, delta) => {
+    const cur = exercises[currentIdx];
+    if (!cur) return;
+    const idx = cur.sets.findIndex((s) => !s.done);
+    if (idx < 0) return;
+    const s = cur.sets[idx];
+    const lp = lastPerf(cur.exerciseId);
+    let base = s[field];
+    if (base == null) {
+      base =
+        field === "weight" ? lp?.weight ?? 0 : field === "reps" ? lp?.reps ?? 8 : 0;
+    }
+    const next = Math.max(0, Math.round((base + delta) * 10) / 10);
+    patchSet(cur.id, s.id, { [field]: next });
+  };
+
+  // Log the current set: fill any empty values (from last time), mark it done,
+  // start rest, and celebrate a PR — all in one snapshot so nothing is lost.
+  const guidedLogSet = () => {
+    const cur = exercises[currentIdx];
+    if (!cur) return;
+    const idx = cur.sets.findIndex((s) => !s.done);
+    if (idx < 0) return;
+    const s = cur.sets[idx];
+    const lp = lastPerf(cur.exerciseId);
+    const isCardio = cur.type === "cardio";
+    const weight = isCardio ? null : s.weight ?? lp?.weight ?? 0;
+    const reps = isCardio ? null : s.reps ?? lp?.reps ?? 8;
+    setExercises((list) =>
+      list.map((e) =>
+        e.id !== cur.id
+          ? e
+          : {
+              ...e,
+              sets: e.sets.map((x, xi) => {
+                if (x.id === s.id) {
+                  return isCardio ? { ...x, done: true } : { ...x, weight, reps, done: true };
+                }
+                // Carry this set's numbers forward to later, not-yet-logged sets
+                // (standard gym-logger behavior: your adjustment sticks).
+                if (!isCardio && xi > idx && !x.done) return { ...x, weight, reps };
+                return x;
+              }),
+            }
+      )
+    );
+    startRest(cur);
+    if (
+      !isCardio &&
+      cur.exerciseId &&
+      weight > 0 &&
+      !celebratedRef.current.has(cur.exerciseId)
+    ) {
+      const best = priorBestFor(cur.exerciseId);
+      if (!best || weight > best.weight) {
+        celebratedRef.current.add(cur.exerciseId);
+        setPrMoment({ name: cur.name, weight });
+      }
+    }
+  };
+
+  const goToExercise = (i) => {
+    setRest(null); // moving exercises cancels any running rest
+    setCurrentIdx(Math.max(0, Math.min(exercises.length - 1, i)));
+    setShowPlan(false);
+  };
+
   const finish = () => {
     const durationSec = Math.floor((Date.now() - startRef.current) / 1000);
     // Keep only exercises that had at least one completed set.
@@ -265,6 +347,94 @@ export default function WorkoutLogger({
     try { navigator.vibrate?.([30, 40, 120]); } catch { /* fine */ }
     onFinish?.(workout);
   };
+
+  // "What's coming next" during rest — a specific set within the exercise, or
+  // the next exercise, when in guided mode; the exercise name otherwise.
+  let restNextLabel = rest ? `Next up: ${rest.name}` : "";
+  if (guided && rest) {
+    const cur = exercises[currentIdx];
+    const nextSetIdx = cur ? cur.sets.findIndex((s) => !s.done) : -1;
+    if (nextSetIdx > -1) {
+      restNextLabel = `Next: set ${nextSetIdx + 1} of ${cur.sets.length}`;
+    } else {
+      const nextEx = exercises[currentIdx + 1];
+      restNextLabel = nextEx ? `Next: ${nextEx.name}` : "Last set — finish strong";
+    }
+  }
+
+  // Shared overlays (rest timer + PR celebration) rendered in both list and
+  // guided modes so their behavior can't drift.
+  const restOverlay = rest && (
+    <div className="wl-rest" role="status" aria-live="polite">
+      <div
+        className="wl-rest-bar"
+        style={{ width: `${(rest.remaining / Math.max(1, rest.total)) * 100}%` }}
+        aria-hidden="true"
+      />
+      <div className="wl-rest-inner">
+        <div className={"wl-rest-ring" + (rest.paused ? " paused" : "")}>
+          <svg viewBox="0 0 60 60" aria-hidden="true">
+            <circle className="wl-rest-ring-track" cx="30" cy="30" r="26" />
+            <circle
+              className="wl-rest-ring-fill"
+              cx="30"
+              cy="30"
+              r="26"
+              style={{
+                strokeDasharray: 2 * Math.PI * 26,
+                strokeDashoffset:
+                  2 * Math.PI * 26 * (1 - rest.remaining / Math.max(1, rest.total)),
+              }}
+            />
+          </svg>
+          <span className="wl-rest-count mono">{fmtElapsed(rest.remaining)}</span>
+        </div>
+        <div className="wl-rest-mid">
+          <span className="wl-rest-lbl">{rest.paused ? "Paused" : "Rest"}</span>
+          <span className="wl-rest-ex">{restNextLabel}</span>
+        </div>
+        <div className="wl-rest-actions">
+          <button className="wl-rest-adj" onClick={() => adjustRest(-15)} title="Subtract 15 seconds">
+            −15
+          </button>
+          <button
+            className="wl-rest-pause"
+            onClick={toggleRestPause}
+            title={rest.paused ? "Resume" : "Pause"}
+          >
+            {rest.paused ? <Icon.Play /> : <Icon.Pause />}
+          </button>
+          <button className="wl-rest-adj" onClick={() => adjustRest(15)} title="Add 15 seconds">
+            +15
+          </button>
+          <button className="wl-rest-skip" onClick={skipRest}>
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const prOverlay = prMoment && (
+    <div
+      className="wl-pr-scrim"
+      role="dialog"
+      aria-modal="true"
+      onClick={() => setPrMoment(null)}
+    >
+      <div className="wl-pr-card" onClick={(e) => e.stopPropagation()}>
+        <div className="wl-pr-ic"><Icon.Trophy /></div>
+        <div className="wl-pr-eyebrow">New personal record</div>
+        <div className="wl-pr-weight">
+          {prMoment.weight}<span className="wl-pr-unit">{unit}</span>
+        </div>
+        <div className="wl-pr-ex">{prMoment.name}</div>
+        <button className="btn primary wl-pr-btn" onClick={() => setPrMoment(null)} autoFocus>
+          Let's go
+        </button>
+      </div>
+    </div>
+  );
 
   // ---- Finished: summary screen ----
   if (summary) {
@@ -340,7 +510,243 @@ export default function WorkoutLogger({
     );
   }
 
-  // ---- Active logging ----
+  // ---- Guided mobile execution (pre-start briefing) ----
+  if (guided && !guidedStarted) {
+    const totalSets = exercises.reduce((n, e) => n + e.sets.length, 0);
+    return createPortal(
+      <div className="workout-logger wl-guided" role="dialog" aria-modal="true">
+        <div className="wl-gi">
+          <button className="wl-gi-close" onClick={onCancel} title="Cancel">
+            <Icon.Close width={16} height={16} />
+          </button>
+          <div className="wl-gi-eyebrow">Ready to train</div>
+          <h1 className="wl-gi-title">{workoutName}</h1>
+          <div className="wl-gi-meta">
+            <div className="wl-gi-stat"><b>{exercises.length}</b><span>exercises</span></div>
+            <div className="wl-gi-stat"><b>~{estimateWorkoutMinutes(exercises, restStrength)}</b><span>min</span></div>
+            <div className="wl-gi-stat"><b>{totalSets}</b><span>sets</span></div>
+          </div>
+          {focusLabel(exercises) && (
+            <div className="wl-gi-focus">Focus: {focusLabel(exercises)}</div>
+          )}
+          <div className="wl-gi-list">
+            {exercises.map((e, i) => (
+              <div key={e.id} className="wl-gi-ex">
+                <span className="wl-gi-ex-n">{i + 1}</span>
+                <span className="wl-gi-ex-name">{e.name}</span>
+                <span className="wl-gi-ex-sets">{e.sets.length} sets</span>
+              </div>
+            ))}
+          </div>
+          <button className="btn primary wl-gi-start" onClick={() => setGuidedStarted(true)}>
+            <Icon.Play width={16} height={16} /> Start workout
+          </button>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  // ---- Guided mobile execution (one exercise at a time) ----
+  if (guided) {
+    const cur = exercises[currentIdx];
+    const curSetIdx = cur ? cur.sets.findIndex((s) => !s.done) : -1;
+    const exComplete = curSetIdx === -1;
+    const isLastEx = currentIdx === exercises.length - 1;
+    const activeSet = exComplete ? null : cur.sets[curSetIdx];
+    const lp = lastPerf(cur?.exerciseId);
+    const lastLine = fmtLast(lp, unit);
+    const libEx = findExercise(cur?.exerciseId);
+    const isBarbell = cur?.type !== "cardio" && libEx?.equipment?.includes("barbell");
+    const topW = Math.max(0, ...(cur?.sets || []).map((s) => s.weight || 0), lp?.weight || 0);
+    const plates = isBarbell ? platesFor(topW, unit) : null;
+    const doneSets = exercises.reduce((n, e) => n + e.sets.filter((s) => s.done).length, 0);
+    const totalSets = exercises.reduce((n, e) => n + e.sets.length, 0);
+    const progressPct = totalSets ? Math.round((doneSets / totalSets) * 100) : 0;
+
+    return createPortal(
+      <div className="workout-logger wl-guided" role="dialog" aria-modal="true">
+        <div className="wl-g-head">
+          <button className="btn ghost sm" onClick={onCancel} title="Discard workout">
+            <Icon.Close width={14} height={14} /> Cancel
+          </button>
+          <span className="wl-timer mono">{fmtElapsed(elapsed)}</span>
+          <button className="btn ghost sm" onClick={() => setShowPlan(true)} title="View full plan">
+            <Icon.Grid width={14} height={14} /> Plan
+          </button>
+        </div>
+
+        <div className="wl-g-progress">
+          <div className="wl-g-prog-bar">
+            <div className="wl-g-prog-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+          <div className="wl-g-prog-text">
+            Exercise {currentIdx + 1} of {exercises.length}
+          </div>
+        </div>
+
+        <div className="wl-g-body">
+          <div className="wl-g-ex-name">{cur.name}</div>
+          {lastLine && <div className="wl-g-lasttime">{lastLine}</div>}
+
+          {!exComplete ? (
+            <>
+              <div className="wl-g-setlabel">Set {curSetIdx + 1} of {cur.sets.length}</div>
+
+              {cur.type === "cardio" ? (
+                <div className="wl-g-fields">
+                  <div className="wl-g-field">
+                    <div className="wl-g-field-lbl">minutes</div>
+                    <div className="wl-g-stepper">
+                      <button onClick={() => adjustCur("durationSec", -60)} aria-label="Less">−</button>
+                      <div className="wl-g-val">{Math.round((activeSet.durationSec || 0) / 60)}</div>
+                      <button onClick={() => adjustCur("durationSec", 60)} aria-label="More">+</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="wl-g-fields">
+                  <div className="wl-g-field">
+                    <div className="wl-g-field-lbl">{unit}</div>
+                    <div className="wl-g-stepper">
+                      <button onClick={() => adjustCur("weight", -2.5)} aria-label="Less weight">−</button>
+                      <div className="wl-g-val">{activeSet.weight ?? lp?.weight ?? 0}</div>
+                      <button onClick={() => adjustCur("weight", 2.5)} aria-label="More weight">+</button>
+                    </div>
+                  </div>
+                  <div className="wl-g-field">
+                    <div className="wl-g-field-lbl">reps</div>
+                    <div className="wl-g-stepper">
+                      <button onClick={() => adjustCur("reps", -1)} aria-label="Fewer reps">−</button>
+                      <div className="wl-g-val">{activeSet.reps ?? lp?.reps ?? 8}</div>
+                      <button onClick={() => adjustCur("reps", 1)} aria-label="More reps">+</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {plates && topW > 0 && (
+                <div className="wl-plates wl-g-plates" title="Plates per side of the bar">
+                  <span className="wl-plates-lbl">Per side</span>
+                  <span className="wl-plates-list">
+                    {plates.perSide.length
+                      ? plates.perSide.map((p, i) => <span key={i} className="wl-plate">{p}</span>)
+                      : <span className="wl-plates-bar">just the bar</span>}
+                    {plates.leftover > 0 && <span className="wl-plates-extra">+{plates.leftover}</span>}
+                  </span>
+                </div>
+              )}
+
+              <button className="btn primary wl-g-log" onClick={guidedLogSet}>
+                <Icon.Check width={16} height={16} /> Log set {curSetIdx + 1}
+              </button>
+            </>
+          ) : (
+            <div className="wl-g-complete">
+              <div className="wl-g-complete-ic"><Icon.Check width={22} height={22} /></div>
+              <div className="wl-g-complete-title">{cur.name} done</div>
+              {!isLastEx ? (
+                <>
+                  <div className="wl-g-next">Next: {exercises[currentIdx + 1].name}</div>
+                  <button className="btn primary wl-g-continue" onClick={() => goToExercise(currentIdx + 1)}>
+                    Continue <Icon.Arrow width={15} height={15} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="wl-g-next">That's the last one.</div>
+                  <button className="btn primary wl-g-continue" onClick={finish}>
+                    <Icon.Check width={15} height={15} /> Finish workout
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Sets already logged for this exercise — tap one to re-open/correct. */}
+          {cur.sets.some((s) => s.done) && (
+            <div className="wl-g-done-sets">
+              {cur.sets.map((s, i) =>
+                s.done ? (
+                  <button
+                    key={s.id}
+                    className="wl-g-done-set"
+                    onClick={() => toggleSetDone(cur.id, s.id)}
+                    title="Tap to re-open this set"
+                  >
+                    <span className="wl-g-done-n">Set {i + 1}</span>
+                    <span className="wl-g-done-v">
+                      {cur.type === "cardio"
+                        ? `${Math.round((s.durationSec || 0) / 60)} min`
+                        : `${s.weight ?? 0} ${unit} × ${s.reps ?? 0}`}
+                    </span>
+                    <Icon.Check width={12} height={12} />
+                  </button>
+                ) : null
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="wl-g-nav">
+          <button
+            className="wl-g-navbtn"
+            disabled={currentIdx === 0}
+            onClick={() => goToExercise(currentIdx - 1)}
+          >
+            <Icon.Arrow width={14} height={14} className="wl-g-navback" /> Back
+          </button>
+          <button className="wl-g-navbtn wl-g-finish" onClick={finish} disabled={!anyCompleted}>
+            Finish early
+          </button>
+          <button
+            className="wl-g-navbtn"
+            disabled={currentIdx === exercises.length - 1}
+            onClick={() => goToExercise(currentIdx + 1)}
+          >
+            Skip <Icon.Arrow width={14} height={14} />
+          </button>
+        </div>
+
+        {restOverlay}
+        {prOverlay}
+
+        {/* Full-plan overlay — review/jump without leaving guided mode. */}
+        {showPlan && (
+          <div className="wl-plan-scrim" onClick={() => setShowPlan(false)}>
+            <div className="wl-plan-sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="wl-plan-head">
+                <span>Workout plan</span>
+                <button className="btn ghost sm" onClick={() => setShowPlan(false)}>Close</button>
+              </div>
+              <div className="wl-plan-list">
+                {exercises.map((e, i) => {
+                  const done = e.sets.filter((s) => s.done).length;
+                  return (
+                    <button
+                      key={e.id}
+                      className={"wl-plan-item" + (i === currentIdx ? " current" : "")}
+                      onClick={() => goToExercise(i)}
+                    >
+                      <span className="wl-plan-item-n">{i + 1}</span>
+                      <span className="wl-plan-item-name">{e.name}</span>
+                      <span className="wl-plan-item-sets">
+                        {done}/{e.sets.length}
+                        {done === e.sets.length && <Icon.Check width={12} height={12} />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>,
+      document.body
+    );
+  }
+
+  // ---- Active logging (list — desktop & free logging) ----
   return createPortal(
     <div className="workout-logger" role="dialog" aria-modal="true">
       <div className="wl-head">
@@ -529,83 +935,9 @@ export default function WorkoutLogger({
         </button>
       </div>
 
-      {/* Rest timer - auto-starts after each completed set. The integrated
-          in-gym clock: big countdown, the exercise you just did, quick
-          adjust, and skip. */}
-      {rest && (
-        <div className="wl-rest" role="status" aria-live="polite">
-          <div
-            className="wl-rest-bar"
-            style={{ width: `${(rest.remaining / Math.max(1, rest.total)) * 100}%` }}
-            aria-hidden="true"
-          />
-          <div className="wl-rest-inner">
-            {/* Ring countdown (Pomodoro-style) with the remaining seconds in
-               the center. */}
-            <div className={"wl-rest-ring" + (rest.paused ? " paused" : "")}>
-              <svg viewBox="0 0 60 60" aria-hidden="true">
-                <circle className="wl-rest-ring-track" cx="30" cy="30" r="26" />
-                <circle
-                  className="wl-rest-ring-fill"
-                  cx="30"
-                  cy="30"
-                  r="26"
-                  style={{
-                    strokeDasharray: 2 * Math.PI * 26,
-                    strokeDashoffset:
-                      2 * Math.PI * 26 * (1 - rest.remaining / Math.max(1, rest.total)),
-                  }}
-                />
-              </svg>
-              <span className="wl-rest-count mono">{fmtElapsed(rest.remaining)}</span>
-            </div>
-            <div className="wl-rest-mid">
-              <span className="wl-rest-lbl">{rest.paused ? "Paused" : "Rest"}</span>
-              <span className="wl-rest-ex">Next up: {rest.name}</span>
-            </div>
-            <div className="wl-rest-actions">
-              <button className="wl-rest-adj" onClick={() => adjustRest(-15)} title="Subtract 15 seconds">
-                −15
-              </button>
-              <button
-                className="wl-rest-pause"
-                onClick={toggleRestPause}
-                title={rest.paused ? "Resume" : "Pause"}
-              >
-                {rest.paused ? <Icon.Play /> : <Icon.Pause />}
-              </button>
-              <button className="wl-rest-adj" onClick={() => adjustRest(15)} title="Add 15 seconds">
-                +15
-              </button>
-              <button className="wl-rest-skip" onClick={skipRest}>
-                Skip
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PR celebration */}
-      {prMoment && (
-        <div
-          className="wl-pr-scrim"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setPrMoment(null)}
-        >
-          <div className="wl-pr-card" onClick={(e) => e.stopPropagation()}>
-            <div className="wl-pr-ic"><Icon.Trophy /></div>
-            <div className="wl-pr-eyebrow">New personal record</div>
-            <div className="wl-pr-weight">
-              {prMoment.weight}<span className="wl-pr-unit">{unit}</span>
-            </div>
-            <div className="wl-pr-ex">{prMoment.name}</div>
-            <button className="btn primary wl-pr-btn" onClick={() => setPrMoment(null)} autoFocus>
-              Let's go
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Rest timer + PR celebration (shared with guided mode). */}
+      {restOverlay}
+      {prOverlay}
 
       {/* Exercise picker */}
       {showPicker && (
