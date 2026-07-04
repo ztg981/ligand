@@ -2,6 +2,58 @@
 
 _Session date: 2026-06-14 (updated 2026-07-04)_
 
+## Phase 24 — Recovery & completion audit (2026-07-04, Claude Code)
+
+Baseline: `git status` clean, `npm run build` green (155 modules). Requirement
+audit before any changes (per the recovery brief):
+
+**S1 Dropdowns — PARTIALLY WORKING / REGRESSED.** Root cause found: the avatar,
+notification and goal dropdowns dismiss via a full-screen backdrop div at
+z-index 90/94, which sits ABOVE the triggers (topbar z-index 20). The Phase-23
+fix added `onPointerDown` to those backdrops, which introduced a flash-reopen
+race: tapping an open trigger hits the backdrop → pointerdown closes it → the
+following click falls through to the now-exposed trigger → reopens. Needs a
+shared, ref-aware primitive (no backdrop dismissal). PRIORITY.
+
+**S2 "Pick one thing" — PARTIALLY WORKING.** Present on Home but not the
+occasional/hide-only dismiss-for-the-day behavior. Needs rework.
+
+**S3 Micro-animations — PRESENT BUT NOT VERIFIED.** Phase-15 classes exist;
+need an audit that each actually fires and is visible.
+
+**S4 Home/Habits — WORKING (verify).** Overview→Habits rename, goals→Home, and
+mobile streak ("Days showing up" / visit streak) are present on mobile Home
+(Home.jsx `home-mobile-only`). Zero-state "Start your streak today" missing.
+
+**S5 Mobile UI/Settings — WORKING (Phase 23).** Seg control, Theme rename,
+mobile Theme section, single FAB, mobile settings, separate mobile theme all in.
+
+**S6 Sounds — WORKING (Phase 23) except no anti-stacking.** Rapid repeats can
+stack; needs a per-sound throttle/limiter.
+
+**S7 Workout — 7A/7B/7D/7E/7F WORKING (Phase 23); 7C MISSING.** The mobile
+logger shows ALL exercises in a scrolling list, not a guided one-exercise-at-a-
+time flow with next-exercise preview.
+
+**S8 Website blocker — WORKING core (Phase 23); gaps.** Auto-block wired to
+Hyperfocus, not Pomodoro focus/break as specified. User-facing name is "Focus
+block" (acceptable, not "app blocker"). Needs Pomodoro integration.
+
+**S9 Photo alarm — WORKING (Phase 23).** Model, management UI, firing overlay,
+brightness-invariant match, escape hatch, honest note all present.
+
+**S10 Themes/logo/em-dash — WORKING (Phase 23).** 13 themes, logo→Home, zero
+user-facing em dashes.
+
+**S11 Windows update — NOT AUDITED YET.** electron-updater wired (Phase 22 S4);
+needs the honest status write-up (no release published in this env).
+
+**S12 Discoverability/regression — PENDING final audit.**
+
+Plan: fix genuine gaps (S1 primitive, S2 rework, S3 verify, S6 throttle, S7C
+guided flow, S8 Pomodoro, S11 docs, S12 audit); verify the already-working
+sections rather than rebuild them.
+
 ## Phase 23 — Sound overhaul, em-dash cleanup, mobile fixes, workout depth, app blocker, photo alarm (2026-07-04, Claude Code)
 
 Large six-section brief plus additional tasks. Clean baseline first; committed
