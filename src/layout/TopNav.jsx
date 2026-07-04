@@ -300,7 +300,7 @@ function SyncPill({ status }) {
   if (status === "idle" || status === "synced") return null;
   if (status === "offline") {
     return (
-      <span className="sync-pill offline" title="Can't reach the cloud - your changes are saved on this device and will sync when you're back online.">
+      <span className="sync-pill offline" title="Can't reach the cloud. Your changes are saved on this device and will sync when you're back online.">
         <span className="sync-dot" /> Offline
       </span>
     );

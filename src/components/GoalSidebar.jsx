@@ -153,7 +153,7 @@ export default function GoalSidebar({
       <div className="gs-scroll">
         {goals.length === 0 ? (
           !collapsed && (
-            <div className="gs-empty">No goals yet - add one below.</div>
+            <div className="gs-empty">No goals yet. Add one below.</div>
           )
         ) : (
           <DndContext

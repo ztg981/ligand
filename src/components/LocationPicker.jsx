@@ -58,7 +58,7 @@ export default function LocationPicker({ location, onChange }) {
       </button>
       <span style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
         {status === "error"
-          ? "Location unavailable - that's okay, it's optional."
+          ? "Location unavailable. That's okay, it's optional."
           : "Only the city name is saved, never your exact location."}
       </span>
     </div>

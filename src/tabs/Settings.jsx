@@ -252,7 +252,7 @@ export default function Settings({
               ]}
             />
           </Row>
-          <Row name="Reduce motion" hint="Calmer - minimizes animation">
+          <Row name="Reduce motion" hint="Calmer, minimizes animation">
             <Switch
               checked={behavior.reduceMotion}
               onChange={(v) => setSection("behavior", { reduceMotion: v })}
@@ -399,7 +399,7 @@ export default function Settings({
             name="Enable notifications"
             hint={
               notifyPermission === "denied"
-                ? "Your browser is blocking notifications - enable them in site settings"
+                ? "Your browser is blocking notifications. Enable them in site settings"
                 : notifyPermission === "unsupported"
                 ? "This browser doesn't support system notifications"
                 : "System (browser) notifications + the in-app bell"
@@ -443,7 +443,7 @@ export default function Settings({
           )}
           <Row
             name="Daily reminder"
-            hint="Nudges you when you open the app after the set time - not a background alarm"
+            hint="Nudges you when you open the app after the set time. Not a background alarm"
           >
             <Switch
               checked={notifications.dailyReminder}
@@ -465,7 +465,7 @@ export default function Settings({
 
         {/* Background music */}
         <Section icon={<Icon.Wand />} title="Background music"
-          sub="Gentle ambient loops that play across the whole app - separate from Pomodoro scene sounds."
+          sub="Gentle ambient loops that play across the whole app, separate from Pomodoro scene sounds."
         >
           <Row name="Background music" hint="Plays softly while you work; no autoplay until you switch it on">
             <Switch
@@ -512,7 +512,7 @@ export default function Settings({
         <Section
           icon={<Icon.Music />}
           title="Focus music"
-          sub="These are hand-picked for focus - no lyrics, no distractions. Tap a link to open it in Spotify or YouTube; nothing plays inside Ligand."
+          sub="These are hand-picked for focus, no lyrics, no distractions. Tap a link to open it in Spotify or YouTube; nothing plays inside Ligand."
         >
           <div className="focus-music-grid">
             {FOCUS_MUSIC.map((m) => (
@@ -722,7 +722,7 @@ export default function Settings({
           {hasRecoveryGoal && (
             <Row
               name="AI recovery insights"
-              hint={aiLocked ? aiLockedHint : "Recovery data is kept private by default - nothing from a recovery tracker is sent to AI unless this is on."}
+              hint={aiLocked ? aiLockedHint : "Recovery data is kept private by default. Nothing from a recovery tracker is sent to AI unless this is on."}
               className={aiLocked ? "setting-row-locked" : ""}
             >
               <Switch
@@ -758,7 +758,7 @@ export default function Settings({
         <Section
           icon={<Icon.Trash />}
           title="Archived goals"
-          sub="Goals you've removed wait here. Restore them anytime, or delete one for good - that part can't be undone."
+          sub="Goals you've removed wait here. Restore them anytime, or delete one for good. That part can't be undone."
         >
           {archivedGoals.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--ink-4)", margin: 0 }}>
@@ -849,7 +849,7 @@ export default function Settings({
                       );
                       window.location.reload();
                     } catch {
-                      alert("Couldn't read the backup file - is it a valid Ligand JSON export?");
+                      alert("Couldn't read the backup file. Is it a valid Ligand JSON export?");
                     }
                   };
                   reader.readAsText(file);
@@ -870,7 +870,7 @@ export default function Settings({
               <Icon.Reset width={13} height={13} /> Reset
             </button>
           </Row>
-          <Row name="Erase all data" hint="Goals, tasks, habits and journal - can't be undone">
+          <Row name="Erase all data" hint="Goals, tasks, habits and journal. Can't be undone">
             <button
               className="btn ghost sm"
               style={{ color: "oklch(0.55 0.16 20)" }}

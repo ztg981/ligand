@@ -220,7 +220,7 @@ export default function SearchModal({
               Start typing to search your goals, tasks, and journal.
             </div>
           ) : flat.length === 0 ? (
-            <div className="search-hint">Nothing found - try a different word.</div>
+            <div className="search-hint">Nothing found. Try a different word.</div>
           ) : (
             results.map((group) => (
               <div key={group.type} className="search-group">

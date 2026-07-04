@@ -60,7 +60,7 @@ function stripJournalText(context) {
 function getFallback(action) {
   switch (action) {
     case "goal-summary":
-      return "You're just getting started here — pick one tiny task today and let that count.";
+      return "You're just getting started here. Pick one tiny task today and let that count.";
     case "overdue-advice":
       return "It's completely okay to push the date back if you need more time, or to archive it for later.";
     case "journal-prompt":
@@ -135,7 +135,7 @@ function getISOWeekKey(d = new Date()) {
 }
 
 const WEEKLY_FALLBACK =
-  "Here's to a fresh week — choose one small thing to focus on, and let the rest stay flexible.";
+  "Here's to a fresh week. Choose one small thing to focus on, and let the rest stay flexible.";
 
 /**
  * Weekly review across all goals. Cached once per ISO week (so a normal load

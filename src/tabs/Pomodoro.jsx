@@ -409,7 +409,7 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
     default:
       return (
         <div className="scene placeholder">
-          <div className="pomo-soon">"{themeName}" scene - coming soon</div>
+          <div className="pomo-soon">"{themeName}" scene is coming soon</div>
         </div>
       );
   }
@@ -529,7 +529,7 @@ export default function Pomodoro({
       {focusMode && (
         <div
           className="pomo-focus-overlay"
-          aria-label="Focus mode - press Escape or click Exit to leave"
+          aria-label="Focus mode. Press Escape or click Exit to leave"
         >
           {/* Exit button - always visible, small, top-right */}
           <button

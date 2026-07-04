@@ -95,7 +95,7 @@ export default function WeeklyReview({ goals = [], tasks = [], journal = [] }) {
     if (!hasActivity) {
       setReview({
         text:
-          "Your week is just getting started here - add a task or check in on a habit, and next week I'll have something to reflect back.",
+          "Your week is just getting started here. Add a task or check in on a habit, and next week I'll have something to reflect back.",
         source: "empty",
       });
       return;

@@ -29,7 +29,7 @@ export default function UpdateBanner() {
       >
         <span className="update-banner-ic"><Icon.Cloud /></span>
         <span className="update-banner-text">
-          Update ready{ready.version ? ` — v${ready.version}` : ""}. Restart to install.
+          Update ready{ready.version ? ` (v${ready.version})` : ""}. Restart to install.
         </span>
         <span className="update-banner-cta"><Icon.Reset width={14} height={14} /> Restart</span>
       </button>

@@ -1311,7 +1311,7 @@ function GoalSummaryWidget({ goal, tasks }) {
   lines.push(
     goalTasks.length
       ? `${done} of ${goalTasks.length} linked task${goalTasks.length === 1 ? "" : "s"} complete`
-      : "No linked tasks yet - add one below to get rolling."
+      : "No linked tasks yet. Add one below to get rolling."
   );
   if (habits.length) {
     lines.push(

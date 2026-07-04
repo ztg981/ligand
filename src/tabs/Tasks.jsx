@@ -461,7 +461,7 @@ export default function Tasks({
         <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--ink-3)" }}>
           <div style={{ fontSize: 13 }}>
             {counts.total === 0
-              ? "No tasks yet - add the first thing on your mind above."
+              ? "No tasks yet. Add the first thing on your mind above."
               : "Nothing here with this filter. That's okay."}
           </div>
         </div>

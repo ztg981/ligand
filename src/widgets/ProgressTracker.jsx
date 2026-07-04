@@ -54,7 +54,7 @@ export default function ProgressTracker({ goals, tasks }) {
         <Bar pct={pct} />
         <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 6 }}>
           {total === 0
-            ? "No tasks yet - your list is wide open."
+            ? "No tasks yet. Your list is wide open."
             : `${pct}% of your tasks are done. Every bit counts.`}
         </div>
       </div>

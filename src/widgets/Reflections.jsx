@@ -133,7 +133,7 @@ export default function Reflections({
 
       <textarea
         className="input"
-        placeholder="A line or two - or skip it, no pressure."
+        placeholder="A line or two, or skip it, no pressure."
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={roomy ? 5 : 3}

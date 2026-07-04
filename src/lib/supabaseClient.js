@@ -22,7 +22,7 @@ export const isSupabaseConfigured = Boolean(url && anonKey);
 if (!isSupabaseConfigured) {
   // Not an error — just means cloud sync is unavailable this build.
   console.info(
-    "[ligand] Supabase env vars missing — running in local-only mode."
+    "[ligand] Supabase env vars missing. Running in local-only mode."
   );
 }
 

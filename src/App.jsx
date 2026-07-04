@@ -575,8 +575,8 @@ export default function App() {
         "habit",
         "Keep the momentum going",
         uncheckedHabitsCount === 1
-          ? "A habit is still open today — no pressure, just a nudge."
-          : `${uncheckedHabitsCount} habits are still open today — no pressure, just a nudge.`,
+          ? "A habit is still open today. No pressure, just a nudge."
+          : `${uncheckedHabitsCount} habits are still open today. No pressure, just a nudge.`,
         { oncePerDay: true }
       );
     }
@@ -589,7 +589,7 @@ export default function App() {
         notif.push(
           "daily",
           "Checking in",
-          "Just a gentle nudge — Ligand's here whenever you're ready today.",
+          "Just a gentle nudge. Ligand's here whenever you're ready today.",
           { oncePerDay: true }
         );
       }

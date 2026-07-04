@@ -95,7 +95,7 @@ export default function MobileSettings({
       <div className="stack" style={{ gap: 12 }}>
         {/* Appearance */}
         <Section icon={<Icon.Wand />} title="Appearance">
-          <Row name="Theme" hint="This phone only - your PC keeps its own theme">
+          <Row name="Theme" hint="This phone only. Your PC keeps its own theme">
             <Segmented
               value={mobileTheme}
               onChange={(v) => setMobileTheme?.(v)}
