@@ -163,16 +163,21 @@ export default function App() {
   // --- Hyperfocus mode: a dramatic dark-red "locked in" theme. State persists
   // across reloads; the data-hyperfocus attribute on <html> drives all the CSS.
   const [hyperfocus, setHyperfocus] = useLocalStorage("ligand.hyperfocus", false);
+  // True while a Pomodoro FOCUS block is actively running (drives the website
+  // blocker auto-mode: block during focus, unblock on break/stop).
+  const [pomoFocus, setPomoFocus] = useState(false);
   useEffect(() => {
     const root = document.documentElement;
     if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
     else root.removeAttribute("data-hyperfocus");
   }, [hyperfocus]);
 
-  // Desktop focus-mode website blocker: when "Auto-block whenever Hyperfocus is
-  // on" is enabled (see BlockerPanel), flipping Hyperfocus on applies the saved
-  // blocklist and flipping it off lifts it. Electron/Windows only; a no-op
+  // Desktop website blocker auto-mode: when "Auto-block during focus sessions"
+  // is enabled (see BlockerPanel), the blocklist applies while a focus session
+  // is running — a Pomodoro FOCUS block or Hyperfocus — and lifts the moment
+  // the session ends or a break begins. Electron/Windows only; a no-op
   // everywhere else (window.electron.blocker is undefined on web).
+  const focusActive = hyperfocus || pomoFocus;
   useEffect(() => {
     const blocker = typeof window !== "undefined" && window.electron?.blocker;
     if (!blocker) return;
@@ -181,7 +186,7 @@ export default function App() {
       cfg = JSON.parse(localStorage.getItem("ligand.blocker") || "{}");
     } catch { /* ignore */ }
     if (!cfg.autoFocus) return;
-    if (hyperfocus) {
+    if (focusActive) {
       blocker
         .status()
         .then((s) => {
@@ -197,7 +202,7 @@ export default function App() {
     } else {
       blocker.clear().catch(() => {});
     }
-  }, [hyperfocus]);
+  }, [focusActive]);
   // Mousemove parallax for hyperfocus card tilt.
   // Normalised cursor position (-1 to 1) from viewport centre is written to
   // CSS vars --hf-mx / --hf-my. Cards read these for their rotateX/Y tilt.
@@ -897,6 +902,7 @@ export default function App() {
             goals={activeGoals}
             hyperfocus={hyperfocus}
             logFocusSession={store.logFocusSession}
+            onFocusStateChange={setPomoFocus}
             onPhaseComplete={({ endedPhase }) => {
               const wasFocus = endedPhase === PHASES.WORK;
               notif.push(

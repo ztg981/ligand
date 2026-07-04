@@ -508,6 +508,7 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
 export default function Pomodoro({
   chimeEnabled = true,
   onPhaseComplete,
+  onFocusStateChange,
   ambientOverride = "none",
   tasks = [],
   goals = [],
@@ -542,6 +543,14 @@ export default function Pomodoro({
   const { settings, setSettings } = pomo;
   focusEndRef.current = { taskId: focusTaskId, work: settings.work, tasks };
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
+
+  // Report FOCUS-block active state up to App (drives the website-blocker auto
+  // mode: block during focus, unblock on break/stop). Reset to false on unmount
+  // (leaving the tab stops the timer, so it must lift the block too).
+  useEffect(() => {
+    onFocusStateChange?.(pomo.running && pomo.phase === PHASES.WORK);
+  }, [pomo.running, pomo.phase, onFocusStateChange]);
+  useEffect(() => () => onFocusStateChange?.(false), [onFocusStateChange]);
 
   // Hyperfocus overrides the scene without mutating the saved theme, so the
   // user's previous scene is automatically restored when the mode turns off.

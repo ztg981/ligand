@@ -187,7 +187,7 @@ export default function BlockerPanel() {
           checked={store.autoFocus}
           onChange={(e) => setStore((s) => ({ ...s, autoFocus: e.target.checked }))}
         />
-        <span>Auto-block whenever Hyperfocus is on</span>
+        <span>Auto-block during focus sessions (Pomodoro focus &amp; Hyperfocus)</span>
       </label>
 
       <p className="blocker-note">
