@@ -400,6 +400,30 @@ export function lastExercisePerformance(workouts, exerciseId, beforeDate = null)
   return null;
 }
 
+// Plate math: given a target total weight, the bar, and the unit, return the
+// plates to load PER SIDE (largest first). The single most-loved feature of a
+// gym logger — no mental arithmetic under the bar. Returns { perSide: number[],
+// leftover: number } where leftover is any weight that can't be made from
+// standard plates (odd micro-loading). null when the weight is below the bar.
+const PLATES = {
+  lbs: [45, 35, 25, 10, 5, 2.5],
+  kg: [25, 20, 15, 10, 5, 2.5, 1.25],
+};
+export function platesFor(totalWeight, unit = "lbs", barWeight = null) {
+  const bar = barWeight ?? (unit === "kg" ? 20 : 45);
+  const w = Number(totalWeight) || 0;
+  if (w < bar) return null;
+  let perSideWeight = (w - bar) / 2;
+  const perSide = [];
+  for (const p of PLATES[unit] || PLATES.lbs) {
+    while (perSideWeight >= p - 1e-9) {
+      perSide.push(p);
+      perSideWeight -= p;
+    }
+  }
+  return { perSide, leftover: Math.round(perSideWeight * 100) / 100, bar };
+}
+
 // A rough time estimate (minutes) for a planned/seeded session, from set count
 // and rest defaults. Used for the in-gym session overview ("~45 min").
 export function estimateWorkoutMinutes(exercises, restStrengthSec = 90) {

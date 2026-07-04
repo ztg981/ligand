@@ -11,6 +11,7 @@ import {
   exercisePR,
   lastExercisePerformance,
   estimateWorkoutMinutes,
+  platesFor,
 } from "../lib/model.js";
 import { searchExercises, findExercise, MUSCLE_LABEL } from "../lib/exercises.js";
 
@@ -385,12 +386,30 @@ export default function WorkoutLogger({
         {exercises.map((ex) => {
           const lp = lastPerf(ex.exerciseId);
           const lastLine = fmtLast(lp, unit);
+          // Plate math for barbell lifts: what to load per side for the
+          // heaviest weight in play (entered, or last-time as a starting point).
+          const libEx = findExercise(ex.exerciseId);
+          const isBarbell = ex.type !== "cardio" && libEx?.equipment?.includes("barbell");
+          const topWeight = Math.max(
+            0,
+            ...ex.sets.map((s) => s.weight || 0),
+            lp?.weight || 0
+          );
+          const plates = isBarbell ? platesFor(topWeight, unit) : null;
+          // "Beat last time": did a completed set this session top the prior best?
+          const bestDone = Math.max(0, ...ex.sets.filter((s) => s.done).map((s) => s.weight || 0));
+          const beatLast = lp?.weight != null && bestDone > lp.weight;
           return (
           <div key={ex.id} className="wl-ex card" data-cardio={ex.type === "cardio" ? "true" : "false"}>
             <div className="wl-ex-head">
               <div className="wl-ex-head-main">
                 <div className="wl-ex-name">{ex.name}</div>
-                {lastLine && <div className="wl-ex-lasttime">{lastLine}</div>}
+                {lastLine && (
+                  <div className="wl-ex-lasttime">
+                    {lastLine}
+                    {beatLast && <span className="wl-ex-beat">↑ up from last time</span>}
+                  </div>
+                )}
               </div>
               <button
                 className="iconbtn sm"
@@ -480,6 +499,22 @@ export default function WorkoutLogger({
                   </button>
                 </div>
               ))}
+
+              {plates && topWeight > 0 && (
+                <div className="wl-plates" title="Plates to load on each side of the bar">
+                  <span className="wl-plates-lbl">Per side</span>
+                  <span className="wl-plates-list">
+                    {plates.perSide.length
+                      ? plates.perSide.map((p, i) => (
+                          <span key={i} className="wl-plate">{p}</span>
+                        ))
+                      : <span className="wl-plates-bar">just the bar</span>}
+                    {plates.leftover > 0 && (
+                      <span className="wl-plates-extra">+{plates.leftover}</span>
+                    )}
+                  </span>
+                </div>
+              )}
 
               <button className="wl-add-set" onClick={() => addSet(ex.id)}>
                 <Icon.Plus width={13} height={13} /> Add set
