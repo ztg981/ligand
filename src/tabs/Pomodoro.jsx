@@ -42,6 +42,12 @@ const THEMES = [
   { id: "forest",   name: "Forest",     ready: true,  swatch: "linear-gradient(180deg,#2f6b43,#9bd0a3)" },
   { id: "fireplace",name: "Fireplace",  ready: true,  swatch: "linear-gradient(180deg,#7a2b2b,#e0a06c)" },
   { id: "void",     name: "Deep focus", ready: true,  swatch: "linear-gradient(180deg,#1b1d2a,#3a3d52)" },
+  // Pure-CSS ambient scenes (no photo needed) added Phase 22.
+  { id: "sunset",   name: "Sunset",     ready: true,  swatch: "linear-gradient(180deg,#7a3f8f,#ff5e7e 60%,#ff9a5a)" },
+  { id: "cosmos",   name: "Cosmos",     ready: true,  swatch: "linear-gradient(180deg,#0b1026,#2a1b4d)" },
+  { id: "ocean",    name: "Ocean",      ready: true,  swatch: "linear-gradient(180deg,#7ad7e0,#088395,#0a4d68)" },
+  { id: "rain",     name: "Rain",       ready: true,  swatch: "linear-gradient(180deg,#2a3340,#4a5a6a)" },
+  { id: "zen",      name: "Zen",        ready: true,  swatch: "linear-gradient(180deg,#efe6d6,#d9bd97)" },
 ];
 
 const PHASE_LABEL = {
@@ -380,6 +386,82 @@ function DeepFocusScene() {
   );
 }
 
+// Data for the new pure-CSS scenes (module scope so they're stable).
+const STARS = Array.from({ length: 42 }, (_, i) => ({
+  left: `${(i * 8.3) % 100}%`,
+  top: `${(i * 13.7) % 92}%`,
+  size: 1 + (i % 3),
+  delay: -(i * 0.3),
+}));
+const RAINFALL = Array.from({ length: 34 }, (_, i) => ({
+  left: `${(i * 7.1) % 100}%`,
+  h: 12 + (i % 5) * 6,
+  dur: 0.55 + (i % 4) * 0.12,
+  delay: -(i * 0.13),
+}));
+
+// Sunset — a sinking sun over gradient water.
+function SunsetScene() {
+  return (
+    <div className="scene sunset">
+      <div className="sunset-sun" />
+      <div className="sunset-water" />
+    </div>
+  );
+}
+
+// Cosmos — deep space, a slow nebula, and a field of twinkling stars.
+function CosmosScene() {
+  return (
+    <div className="scene cosmos">
+      <div className="cosmos-nebula" />
+      {STARS.map((s, i) => (
+        <span
+          key={i}
+          className="cosmos-star"
+          style={{ left: s.left, top: s.top, width: s.size, height: s.size, animationDelay: `${s.delay}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Ocean — light caustics up top, two slow swaying wave bands.
+function OceanScene() {
+  return (
+    <div className="scene ocean">
+      <div className="ocean-caustic" />
+      <div className="ocean-wave w1" />
+      <div className="ocean-wave w2" />
+    </div>
+  );
+}
+
+// Rain — a calm dark scene with falling streaks.
+function RainScene() {
+  return (
+    <div className="scene rainscene">
+      {RAINFALL.map((r, i) => (
+        <span
+          key={i}
+          className="rain-drop"
+          style={{ left: r.left, height: r.h, animationDuration: `${r.dur}s`, animationDelay: `${r.delay}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Zen — a soft, slow breathing circle to pace your breath while you focus.
+function ZenScene() {
+  return (
+    <div className="scene zen">
+      <div className="zen-ring" />
+      <div className="zen-breathe" />
+    </div>
+  );
+}
+
 // Hyperfocus - pure dark animated red rings. `dimmed` softens it during breaks.
 function HyperfocusScene({ dimmed = false }) {
   return (
@@ -406,6 +488,11 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
     case "forest":   return <ForestScene />;
     case "fireplace":return <FireplaceScene />;
     case "void":     return <DeepFocusScene />;
+    case "sunset":   return <SunsetScene />;
+    case "cosmos":   return <CosmosScene />;
+    case "ocean":    return <OceanScene />;
+    case "rain":     return <RainScene />;
+    case "zen":      return <ZenScene />;
     default:
       return (
         <div className="scene placeholder">

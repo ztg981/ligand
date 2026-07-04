@@ -2708,6 +2708,93 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   50%      { opacity: 0.85; transform: translate(-50%, -50%) scale(1.08); }
 }
 
+/* ---- New pure-CSS ambient scenes (Sunset / Cosmos / Ocean / Rain / Zen) ---- */
+.scene.sunset {
+  background: linear-gradient(180deg, #2a1a3a 0%, #7a3f8f 32%, #ff5e7e 64%, #ff9a5a 100%);
+  overflow: hidden;
+}
+.sunset-sun {
+  position: absolute; left: 50%; bottom: 30%; transform: translateX(-50%);
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, #fff2c2 0%, #ffcf6e 55%, #ff9a5a 100%);
+  box-shadow: 0 0 70px 24px rgba(255, 180, 120, 0.45);
+  animation: sunsetSink 22s ease-in-out infinite alternate;
+}
+.sunset-water {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+  background: linear-gradient(180deg, rgba(255,122,110,0.85), rgba(122,63,143,0.9));
+}
+@keyframes sunsetSink {
+  from { transform: translateX(-50%) translateY(0); }
+  to   { transform: translateX(-50%) translateY(14px); }
+}
+
+.scene.cosmos {
+  background: radial-gradient(circle at 30% 20%, #2a1b4d 0%, #0b1026 70%);
+  overflow: hidden;
+}
+.cosmos-nebula {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(circle at 62% 68%, rgba(150,90,255,0.28), transparent 55%),
+    radial-gradient(circle at 30% 32%, rgba(90,150,255,0.22), transparent 50%);
+  animation: cosmosDrift 34s ease-in-out infinite alternate;
+}
+.cosmos-star {
+  position: absolute; border-radius: 50%; background: #fff; opacity: 0.7;
+  animation: cosmosTwinkle 3.2s ease-in-out infinite;
+}
+@keyframes cosmosTwinkle { 0%,100% { opacity: 0.2; } 50% { opacity: 1; } }
+@keyframes cosmosDrift { from { transform: translate(0,0); } to { transform: translate(-4%,3%); } }
+
+.scene.ocean {
+  background: linear-gradient(180deg, #7ad7e0 0%, #088395 45%, #0a4d68 100%);
+  overflow: hidden;
+}
+.ocean-caustic {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.28), transparent 55%);
+  animation: oceanLight 6s ease-in-out infinite alternate;
+}
+.ocean-wave {
+  position: absolute; left: -20%; right: -20%; height: 46px; border-radius: 50%;
+  background: rgba(255,255,255,0.09);
+}
+.ocean-wave.w1 { top: 42%; animation: oceanSway 7s ease-in-out infinite; }
+.ocean-wave.w2 { top: 62%; animation: oceanSway 9s ease-in-out infinite reverse; }
+@keyframes oceanSway { 0%,100% { transform: translateX(-4%); } 50% { transform: translateX(4%); } }
+@keyframes oceanLight { from { opacity: 0.4; } to { opacity: 0.85; } }
+
+.scene.rainscene {
+  background: linear-gradient(180deg, #2a3340 0%, #3a4757 100%);
+  overflow: hidden;
+}
+.rain-drop {
+  position: absolute; top: -12%; width: 1.5px;
+  background: linear-gradient(180deg, transparent, rgba(200,220,255,0.6));
+  animation-name: rainFall; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+@keyframes rainFall { from { transform: translateY(-20px); } to { transform: translateY(380px); } }
+
+.scene.zen {
+  background: linear-gradient(180deg, #efe6d6 0%, #d9bd97 100%);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.zen-breathe {
+  position: absolute; width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.65), rgba(220,190,150,0.15));
+  animation: zenBreathe 8s ease-in-out infinite;
+}
+.zen-ring {
+  position: absolute; width: 190px; height: 190px; border-radius: 50%;
+  border: 1px solid rgba(120,90,60,0.25);
+  animation: zenBreathe 8s ease-in-out infinite;
+}
+@keyframes zenBreathe {
+  0%,100% { transform: scale(0.82); opacity: 0.6; }
+  50%     { transform: scale(1.12); opacity: 1; }
+}
+
 /* Honor the Settings "reduce motion" preference (also respects the OS setting). */
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
