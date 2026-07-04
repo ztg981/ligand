@@ -48,6 +48,8 @@ export function configure({ enabled, volume } = {}) {
 let _ctx = null;
 let _master = null; // master volume gain
 let _tone = null; // gentle master low-pass to round off harshness
+let _limiter = null; // master limiter so stacked sounds never get painfully loud
+let _lastClick = 0; // throttle guard for rapid click spam
 
 function getCtx() {
   if (typeof window === "undefined") return null;
@@ -55,14 +57,24 @@ function getCtx() {
   if (!Ctor) return null;
   if (!_ctx) {
     _ctx = new Ctor();
-    // sound -> _master (volume) -> _tone (round off top) -> speakers
+    // sound -> _master (volume) -> _tone (round top) -> _limiter -> speakers
     _master = _ctx.createGain();
     _master.gain.value = _volume;
     _tone = _ctx.createBiquadFilter();
     _tone.type = "lowpass";
     _tone.frequency.value = 11000; // keep sparkle, drop only the brittle fizz
     _tone.Q.value = 0.4;
-    _master.connect(_tone).connect(_ctx.destination);
+    // A compressor/limiter so rapid overlapping sounds (spamming a button, a
+    // fast slider drag) can never sum into a painfully loud peak. It only
+    // engages when the combined signal gets hot; single sounds pass through
+    // essentially untouched.
+    _limiter = _ctx.createDynamicsCompressor();
+    _limiter.threshold.value = -18;
+    _limiter.knee.value = 12;
+    _limiter.ratio.value = 12;
+    _limiter.attack.value = 0.003;
+    _limiter.release.value = 0.12;
+    _master.connect(_tone).connect(_limiter).connect(_ctx.destination);
   }
   if (_ctx.state === "suspended") _ctx.resume();
   return _ctx;
@@ -142,6 +154,10 @@ function bell(freq, delay, duration, vol, { shimmer = 0.16, body = 0 } = {}) {
    in the app, so it must never call attention to itself. */
 export function click() {
   if (!_enabled) return;
+  // Throttle rapid repeats (double-taps, held keys) so clicks can't machine-gun.
+  const now = Date.now();
+  if (now - _lastClick < 40) return;
+  _lastClick = now;
   try {
     const ctx = getCtx();
     if (!ctx) return;
