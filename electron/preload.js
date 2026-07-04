@@ -25,4 +25,12 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("update-downloaded", handler);
   },
   quitAndInstall: () => ipcRenderer.send("quit-and-install"),
+
+  // Focus-mode website blocker (Windows). All async; each resolves to a status
+  // object { ok, active/blocked, error?, cancelled?, supported?, presets? }.
+  blocker: {
+    status: () => ipcRenderer.invoke("blocker:status"),
+    apply: (domains) => ipcRenderer.invoke("blocker:apply", domains),
+    clear: () => ipcRenderer.invoke("blocker:clear"),
+  },
 });

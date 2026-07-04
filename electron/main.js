@@ -8,6 +8,7 @@
 const { app, BrowserWindow, Menu, shell, ipcMain } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
+const appBlocker = require("./appBlocker");
 
 // Dev server URL. Present when running via `npm run electron` / `electron:dev`
 // (Vite is up); absent in a packaged app, where we load the built files.
@@ -155,10 +156,27 @@ app.whenReady().then(() => {
     }
   });
 
+  // ---- Focus-mode website blocker (Windows hosts file) ----
+  // Reading is unprivileged; apply/clear elevate only when needed (see
+  // appBlocker.js). All three are async and return a plain status object.
+  ipcMain.handle("blocker:status", () => appBlocker.status());
+  ipcMain.handle("blocker:apply", (_e, domains) => appBlocker.apply(domains || []));
+  ipcMain.handle("blocker:clear", () => appBlocker.clear());
+
   // macOS: re-create a window when the dock icon is clicked and none are open.
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+// Always restore sites on exit — the block is only meant to hold while Ligand
+// is open. Best-effort and only when a block is actually present (so a normal
+// quit never triggers a UAC prompt). A crash can't run this; the renderer
+// reconciles a leftover block on next launch via blocker:status.
+app.on("before-quit", (event) => {
+  if (process.platform !== "win32" || !appBlocker.hasBlock()) return;
+  event.preventDefault();
+  appBlocker.clear().finally(() => app.exit(0));
 });
 
 // Quit when all windows are closed, except on macOS where apps stay resident

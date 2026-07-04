@@ -6,6 +6,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
 import ConfirmButton from "../components/ConfirmButton.jsx";
+import BlockerPanel from "../components/BlockerPanel.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { FOCUS_MUSIC, spotifySearch, youtubeSearch } from "../lib/focusMusic.js";
 
@@ -462,6 +463,10 @@ export default function Settings({
             </Row>
           )}
         </Section>
+
+        {/* Focus-mode website blocker — desktop (Electron/Windows) only; the
+           component self-gates to nothing on web/PWA and other platforms. */}
+        <BlockerPanel />
 
         {/* Background music */}
         <Section icon={<Icon.Wand />} title="Background music"

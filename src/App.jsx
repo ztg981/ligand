@@ -161,6 +161,36 @@ export default function App() {
     if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
     else root.removeAttribute("data-hyperfocus");
   }, [hyperfocus]);
+
+  // Desktop focus-mode website blocker: when "Auto-block whenever Hyperfocus is
+  // on" is enabled (see BlockerPanel), flipping Hyperfocus on applies the saved
+  // blocklist and flipping it off lifts it. Electron/Windows only; a no-op
+  // everywhere else (window.electron.blocker is undefined on web).
+  useEffect(() => {
+    const blocker = typeof window !== "undefined" && window.electron?.blocker;
+    if (!blocker) return;
+    let cfg = {};
+    try {
+      cfg = JSON.parse(localStorage.getItem("ligand.blocker") || "{}");
+    } catch { /* ignore */ }
+    if (!cfg.autoFocus) return;
+    if (hyperfocus) {
+      blocker
+        .status()
+        .then((s) => {
+          const domains = [
+            ...new Set([
+              ...(cfg.presets || []).flatMap((p) => (s?.presets?.[p]) || []),
+              ...(cfg.custom || []),
+            ]),
+          ];
+          if (domains.length) blocker.apply(domains);
+        })
+        .catch(() => {});
+    } else {
+      blocker.clear().catch(() => {});
+    }
+  }, [hyperfocus]);
   // Mousemove parallax for hyperfocus card tilt.
   // Normalised cursor position (-1 to 1) from viewport centre is written to
   // CSS vars --hf-mx / --hf-my. Cards read these for their rotateX/Y tilt.
