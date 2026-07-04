@@ -4641,6 +4641,44 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   .home-desktop-grid { display: none; }
 }
 
+/* "Pick one thing" — an occasional, dismissible suggestion (not a task action).
+   Reads as a gentle accent notification; Hide is the only control. */
+.pick-one-card {
+  padding: 0; overflow: hidden;
+  background: color-mix(in oklab, var(--accent) 8%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--line));
+  /* Collapse animation targets — generous max-height covers the real height. */
+  max-height: 120px;
+  transition: max-height 0.3s var(--ease), opacity 0.3s var(--ease),
+    margin 0.3s var(--ease), padding 0.3s var(--ease), border-width 0.3s var(--ease);
+}
+.pick-one-card.collapsing {
+  max-height: 0; opacity: 0; margin-top: 0; margin-bottom: 0;
+  border-width: 0; pointer-events: none;
+}
+.pick-one-body { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.pick-one-ic {
+  width: 30px; height: 30px; flex: none; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  color: var(--accent-ink, var(--accent));
+}
+.pick-one-ic svg { width: 15px; height: 15px; }
+.pick-one-text { min-width: 0; flex: 1; }
+.pick-one-title {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 1px;
+}
+.pick-one-suggestion { font-size: 15px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+.pick-one-hide {
+  flex: none; width: 30px; height: 30px; border-radius: 8px;
+  border: none; background: none; cursor: pointer; color: var(--ink-4);
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.pick-one-hide:hover { color: var(--ink-2); background: color-mix(in oklab, var(--ink) 8%, transparent); }
+[data-reduce-motion="true"] .pick-one-card { transition: none; }
+
 .home-quick-capture {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; min-height: 50px;

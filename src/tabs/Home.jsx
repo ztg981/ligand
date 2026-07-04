@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { todayKey, goalTargetDate, isGoalOverdue } from "../lib/model.js";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { encouragingMessage, summarizeProgress, reentryMessage } from "../lib/ai.js";
 import ProgressTracker from "../widgets/ProgressTracker.jsx";
 import EncouragingMsg from "../widgets/EncouragingMsg.jsx";
@@ -186,34 +187,45 @@ export default function Home({
     </div>
   );
 
-  // Pick one thing - the single easiest next action. Shared between layouts.
-  const pickOne = (
-    <div className="card">
-      <div className="card-head">
-        <div className="card-title">
-          <Icon.Spark /> Pick one thing
+  // "Pick one thing" is a gentle, occasional SUGGESTION - not a task you act on
+  // here. It surfaces the single easiest next action only when there's an open
+  // task and it hasn't been dismissed today; Hide is the only action, and it
+  // never completes/edits the task. Once hidden it stays gone for the rest of
+  // the local day (persisted date), then becomes eligible again tomorrow.
+  const [pickOneHiddenDate, setPickOneHiddenDate] = useLocalStorage(
+    "ligand.pickOneHiddenDate",
+    null
+  );
+  const [pickOneCollapsing, setPickOneCollapsing] = useState(false);
+  const hiddenToday = pickOneHiddenDate === todayKey();
+  const showPickOne = Boolean(smallWin) && !hiddenToday;
+
+  const hidePickOne = () => {
+    // Collapse first, then commit the hidden date so it animates out cleanly.
+    setPickOneCollapsing(true);
+    window.setTimeout(() => {
+      setPickOneHiddenDate(todayKey());
+      setPickOneCollapsing(false);
+    }, 320);
+  };
+
+  const pickOneCard = (
+    <div className={"card pick-one-card" + (pickOneCollapsing ? " collapsing" : "")}>
+      <div className="pick-one-body">
+        <span className="pick-one-ic"><Icon.Spark /></span>
+        <div className="pick-one-text">
+          <div className="pick-one-title">Pick one thing</div>
+          <div className="pick-one-suggestion">{smallWin?.text}</div>
         </div>
+        <button
+          className="pick-one-hide"
+          onClick={hidePickOne}
+          title="Hide for today"
+          aria-label="Hide for today"
+        >
+          <Icon.Close width={14} height={14} />
+        </button>
       </div>
-      {smallWin ? (
-        <div className="row between" style={{ gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500 }}>{smallWin.text}</div>
-            <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
-              One small step is plenty for right now.
-            </div>
-          </div>
-          <button className="btn primary" onClick={() => toggleTask(smallWin.id)} style={{ flex: "none" }}>
-            <Icon.Check /> Done
-          </button>
-        </div>
-      ) : (
-        <div style={{ fontSize: 13, color: "var(--ink-3)" }}>
-          Nothing queued up.{" "}
-          <button className="btn ghost sm" onClick={onGoToTasks} style={{ display: "inline-flex" }}>
-            <Icon.Plus /> Add a task
-          </button>
-        </div>
-      )}
     </div>
   );
 
@@ -277,7 +289,7 @@ export default function Home({
 
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
-        {pickOne}
+        {showPickOne && pickOneCard}
         {goalsSection}
         <ProgressTracker goals={goals} tasks={tasks} />
         <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
@@ -290,8 +302,8 @@ export default function Home({
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
           {needsAttention}
           {goalsToReview}
+          {showPickOne && pickOneCard}
           {goalsSection}
-          {pickOne}
           <ProgressTracker goals={goals} tasks={tasks} />
           <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
         </div>
