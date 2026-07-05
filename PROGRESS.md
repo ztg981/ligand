@@ -53,6 +53,74 @@ live Supabase session was not performed here (guest path only), but the signed-
 in render path is structurally safe because every hook precedes the
 `syncHydrating` early return.
 
+### Priority 3 — Windows installer built AND published (DONE)
+
+Config inspected: version was **1.0.0**, bumped to **1.0.1**; `electron-updater
+@^6.8.9` + `electron-builder@^26.15.3`; publish provider **github
+ztg981/ligand**; build command `npm run electron:build`
+(= `vite build && electron-builder`); output dir `dist-electron` (overridden to
+`%TEMP%` here to dodge Documents' Controlled Folder Access EPERM, see Phase 12).
+Publishing credential: `gh auth token` (scopes include `repo` + `workflow`),
+passed to electron-builder as `GH_TOKEN`.
+
+- **Installer built:** `Ligand Setup 1.0.1.exe` — **127,434,356 bytes (~122 MB)**,
+  NSIS oneClick perMachine:false. Local path (this build):
+  `%TEMP%\ligand-build-out2\Ligand Setup 1.0.1.exe` (the normal command puts it
+  in `dist-electron\`). Update metadata `latest.yml` + `.blockmap` generated
+  alongside.
+- **Release published:** https://github.com/ztg981/ligand/releases/tag/v1.0.1 —
+  **not a draft**, tag `v1.0.1` on the version-bump commit. Assets (verified via
+  `gh release view`): `Ligand-Setup-1.0.1.exe` (127,434,356), `latest.yml`
+  (references that exact exe, size **127,434,356** — matched), and
+  `.exe.blockmap`. The feed and installer are a consistent pair.
+- **Gotchas hit + fixed:** electron-builder rejects a *published* (non-draft)
+  release unless the git tag already exists (GitHub 422 "Published releases must
+  have a valid tag") — created/pushed `v1.0.1` first. Its ">2h old release"
+  safety heuristic then skipped re-uploading, and an interrupted first upload
+  left a size/hash-mismatched `latest.yml`; fixed by uploading the matched
+  exe+latest.yml+blockmap trio from a single build via `gh release upload
+  --clobber` (verified size match).
+- **Auto-update — honest status:** the release + a valid, matched `latest.yml`
+  feed are published, which is what `electron-updater` reads
+  (`checkForUpdatesAndNotify()` on packaged-app startup). **However, an actually-
+  installed older app detecting/downloading/applying the update was NOT verified
+  here** — auto-update only runs in the packaged app (never `electron:dev`), and
+  no installed 1.0.0 build is running in this environment. So: feed is correct
+  and complete; the end-to-end installed-app update handshake is unverified.
+- **Manual install (works today):** download `Ligand-Setup-1.0.1.exe` from the
+  release page above and run it. To rebuild locally: `npm run electron:build`
+  (add `-- --publish=always` with `GH_TOKEN` set to also publish); if Controlled
+  Folder Access blocks it, add
+  `--config.directories.output="%TEMP%\ligand-out"`. Installer lands in
+  `dist-electron\` (or that output dir).
+- **Data preservation on update:** YES. Guest data lives in the app's
+  localStorage under `%APPDATA%\Ligand` (userData), which a per-user NSIS
+  in-place update preserves; signed-in data is in Supabase (untouched by an app
+  update). This session's data-model additions (`weeklyPlan`, `alarms`,
+  `uiSounds.volume`, `pickOneHiddenDate`, guided-workout state) are all optional
+  with safe defaults (`|| []` / `?? default`), so an existing 1.0.0 user's blob
+  loads without migration or loss.
+
+### Final requirement audit — Phase 25 reconfirmations
+
+| Requirement | State | File/component | Test | Limitation |
+|---|---|---|---|---|
+| Overview → Habits everywhere | Working | tabs/Habits.jsx, layout/TopNav (TOOLS), bottom nav | Tab title "Habits" + nav label at 1280/375 | — |
+| Goals grid on Home | Working | tabs/Home.jsx (`goalsSection`/GoalsGrid) | Rendered on Home desktop+mobile | — |
+| Mobile Home streak visible | Working | tabs/Home.jsx `.home-streak-mobile` | "3 days showing up" live at 375px; zero-state present | — |
+| Mobile vs desktop theme | Working | App.jsx `mobileTheme` (ligand.mobileTheme) vs tweaks.theme | Separate stores; mobile default auto | Verified prior session |
+| One mobile FAB | Working | App.jsx (quick-note; suppressed on Notes) | 1 FAB per tab at 375px, no overlap | — |
+| Every requested UI sound | Working | lib/uiSounds.js | habitDone/taskDone/pomodoroComplete/phaseChange/tick/click/pop/error/startAlarm all fire | — |
+| Sounds respect toggle+volume | Working | uiSounds.configure({enabled,volume}) + master gain | Volume slider (mobile+desktop); alarm intentionally bypasses UI toggle | — |
+| Alarm easy to locate | Working | Settings + MobileSettings → Alarms card | Present both; "Add alarm" | — |
+| Website blocker locatable (Electron) | Working | Settings → Focus block (BlockerPanel) | Renders on Electron/Windows; inert on web | UAC not tested here |
+| AI workout import locatable | Working | Workout → Plan → Import from notes | Desktop Plan view; Edge Fn deployed | — |
+| Logo hitbox = logo only | Working | layout/TopNav `.brand` button | Click → Home; hitbox is mark+wordmark | — |
+| No awkward user-facing dashes | Working | app-wide | Zero em dashes in rendered strings (grep) | — |
+| Mobile guided workout | Working | components/WorkoutLogger.jsx (guided) | Full run at 375px | Reload mid-session returns to hub |
+| Hooks-order warning | Not present | App.jsx + custom hooks | StrictMode + exhaustive sweeps clean | Live signed-in session not exercised |
+| Windows installer + release | Done | package.json build, GH release v1.0.1 | Installer 122MB; release assets verified | Installed-app auto-update handshake unverified |
+
 ## Phase 24 — Recovery & completion audit (2026-07-04, Claude Code)
 
 Baseline: `git status` clean, `npm run build` green (155 modules). Requirement
