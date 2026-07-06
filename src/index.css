@@ -132,6 +132,13 @@ button, a, input, select, textarea, summary, label, [role="button"], [tabindex] 
   -webkit-tap-highlight-color: transparent;
 }
 button, a, [role="button"] { touch-action: manipulation; }
+/* Keyboard focus stays clearly visible (accent ring), but ONLY for keyboard
+   (:focus-visible) — a tap/click never paints it, keeping touch feedback
+   subtle and local to the pressed control. */
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* ============================================================
    App shell
@@ -366,11 +373,6 @@ button, a, [role="button"] { touch-action: manipulation; }
 .goal-dd-caret.open { transform: rotate(-90deg); }
 .goal-dd-caret svg { width: 13px; height: 13px; }
 
-.goal-dd-backdrop {
-  position: fixed; inset: 0; z-index: 94;
-  pointer-events: none; /* visual dimming only; dismissal via useDropdown */
-  background: rgba(0, 0, 0, 0.12);
-}
 /* A full-width sheet (not pinned to the narrow button) so the goal list is
    easy to scan and tap on a phone. `top` is set inline from the button rect. */
 .goal-dd-panel {

@@ -75,10 +75,10 @@ export default function GoalDropdown({
 
       {open && (
         <>
-          {/* Purely-visual dimming (pointer-events:none). Dismissal is handled by
-             useDropdown's document listener, so there's no backdrop to intercept
-             a trigger tap and cause a close-then-reopen. */}
-          <div className="goal-dd-backdrop" aria-hidden="true" />
+          {/* No dimming layer: a fixed full-screen backdrop (even pointer-events:
+             none) paints OVER the translucent topbar, so every tap of the trigger
+             visibly darkened the whole bar — the "entire nav flashes" bug. The
+             sheet's border + shadow carry the elevation on their own. */}
           <div className="goal-dd-panel" role="listbox" ref={menuRef} style={{ top: panelTop }}>
             {goals.length === 0 ? (
               <div className="goal-dd-empty">No goals yet.</div>
@@ -126,7 +126,7 @@ export default function GoalDropdown({
               className="goal-dd-item goal-dd-add"
               onClick={() => {
                 onAddGoal?.();
-                setOpen(false);
+                close();
               }}
             >
               <Icon.Plus />

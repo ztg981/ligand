@@ -72,6 +72,37 @@ test account credentials in this environment) — but the deployed function
 was exercised directly over HTTP with the anon key, which is the same
 request shape supabase-js sends.
 
+### Section 2 — Mobile top-nav "whole bar highlights" bug (DONE)
+
+**Root cause.** `GoalDropdown` rendered `.goal-dd-backdrop` — `position:fixed;
+inset:0; z-index:94; background:rgba(0,0,0,0.12)` — every time the Goals
+trigger was tapped. The topbar is z-index 20 and translucent, so the dim layer
+painted OVER (and through) the entire bar: every tap of Goals visibly darkened
+the whole top navigation. Not `:active`, not tap-highlight (already
+transparent on all interactive elements since earlier phases), not a hitbox
+problem — a full-screen dimming div. Removed it entirely; the sheet's border +
+`--shadow-pop` carry the elevation. Avatar/notification popovers never had a
+backdrop, so all three triggers now highlight only themselves (`.iconbtn:active`
+press-in is scoped to the button).
+
+**Crash fixed in passing:** the dropdown's "New goal" button called
+`setOpen(false)` — an undefined identifier inside that component (the hook
+exposes `close`) — so tapping "New goal" from the mobile goal picker threw a
+ReferenceError every time. Now calls `close()`; verified it opens the goal
+modal.
+
+**Keyboard focus:** added an explicit accent `:focus-visible` ring for
+buttons/links/role=button (keyboard-only — taps never paint it). No focus
+styles were removed anywhere.
+
+**Verified (Chromium 390×844 emulation + desktop):** trigger opens; same
+trigger closes; outside tap closes; opening another dropdown closes the first;
+9 rapid alternating taps across Goals/notifications/avatar end with exactly
+ONE open menu; no flash-close-reopen; no backdrop element in the DOM; New
+goal works. Zero console errors; build green. Real iOS Safari was not
+available in this environment — the fix removes the offending paint layer
+outright, which is engine-independent.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
