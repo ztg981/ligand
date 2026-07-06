@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import WorkoutLogger from "../components/WorkoutLogger.jsx";
 import WorkoutPreview from "../components/WorkoutPreview.jsx";
 import FitnessProgress from "../components/FitnessProgress.jsx";
@@ -30,6 +31,8 @@ function planToLoggerExercises(template) {
       name: p.name,
       muscleGroup: p.muscleGroup,
       type: p.type,
+      restSec: p.restSec ?? null,
+      notes: p.notes ?? null,
       sets: Array.from({ length: Math.max(1, p.targetSets || 3) }, () =>
         createSet(
           p.type === "cardio"
@@ -91,9 +94,12 @@ export default function WorkoutTab({
   profile,
   workouts = [],
   templates = [],
+  scheduledWorkouts = [],
   addWorkout,
   addTemplate,
   addScheduledWorkout,
+  updateScheduledWorkout,
+  deleteScheduledWorkout,
   updateFitnessProfile,
 }) {
   const isMobile = useIsMobile(768);
@@ -108,8 +114,14 @@ export default function WorkoutTab({
     updateFitnessProfile?.({
       weeklyPlan: { ...weeklyPlan, [weekday]: groups },
     });
-  const [logging, setLogging] = useState(null); // { exercises } | null
+  const [logging, setLogging] = useState(null); // { exercises, resume? } | null
   const [preview, setPreview] = useState(null); // { plan, source } under review
+  // The live in-gym session, mirrored to localStorage (and the cloud blob for
+  // signed-in users) so a reload / closed PWA never loses completed sets.
+  const [activeSession, setActiveSession] = useLocalStorage(
+    "ligand.activeWorkout",
+    null
+  );
   const [choosing, setChoosing] = useState(false); // start chooser
   const [equipSheet, setEquipSheet] = useState(null); // { onConfirm } | null
   // Today's equipment for generation. `null` = follow the saved profile default
@@ -162,7 +174,16 @@ export default function WorkoutTab({
       },
     });
 
-  const handleFinish = (workout) => addWorkout({ ...workout, goalId: null });
+  const handleFinish = (workout) => {
+    const saved = addWorkout({ ...workout, goalId: null });
+    // Started from a scheduled instance → mark it done and link the session.
+    if (logging?.scheduledId) {
+      updateScheduledWorkout?.(logging.scheduledId, {
+        status: "done",
+        completedWorkoutId: saved?.id || workout.id || null,
+      });
+    }
+  };
   const handleSaveTemplate = (name, exercises) =>
     addTemplate?.(
       createWorkoutTemplate({ name, exercises: workoutToTemplatePlan(exercises) })
@@ -217,8 +238,12 @@ export default function WorkoutTab({
     });
   };
   const startFromPlan = (plan) => {
+    setLogging({
+      exercises: planToLoggerExercises({ exercises: plan }),
+      // Starting a scheduled instance from its edit view still completes it.
+      scheduledId: preview?.schedId || null,
+    });
     setPreview(null);
-    setLogging({ exercises: planToLoggerExercises({ exercises: plan }) });
   };
   const onStartWorkout = () => {
     if (templates.length > 0) setChoosing(true);
@@ -242,12 +267,67 @@ export default function WorkoutTab({
         goalId={null}
         priorWorkouts={workouts}
         initialExercises={logging.exercises}
+        resume={logging.resume || null}
+        onSnapshot={(snap) =>
+          // Carry the scheduled-instance link inside the snapshot so finishing
+          // AFTER a reload still marks the calendar entry done.
+          setActiveSession(
+            snap ? { ...snap, scheduledId: logging.scheduledId || null } : null
+          )
+        }
         onFinish={handleFinish}
         onSaveTemplate={handleSaveTemplate}
-        onCancel={() => setLogging(null)}
+        onCancel={() => {
+          setActiveSession(null);
+          setLogging(null);
+        }}
       />
     );
   }
+
+  // A saved mid-session snapshot (reload, closed tab, app switch) — offer to
+  // pick the workout back up from the same exercise and set.
+  const resumeBanner = activeSession?.exercises?.length ? (
+    <div className="card wk-resume" role="status">
+      <div className="wk-resume-text">
+        <div className="wk-resume-title">
+          <Icon.Bolt width={14} height={14} /> Workout in progress
+        </div>
+        <div className="wk-resume-sub">
+          {activeSession.exercises.length} exercises ·{" "}
+          {activeSession.exercises.reduce(
+            (n, e) => n + (e.sets || []).filter((s) => s.done).length,
+            0
+          )}{" "}
+          sets done · started{" "}
+          {new Date(activeSession.startedAt).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </div>
+      </div>
+      <div className="wk-resume-actions">
+        <button
+          className="btn ghost sm"
+          onClick={() => setActiveSession(null)}
+        >
+          Discard
+        </button>
+        <button
+          className="btn primary sm"
+          onClick={() =>
+            setLogging({
+              exercises: null,
+              resume: activeSession,
+              scheduledId: activeSession.scheduledId || null,
+            })
+          }
+        >
+          Resume workout
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   // Name a plan from its dominant muscle groups ("Chest + Triceps"), for
   // scheduled entries created out of an import/generation.
@@ -260,19 +340,86 @@ export default function WorkoutTab({
       .join(" + ");
   };
 
-  const handleSchedule = (dateKey, plan) =>
-    addScheduledWorkout?.({
-      date: dateKey,
-      name: planName(plan),
-      exercises: plan,
+  const handleSchedule = (dateKey, plan, name) => {
+    if (preview?.schedId) {
+      // Editing an existing instance: save in place (possibly to a new day).
+      updateScheduledWorkout?.(preview.schedId, {
+        date: dateKey,
+        name: name || planName(plan),
+        exercises: plan,
+      });
+    } else {
+      addScheduledWorkout?.({
+        date: dateKey,
+        name: name || planName(plan),
+        exercises: plan,
+      });
+    }
+  };
+
+  // ---- scheduled-instance actions (week calendar) --------------------------
+  const startScheduled = (sched) =>
+    setLogging({
+      exercises: planToLoggerExercises(sched),
+      scheduledId: sched.id,
     });
+  const editScheduled = (sched) =>
+    setPreview({
+      plan: sched.exercises || [],
+      source: "builder",
+      schedId: sched.id,
+      name: sched.name,
+      date: sched.date,
+    });
+  const moveScheduled = (id, newDate) =>
+    updateScheduledWorkout?.(id, { date: newDate });
+  const duplicateScheduled = (sched, newDate) =>
+    addScheduledWorkout?.({
+      date: newDate,
+      name: sched.name,
+      exercises: sched.exercises || [],
+      templateId: sched.templateId || null,
+      notes: sched.notes || "",
+    });
+  // Manual builder (works on desktop AND mobile) — empty plan, editable name.
+  const openBuilder = () => setPreview({ plan: [], source: "builder" });
+  // Build today's session from the last completed one ("same as last time").
+  const repeatLast = () => {
+    if (!workouts.length) return;
+    setPreview({
+      plan: workoutToTemplatePlan(workouts[0].exercises),
+      source: "repeat",
+    });
+  };
+
+  const scheduleApi = {
+    list: scheduledWorkouts,
+    onStart: startScheduled,
+    onEdit: editScheduled,
+    onMove: moveScheduled,
+    onDuplicate: duplicateScheduled,
+    onDelete: (id) => deleteScheduledWorkout?.(id),
+    onCreate: openBuilder,
+    onRepeatLast: workouts.length ? repeatLast : null,
+  };
+
+  const PREVIEW_COPY = {
+    imported: { eyebrow: "Imported from your notes", title: "Review your workout" },
+    builder: { eyebrow: "Workout builder", title: "New workout" },
+    repeat: { eyebrow: "Based on your last session", title: "Repeat last workout" },
+    generated: { eyebrow: "Generated for you", title: "Today's workout" },
+  };
+  const previewCopy = PREVIEW_COPY[preview?.source] || PREVIEW_COPY.generated;
 
   const previewEl = preview && (
     <WorkoutPreview
       profile={{ ...profile, availableEquipment: sessionEquipment }}
       initialPlan={preview.plan}
-      eyebrow={preview.source === "imported" ? "Imported from your notes" : "Generated for you"}
-      title={preview.source === "imported" ? "Review your workout" : "Today's workout"}
+      initialName={preview.name || ""}
+      initialDate={preview.date || null}
+      nameEditable={preview.source === "builder"}
+      eyebrow={previewCopy.eyebrow}
+      title={previewCopy.title}
       onRegenerate={preview.source === "generated" ? buildPlan : null}
       onStart={startFromPlan}
       onSaveTemplate={handleSaveTemplate}
@@ -304,6 +451,8 @@ export default function WorkoutTab({
           Progress
         </button>
       </div>
+
+      {resumeBanner}
 
       {view === "progress" && (
         <FitnessProgress
@@ -338,6 +487,7 @@ export default function WorkoutTab({
           recentPRs={recentPRs}
           relDate={relDate}
           fmtDuration={fmtDuration}
+          schedule={scheduleApi}
         />
       ) : (
         <DesktopWorkoutHub
@@ -362,6 +512,7 @@ export default function WorkoutTab({
           relDate={relDate}
           fmtDuration={fmtDuration}
           workoutVolume={workoutVolume}
+          schedule={scheduleApi}
         />
       ))}
 

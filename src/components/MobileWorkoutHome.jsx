@@ -1,5 +1,6 @@
 import { Icon } from "./Icons.jsx";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
+import { todayKey } from "../lib/model.js";
 
 /* MobileWorkoutHome — the phone Workout landing: EXECUTION first.
 
@@ -25,12 +26,34 @@ export default function MobileWorkoutHome({
   recentPRs = [],
   relDate,
   fmtDuration,
+  schedule = null, // { list, onStart, onCreate, onRepeatLast }
 }) {
+  // A workout scheduled for TODAY (planned on any device) beats the generic
+  // split cue: it's a concrete session, one tap from starting.
+  const todaysPlanned = (schedule?.list || []).find(
+    (s) => s.date === todayKey() && s.status !== "done"
+  );
+
   return (
     <div className="mwh">
       {/* HERO — today's session, front and centre */}
       <div className="card mwh-hero">
-        {todaysSplit ? (
+        {todaysPlanned ? (
+          <div className="mwh-ready">
+            <span className="mwh-eyebrow">
+              <span className="wk-ready-dot" /> Planned for today
+            </span>
+            <div className="mwh-title">{todaysPlanned.name}</div>
+            <div className="mwh-sub">
+              {(todaysPlanned.exercises || []).length} exercises ·{" "}
+              {(todaysPlanned.exercises || [])
+                .map((e) => e.name)
+                .slice(0, 3)
+                .join(", ")}
+              {(todaysPlanned.exercises || []).length > 3 ? "…" : ""}
+            </div>
+          </div>
+        ) : todaysSplit ? (
           <div className="mwh-ready">
             <span className="mwh-eyebrow">
               <span className="wk-ready-dot" /> Ready for the gym
@@ -58,14 +81,27 @@ export default function MobileWorkoutHome({
           <Icon.Arrow width={13} height={13} />
         </button>
 
-        <button className="btn primary mwh-start" onClick={onStart}>
-          <Icon.Play /> Start workout
+        <button
+          className="btn primary mwh-start"
+          onClick={todaysPlanned ? () => schedule.onStart(todaysPlanned) : onStart}
+        >
+          <Icon.Play /> {todaysPlanned ? `Start ${todaysPlanned.name}` : "Start workout"}
         </button>
 
         <div className="mwh-secondary">
           <button className="btn ghost sm" onClick={onGenerate}>
             <Icon.Bolt width={13} height={13} /> Generate
           </button>
+          {schedule?.onCreate && (
+            <button className="btn ghost sm" onClick={schedule.onCreate}>
+              <Icon.Note width={13} height={13} /> Create
+            </button>
+          )}
+          {schedule?.onRepeatLast && (
+            <button className="btn ghost sm" onClick={schedule.onRepeatLast}>
+              <Icon.Reset width={13} height={13} /> Repeat last
+            </button>
+          )}
           <button className="btn ghost sm" onClick={onLogFree}>
             <Icon.Plus width={13} height={13} /> Log freely
           </button>

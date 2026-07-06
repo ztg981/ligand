@@ -2,6 +2,7 @@ import { Icon } from "./Icons.jsx";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
 import WorkoutPlanner from "./WorkoutPlanner.jsx";
 import WorkoutImport from "./WorkoutImport.jsx";
+import WeekSchedule from "./WeekSchedule.jsx";
 
 /* DesktopWorkoutHub — the PC Workout landing: PLANNING + PROGRESS.
 
@@ -32,6 +33,7 @@ export default function DesktopWorkoutHub({
   relDate,
   fmtDuration,
   workoutVolume,
+  schedule = null, // { list, onStart, onEdit, onMove, onDuplicate, onDelete, onCreate, onRepeatLast }
 }) {
   return (
     <div className="dwh">
@@ -57,6 +59,17 @@ export default function DesktopWorkoutHub({
       <div className="dwh-grid">
         {/* LEFT — the planning workspace */}
         <div className="dwh-main">
+          {schedule && (
+            <WeekSchedule
+              scheduledWorkouts={schedule.list}
+              onStart={schedule.onStart}
+              onEdit={schedule.onEdit}
+              onMove={schedule.onMove}
+              onDuplicate={schedule.onDuplicate}
+              onDelete={schedule.onDelete}
+            />
+          )}
+
           <WorkoutPlanner plan={weeklyPlan} onChange={setDayPlan} />
 
           <div className="card dwh-today">
@@ -85,6 +98,16 @@ export default function DesktopWorkoutHub({
               <button className="btn sm" onClick={onLogFree}>
                 <Icon.Plus width={14} height={14} /> Log freely
               </button>
+              {schedule?.onCreate && (
+                <button className="btn sm" onClick={schedule.onCreate}>
+                  <Icon.Note width={14} height={14} /> New workout
+                </button>
+              )}
+              {schedule?.onRepeatLast && (
+                <button className="btn sm" onClick={schedule.onRepeatLast}>
+                  <Icon.Reset width={14} height={14} /> Repeat last
+                </button>
+              )}
             </div>
           </div>
 

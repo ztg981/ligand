@@ -1,37 +1,115 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { alternativesFor } from "../lib/workoutGen.js";
 import { todayKey } from "../lib/model.js";
+import { searchExercises } from "../lib/exercises.js";
 
-/* WorkoutPreview - the editable review step for a generated (or template)
-   session, shown before you start. Swap any exercise for another that hits
-   the same muscle group, tweak sets/reps/weight, drop exercises, regenerate
-   the whole thing, save it as a template, or start logging it. */
+/* WorkoutPreview - the editable review/build step for a session, shown before
+   you start (or when creating one from scratch). Works as both:
+
+   - the review surface for a generated / imported / template plan, and
+   - the manual workout BUILDER (desktop and mobile): name it, search the
+     library or add a custom movement, reorder with touch-friendly arrows,
+     set sets/reps/weight/rest/notes per exercise.
+
+   From here a plan can be started now, scheduled for a date, or saved as a
+   reusable template. */
+
+// Rough duration from target sets (~35s work + rest each) + setup per exercise.
+function estimatePlanMinutes(plan, restDefault = 90) {
+  let secs = 0;
+  for (const ex of plan) {
+    if (ex.type === "cardio") {
+      secs += (ex.targetMinutes || 10) * 60 + 30;
+    } else {
+      const sets = ex.targetSets || 3;
+      secs += sets * (35 + (ex.restSec ?? restDefault)) + 30;
+    }
+  }
+  return Math.max(5, Math.round(secs / 60));
+}
 
 export default function WorkoutPreview({
   profile,
   initialPlan = [],
-  onStart,
+  initialName = "",
+  initialDate = null, // preselect the schedule date (editing an instance)
+  nameEditable = false,
+  onStart, // (plan, name) => void
   onRegenerate, // () => freshPlan
   onSaveTemplate, // (name, plan) => void
-  onSchedule, // (dateKey, plan) => void — plan it for a calendar day
+  onSchedule, // (dateKey, plan, name) => void — plan it for a calendar day
   onClose,
   eyebrow = "Generated for you",
   title = "Today's workout",
 }) {
   const [plan, setPlan] = useState(initialPlan);
-  const [tmplName, setTmplName] = useState("");
+  const [name, setName] = useState(initialName);
+  const [tmplName, setTmplName] = useState(initialName);
   const [savingTmpl, setSavingTmpl] = useState(false);
   const [tmplSaved, setTmplSaved] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const [schedDate, setSchedDate] = useState(() => todayKey());
+  const [schedDate, setSchedDate] = useState(() => initialDate || todayKey());
   const [scheduled, setScheduled] = useState(false);
+  const [adding, setAdding] = useState(initialPlan.length === 0 && nameEditable);
+  const [query, setQuery] = useState("");
+  const [openExtras, setOpenExtras] = useState({}); // idx -> bool (rest/notes row)
   const unit = profile?.weightUnit || "lbs";
 
   const patch = (idx, p) =>
     setPlan((list) => list.map((e, i) => (i === idx ? { ...e, ...p } : e)));
   const remove = (idx) => setPlan((list) => list.filter((_, i) => i !== idx));
+  const move = (idx, dir) =>
+    setPlan((list) => {
+      const j = idx + dir;
+      if (j < 0 || j >= list.length) return list;
+      const next = [...list];
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return next;
+    });
+
+  const results = useMemo(() => (adding ? searchExercises(query, 8) : []), [adding, query]);
+
+  const addFromLibrary = (libEx) => {
+    setPlan((list) => [
+      ...list,
+      {
+        exerciseId: libEx.id,
+        name: libEx.name,
+        muscleGroup: libEx.muscleGroup,
+        type: libEx.type,
+        targetSets: 3,
+        targetReps: libEx.type === "cardio" ? null : 8,
+        targetWeight: null,
+        targetMinutes: libEx.type === "cardio" ? 10 : null,
+        restSec: null,
+        notes: null,
+      },
+    ]);
+    setQuery("");
+  };
+
+  const addCustom = () => {
+    const n = query.trim().slice(0, 80);
+    if (!n) return;
+    setPlan((list) => [
+      ...list,
+      {
+        exerciseId: null, // custom movement — still fully loggable
+        name: n,
+        muscleGroup: "other",
+        type: "strength",
+        targetSets: 3,
+        targetReps: 8,
+        targetWeight: null,
+        targetMinutes: null,
+        restSec: null,
+        notes: null,
+      },
+    ]);
+    setQuery("");
+  };
 
   const swap = (idx) => {
     const ex = plan[idx];
@@ -58,6 +136,7 @@ export default function WorkoutPreview({
   };
 
   const num = (v) => (v === "" ? null : Number(v));
+  const estMin = estimatePlanMinutes(plan, profile?.restStrengthSec || 90);
 
   return createPortal(
     <div className="scrim" role="presentation" onMouseDown={onClose}>
@@ -68,9 +147,23 @@ export default function WorkoutPreview({
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="wp-head">
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div className="eyebrow">{eyebrow}</div>
-            <h2 className="page-title" style={{ fontSize: 20 }}>{title}</h2>
+            {nameEditable ? (
+              <input
+                className="input wp-name-input"
+                placeholder="Workout name…"
+                value={name}
+                onChange={(e) => setName(e.target.value.slice(0, 60))}
+              />
+            ) : (
+              <h2 className="page-title" style={{ fontSize: 20 }}>{title}</h2>
+            )}
+            {plan.length > 0 && (
+              <div className="wp-est">
+                {plan.length} exercises · ~{estMin} min
+              </div>
+            )}
           </div>
           <button className="iconbtn" title="Close" onClick={onClose}>
             <Icon.Close />
@@ -78,9 +171,9 @@ export default function WorkoutPreview({
         </div>
 
         <div className="wp-body">
-          {plan.length === 0 && (
+          {plan.length === 0 && !adding && (
             <div className="wp-empty">
-              Nothing to show - try regenerating.
+              {onRegenerate ? "Nothing to show - try regenerating." : "No exercises yet - add one below."}
             </div>
           )}
           {plan.map((ex, idx) => (
@@ -91,8 +184,36 @@ export default function WorkoutPreview({
                   <span className="wp-ex-group">{ex.muscleGroup}</span>
                 </div>
                 <div className="wp-ex-actions">
-                  <button className="wp-ex-btn" onClick={() => swap(idx)} title="Swap exercise">
-                    <Icon.Reset width={13} height={13} /> Swap
+                  <button
+                    className="wp-ex-btn"
+                    onClick={() => move(idx, -1)}
+                    disabled={idx === 0}
+                    title="Move up"
+                    aria-label={`Move ${ex.name} up`}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="wp-ex-btn"
+                    onClick={() => move(idx, 1)}
+                    disabled={idx === plan.length - 1}
+                    title="Move down"
+                    aria-label={`Move ${ex.name} down`}
+                  >
+                    ↓
+                  </button>
+                  {ex.exerciseId && (
+                    <button className="wp-ex-btn" onClick={() => swap(idx)} title="Swap exercise">
+                      <Icon.Reset width={13} height={13} /> Swap
+                    </button>
+                  )}
+                  <button
+                    className="wp-ex-btn"
+                    onClick={() => setOpenExtras((o) => ({ ...o, [idx]: !o[idx] }))}
+                    title="Rest time and notes"
+                    aria-expanded={Boolean(openExtras[idx])}
+                  >
+                    ⋯
                   </button>
                   <button
                     className="wp-ex-btn danger"
@@ -155,8 +276,70 @@ export default function WorkoutPreview({
                   </>
                 )}
               </div>
+              {openExtras[idx] && (
+                <div className="wp-ex-extras">
+                  <label className="wp-field">
+                    <span>Rest (sec)</span>
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max="900"
+                      placeholder={String(profile?.restStrengthSec || 90)}
+                      value={ex.restSec ?? ""}
+                      onChange={(e) => patch(idx, { restSec: num(e.target.value) })}
+                    />
+                  </label>
+                  <label className="wp-field wp-field-wide">
+                    <span>Note</span>
+                    <input
+                      className="input"
+                      type="text"
+                      maxLength={200}
+                      placeholder="e.g. slow negatives, seat at 4"
+                      value={ex.notes ?? ""}
+                      onChange={(e) => patch(idx, { notes: e.target.value || null })}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           ))}
+
+          {adding ? (
+            <div className="wp-add">
+              <div className="wp-add-row">
+                <input
+                  className="input"
+                  autoFocus
+                  placeholder="Search exercises…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <button className="btn ghost sm" onClick={() => { setAdding(false); setQuery(""); }}>
+                  Done
+                </button>
+              </div>
+              <div className="wp-add-results">
+                {results.map((r) => (
+                  <button key={r.id} className="wp-add-item" onClick={() => addFromLibrary(r)}>
+                    <span className="wp-add-name">{r.name}</span>
+                    <span className="wp-ex-group">{r.muscleGroup}</span>
+                  </button>
+                ))}
+                {query.trim() && (
+                  <button className="wp-add-item wp-add-custom" onClick={addCustom}>
+                    <Icon.Plus width={13} height={13} /> Add “{query.trim()}” as a custom exercise
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button className="wp-add-toggle" onClick={() => setAdding(true)}>
+              <Icon.Plus width={14} height={14} /> Add exercise
+            </button>
+          )}
         </div>
 
         <div className="wp-foot">
@@ -174,7 +357,7 @@ export default function WorkoutPreview({
                 disabled={!schedDate}
                 style={{ opacity: schedDate ? 1 : 0.5, flex: "none" }}
                 onClick={() => {
-                  onSchedule?.(schedDate, plan);
+                  onSchedule?.(schedDate, plan, name.trim());
                   setScheduling(false);
                   setScheduled(true);
                 }}
@@ -226,7 +409,10 @@ export default function WorkoutPreview({
               )}
               <button
                 className="btn"
-                onClick={() => setSavingTmpl(true)}
+                onClick={() => {
+                  setTmplName((t) => t || name);
+                  setSavingTmpl(true);
+                }}
                 disabled={plan.length === 0 || tmplSaved}
                 style={{ opacity: plan.length === 0 || tmplSaved ? 0.5 : 1 }}
               >
@@ -234,7 +420,7 @@ export default function WorkoutPreview({
               </button>
               <button
                 className="btn primary wp-start"
-                onClick={() => onStart?.(plan)}
+                onClick={() => onStart?.(plan, name.trim())}
                 disabled={plan.length === 0}
                 style={{ opacity: plan.length === 0 ? 0.5 : 1 }}
               >
