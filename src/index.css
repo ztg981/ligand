@@ -5708,7 +5708,8 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .wk-import { margin-bottom: 14px; }
 .wk-import-box { width: 100%; resize: vertical; min-height: 64px; font-size: 14px; line-height: 1.45; }
 .wk-import-err { font-size: 12.5px; color: var(--danger, #d9534f); margin-top: 8px; }
-.wk-import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.wk-import-err-actions { display: flex; gap: 8px; margin-top: 8px; }
+.wk-import-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .wk-equip-quick {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   width: 100%; padding: 12px 14px; min-height: 46px;

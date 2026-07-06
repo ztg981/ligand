@@ -328,6 +328,32 @@ export function createWorkoutTemplate({
   };
 }
 
+// A workout planned for a specific calendar date — one dated instance,
+// distinct from a template (reusable) and from a logged workout (history).
+// Created by scheduling an import/template/built plan; completing it links
+// the logged session via completedWorkoutId.
+export function createScheduledWorkout({
+  date = todayKey(),
+  name = "Workout",
+  exercises = [], // plan shape: { exerciseId, name, muscleGroup, type, targetSets, targetReps, targetWeight, targetMinutes, restSec, notes }
+  templateId = null,
+  notes = "",
+} = {}) {
+  const now = new Date().toISOString();
+  return {
+    id: uid("sched"),
+    date, // YYYY-MM-DD
+    name,
+    exercises,
+    templateId,
+    notes,
+    status: "planned", // planned | done | skipped
+    completedWorkoutId: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 // ---- workout helpers -------------------------------------------
 // Total volume (weight × reps summed over completed strength sets) for a
 // session. Cardio sets contribute no volume. Used for the session summary,
@@ -554,6 +580,7 @@ export function seedData() {
     // when the user makes their first Fitness goal and finishes onboarding.
     workouts: [], // logged sessions
     workoutTemplates: [], // saved routines
+    scheduledWorkouts: [], // dated planned instances (see createScheduledWorkout)
     fitnessProfile: null,
     songLog: [], // lightweight "what I was listening to" log (see Journal tab)
   };

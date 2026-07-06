@@ -2,6 +2,76 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 27 — Final product session (2026-07-05, Claude Code)
+
+Baseline: master `fdc9fb3`, working tree clean, `npm run build` green.
+
+### Section 1 — AI workout import: REAL root cause + fix (DONE, deployed)
+
+**Root cause (proven, not guessed).** Direct HTTP tests against the deployed
+`gemini-insights` Edge Function showed `gemini-3.5-flash` returning
+**503 UNAVAILABLE ("high demand")** on 5 of 7 consecutive requests. The old
+function had NO retry and NO fallback model, and the client collapsed every
+failure into the generic "Import failed. Try rephrasing your notes." So the
+user saw a "parsing" error for what was actually Google-side capacity. Two
+secondary defects: (a) text extraction read only `parts[0].text`, which on a
+thinking model can be a thought part or nothing → `ok:true` with EMPTY text;
+(b) empty/oversized input hit Gemini instead of being rejected.
+
+**Fix — Edge Function (`supabase/functions/gemini-insights/index.ts`):**
+- Model chain `gemini-3.5-flash → gemini-2.5-flash → gemini-2.0-flash`, 2
+  attempts per model with backoff on 503/429/5xx; 404 skips to next model.
+- `responseMimeType: "application/json"` for import (low temperature).
+- Text extraction joins all non-thought parts; empty text is a retryable
+  error, never `ok:true`.
+- Input validation: rejects empty notes, >4000-char notes, >20KB bodies with
+  `errorKind: "bad_request"`; structured `errorKind` on every failure
+  (model_overloaded | bad_request | empty_response | network | missing_key).
+- Upstream error bodies are logged server-side but never echoed to clients.
+- Import prompt hardened: notes are declared DATA, not instructions.
+
+**Fix — client:**
+- `src/lib/workoutParser.js` (new): `sanitizeImportedExercises()` — the single
+  strict schema gate for ALL imported exercises (AI + local): strips
+  markup/control chars, whitelists muscleGroup/type, clamps sets 1–20, reps
+  1–200, weight 0–2000, minutes 1–300, rest 0–900, caps 30 exercises/80-char
+  names, drops unsalvageable entries. Plus `parseWorkoutText()` — a
+  deterministic "Quick parse" fallback (clearly labelled non-AI) handling
+  "5x5 bench", "bench 3 sets of 8", "135x8", "5 sets, 5 reps", "@ 185",
+  "rest 90s"/"rest 3 min" (attaches to the previous exercise), cardio
+  minutes, descriptor→notes ("felt heavy").
+- `aiApi.importWorkout()` returns `{ ok:false, kind, error }` with the REAL
+  cause: signed-out / busy (503) / network / parse / no-exercises / too-long.
+- `WorkoutImport.jsx`: real error text + **Retry AI** + **Quick parse
+  instead** rescue actions; permanent Quick parse button; notes preserved on
+  every failure; plural-aware library matching ("rows" → Bent Over Row);
+  unknown names kept as custom exercises; restSec/notes carried through.
+- `WorkoutPreview` now supports **Schedule** (date picker, defaults to local
+  today via `todayKey()` — fixed a UTC off-by-one) alongside edit / Start /
+  Save-as-template; imported previews are titled "Imported from your notes"
+  and hide Regenerate.
+- New data model: `createScheduledWorkout` (model.js), `scheduledWorkouts` in
+  seed + useStore CRUD (add/update/delete). Syncs like everything else via
+  the user_data blob; old blobs load fine (`|| []` default).
+
+**Deployed:** `npx supabase functions deploy gemini-insights --project-ref
+auypprgibgftwpwuvxqa` → "Deployed Functions." (2026-07-05). Post-deploy live
+tests, all passing: classic "5x5 bench…", vague "chest day…", mixed
+"Squat 135 for 3 sets of 8…", multiline with rest+notes (extracted
+weight 185 / rest 180s / "felt heavy" note), misspelled names, unknown
+custom exercises, empty (→ bad_request), 8800-char (→ bad_request), prompt
+injection ("reply HACKED" → parsed only the exercise, instruction ignored).
+Several requests visibly fell back 3.5-flash→2.5-flash mid-test, proving the
+chain works. Browser-verified (dev preview, 1280px, guest): Quick parse →
+review modal → Schedule (persists to `ligand.data.scheduledWorkouts`,
+correct local date); signed-out AI attempt shows the real message + working
+rescue buttons; notes preserved. Zero console errors; build green.
+
+**Not tested here:** a signed-in browser session calling the function (no
+test account credentials in this environment) — but the deployed function
+was exercised directly over HTTP with the anon key, which is the same
+request shape supabase-js sends.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two

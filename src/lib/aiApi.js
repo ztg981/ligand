@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient.js";
 import { reflectionPrompt } from "./ai.js"; // fallback
 import { recoveryFallback } from "./recovery.js";
+import { sanitizeImportedExercises } from "./workoutParser.js";
 
 // Cache duration: 24 hours
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -347,42 +348,108 @@ export async function fetchAiInsight(goalId, action, context, forceRefresh = fal
   }
 }
 
+const MAX_IMPORT_CHARS = 4000;
+
 /**
  * Parse messy free-text gym notes into a structured workout via Gemini.
- * Returns { ok: true, exercises } (raw parsed exercises) or { ok: false, error }.
- * Not cached — every import is a fresh, one-off parse. Requires sign-in +
- * Supabase; falls back to a clear error the caller can surface.
+ * Returns { ok: true, exercises, dropped } (schema-validated exercises) or
+ * { ok: false, kind, error } where `kind` tells the UI what actually failed:
+ *   empty | too-long | signed-out | busy | network | upstream | parse | no-exercises
+ * Not cached — every import is a fresh, one-off parse. Gemini output is
+ * treated as untrusted and passes through sanitizeImportedExercises.
  */
 export async function importWorkout(notes) {
   const text = (notes || "").trim();
-  if (!text) return { ok: false, error: "Paste some notes first." };
-  if (aiGuestMode) return { ok: false, error: "Sign in to use AI import." };
-  if (!isSupabaseConfigured || !supabase) {
-    return { ok: false, error: "AI import needs a signed-in account." };
+  if (!text) {
+    return { ok: false, kind: "empty", error: "Paste some notes first." };
   }
+  if (text.length > MAX_IMPORT_CHARS) {
+    return {
+      ok: false,
+      kind: "too-long",
+      error: `Those notes are very long. Keep them under ${MAX_IMPORT_CHARS.toLocaleString()} characters, or import one day at a time.`,
+    };
+  }
+  const signedOutMsg =
+    "AI import needs a signed-in account. You can still use Quick parse below.";
+  if (aiGuestMode) return { ok: false, kind: "signed-out", error: signedOutMsg };
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, kind: "signed-out", error: signedOutMsg };
+  }
+  let data;
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session) {
-      return { ok: false, error: "Sign in to use AI import." };
+      return { ok: false, kind: "signed-out", error: signedOutMsg };
     }
-    const { data, error } = await supabase.functions.invoke("gemini-insights", {
+    const res = await supabase.functions.invoke("gemini-insights", {
       body: { action: "import_workout", context: { notes: text } },
     });
-    if (error) throw new Error(error.message);
-    if (!data || !data.ok) {
-      throw new Error(`import not ok: ${JSON.stringify(data?.debug)}`);
+    if (res.error) {
+      debugLog("importWorkout invoke error:", res.error.message);
+      return {
+        ok: false,
+        kind: "network",
+        error: "Couldn't reach the AI service. Check your connection and retry.",
+      };
     }
+    data = res.data;
+  } catch (err) {
+    debugLog("importWorkout network failure:", err?.message);
+    return {
+      ok: false,
+      kind: "network",
+      error: "Couldn't reach the AI service. Check your connection and retry.",
+    };
+  }
+
+  if (!data || !data.ok) {
+    const errorKind = data?.errorKind || "unknown";
+    debugLog("importWorkout not ok:", { errorKind, debug: data?.debug });
+    if (errorKind === "model_overloaded") {
+      return {
+        ok: false,
+        kind: "busy",
+        error: "The AI service is overloaded right now. Retry in a minute, or use Quick parse.",
+      };
+    }
+    if (errorKind === "bad_request") {
+      return {
+        ok: false,
+        kind: "invalid",
+        error: data?.debug?.error || "That input couldn't be imported.",
+      };
+    }
+    return {
+      ok: false,
+      kind: "upstream",
+      error: "The AI service returned an error. Retry, or use Quick parse.",
+    };
+  }
+
+  try {
     const raw = (data.text || "").trim();
     // Strip any accidental code fences, then pull the JSON object out.
     const cleaned = raw.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
     const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("No JSON in response");
     const parsed = JSON.parse(match[0]);
-    const exercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
-    if (!exercises.length) return { ok: false, error: "Couldn't find any exercises in that." };
-    return { ok: true, exercises };
+    const rawExercises = Array.isArray(parsed.exercises) ? parsed.exercises : [];
+    const { exercises, dropped } = sanitizeImportedExercises(rawExercises);
+    if (!exercises.length) {
+      return {
+        ok: false,
+        kind: "no-exercises",
+        error: "Couldn't find any exercises in that. Try naming the movements (e.g. \"bench 3x8\"), or use Quick parse.",
+      };
+    }
+    return { ok: true, exercises, dropped };
   } catch (err) {
-    debugLog("importWorkout failed:", err.message);
-    return { ok: false, error: "Import failed. Try rephrasing your notes." };
+    debugLog("importWorkout parse failure:", err.message);
+    return {
+      ok: false,
+      kind: "parse",
+      error: "The AI reply couldn't be read as a workout. Retry, or use Quick parse.",
+    };
   }
 }

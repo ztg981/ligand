@@ -944,8 +944,14 @@ export default function App() {
             profile={store.fitnessProfile}
             workouts={store.workouts}
             templates={store.workoutTemplates}
+            scheduledWorkouts={store.scheduledWorkouts}
             addWorkout={store.addWorkout}
             addTemplate={store.addTemplate}
+            updateTemplate={store.updateTemplate}
+            deleteTemplate={store.deleteTemplate}
+            addScheduledWorkout={store.addScheduledWorkout}
+            updateScheduledWorkout={store.updateScheduledWorkout}
+            deleteScheduledWorkout={store.deleteScheduledWorkout}
             updateFitnessProfile={store.updateFitnessProfile}
           />
         );

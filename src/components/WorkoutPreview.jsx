@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { alternativesFor } from "../lib/workoutGen.js";
+import { todayKey } from "../lib/model.js";
 
 /* WorkoutPreview - the editable review step for a generated (or template)
    session, shown before you start. Swap any exercise for another that hits
@@ -14,12 +15,18 @@ export default function WorkoutPreview({
   onStart,
   onRegenerate, // () => freshPlan
   onSaveTemplate, // (name, plan) => void
+  onSchedule, // (dateKey, plan) => void — plan it for a calendar day
   onClose,
+  eyebrow = "Generated for you",
+  title = "Today's workout",
 }) {
   const [plan, setPlan] = useState(initialPlan);
   const [tmplName, setTmplName] = useState("");
   const [savingTmpl, setSavingTmpl] = useState(false);
   const [tmplSaved, setTmplSaved] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
+  const [schedDate, setSchedDate] = useState(() => todayKey());
+  const [scheduled, setScheduled] = useState(false);
   const unit = profile?.weightUnit || "lbs";
 
   const patch = (idx, p) =>
@@ -62,8 +69,8 @@ export default function WorkoutPreview({
       >
         <div className="wp-head">
           <div>
-            <div className="eyebrow">Generated for you</div>
-            <h2 className="page-title" style={{ fontSize: 20 }}>Today's workout</h2>
+            <div className="eyebrow">{eyebrow}</div>
+            <h2 className="page-title" style={{ fontSize: 20 }}>{title}</h2>
           </div>
           <button className="iconbtn" title="Close" onClick={onClose}>
             <Icon.Close />
@@ -153,7 +160,32 @@ export default function WorkoutPreview({
         </div>
 
         <div className="wp-foot">
-          {savingTmpl ? (
+          {scheduling ? (
+            <div className="wp-tmpl-row">
+              <input
+                className="input"
+                type="date"
+                autoFocus
+                value={schedDate}
+                onChange={(e) => setSchedDate(e.target.value)}
+              />
+              <button
+                className="btn"
+                disabled={!schedDate}
+                style={{ opacity: schedDate ? 1 : 0.5, flex: "none" }}
+                onClick={() => {
+                  onSchedule?.(schedDate, plan);
+                  setScheduling(false);
+                  setScheduled(true);
+                }}
+              >
+                Schedule
+              </button>
+              <button className="btn ghost" style={{ flex: "none" }} onClick={() => setScheduling(false)}>
+                Cancel
+              </button>
+            </div>
+          ) : savingTmpl ? (
             <div className="wp-tmpl-row">
               <input
                 className="input"
@@ -177,9 +209,21 @@ export default function WorkoutPreview({
             </div>
           ) : (
             <div className="wp-foot-actions">
-              <button className="btn ghost" onClick={regenerate}>
-                <Icon.Reset width={14} height={14} /> Regenerate
-              </button>
+              {onRegenerate && (
+                <button className="btn ghost" onClick={regenerate}>
+                  <Icon.Reset width={14} height={14} /> Regenerate
+                </button>
+              )}
+              {onSchedule && (
+                <button
+                  className="btn"
+                  onClick={() => setScheduling(true)}
+                  disabled={plan.length === 0 || scheduled}
+                  style={{ opacity: plan.length === 0 || scheduled ? 0.5 : 1 }}
+                >
+                  <Icon.Calendar width={13} height={13} /> {scheduled ? "Scheduled" : "Schedule"}
+                </button>
+              )}
               <button
                 className="btn"
                 onClick={() => setSavingTmpl(true)}

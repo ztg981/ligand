@@ -93,6 +93,7 @@ export default function WorkoutTab({
   templates = [],
   addWorkout,
   addTemplate,
+  addScheduledWorkout,
   updateFitnessProfile,
 }) {
   const isMobile = useIsMobile(768);
@@ -108,7 +109,7 @@ export default function WorkoutTab({
       weeklyPlan: { ...weeklyPlan, [weekday]: groups },
     });
   const [logging, setLogging] = useState(null); // { exercises } | null
-  const [preview, setPreview] = useState(null); // generated plan under review
+  const [preview, setPreview] = useState(null); // { plan, source } under review
   const [choosing, setChoosing] = useState(false); // start chooser
   const [equipSheet, setEquipSheet] = useState(null); // { onConfirm } | null
   // Today's equipment for generation. `null` = follow the saved profile default
@@ -205,12 +206,13 @@ export default function WorkoutTab({
       onConfirm: (equip) => {
         setSessionEquipment(equip);
         setEquipSheet(null);
-        setPreview(
-          generateWorkout({
+        setPreview({
+          plan: generateWorkout({
             profile: { ...profile, availableEquipment: equip },
             workouts,
-          })
-        );
+          }),
+          source: "generated",
+        });
       },
     });
   };
@@ -247,13 +249,34 @@ export default function WorkoutTab({
     );
   }
 
+  // Name a plan from its dominant muscle groups ("Chest + Triceps"), for
+  // scheduled entries created out of an import/generation.
+  const planName = (plan) => {
+    const groups = [...new Set((plan || []).map((p) => p.muscleGroup).filter((g) => g && g !== "other"))];
+    if (!groups.length) return "Workout";
+    return groups
+      .slice(0, 2)
+      .map((g) => g[0].toUpperCase() + g.slice(1))
+      .join(" + ");
+  };
+
+  const handleSchedule = (dateKey, plan) =>
+    addScheduledWorkout?.({
+      date: dateKey,
+      name: planName(plan),
+      exercises: plan,
+    });
+
   const previewEl = preview && (
     <WorkoutPreview
       profile={{ ...profile, availableEquipment: sessionEquipment }}
-      initialPlan={preview}
-      onRegenerate={buildPlan}
+      initialPlan={preview.plan}
+      eyebrow={preview.source === "imported" ? "Imported from your notes" : "Generated for you"}
+      title={preview.source === "imported" ? "Review your workout" : "Today's workout"}
+      onRegenerate={preview.source === "generated" ? buildPlan : null}
       onStart={startFromPlan}
       onSaveTemplate={handleSaveTemplate}
+      onSchedule={addScheduledWorkout ? handleSchedule : null}
       onClose={() => setPreview(null)}
     />
   );
@@ -321,7 +344,7 @@ export default function WorkoutTab({
           weeklyPlan={weeklyPlan}
           setDayPlan={setDayPlan}
           profile={profile}
-          onImported={(plan) => setPreview(plan)}
+          onImported={(plan) => setPreview({ plan, source: "imported" })}
           todaysSplit={todaysSplit}
           todaysGroups={todaysGroups}
           sessionEquipment={sessionEquipment}

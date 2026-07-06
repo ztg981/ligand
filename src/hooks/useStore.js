@@ -12,6 +12,7 @@ import {
   createAlarm,
   createWorkout,
   createWorkoutTemplate,
+  createScheduledWorkout,
   createFitnessProfile,
   createSong,
   shiftDay,
@@ -503,6 +504,44 @@ export function useStore() {
     [setData]
   );
 
+  // -- scheduled workouts (dated planned instances) ---------------
+  const addScheduledWorkout = useCallback(
+    (schedOrOpts) => {
+      const sched =
+        schedOrOpts && schedOrOpts.id
+          ? schedOrOpts
+          : createScheduledWorkout(schedOrOpts);
+      setData((d) => ({
+        ...d,
+        scheduledWorkouts: [...(d.scheduledWorkouts || []), sched],
+      }));
+      return sched;
+    },
+    [setData]
+  );
+
+  const updateScheduledWorkout = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        scheduledWorkouts: (d.scheduledWorkouts || []).map((s) =>
+          s.id === id
+            ? { ...s, ...patch, updatedAt: new Date().toISOString() }
+            : s
+        ),
+      })),
+    [setData]
+  );
+
+  const deleteScheduledWorkout = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        scheduledWorkouts: (d.scheduledWorkouts || []).filter((s) => s.id !== id),
+      })),
+    [setData]
+  );
+
   // -- fitness profile (one per app) -----------------------------
   // Shallow-merges a patch onto the existing profile, creating a default one
   // first if none exists yet (so onboarding steps can patch incrementally).
@@ -581,6 +620,9 @@ export function useStore() {
       addTemplate,
       updateTemplate,
       deleteTemplate,
+      addScheduledWorkout,
+      updateScheduledWorkout,
+      deleteScheduledWorkout,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -624,6 +666,9 @@ export function useStore() {
       addTemplate,
       updateTemplate,
       deleteTemplate,
+      addScheduledWorkout,
+      updateScheduledWorkout,
+      deleteScheduledWorkout,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -645,6 +690,7 @@ export function useStore() {
     focusLog: data.focusLog || [],
     workouts: data.workouts || [],
     workoutTemplates: data.workoutTemplates || [],
+    scheduledWorkouts: data.scheduledWorkouts || [],
     fitnessProfile: data.fitnessProfile || null,
     songLog: data.songLog || [],
     ...actions,
