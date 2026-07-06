@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import GoalDropdown from "../components/GoalDropdown.jsx";
 import { useDropdown } from "../hooks/useDropdown.js";
@@ -292,6 +292,28 @@ function AvatarMenu({
    push, and a clear "Offline" when the cloud can't be reached (data is still
    safe in localStorage). */
 function SyncPill({ status }) {
+  // Flash a brief "Saved" tick when a push completes, so saving is visibly
+  // confirmed (matters most mid-workout on a phone).
+  const [justSaved, setJustSaved] = useState(false);
+  const prevRef = useRef(status);
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = status;
+    if (prev === "syncing" && status === "synced") {
+      setJustSaved(true);
+      const t = setTimeout(() => setJustSaved(false), 2000);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [status]);
+
+  if (status === "synced" && justSaved) {
+    return (
+      <span className="sync-pill saved" title="All changes saved to your account.">
+        <span className="sync-dot" /> Saved
+      </span>
+    );
+  }
   if (status === "idle" || status === "synced") return null;
   if (status === "offline") {
     return (

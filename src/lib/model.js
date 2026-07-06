@@ -275,6 +275,8 @@ export function createWorkoutExercise({
   muscleGroup = "other",
   type = "strength",
   sets = [],
+  restSec = null, // per-exercise rest override; null = profile default
+  notes = null, // short user note ("felt heavy", "seat at 4")
 } = {}) {
   return {
     id: uid("wex"),
@@ -283,6 +285,8 @@ export function createWorkoutExercise({
     muscleGroup,
     type,
     sets: sets.length ? sets : [createSet()],
+    restSec,
+    notes,
   };
 }
 

@@ -60,6 +60,8 @@ export default function WorkoutLogger({
   onFinish,
   onCancel,
   onSaveTemplate, // (name, exercises) => void
+  onSnapshot, // (snapshot|null) => void — persist the live session (resume support)
+  resume = null, // saved snapshot to restore: { exercises, currentIdx, guidedStarted, startedAt }
 }) {
   const unit = profile?.weightUnit || "lbs";
   const restStrength = profile?.restStrengthSec || 90;
@@ -71,23 +73,27 @@ export default function WorkoutLogger({
   const priorBestFor = (exerciseId) => exercisePR(priorWorkouts, exerciseId);
   const celebratedRef = useRef(new Set()); // exerciseIds already celebrated this session
 
-  // Seed from a template/generated plan if provided, else start empty.
-  const wasSeeded = Boolean(initialExercises && initialExercises.length);
-  const [exercises, setExercises] = useState(() =>
-    wasSeeded ? initialExercises : []
+  // Seed from a restored mid-session snapshot first, then a template/generated
+  // plan, else start empty.
+  const wasSeeded = Boolean(
+    (resume?.exercises?.length || 0) > 0 || (initialExercises && initialExercises.length)
   );
-  const [showPicker, setShowPicker] = useState(!initialExercises);
+  const [exercises, setExercises] = useState(() =>
+    resume?.exercises?.length ? resume.exercises : wasSeeded ? initialExercises : []
+  );
+  const [showPicker, setShowPicker] = useState(!wasSeeded);
   // Session overview shown at the start of a seeded (planned) session — the
   // "here's what's ahead" briefing a trainer would give before you begin.
-  const [showOverview, setShowOverview] = useState(wasSeeded);
+  // A resumed session skips it (you're mid-workout, not starting).
+  const [showOverview, setShowOverview] = useState(wasSeeded && !resume);
 
   // Guided mode: on a phone, a seeded/planned workout runs one exercise at a
   // time (execution) instead of the full scrolling list (which stays for
   // desktop and for free logging). All data lives in the shared `exercises`
   // state, so moving between exercises never loses anything.
   const guided = isMobile && wasSeeded;
-  const [guidedStarted, setGuidedStarted] = useState(false);
-  const [currentIdx, setCurrentIdx] = useState(0);
+  const [guidedStarted, setGuidedStarted] = useState(Boolean(resume?.guidedStarted));
+  const [currentIdx, setCurrentIdx] = useState(resume?.currentIdx || 0);
   const [showPlan, setShowPlan] = useState(false); // full-plan overlay in guided mode
 
   // Prior best-per-exercise, so each movement can show "Last time: 135 × 8".
@@ -98,8 +104,27 @@ export default function WorkoutLogger({
   const [tmplName, setTmplName] = useState("");
   const [tmplSaved, setTmplSaved] = useState(false);
 
-  const startRef = useRef(Date.now());
+  const startRef = useRef(resume?.startedAt || Date.now());
   const [elapsed, setElapsed] = useState(0);
+
+  // Persist the live session (debounced) so a reload / app close never loses
+  // completed sets. Cleared explicitly on finish and cancel. onSnapshot is a
+  // stable setState-style setter, so it's safe in the dependency array.
+  useEffect(() => {
+    if (!onSnapshot || summary) return undefined;
+    if (!exercises.length) return undefined; // nothing worth restoring yet
+    const t = setTimeout(() => {
+      onSnapshot({
+        exercises,
+        currentIdx,
+        guidedStarted,
+        startedAt: startRef.current,
+        workoutName,
+        savedAt: Date.now(),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [exercises, currentIdx, guidedStarted, summary, workoutName, onSnapshot]);
   useEffect(() => {
     if (summary) return; // stop ticking once finished
     const t = setInterval(() => {
@@ -137,7 +162,9 @@ export default function WorkoutLogger({
   }, [rest]);
 
   const startRest = (exercise) => {
-    const dur = exercise.type === "cardio" ? restCardio : restStrength;
+    // Per-exercise rest (from the plan/builder) wins over the profile default.
+    const dur =
+      exercise.restSec ?? (exercise.type === "cardio" ? restCardio : restStrength);
     setRest({ remaining: dur, total: dur, name: exercise.name, paused: false });
   };
   const toggleRestPause = () =>
@@ -345,6 +372,7 @@ export default function WorkoutLogger({
     });
     try { ding(); } catch { /* best-effort */ }
     try { navigator.vibrate?.([30, 40, 120]); } catch { /* fine */ }
+    onSnapshot?.(null); // the session is over — clear the resume snapshot
     onFinish?.(workout);
   };
 
@@ -588,6 +616,7 @@ export default function WorkoutLogger({
         <div className="wl-g-body">
           <div className="wl-g-ex-name">{cur.name}</div>
           {lastLine && <div className="wl-g-lasttime">{lastLine}</div>}
+          {cur.notes && <div className="wl-g-exnote">“{cur.notes}”</div>}
 
           {!exComplete ? (
             <>

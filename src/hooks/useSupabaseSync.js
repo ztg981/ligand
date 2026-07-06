@@ -134,6 +134,23 @@ export function useSupabaseSync(session) {
     };
   }, [userId, pushNow]);
 
+  // --- 3. Retry when connectivity returns / app is foregrounded ---------
+  // A failed push previously sat as "offline" until the NEXT local edit.
+  // Now regaining network (or switching back to the tab/PWA) retries
+  // immediately; pushNow no-ops when the blob hasn't changed.
+  useEffect(() => {
+    if (!userId || !supabase) return undefined;
+    const retry = () => {
+      if (activeRef.current) pushNow();
+    };
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+    };
+  }, [userId, pushNow]);
+
   // --- First-login migration, resolved by the app (Phase 4 UI) ---
   // importExisting === true  → push the current local blob as the first row.
   // importExisting === false → wipe local and start with an empty cloud row.
