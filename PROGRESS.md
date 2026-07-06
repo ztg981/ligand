@@ -103,6 +103,69 @@ goal works. Zero console errors; build green. Real iOS Safari was not
 available in this environment — the fix removes the offending paint layer
 outright, which is engine-independent.
 
+### Section 4 — Workout product (DONE: 4A/4B/4C/4D core + 4E picks)
+
+**Storage-path audit (proven from code, not assumed):**
+- All app data lives in localStorage `ligand.*`; when signed in,
+  `useSupabaseSync` mirrors the WHOLE keyspace into one `user_data` row
+  (debounced 1.5s after each write). So: **PC→iPhone and iPhone→PC both work
+  when signed in on both devices; guest mode is device-local only.**
+- On login the cloud row wins (overwrites local). Conflicts between devices
+  are **last-write-wins on the whole blob** — acceptable per brief, documented
+  here: simultaneous edits on two devices keep whichever device pushed last.
+  Scheduled workouts carry `updatedAt` for future finer-grained merging.
+- Exercise IDs come from the static in-code library — stable across devices.
+- Templates vs scheduled instances vs history are now three distinct objects:
+  `workoutTemplates` (reusable), `scheduledWorkouts` (dated, status
+  planned/done + completedWorkoutId link), `workouts` (logged history).
+- **Active session previously did NOT survive reload — fixed** (below).
+- Offline: localStorage keeps every edit; previously a failed push waited for
+  the next edit — **fixed**: reconnect (`online`) and app-foreground
+  (`visibilitychange`) now retry; SyncPill shows Syncing/Offline/Saved.
+
+**Built this session:**
+- **Active-session persistence + Resume** (`ligand.activeWorkout`, debounced
+  400ms; part of the synced blob): reload/close mid-set → "Workout in
+  progress" banner → Resume restores exercises, values, position, and the
+  real elapsed time. Finish/cancel/discard clears it. Verified live through
+  a reload cycle, including a scheduled instance still being marked done
+  after resume (scheduledId rides the snapshot).
+- **Week calendar (`WeekSchedule.jsx`)** on the desktop hub: Mon–Sun with
+  week nav + today highlight; per instance Start / Edit / Move / Duplicate /
+  Remove (instance-only, templates untouched). Verified each action live.
+- **Manual workout builder** (WorkoutPreview extended; desktop AND mobile):
+  name, library search, add-custom-exercise, up/down reordering, sets/reps/
+  weight, per-exercise rest + notes, estimated duration, then Start /
+  Schedule / Save-as-template. Mobile-verified at 390px (no overflow).
+- **Mobile home hero**: a workout scheduled for today becomes the hero with
+  "Start <name>"; Create + Repeat-last buttons added.
+- **Per-exercise rest presets** honored by the in-gym rest timer; exercise
+  notes shown on the guided card.
+- **Repeat last session** (plan built from the previous workout).
+
+**4E brainstorm + ranking** (daily usefulness / risk / mobile value / differentiation / model complexity):
+1. Active-session persistence+resume — high/low/high/medium/low → BUILT
+2. Scheduled instances + week calendar — high/low/high/medium/medium → BUILT
+3. Manual builder incl. mobile — high/low/high/low/low → BUILT
+4. Per-exercise rest presets — high/low/high/low/low → BUILT
+5. Repeat last session — high/low/high/low/low → BUILT
+6. Estimated duration — medium/low/medium/low/low → BUILT (builder header)
+7. Supersets/circuits — medium/HIGH risk (logger restructure)/medium → deferred; skipping avoids a half-built execution mode
+8. RPE/RIR + set types — medium/medium/medium → deferred (schema ready: sets are objects, additive fields safe)
+9. Warm-up set generator — medium/medium → deferred
+10. Equipment profiles per gym — low/medium → deferred (EquipmentSheet presets already cover most of it)
+11. Plate calculator — already existed (Phase 23)
+12. Beat-last-time cue — already existed (Phase 23)
+
+**4F test matrix status:** builder→schedule→start→reload→resume→finish→
+history + instance-done: PASS (live). Duplicate/move/remove: PASS. Custom
+exercise: PASS. AI import + malformed + empty + long: PASS (Section 1).
+Existing-user data: safe (`scheduledWorkouts || []`, additive exercise
+fields). NOT testable in this environment: real two-device sync (one
+browser, no second signed-in device), real offline gym session on iPhone.
+The sync path for those flows is the same single blob mechanism exercised
+here; the untested part is real-world network behavior, stated honestly.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
