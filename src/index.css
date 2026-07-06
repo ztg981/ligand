@@ -5373,6 +5373,101 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .wk-ready-text strong { font-size: 14px; color: var(--ink); }
 .wk-ready-focus { font-size: 12px; color: var(--ink-3); text-transform: capitalize; }
 
+/* ============================================================
+   DesktopWorkoutHub — planning + progress workspace (>=768px)
+   ============================================================ */
+.dwh { display: flex; flex-direction: column; gap: 14px; }
+.dwh-ready {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  background: color-mix(in oklab, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--line));
+}
+.dwh-ready-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.dwh-ready-text strong { font-size: 15px; color: var(--ink); }
+.dwh-ready-note { margin-left: auto; font-size: 12px; color: var(--ink-4); }
+.dwh-plan-nudge {
+  display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+  font-size: 13.5px; color: var(--ink-2);
+}
+.dwh-plan-nudge svg { color: var(--accent); flex: none; width: 18px; height: 18px; }
+.dwh-grid {
+  display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 16px; align-items: start;
+}
+.dwh-main, .dwh-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.dwh-today-sub { font-size: 12.5px; color: var(--ink-3); margin: 0 0 12px; }
+.dwh-today-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dwh-equip { flex: 1 1 200px; min-height: 42px; }
+.dwh-start { flex: none; }
+.dwh-progress-card { }
+.dwh-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dwh-stat { text-align: center; }
+.dwh-stat-num {
+  font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--ink);
+  line-height: 1; display: inline-flex; align-items: center; gap: 4px;
+}
+.dwh-stat-num.wk-streak { color: oklch(0.68 0.16 var(--hue-amb, 60)); }
+.dwh-stat-lbl { font-size: 11px; color: var(--ink-3); margin-top: 5px; }
+.dwh-session { padding: 10px 12px; }
+.dwh-pr {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px;
+}
+.dwh-pr-name { font-size: 13px; font-weight: 550; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dwh-pr-weight { font-size: 14px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-ink, var(--accent)); flex: none; }
+@media (max-width: 1080px) {
+  .dwh-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   MobileWorkoutHome — execution-first landing (<768px)
+   ============================================================ */
+.mwh { display: flex; flex-direction: column; gap: 14px; }
+.mwh-hero {
+  display: flex; flex-direction: column; gap: 12px;
+  background: linear-gradient(160deg,
+    color-mix(in oklab, var(--accent) 14%, var(--panel)),
+    var(--panel) 70%);
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--line));
+}
+.mwh-ready { display: flex; flex-direction: column; gap: 3px; }
+.mwh-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--accent-ink, var(--accent));
+}
+.mwh-eyebrow svg { color: var(--accent-ink, var(--accent)); }
+.mwh-title { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; color: var(--ink); text-transform: capitalize; }
+.mwh-sub { font-size: 13px; color: var(--ink-3); }
+.mwh-equip {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 12px 14px; min-height: 48px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--panel); cursor: pointer; text-align: left;
+}
+.mwh-equip:active { transform: translateY(1px); }
+.mwh-equip-lbl { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 550; color: var(--ink); }
+.mwh-equip-lbl svg { color: var(--ink-3); }
+.mwh-start { width: 100%; justify-content: center; min-height: 58px; font-size: 18px; }
+.mwh-secondary { display: flex; gap: 8px; }
+.mwh-secondary .btn { flex: 1; justify-content: center; min-height: 44px; }
+.mwh-block { display: flex; flex-direction: column; }
+.mwh-recent { display: flex; flex-direction: column; gap: 8px; }
+.mwh-recent-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: var(--r-md); background: var(--panel); border: 1px solid var(--line);
+}
+.mwh-recent-date { font-size: 12px; font-weight: 650; color: var(--ink-2); flex: none; }
+.mwh-recent-exs { flex: 1; font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mwh-recent-meta { font-size: 12px; color: var(--ink-4); flex: none; }
+.mwh-pr-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.mwh-pr-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px;
+  border-radius: 999px; font-size: 12.5px; color: var(--ink-2);
+  background: var(--panel); border: 1px solid var(--line);
+}
+.mwh-pr-chip b { font-family: var(--font-mono); color: var(--ink); }
+
 /* Weekly plan matrix (desktop planning workspace). */
 .wk-planner { margin-bottom: 14px; }
 .wk-planner-sub, .wk-import-sub {

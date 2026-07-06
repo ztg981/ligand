@@ -1,6 +1,53 @@
 # Ligand — Supabase Auth & Cloud Sync — Progress
 
-_Session date: 2026-06-14 (updated 2026-07-04)_
+_Session date: 2026-06-14 (updated 2026-07-05)_
+
+## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
+
+**Honest correction.** Earlier phases claimed the Workout experience was "two
+different experiences (PC = planning, mobile = execution)". A side-by-side
+diagnosis proved that was FALSE for the LANDING page: `WorkoutTab.jsx`'s
+`view === "hub"` block was a SINGLE shared markup tree rendered on both, gating
+on `isMobile` in only 3 trivial spots (hide the "Plan" tab, hide the plan view,
+drop one sentence). The only real divergence was the active logger AFTER
+pressing Start (guided vs list). The visible "difference" was just CSS stacking.
+Breakpoint detection (`useIsMobile(768)` via matchMedia) was fine; Electron has
+no separate workout logic; no `DesktopWorkoutHub`/`MobileWorkoutHome` existed.
+
+**Diagnosis method:** added a temporary dev-only (`import.meta.env.DEV`)
+diagnostic label to WorkoutTab showing viewport width, `isMobile`, the selected
+landing component, and web-vs-electron; captured screenshots at 375px and 1280px
+showing identical `WorkoutTab · view="hub"` markup. (Label removed after the fix.)
+
+**Fix — real separate architecture:**
+- New `src/components/MobileWorkoutHome.jsx` — execution-first: a hero card
+  (today's split / "Let's train"), equipment quick-select, a BIG Start button,
+  compact stats, and a compact recent + PR-chip glance. No planner, no AI
+  import, no analytics grid.
+- New `src/components/DesktopWorkoutHub.jsx` — planning + progress workspace: a
+  full-width "ready for the gym" banner, then a two-column grid — LEFT the
+  weekly split PLANNER matrix + a compact "Start a session" row + AI import;
+  RIGHT a progress card (week stats), recent sessions, and recent PRs. Start is
+  a small action, not the hero (the doing happens on the phone).
+- `WorkoutTab.jsx` now renders `{isMobile ? <MobileWorkoutHome/> : <Desktop
+  WorkoutHub/>}` for the hub, passing shared state/handlers (added `onOpenEquip`).
+  The separate desktop-only "Plan" tab was folded into the desktop hub (the hub
+  IS the plan surface now; the segmented control reads "Plan" on desktop,
+  "Today" on mobile). Exercises + Progress tabs unchanged; logger/modals shared.
+- CSS: `.dwh*` two-column workspace (collapses to one column <1080px) and
+  `.mwh*` mobile hero/execution styles.
+
+**Verified live** (dev preview): 1280px renders `DesktopWorkoutHub` (56-cell
+planner + progress columns; planner toggles persist to `profile.weeklyPlan`);
+375px renders `MobileWorkoutHome` (hero + big Start; Start opens the flow); the
+two are different components with different markup, not CSS-stacked cards. Zero
+console errors, no horizontal overflow. `npm run build` green.
+
+**Deployment note (honest):** master now has the split. The repo has no
+`vercel.json`/deploy script and I did not run a web deploy, so I cannot confirm
+the live Vercel commit; if a GitHub→Vercel integration exists it auto-deploys on
+push. The 1.0.1 Windows installer predates this change (built at `0390c63`); it
+would need a rebuild to include the split.
 
 ## Phase 25 — Guided workout, hooks-warning investigation, Windows build (2026-07-04, Claude Code)
 

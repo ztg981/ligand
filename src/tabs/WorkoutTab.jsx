@@ -16,9 +16,10 @@ import {
   todayKey,
 } from "../lib/model.js";
 import { generateWorkout } from "../lib/workoutGen.js";
-import { MUSCLE_LABEL, findExercise } from "../lib/exercises.js";
-import WorkoutPlanner, { todayWeekday, splitLabel } from "../components/WorkoutPlanner.jsx";
-import WorkoutImport from "../components/WorkoutImport.jsx";
+import { findExercise } from "../lib/exercises.js";
+import { todayWeekday, splitLabel } from "../components/WorkoutPlanner.jsx";
+import MobileWorkoutHome from "../components/MobileWorkoutHome.jsx";
+import DesktopWorkoutHub from "../components/DesktopWorkoutHub.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 // Turn a saved template's exercise plans into fresh, empty logger exercises.
@@ -95,7 +96,7 @@ export default function WorkoutTab({
   updateFitnessProfile,
 }) {
   const isMobile = useIsMobile(768);
-  const [view, setView] = useState("hub"); // hub | plan | progress | browse
+  const [view, setView] = useState("hub"); // hub | progress | browse
 
   // Today's planned focus from the weekly split (Mon=0..Sun=6). Drives the
   // "ready for the gym" cue that connects PC planning to phone execution.
@@ -149,6 +150,16 @@ export default function WorkoutTab({
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
       .slice(0, 3);
   }, [workouts]);
+
+  // Open the "what do you have today?" equipment sheet, persisting the choice.
+  const onOpenEquip = () =>
+    setEquipSheet({
+      onConfirm: (equip) => {
+        setSessionEquipment(equip);
+        updateFitnessProfile?.({ availableEquipment: equip });
+        setEquipSheet(null);
+      },
+    });
 
   const handleFinish = (workout) => addWorkout({ ...workout, goalId: null });
   const handleSaveTemplate = (name, exercises) =>
@@ -261,14 +272,8 @@ export default function WorkoutTab({
 
       <div className="seg fit-view-seg">
         <button className={view === "hub" ? "active" : ""} onClick={() => setView("hub")}>
-          Today
+          {isMobile ? "Today" : "Plan"}
         </button>
-        {/* Planning is a desktop workspace; the phone is for execution. */}
-        {!isMobile && (
-          <button className={view === "plan" ? "active" : ""} onClick={() => setView("plan")}>
-            Plan
-          </button>
-        )}
         <button className={view === "browse" ? "active" : ""} onClick={() => setView("browse")}>
           Exercises
         </button>
@@ -285,16 +290,6 @@ export default function WorkoutTab({
         />
       )}
 
-      {view === "plan" && !isMobile && (
-        <>
-          <WorkoutPlanner plan={weeklyPlan} onChange={setDayPlan} />
-          <WorkoutImport
-            profile={profile}
-            onImported={(plan) => setPreview(plan)}
-          />
-        </>
-      )}
-
       {view === "browse" && (
         <ExerciseBrowser
           equipment={sessionEquipment}
@@ -302,136 +297,50 @@ export default function WorkoutTab({
         />
       )}
 
-      {view === "hub" && (
-        <>
-          {/* TOP: today's workout + equipment quick-selector */}
-          <div className="card wk-today-card">
-            <div className="card-head">
-              <div className="card-title"><Icon.Bolt /> Today's workout</div>
-            </div>
-            {todaysSplit ? (
-              <div className="wk-ready" role="status">
-                <span className="wk-ready-dot" />
-                <span className="wk-ready-text">
-                  <strong>Ready for the gym</strong>
-                  <span className="wk-ready-focus">
-                    {todaysSplit} · {todaysGroups.map((g) => MUSCLE_LABEL[g] || g).join(", ")}
-                  </span>
-                </span>
-              </div>
-            ) : (
-              <p className="fit-today-sub">
-                Build a session from your history, or start logging one yourself.
-                {!isMobile && " Set a weekly split in Plan to see today's focus here."}
-              </p>
-            )}
-
-            <button
-              type="button"
-              className="wk-equip-quick"
-              onClick={() =>
-                setEquipSheet({
-                  onConfirm: (equip) => {
-                    setSessionEquipment(equip);
-                    updateFitnessProfile?.({ availableEquipment: equip });
-                    setEquipSheet(null);
-                  },
-                })
-              }
-            >
-              <span className="wk-equip-quick-lbl">
-                <Icon.Dumbbell width={14} height={14} /> What do you have today?
-              </span>
-              <span className="wk-equip-quick-val">
-                {sessionEquipment.length ? `${sessionEquipment.length} selected` : "Bodyweight"}
-                <Icon.Arrow width={13} height={13} />
-              </span>
-            </button>
-
-            <button className="btn primary wk-start-btn" onClick={onStartWorkout}>
-              <Icon.Play /> Start workout
-            </button>
-            <div className="wk-today-actions">
-              <button className="btn sm" onClick={onGenerate}>
-                <Icon.Bolt width={14} height={14} /> Generate
-              </button>
-              <button className="btn sm" onClick={startFree}>
-                <Icon.Plus width={14} height={14} /> Log freely
-              </button>
-            </div>
-          </div>
-
-          {/* STATS strip */}
-          <div className="wk-stats-strip">
-            <div className="card wk-stat">
-              <div className="wk-stat-num">{weekCount}<span className="wk-stat-den">/{target}</span></div>
-              <div className="wk-stat-lbl">this week</div>
-            </div>
-            <div className="card wk-stat">
-              <div className="wk-stat-num wk-streak"><Icon.Flame width={16} height={16} /> {streak}</div>
-              <div className="wk-stat-lbl">week streak</div>
-            </div>
-            <div className="card wk-stat">
-              <div className="wk-stat-num">{weekVolume >= 1000 ? `${(weekVolume / 1000).toFixed(1)}k` : weekVolume}</div>
-              <div className="wk-stat-lbl">{unit} this week</div>
-            </div>
-          </div>
-
-          {/* RECENT sessions (last 3) */}
-          <div className="fit-section-label"><Icon.Calendar /> Recent</div>
-          {recent.length === 0 ? (
-            <div className="card fit-empty">
-              No sessions yet. Your logged workouts show up here, newest first.
-            </div>
-          ) : (
-            <div className="stack" style={{ gap: 10 }}>
-              {recent.map((w) => {
-                const vol = workoutVolume(w);
-                const exNames = (w.exercises || []).map((e) => e.name).join(", ");
-                return (
-                  <div key={w.id} className="card fit-session">
-                    <div className="fit-session-head">
-                      <span className="fit-session-date">{relDate(w.date)}</span>
-                      <span className="fit-session-type">{w.type}</span>
-                    </div>
-                    <div className="fit-session-exs">{exNames || "No exercises"}</div>
-                    <div className="fit-session-meta">
-                      <span>{fmtDuration(w.durationSec)}</span>
-                      <span>·</span>
-                      <span>{(w.exercises || []).length} ex</span>
-                      {vol > 0 && (<><span>·</span><span>{vol.toLocaleString()} {unit}</span></>)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* PRs (top 3 recent) */}
-          <div className="fit-section-label" style={{ marginTop: 22 }}>
-            <Icon.Trophy /> Recent PRs
-          </div>
-          {recentPRs.length === 0 ? (
-            <div className="card fit-empty">
-              Once you complete some weighted sets, your best lifts show up here.
-            </div>
-          ) : (
-            <div className="fit-pr-grid">
-              {recentPRs.map((pr, i) => (
-                <div key={i} className="card fit-pr">
-                  <div className="fit-pr-group">🏆 {pr.name}</div>
-                  <div className="fit-pr-weight">
-                    {pr.weight}<span className="fit-pr-unit">{unit}</span>
-                  </div>
-                  <div className="fit-pr-ex">
-                    {pr.reps ? `${pr.reps} reps` : ""}{pr.reps ? " · " : ""}{relDate(pr.date)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      {view === "hub" && (isMobile ? (
+        <MobileWorkoutHome
+          todaysSplit={todaysSplit}
+          todaysGroups={todaysGroups}
+          sessionEquipment={sessionEquipment}
+          onOpenEquip={onOpenEquip}
+          onStart={onStartWorkout}
+          onGenerate={onGenerate}
+          onLogFree={startFree}
+          weekCount={weekCount}
+          target={target}
+          streak={streak}
+          weekVolume={weekVolume}
+          unit={unit}
+          recent={recent}
+          recentPRs={recentPRs}
+          relDate={relDate}
+          fmtDuration={fmtDuration}
+        />
+      ) : (
+        <DesktopWorkoutHub
+          weeklyPlan={weeklyPlan}
+          setDayPlan={setDayPlan}
+          profile={profile}
+          onImported={(plan) => setPreview(plan)}
+          todaysSplit={todaysSplit}
+          todaysGroups={todaysGroups}
+          sessionEquipment={sessionEquipment}
+          onOpenEquip={onOpenEquip}
+          onStart={onStartWorkout}
+          onGenerate={onGenerate}
+          onLogFree={startFree}
+          weekCount={weekCount}
+          target={target}
+          streak={streak}
+          weekVolume={weekVolume}
+          unit={unit}
+          recent={recent}
+          recentPRs={recentPRs}
+          relDate={relDate}
+          fmtDuration={fmtDuration}
+          workoutVolume={workoutVolume}
+        />
+      ))}
 
       {/* Start chooser (when templates exist) */}
       {choosing && (
