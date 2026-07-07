@@ -42,7 +42,7 @@ import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
-import QuickNoteFab from "./components/QuickNoteFab.jsx";
+import QuickAdd from "./components/QuickAdd.jsx";
 import AlarmOverlay from "./components/AlarmOverlay.jsx";
 import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
@@ -782,15 +782,14 @@ export default function App() {
     if (tab === "goal" && activeGoal === id) setTab("home");
   };
 
-  // Mobile Home's "Capture a thought" button: create a blank note and jump
-  // straight to it in the Notes tab (the most common one-handed phone
-  // action), instead of making the user navigate then tap "New note" again.
+  // Unified quick-add: one capture point (task / note / workout / alarm /
+  // focus) opened from the mobile FAB or the desktop topbar +.
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  // A workout parsed in quick-add rides here to the Workout tab's review.
+  const [quickWorkoutPlan, setQuickWorkoutPlan] = useState(null);
+
+  // Notes can be auto-opened by id after cross-tab jumps.
   const [quickCaptureNoteId, setQuickCaptureNoteId] = useState(null);
-  const handleQuickCapture = () => {
-    const note = store.addNote();
-    setQuickCaptureNoteId(note.id);
-    setTab("notes");
-  };
 
   const screen = (() => {
     switch (tab) {
@@ -975,6 +974,8 @@ export default function App() {
             updateScheduledWorkout={store.updateScheduledWorkout}
             deleteScheduledWorkout={store.deleteScheduledWorkout}
             updateFitnessProfile={store.updateFitnessProfile}
+            quickPlan={quickWorkoutPlan}
+            onQuickPlanHandled={() => setQuickWorkoutPlan(null)}
           />
         );
       case "settings":
@@ -1095,6 +1096,7 @@ export default function App() {
           themeChoice={themeChoice}
           setThemeChoice={setThemeChoice}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenQuickAdd={() => setQuickAddOpen(true)}
           notifications={notif.items}
           unreadCount={notif.unreadCount}
           onOpenNotifications={notif.markAllRead}
@@ -1157,8 +1159,19 @@ export default function App() {
           there. Desktop keeps Hyperfocus exactly as it was. */}
       {isMobile ? (
         // The Notes tab has its own "New note" FAB, so suppress the global
-        // quick-note FAB there — the phone shows exactly one floating button.
-        tab !== "notes" && <QuickNoteFab addNote={store.addNote} />
+        // quick-add FAB there — the phone shows exactly one floating button.
+        tab !== "notes" && (
+          <button
+            type="button"
+            className="hf-fab quick-note-fab"
+            title="Quick add"
+            onClick={() => setQuickAddOpen(true)}
+            data-mute-click
+          >
+            <Icon.Plus />
+            <span className="hf-fab-label">Add</span>
+          </button>
+        )
       ) : (
         <button
           className={"hf-fab" + (hyperfocus ? " active" : "")}
@@ -1200,6 +1213,21 @@ export default function App() {
       )}
 
       <BadgeCelebration queue={badgeToasts} onDismiss={dismissBadgeToast} />
+
+      <QuickAdd
+        key={quickAddOpen ? "qa-open" : "qa-closed"}
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        isMobile={isMobile}
+        addTask={store.addTask}
+        addNote={store.addNote}
+        addAlarm={store.addAlarm}
+        onWorkoutPlan={(plan) => {
+          setQuickWorkoutPlan(plan);
+          setTab("workout");
+        }}
+        onStartFocus={() => setTab("pomodoro")}
+      />
 
       {(firingAlarm || testAlarm) && (
         <AlarmOverlay

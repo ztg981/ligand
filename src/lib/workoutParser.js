@@ -20,6 +20,8 @@
       the user reviews and edits, for when Gemini is down.
    ============================================================ */
 
+import { EXERCISES } from "./exercises.js";
+
 export const IMPORT_MUSCLE_GROUPS = [
   "chest",
   "back",
@@ -107,6 +109,50 @@ export function sanitizeImportedExercises(rawList) {
   }
   dropped += Math.max(0, rawList.length - MAX_EXERCISES);
   return { exercises: out, dropped };
+}
+
+// ---- library matching -------------------------------------------
+
+const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// Best-effort match of a parsed name to a library exercise so imported
+// movements get a real exerciseId (PR tracking + "last time"). Unknown names
+// stay as custom exercises (exerciseId null) — never dropped.
+export function matchLibraryExercise(name) {
+  const n = norm(name);
+  if (!n) return null;
+  const exact = EXERCISES.find((e) => norm(e.name) === n);
+  if (exact) return exact;
+  // Contains either direction (e.g. "incline dumbbell press" ~ "Incline Press").
+  const contains = EXERCISES.find(
+    (e) => norm(e.name).includes(n) || n.includes(norm(e.name))
+  );
+  if (contains) return contains;
+  // Plural → singular retry ("rows" → "row" ~ "Bent Over Row").
+  const singular = n.endsWith("s") ? n.slice(0, -1) : null;
+  if (singular) {
+    return (
+      EXERCISES.find(
+        (e) => norm(e.name).includes(singular) || singular.includes(norm(e.name))
+      ) || null
+    );
+  }
+  return null;
+}
+
+/** Attach exerciseId / canonical name / muscle group from the library. */
+export function enrichWithLibrary(exercises) {
+  return (exercises || []).map((ex) => {
+    const lib = matchLibraryExercise(ex.name);
+    const type = ex.type === "cardio" || lib?.type === "cardio" ? "cardio" : "strength";
+    return {
+      ...ex,
+      exerciseId: lib?.id || null,
+      name: lib?.name || ex.name || "Exercise",
+      muscleGroup: lib?.muscleGroup || ex.muscleGroup || "other",
+      type,
+    };
+  });
 }
 
 // ---- deterministic text parsing ---------------------------------

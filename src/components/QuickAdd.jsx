@@ -1,0 +1,267 @@
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Icon } from "./Icons.jsx";
+import { enrichWithLibrary, parseWorkoutText } from "../lib/workoutParser.js";
+
+/* QuickAdd — ONE capture point for the things you need to write down before
+   working memory drops them: a task, a note, a workout, an alarm, or jumping
+   straight into a focus session. Opens as a bottom sheet on the phone and a
+   compact centered card on desktop.
+
+   Design intent (executive-function friendly):
+   - One text field first; the type chips just reroute the same input.
+   - Saving never navigates away except where navigation IS the action
+     (workout review, focus).
+   - Nothing here is a giant form; details can be edited later in place. */
+
+const TYPES = [
+  { id: "task", label: "Task", icon: <Icon.Check width={13} height={13} /> },
+  { id: "note", label: "Note", icon: <Icon.Pencil width={13} height={13} /> },
+  { id: "workout", label: "Workout", icon: <Icon.Dumbbell width={13} height={13} /> },
+  { id: "alarm", label: "Alarm", icon: <Icon.Bell width={13} height={13} /> },
+  { id: "focus", label: "Focus", icon: <Icon.Timer width={13} height={13} /> },
+];
+
+// Next half-hour mark — a sensible default alarm time you can still edit.
+function nextHalfHour() {
+  const d = new Date(Date.now() + 30 * 60000);
+  d.setMinutes(d.getMinutes() < 30 ? 30 : 60, 0, 0);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+export default function QuickAdd({
+  open,
+  onClose,
+  isMobile = false,
+  addTask,
+  addNote,
+  addAlarm,
+  onWorkoutPlan, // (plan) => void — open the workout review with parsed exercises
+  onStartFocus, // () => void — jump to the Pomodoro tab
+}) {
+  // Fresh state every open: the parent remounts this component per open via a
+  // key, so plain initial values ARE the reset (no state-sync effect needed).
+  const [type, setType] = useState("task");
+  const [text, setText] = useState("");
+  const [alarmTime, setAlarmTime] = useState(nextHalfHour);
+  const [saved, setSaved] = useState(false);
+  const [hint, setHint] = useState("");
+  const inputRef = useRef(null);
+  const scrimRef = useRef(null);
+  const closeTimer = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  // Keep the mobile sheet above the soft keyboard (visual-viewport pinning,
+  // same technique as the original quick-note sheet).
+  useEffect(() => {
+    if (!open || !isMobile) return undefined;
+    const vv = window.visualViewport;
+    const scrim = scrimRef.current;
+    if (!vv || !scrim) return undefined;
+    const apply = () => {
+      scrim.style.top = `${vv.offsetTop}px`;
+      scrim.style.height = `${vv.height}px`;
+      scrim.style.bottom = "auto";
+    };
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+    };
+  }, [open, isMobile]);
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  if (!open) return null;
+
+  const flashSavedAndClose = () => {
+    setSaved(true);
+    closeTimer.current = setTimeout(onClose, 900);
+  };
+
+  const save = () => {
+    const t = text.trim();
+    setHint("");
+    if (type === "focus") {
+      onStartFocus?.();
+      onClose();
+      return;
+    }
+    if (type === "alarm") {
+      if (!alarmTime) return;
+      addAlarm?.({ time: alarmTime, label: t || "Alarm", days: [] });
+      flashSavedAndClose();
+      return;
+    }
+    if (!t) return;
+    if (type === "task") {
+      addTask?.({ text: t });
+      flashSavedAndClose();
+    } else if (type === "note") {
+      addNote?.({ text: t });
+      flashSavedAndClose();
+    } else if (type === "workout") {
+      const { exercises } = parseWorkoutText(t);
+      if (!exercises.length) {
+        setHint('Couldn\'t read any exercises. Try lines like "bench 3x8" or "3 sets of lateral raises".');
+        return;
+      }
+      onWorkoutPlan?.(enrichWithLibrary(exercises));
+      onClose();
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey && type !== "workout" && type !== "note") {
+      e.preventDefault();
+      save();
+    }
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      save();
+    }
+  };
+
+  const multiline = type === "note" || type === "workout";
+  const placeholder = {
+    task: "What needs doing?",
+    note: "What's on your mind?",
+    workout: 'e.g. "bench 3x8 @ 135, rest 90s, 3 sets of lateral raises"',
+    alarm: "Label (optional)",
+    focus: "",
+  }[type];
+
+  const body = saved ? (
+    <div className="quick-note-saved">
+      <Icon.Check width={20} height={20} /> Saved
+    </div>
+  ) : (
+    <>
+      <div className="row between" style={{ alignItems: "center" }}>
+        <div className="sheet-title">Quick add</div>
+        <button type="button" className="iconbtn" title="Close" onClick={onClose}>
+          <Icon.Close />
+        </button>
+      </div>
+
+      <div className="qa-types" role="tablist" aria-label="What to add">
+        {TYPES.map((tp) => (
+          <button
+            key={tp.id}
+            role="tab"
+            aria-selected={type === tp.id}
+            className={"qa-type" + (type === tp.id ? " active" : "")}
+            onClick={() => {
+              setType(tp.id);
+              setHint("");
+              setTimeout(() => inputRef.current?.focus(), 40);
+            }}
+          >
+            {tp.icon} {tp.label}
+          </button>
+        ))}
+      </div>
+
+      {type === "focus" ? (
+        <p className="qa-note">
+          Jump to the Pomodoro timer and start a session. Tip: pick something
+          small and just start for five minutes.
+        </p>
+      ) : (
+        <>
+          {type === "alarm" && (
+            <input
+              className="input qa-time"
+              type="time"
+              value={alarmTime}
+              onChange={(e) => setAlarmTime(e.target.value)}
+              aria-label="Alarm time"
+            />
+          )}
+          {multiline ? (
+            <textarea
+              ref={inputRef}
+              className="input quick-note-textarea"
+              placeholder={placeholder}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={onKeyDown}
+            />
+          ) : (
+            <input
+              ref={inputRef}
+              className="input qa-input"
+              placeholder={placeholder}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={onKeyDown}
+            />
+          )}
+          {type === "alarm" && (
+            <p className="qa-note">
+              Rings while Ligand is open. Repeat days and photo-scan dismissal
+              live in Settings → Alarms.
+            </p>
+          )}
+          {hint && <p className="qa-hint" role="alert">{hint}</p>}
+        </>
+      )}
+
+      <button
+        type="button"
+        className="btn primary quick-note-save"
+        onClick={save}
+        disabled={type !== "focus" && type !== "alarm" && !text.trim()}
+        style={{ opacity: type === "focus" || type === "alarm" || text.trim() ? 1 : 0.5 }}
+      >
+        {type === "focus" ? (
+          <><Icon.Timer width={14} height={14} /> Open focus timer</>
+        ) : type === "workout" ? (
+          <><Icon.Dumbbell width={14} height={14} /> Review workout</>
+        ) : (
+          <><Icon.Check width={14} height={14} /> Save</>
+        )}
+      </button>
+    </>
+  );
+
+  return createPortal(
+    isMobile ? (
+      <div
+        className="sheet-scrim quick-note-scrim"
+        role="presentation"
+        ref={scrimRef}
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="bottom-sheet quick-note-sheet" role="dialog" aria-modal="true" aria-label="Quick add">
+          <div className="sheet-drag-area">
+            <span className="sheet-handle" />
+          </div>
+          <div className="sheet-body quick-note-body">{body}</div>
+        </div>
+      </div>
+    ) : (
+      <div className="scrim" role="presentation" onMouseDown={onClose}>
+        <div
+          className="modal qa-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick add"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="qa-modal-body">{body}</div>
+        </div>
+      </div>
+    ),
+    document.body
+  );
+}

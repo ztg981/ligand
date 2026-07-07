@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import WorkoutLogger from "../components/WorkoutLogger.jsx";
@@ -101,6 +101,8 @@ export default function WorkoutTab({
   updateScheduledWorkout,
   deleteScheduledWorkout,
   updateFitnessProfile,
+  quickPlan = null, // exercises parsed by the global quick-add
+  onQuickPlanHandled,
 }) {
   const isMobile = useIsMobile(768);
   const [view, setView] = useState("hub"); // hub | progress | browse
@@ -116,6 +118,19 @@ export default function WorkoutTab({
     });
   const [logging, setLogging] = useState(null); // { exercises, resume? } | null
   const [preview, setPreview] = useState(null); // { plan, source } under review
+
+  // A workout captured in the global quick-add arrives as a parsed plan;
+  // open it straight in the review modal (edit → start / schedule / save).
+  // This is a one-shot prop→state handoff plus a parent ack — an effect is
+  // the correct tool (the ack cannot run during render).
+  useEffect(() => {
+    if (quickPlan?.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot prop→state handoff; the parent ack below cannot run during render
+      setPreview({ plan: quickPlan, source: "imported" });
+      onQuickPlanHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickPlan]);
   // The live in-gym session, mirrored to localStorage (and the cloud blob for
   // signed-in users) so a reload / closed PWA never loses completed sets.
   const [activeSession, setActiveSession] = useLocalStorage(

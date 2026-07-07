@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { importWorkout } from "../lib/aiApi.js";
-import { parseWorkoutText } from "../lib/workoutParser.js";
-import { EXERCISES } from "../lib/exercises.js";
+import {
+  matchLibraryExercise,
+  parseWorkoutText,
+} from "../lib/workoutParser.js";
 
 /* WorkoutImport — paste messy gym notes, get a structured session.
 
@@ -13,36 +15,10 @@ import { EXERCISES } from "../lib/exercises.js";
    pretending to be AI. Errors state the real cause and keep the notes so
    nothing typed is ever lost. */
 
-const norm = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-
-// Best-effort match of a parsed name to a library exercise, so imported
-// movements get a real exerciseId (enabling PR tracking + "last time").
-// Unknown names stay as custom exercises (exerciseId null) — never dropped.
-function matchLibrary(name) {
-  const n = norm(name);
-  if (!n) return null;
-  let exact = EXERCISES.find((e) => norm(e.name) === n);
-  if (exact) return exact;
-  // Contains either direction (e.g. "incline dumbbell press" ~ "Incline Press").
-  const contains = EXERCISES.find(
-    (e) => norm(e.name).includes(n) || n.includes(norm(e.name))
-  );
-  if (contains) return contains;
-  // Plural → singular retry ("rows" → "row" ~ "Bent Over Row").
-  const singular = n.endsWith("s") ? n.slice(0, -1) : null;
-  if (singular) {
-    return (
-      EXERCISES.find(
-        (e) => norm(e.name).includes(singular) || singular.includes(norm(e.name))
-      ) || null
-    );
-  }
-  return null;
-}
-
 // Map a parsed exercise onto the plan shape WorkoutPreview/logger expect.
+// Library matching lives in workoutParser (shared with the quick-add path).
 function toPlan(ex) {
-  const lib = matchLibrary(ex.name);
+  const lib = matchLibraryExercise(ex.name);
   const type = ex.type === "cardio" || lib?.type === "cardio" ? "cardio" : "strength";
   return {
     exerciseId: lib?.id || null,

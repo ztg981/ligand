@@ -552,6 +552,7 @@ export default function TopNav({
   themeChoice = "light",
   setThemeChoice,
   onOpenSearch,
+  onOpenQuickAdd,
   notifications = [],
   unreadCount = 0,
   onOpenNotifications,
@@ -663,6 +664,14 @@ export default function TopNav({
 
         <div className="topbar-tools">
           <SyncPill status={syncStatus} />
+          {/* Desktop quick-add (the phone uses the floating Add button). */}
+          <button
+            className="iconbtn topbar-quickadd"
+            title="Quick add — task, note, workout, alarm, focus"
+            onClick={onOpenQuickAdd}
+          >
+            <Icon.Plus />
+          </button>
           <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
             <Icon.Search />
           </button>
