@@ -87,7 +87,10 @@ function cleanDate(value) {
   return cleanText(value, 32);
 }
 
+// null/undefined/"" mean "not provided" and must return the fallback —
+// Number(null) is 0, which would otherwise clamp to min (reps 1, rest 0).
 function clampInt(value, min, max, fallback = 0) {
+  if (value == null || value === "") return fallback;
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));

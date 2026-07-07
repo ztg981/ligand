@@ -166,6 +166,64 @@ browser, no second signed-in device), real offline gym session on iPhone.
 The sync path for those flows is the same single blob mechanism exercised
 here; the untested part is real-world network behavior, stated honestly.
 
+### Section 5 — Alarms (DONE)
+
+**Audit result: the feature existed and worked** (Settings → Alarms card on
+both desktop and mobile, since Phase 23), but on a phone it was invisible
+unless you scrolled to the bottom of Settings — the discoverability failure
+the user reported. Not a breakpoint/Electron/runtime issue.
+
+**Changes:** avatar menu (mobile) now has a literal **Alarms** entry (next to
+Pomodoro/Journal) → opens Settings and auto-scrolls to the Alarms card with a
+brief highlight ring. AlarmsPanel gained per-alarm **Edit** (time / label /
+repeat days / retake target photo, same form as Add) and **Test** — raises
+the REAL alarm overlay (persistent tone, vibration, photo-scan or tap
+dismissal) on demand, without stamping `lastFired`, on desktop and mobile.
+
+**Real bug fixed:** if the camera could not open during a photo alarm
+(permission denied / no camera), scan attempts could never increment, so the
+hold-to-dismiss escape hatch NEVER appeared — un-stoppable alarm audio. The
+hatch now appears immediately whenever the camera errors out.
+
+**Verified (Chromium 390×844):** avatar → Alarms navigates + scrolls; add
+alarm (time/label/days/scan target); the firing logic (useAlarms) was
+re-audited: once-per-day duplicate-fire guard (`lastFired` = todayKey),
+midnight-safe, repeat-day filter, disabled alarms skipped, one-at-a-time.
+Real iPhone camera/vibration not testable in this environment. Photo privacy
+(8G): target photos live inline in the alarm object (localStorage / user's
+own user_data row) and are never sent to Gemini; deleting the alarm deletes
+the photo; overlay/capture streams stop their tracks on cleanup.
+
+### Section 8 deployment — security hardening is LIVE (2026-07-06)
+
+The Codex security pass (commit `93edae1`) was applied to the real project
+this session, from this machine:
+
+- **Migration `202607060001_security_hardening.sql` applied** to project
+  `auypprgibgftwpwuvxqa` via the Supabase Management API. Verified live:
+  `user_data` + `ai_rate_limits` both have RLS enabled; exactly the four
+  own-row policies exist; `consume_ai_rate_limit` RPC present; existing
+  user_data rows (6) preserved.
+- **Secret set:** `LIGAND_ALLOWED_ORIGINS=https://ligand-eta.vercel.app`
+  (production origin, discovered from the project's auth redirect allowlist).
+- **Hardened `gemini-insights` deployed** (twice — see fix below).
+- **Bug found in the security pass and fixed before final deploy:**
+  `security.js clampInt()` coerced null → min (missing-reps became 1,
+  missing-rest became 0, silently disabling the rest timer). Same class of
+  bug I'd fixed client-side; now fixed server-side too. `npm test` 21/21.
+- **Live end-to-end tests against the DEPLOYED hardened function** (throwaway
+  signup user, since email autoconfirm is on): anon-key-only call → **401
+  unauthorized** (was 200 before hardening — the anon-callable function is
+  gone); authenticated import → structured JSON, `rateLimitRemaining`
+  counting down per request (14→13, 59→58→57 across actions); rest "2 min"
+  → restSec 120 with nulls preserved; prompt injection ignored; unknown
+  action → bad_request; oversized notes → bad_request.
+
+**Found for the user (manual, needs dashboard):** Supabase Auth `site_url`
+is still `http://localhost:3000` — password-reset emails will redirect to
+localhost. Set it to `https://ligand-eta.vercel.app` in Auth settings. The
+rest of SECURITY_MANUAL_CHECKLIST.md also remains for the user.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
