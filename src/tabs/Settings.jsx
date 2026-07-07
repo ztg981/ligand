@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS, TWEAK_DEFAULTS } from "../theme/useTweaks.js";
+import { DARK_PALETTES, LIGHT_PALETTES } from "../theme/palettes.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
@@ -215,7 +216,7 @@ export default function Settings({
 
         {/* Appearance (mirrors Tweaks) */}
         <Section icon={<Icon.Wand />} title="Appearance">
-          <Row name="Theme">
+          <Row name="Theme" hint="Auto follows your system light/dark setting">
             <Segmented
               value={tweaks.theme}
               onChange={(v) => setTweak({ theme: v })}
@@ -225,6 +226,38 @@ export default function Settings({
                 { value: "auto", label: "Auto" },
               ]}
             />
+          </Row>
+          <Row name="Light look" hint="Palette used whenever light mode shows">
+            <div className="palette-row">
+              {LIGHT_PALETTES.map((p) => (
+                <button
+                  key={p.id}
+                  className={"palette-pick" + (tweaks.lightPalette === p.id ? " active" : "")}
+                  onClick={() => setTweak({ lightPalette: p.id })}
+                  title={p.desc}
+                  aria-pressed={tweaks.lightPalette === p.id}
+                >
+                  <span className="palette-dot" style={{ background: p.swatch }} />
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row name="Dark look" hint="Palette used whenever dark mode shows">
+            <div className="palette-row">
+              {DARK_PALETTES.map((p) => (
+                <button
+                  key={p.id}
+                  className={"palette-pick" + (tweaks.darkPalette === p.id ? " active" : "")}
+                  onClick={() => setTweak({ darkPalette: p.id })}
+                  title={p.desc}
+                  aria-pressed={tweaks.darkPalette === p.id}
+                >
+                  <span className="palette-dot" style={{ background: p.swatch }} />
+                  {p.name}
+                </button>
+              ))}
+            </div>
           </Row>
           <Row name="Accent">
             <div className="row" style={{ gap: 4 }}>

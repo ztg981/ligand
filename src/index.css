@@ -11,6 +11,10 @@
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
 
   /* light palette */
+  /* Nav surface color as an r,g,b triplet — the frosted pill needs plain
+     rgba() (Safari drops color-mix there), so palettes override this triplet
+     instead of the pill hardcoding one color. */
+  --nav-rgb: 250, 246, 240;
   --bg: #faf6f0;
   --bg-2: #f4eee5;
   --panel: #ffffff;
@@ -62,6 +66,7 @@
 }
 
 [data-theme="dark"] {
+  --nav-rgb: 21, 22, 26;
   --bg: #15161a;
   --bg-2: #1b1d22;
   --panel: #1f2127;
@@ -83,6 +88,111 @@
   --shadow-inset: inset 0 1px 2px rgba(0,0,0,0.45), inset 0 -1px 0 rgba(255,255,255,0.03);
   --shadow-press: inset 0 2px 3px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.02);
 }
+
+/* ============================================================
+   Palettes — user-selected LOOK per mode (src/theme/palettes.js).
+   "paper" (light) and "midnight" (dark) are the base tokens above;
+   the blocks below restyle the same token contract. Contrast targets:
+   --ink on --bg / --panel stays ≥ 7:1 everywhere except Low Stim
+   (≥ 5.5:1 by design — a deliberately quieter surface, still AA).
+   ============================================================ */
+
+[data-theme="light"][data-palette="porcelain"] {
+  --nav-rgb: 247, 248, 250;
+  --bg: #f7f8fa;
+  --bg-2: #eef0f4;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --panel-3: #f0f3f7;
+  --line: rgba(22, 32, 52, 0.09);
+  --line-strong: rgba(22, 32, 52, 0.16);
+  --ink: #16181d;
+  --ink-2: #454a53;
+  --ink-3: #7e8590;
+  --ink-4: #b3b9c4;
+}
+
+[data-theme="light"][data-palette="meadow"] {
+  --nav-rgb: 244, 247, 242;
+  --bg: #f4f7f2;
+  --bg-2: #eaf0e6;
+  --panel: #ffffff;
+  --panel-2: #f7faf5;
+  --panel-3: #edf3e9;
+  --line: rgba(28, 44, 22, 0.09);
+  --line-strong: rgba(28, 44, 22, 0.16);
+  --ink: #171b14;
+  --ink-2: #464e42;
+  --ink-3: #7f887a;
+  --ink-4: #aeb7a9;
+}
+
+[data-theme="light"][data-palette="contrast-light"] {
+  --nav-rgb: 255, 255, 255;
+  --bg: #ffffff;
+  --bg-2: #f4f4f4;
+  --panel: #ffffff;
+  --panel-2: #f5f5f5;
+  --panel-3: #ebebeb;
+  --line: rgba(0, 0, 0, 0.22);
+  --line-strong: rgba(0, 0, 0, 0.38);
+  --ink: #000000;
+  --ink-2: #1f1f1f;
+  --ink-3: #4d4d4d;
+  --ink-4: #767676;
+  --accent-ink: oklch(0.34 0.11 var(--accent-h));
+}
+
+[data-theme="dark"][data-palette="navy"] {
+  --nav-rgb: 14, 20, 32;
+  --bg: #0e1420;
+  --bg-2: #131a29;
+  --panel: #182135;
+  --panel-2: #1c2740;
+  --panel-3: #22304d;
+  --line: rgba(160, 190, 255, 0.09);
+  --line-strong: rgba(160, 190, 255, 0.16);
+  --ink: #e8ecf5;
+  --ink-2: #aeb8cc;
+  --ink-3: #76839c;
+  --ink-4: #4c576e;
+}
+
+[data-theme="dark"][data-palette="forest"] {
+  --nav-rgb: 18, 23, 17;
+  --bg: #121711;
+  --bg-2: #171d16;
+  --panel: #1b231a;
+  --panel-2: #20291e;
+  --panel-3: #263024;
+  --line: rgba(190, 230, 180, 0.08);
+  --line-strong: rgba(190, 230, 180, 0.14);
+  --ink: #e9eee4;
+  --ink-2: #b4bdaa;
+  --ink-3: #7d8873;
+  --ink-4: #4f584a;
+}
+
+[data-theme="dark"][data-palette="lowstim"] {
+  --nav-rgb: 26, 26, 28;
+  --bg: #1a1a1c;
+  --bg-2: #1e1e20;
+  --panel: #222225;
+  --panel-2: #26262a;
+  --panel-3: #2b2b2f;
+  --line: rgba(255, 255, 255, 0.05);
+  --line-strong: rgba(255, 255, 255, 0.1);
+  --ink: #d8d6d2;
+  --ink-2: #a5a29c;
+  --ink-3: #75726c;
+  --ink-4: #4c4a46;
+  /* Quieter accent: same hue, less chroma — nothing shouts. */
+  --accent: oklch(0.68 0.06 var(--accent-h));
+  --accent-glow: oklch(0.65 0.07 var(--accent-h) / 0.3);
+  --accent-ink: oklch(0.8 0.05 var(--accent-h));
+}
+/* Low Stim also silences the drifting ambient glow entirely. */
+[data-palette="lowstim"] .ambient { display: none; }
 
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
@@ -3216,8 +3326,8 @@ button.upcoming-row:hover { background: var(--panel-3); }
    frosted treatment above rather than this opaque fallback. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   @media (max-width: 768px) {
-    .topbar { background: rgba(250, 246, 240, 0.97) !important; }
-    [data-theme="dark"] .topbar { background: rgba(21, 22, 26, 0.97) !important; }
+    .topbar { background: rgba(var(--nav-rgb, 250, 246, 240), 0.97) !important; }
+    [data-theme="dark"] .topbar { background: rgba(var(--nav-rgb, 21, 22, 26), 0.97) !important; }
   }
 }
 
@@ -3251,9 +3361,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
     padding: 7px 8px;
     border-radius: 14px;
     z-index: 70;
-    /* Hardcoded rgba (not color-mix) so the surface always paints; matches the
-       --bg tokens: light #faf6f0, dark #15161a (override below). */
-    background: rgba(250, 246, 240, 0.85);
+    /* Plain rgba (not color-mix — Safari drops it here); the r,g,b triplet
+       comes from the theme/palette tokens so every palette's pill matches
+       its background. */
+    background: rgba(var(--nav-rgb, 250, 246, 240), 0.85);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     /* Own GPU layer — iOS wants fixed backdrop-filter elements promoted. */
@@ -3261,7 +3372,7 @@ button.upcoming-row:hover { background: var(--panel-3); }
     -webkit-transform: translateZ(0);
   }
   [data-theme="dark"] .topbar {
-    background: rgba(21, 22, 26, 0.85);
+    background: rgba(var(--nav-rgb, 21, 22, 26), 0.85);
   }
   /* Subtle fade just below the pill: content scrolling up behind it dissolves
      into the page background instead of hard-cutting at the lower edge. */
@@ -3274,10 +3385,10 @@ button.upcoming-row:hover { background: var(--panel-3); }
     height: 22px;
     pointer-events: none;
     /* rgba, not color-mix — same Safari reason as the nav surface above. */
-    background: linear-gradient(to bottom, rgba(250, 246, 240, 0.72), transparent);
+    background: linear-gradient(to bottom, rgba(var(--nav-rgb, 250, 246, 240), 0.72), transparent);
   }
   [data-theme="dark"] .topbar::after {
-    background: linear-gradient(to bottom, rgba(21, 22, 26, 0.72), transparent);
+    background: linear-gradient(to bottom, rgba(var(--nav-rgb, 21, 22, 26), 0.72), transparent);
   }
 
   /* --- The two remaining Safari backdrop-filter killers (both sit in the
@@ -5728,6 +5839,37 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .blocker-note { font-size: 11px; color: var(--ink-4); margin: 10px 0 0; line-height: 1.5; }
 
 .wl-g-exnote { font-size: 12.5px; color: var(--ink-3); font-style: italic; margin-top: 2px; }
+
+/* Topbar appearance menu (3-state Light/Dark/Auto). */
+.theme-pop { min-width: 170px; padding: 6px; }
+.theme-auto-dot {
+  position: absolute; top: 5px; right: 6px;
+  width: 6px; height: 6px; border-radius: 999px;
+  background: var(--accent);
+}
+.theme-opt-hint { margin-left: auto; font-size: 10.5px; color: var(--ink-4); }
+.theme-opt-check { display: inline-flex; color: var(--accent-ink, var(--accent)); margin-left: 4px; }
+.theme-opt-check svg { width: 13px; height: 13px; }
+.theme-current { color: var(--accent-ink, var(--accent)); }
+
+/* Palette pickers (Light look / Dark look, Settings on both layouts). */
+.palette-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 300px; }
+.palette-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; min-height: 32px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-2);
+}
+.palette-pick.active {
+  border-color: var(--accent);
+  color: var(--accent-ink, var(--accent));
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.palette-dot {
+  width: 14px; height: 14px; border-radius: 999px; flex: none;
+  border: 1px solid rgba(128, 128, 128, 0.35);
+}
 
 /* Brief highlight on a settings card that was jumped to (avatar → Alarms). */
 .settings-focus-flash > .card, .settings-focus-flash.card {

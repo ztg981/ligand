@@ -110,6 +110,55 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
   );
 }
 
+/* Appearance control: a clear three-state menu (Light / Dark / Auto) instead
+   of an ambiguous two-way toggle. The icon reflects what's SHOWING; the menu
+   shows which choice is SET, including Auto following the system. */
+function ThemeMenu({ theme, themeChoice, setThemeChoice }) {
+  const { open, toggle, close, triggerRef, menuRef } = useDropdown();
+  const OPTIONS = [
+    { id: "light", label: "Light", icon: <Icon.Sun /> },
+    { id: "dark", label: "Dark", icon: <Icon.Moon /> },
+    { id: "auto", label: "Auto", icon: <Icon.Wand />, hint: "Follows system" },
+  ];
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        ref={triggerRef}
+        className="iconbtn"
+        title="Appearance"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Appearance: ${themeChoice}`}
+        onClick={toggle}
+        style={{ position: "relative" }}
+      >
+        {theme === "dark" ? <Icon.Moon /> : <Icon.Sun />}
+        {themeChoice === "auto" && <span className="theme-auto-dot" aria-hidden="true" />}
+      </button>
+      {open && (
+        <div className="notif-pop theme-pop" ref={menuRef} role="menu">
+          {OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              className={"avatar-menu-item" + (themeChoice === o.id ? " theme-current" : "")}
+              role="menuitemradio"
+              aria-checked={themeChoice === o.id}
+              onClick={() => {
+                setThemeChoice?.(o.id);
+                close();
+              }}
+            >
+              {o.icon} {o.label}
+              {o.hint && <span className="theme-opt-hint">{o.hint}</span>}
+              {themeChoice === o.id && <span className="theme-opt-check"><Icon.Check /></span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const AVATAR_BG =
   "linear-gradient(140deg, oklch(0.78 0.10 var(--accent-h)), oklch(0.65 0.12 var(--hue-lav)))";
 
@@ -500,7 +549,8 @@ export default function TopNav({
   onArchiveGoal,
   setGoalOrder,
   theme,
-  toggleTheme,
+  themeChoice = "light",
+  setThemeChoice,
   onOpenSearch,
   notifications = [],
   unreadCount = 0,
@@ -622,9 +672,7 @@ export default function TopNav({
             onOpen={onOpenNotifications}
             onClear={onClearNotifications}
           />
-          <button className="iconbtn" title="Toggle theme" onClick={toggleTheme}>
-            {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
-          </button>
+          <ThemeMenu theme={theme} themeChoice={themeChoice} setThemeChoice={setThemeChoice} />
           <div className="topbar-tools-sep" />
           <AvatarMenu
             userName={userName}

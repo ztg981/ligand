@@ -15,6 +15,10 @@ export const TWEAK_DEFAULTS = {
   ambient: 60, // 0–100 (%)
   radius: 16, // 4–20 (px) — softer corners out of the box for new users
   density: "compact", // "compact" | "comfy"
+  // Separate LOOK per mode (see src/theme/palettes.js). Auto mode swaps both
+  // the mode and the palette chosen for that mode.
+  lightPalette: "paper",
+  darkPalette: "midnight",
 };
 
 // Accent swatches offered in the panel — single-hue family, varied by angle.

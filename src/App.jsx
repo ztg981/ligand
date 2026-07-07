@@ -18,6 +18,7 @@ import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
+import { paletteFor } from "./theme/palettes.js";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -687,6 +688,7 @@ export default function App() {
   // effective light/dark token set so text stays readable on top.
   useEffect(() => {
     const root = document.documentElement;
+    let effectiveMode = resolvedTheme;
     if (settings.wallpaper.id === "custom" && activeCustom) {
       // Custom photo: use the data URL directly, cover the viewport.
       // Theme follows the user's choice (we can't know the photo's tone).
@@ -700,14 +702,19 @@ export default function App() {
       const wp = wallpaperById(settings.wallpaper.id);
       const hasWallpaper = wp.id !== "none";
       // Wallpaper tone wins; otherwise the resolved (auto-aware) theme.
-      root.dataset.theme = hasWallpaper ? wp.tone : resolvedTheme;
+      effectiveMode = hasWallpaper ? wp.tone : resolvedTheme;
+      root.dataset.theme = effectiveMode;
       if (hasWallpaper) {
         root.style.setProperty("--app-bg", wp.bg);
       } else {
         root.style.removeProperty("--app-bg");
       }
     }
-  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom]);
+    // The user's chosen LOOK for whichever mode is actually showing — auto
+    // mode swaps palettes together with the mode (Soft Paper by day, Deep
+    // Navy by night, for example).
+    root.dataset.palette = paletteFor(effectiveMode, tweaks);
+  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom, tweaks]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {
@@ -1085,7 +1092,8 @@ export default function App() {
           onAddGoal={() => setShowGoalModal(true)}
           onArchiveGoal={handleArchiveGoal}
           theme={resolvedTheme}
-          toggleTheme={() => setThemeChoice(resolvedTheme === "dark" ? "light" : "dark")}
+          themeChoice={themeChoice}
+          setThemeChoice={setThemeChoice}
           onOpenSearch={() => setShowSearch(true)}
           notifications={notif.items}
           unreadCount={notif.unreadCount}
