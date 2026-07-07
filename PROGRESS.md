@@ -2,6 +2,98 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 28 — Overnight product pass (2026-07-07, Claude Code)
+
+Baseline: master `638dc10` clean, 28/28 tests, build green. Research notes
+for this pass: RESEARCH_NOTES.md.
+
+### P0 — the real "AI parsing failure": desktop app locked out by origin check
+
+The Windows app loads over file://, so every fetch carries `Origin: null`.
+The hardened Edge Function 403'd that BEFORE auth ran → every AI action in
+the installed desktop app failed with generic "AI service" errors (web/dev
+worked, hence "intermittent"). Fixed: the opaque origin is admitted (JWT +
+per-user rate limits remain the actual gate; ACAO: null returned so the
+Electron renderer passes CORS), production origin added to the default
+allowlist. **Redeployed and proven live**: Origin null + anon → 401,
+Origin null + real user → 200, evil origin → still 403.
+
+### P0 — quick-parser overhaul
+
+Descriptive phrases no longer become phantom exercises. Cue-only segments
+("slow and controlled", "RPE 8", "squeeze at the bottom") attach as notes
+to the exercise they follow; inline cues ("3x8 each leg") move into notes;
+"N sets of NAME", supersets ("Superset curls and tricep pushdowns for 3
+rounds" → both movements, shared rounds), timed holds ("plank for 45
+seconds, 3 rounds"), warm-ups ("warm up with 5 minutes on the bike" →
+5-min bike, note warm-up), to-failure + rest chains, and cardio distance
+all parse. Weight after at/with now requires a unit so "with 5 minutes"
+can never read as 5 lb. All ten brief examples covered by 7 new tests.
+
+### P1 — theme system (palettes per mode + 3-state control)
+
+`src/theme/palettes.js`: 4 light looks (Soft Paper default, Porcelain,
+Meadow, High Contrast) + 4 dark looks (Midnight default, Deep Navy, Calm
+Forest, Low Stim — muted accent, ambient off). Users pick one PER MODE in
+Settings (both layouts); Auto switches mode AND that mode's palette
+together (verified against emulated system scheme). Topbar control is now
+an explicit Light/Dark/Auto menu with a check + "follows system" hint (an
+accent dot marks Auto), replacing the ambiguous sun/moon toggle. The
+frosted nav pill follows palettes via a --nav-rgb triplet (Safari rgba
+constraint preserved).
+
+### P1 — unified Quick Add
+
+One capture point: floating Add on the phone (keyboard-aware bottom
+sheet), + in the desktop topbar. Chips: Task (Enter saves), Note (replaces
+the old note-only FAB), Workout (deterministic parse + library matching →
+straight into the review modal), Alarm (defaults to the next half-hour;
+honest "rings while Ligand is open" note; two taps from anywhere — the
+buried-alarm complaint), Focus (jump to Pomodoro with a start-small
+nudge). Library matching was extracted to workoutParser and shared with
+WorkoutImport.
+
+### P2 — DayRing (time visibility)
+
+Home widget drawing the day as a finite 24h shape: elapsed fill, hours-
+left counter, arcs for workouts ACTUALLY completed today, dots for today's
+alarms, now marker, minutes-focused/trained center, next-fixed-point line,
+tap-throughs to Workout / Settings→Alarms. Static SVG, screen-reader list
+mirror, minute-level updates. Deliberately shows only real timed data —
+untimed tasks are not faked onto the clock (a timed-block model is the
+documented next iteration).
+
+### P2 — Fuel (gentle nutrition)
+
+Workout → Fuel segment: meal names + balance chips (protein/veg/fruit/
+grains/dairy/treat) — NO calories, macros, or scores; water glasses with
+delta-based atomic +/- (fixed a stale-state race where rapid taps lost
+counts); one additive-only suggestion line with a property test asserting
+restrictive language can never appear; 7-day glance; professional-help
+note. Data (`meals`, `waterLog`) rides the normal sync blob with safe
+defaults for existing users.
+
+### Honesty audits re-verified
+
+- **Alarms**: in-app only while open; stated in the panel and in Quick
+  Add. Camera-blocked escape hatch (Phase 27) intact.
+- **App blocker**: real hosts-file blocking on the Windows app; the web
+  Settings card now says exactly that (read-only explanation + pointer to
+  platform Focus modes) instead of rendering nothing.
+- **Updates**: web auto-deploys from master (verified against the live
+  bundle); PWA autoUpdate (can't strand users); Windows v1.1.0 release
+  feed verified consistent — installed-app handshake still unverifiable
+  headless.
+
+### Verification
+
+40/40 tests (parser cues/supersets/holds, palettes, nutrition-safety
+property, alarms, security, backup, blocker). Build green. Live-verified
+in Chromium at 390 + 1280: theme menu/palettes/auto, quick-add all five
+types (task+alarm+workout→review verified end-to-end), DayRing with a
+real alarm dot, Fuel meal+water; zero console errors on fresh loads.
+NOT verified here: real iOS Safari, installed Electron, two-device sync.
+
 ## Phase 27 — Final product session (2026-07-05, Claude Code)
 
 Baseline: master `fdc9fb3`, working tree clean, `npm run build` green.

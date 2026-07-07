@@ -45,7 +45,27 @@ export default function BlockerPanel() {
     refresh();
   }, [refresh]);
 
-  if (!blocker) return null; // web / non-Windows — nothing to show
+  if (!blocker) {
+    // Web/PWA: a browser tab cannot rewrite the hosts file or block other
+    // apps — pretending otherwise would be a fake toggle. Say so honestly
+    // and point at the real implementation in the Windows app.
+    return (
+      <div className="card">
+        <div className="card-head">
+          <div className="card-title"><Icon.Bolt /> Focus block</div>
+        </div>
+        <p className="blocker-note" style={{ marginTop: 0 }}>
+          Website blocking works in the <strong>Ligand Windows app</strong>,
+          which can block distracting sites system-wide during focus
+          sessions. Browsers don't let a web page block other sites or apps,
+          so this panel is read-only here. Get the desktop app from the
+          GitHub releases page, or use your platform's built-in Focus mode
+          (Screen Time on iOS, Focus assist on Windows) alongside the
+          Pomodoro timer.
+        </p>
+      </div>
+    );
+  }
 
   const presetDomains = status.presets || {};
   // The full set of domains the current selection would block.
