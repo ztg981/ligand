@@ -12,6 +12,22 @@ import { todayKey } from "../lib/model.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 
+/**
+ * Pure due-check for one alarm at a given Date. Exported for tests.
+ * True when: enabled, HH:MM matches the current minute, today's weekday is
+ * scheduled (empty days = every day), and it hasn't already fired today
+ * (the lastFired stamp is the duplicate-fire guard; it also makes the
+ * midnight boundary safe since todayKey changes at 00:00 local).
+ */
+export function isAlarmDue(alarm, now = new Date()) {
+  if (!alarm?.enabled) return false;
+  const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  if (alarm.time !== hhmm) return false;
+  const weekday = (now.getDay() + 6) % 7; // Mon=0..Sun=6
+  if (alarm.days?.length && !alarm.days.includes(weekday)) return false;
+  return alarm.lastFired !== todayKey(now);
+}
+
 export function useAlarms(alarms = [], updateAlarm) {
   const [firingId, setFiringId] = useState(null);
 
@@ -19,16 +35,8 @@ export function useAlarms(alarms = [], updateAlarm) {
     const check = () => {
       if (firingId) return; // one alarm at a time
       const now = new Date();
-      const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-      const weekday = (now.getDay() + 6) % 7; // Mon=0..Sun=6
       const today = todayKey(now);
-      const due = alarms.find(
-        (a) =>
-          a.enabled &&
-          a.time === hhmm &&
-          (!a.days?.length || a.days.includes(weekday)) &&
-          a.lastFired !== today
-      );
+      const due = alarms.find((a) => isAlarmDue(a, now));
       if (due) {
         setFiringId(due.id);
         updateAlarm?.(due.id, { lastFired: today });
