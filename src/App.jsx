@@ -817,6 +817,15 @@ export default function App() {
             activeDays={activeDays}
             checkInHabit={store.checkInHabit}
             updateHabit={store.updateHabit}
+            workouts={store.workouts}
+            alarms={store.alarms}
+            focusLog={store.focusLog}
+            scheduledWorkouts={store.scheduledWorkouts}
+            onOpenWorkout={() => setTab("workout")}
+            onOpenAlarms={() => {
+              setSettingsFocus("alarms");
+              setTab("settings");
+            }}
           />
         );
       case "habits":

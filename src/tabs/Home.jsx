@@ -9,6 +9,7 @@ import UpcomingDeadlines from "../widgets/UpcomingDeadlines.jsx";
 import WeeklyReview from "../widgets/WeeklyReview.jsx";
 import DailyFocus from "../widgets/DailyFocus.jsx";
 import GoalsGrid from "../widgets/GoalsGrid.jsx";
+import DayRing from "../widgets/DayRing.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -43,7 +44,6 @@ export default function Home({
   tasks,
   journal = [],
   toggleTask,
-  onGoToTasks,
   onGoToHabits,
   onSnoozeGoal,
   onReviseGoalDate,
@@ -57,6 +57,12 @@ export default function Home({
   activeDays = 0,
   checkInHabit,
   updateHabit,
+  workouts = [],
+  alarms = [],
+  focusLog = [],
+  scheduledWorkouts = [],
+  onOpenWorkout,
+  onOpenAlarms,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -308,6 +314,14 @@ export default function Home({
           </div>
         </div>
 
+        <DayRing
+          workouts={workouts}
+          alarms={alarms}
+          focusLog={focusLog}
+          scheduledWorkouts={scheduledWorkouts}
+          onOpenWorkout={onOpenWorkout}
+          onOpenAlarms={onOpenAlarms}
+        />
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
@@ -331,6 +345,14 @@ export default function Home({
 
         {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          <DayRing
+            workouts={workouts}
+            alarms={alarms}
+            focusLog={focusLog}
+            scheduledWorkouts={scheduledWorkouts}
+            onOpenWorkout={onOpenWorkout}
+            onOpenAlarms={onOpenAlarms}
+          />
           {/* Days showing up - distinct calendar days the app was actually
               opened (never elapsed days, never more than once per day). */}
           {activeDays > 0 && (
