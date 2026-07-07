@@ -112,8 +112,13 @@ function setupAutoUpdates(win) {
     if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
   };
 
+  autoUpdater.on("checking-for-update", () => send("update-checking"));
   autoUpdater.on("update-available", (info) =>
     send("update-available", { version: info?.version })
+  );
+  autoUpdater.on("update-not-available", () => send("update-none"));
+  autoUpdater.on("download-progress", (p) =>
+    send("update-progress", { percent: Math.round(p?.percent || 0) })
   );
   autoUpdater.on("update-downloaded", (info) =>
     send("update-downloaded", { version: info?.version })
@@ -137,6 +142,18 @@ app.whenReady().then(() => {
       autoUpdater.quitAndInstall();
     } catch {
       /* not packaged / nothing downloaded — ignore */
+    }
+  });
+
+  // Manual "Check for updates" from Settings → About. Resolves with a plain
+  // status; progress/downloaded events stream separately (setupAutoUpdates).
+  ipcMain.handle("updates:check", async () => {
+    if (!app.isPackaged) return { ok: false, reason: "dev" };
+    try {
+      const res = await autoUpdater.checkForUpdates();
+      return { ok: true, version: res?.updateInfo?.version || null };
+    } catch (err) {
+      return { ok: false, reason: String(err && err.message ? err.message : err) };
     }
   });
 

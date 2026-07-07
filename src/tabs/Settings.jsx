@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS, TWEAK_DEFAULTS } from "../theme/useTweaks.js";
@@ -11,6 +11,7 @@ import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { FOCUS_MUSIC, spotifySearch, youtubeSearch } from "../lib/focusMusic.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
+import pkg from "../../package.json";
 
 /* Built-in one-click appearance presets */
 const BUILT_IN_PRESETS = [
@@ -891,7 +892,97 @@ export default function Settings({
             device. Clearing your browser data will also clear Ligand.
           </p>
         </Section>
+
+        {/* About + updates */}
+        <AboutSection />
       </div>
     </>
+  );
+}
+
+/* About: version, channel, and (Windows app only) a manual update check.
+   On web/PWA the service worker self-updates in the background
+   (vite-plugin-pwa autoUpdate), so there is nothing to click — the note
+   says so instead of showing a dead button. */
+function AboutSection() {
+  const isElectron = typeof window !== "undefined" && Boolean(window.electron?.isElectron);
+  const [status, setStatus] = useState(null); // {state, ...}
+
+  useEffect(() => {
+    if (!isElectron || !window.electron?.onUpdateStatus) return undefined;
+    const off = window.electron.onUpdateStatus(setStatus);
+    const offAvail = window.electron.onUpdateAvailable?.((info) =>
+      setStatus({ state: "available", version: info?.version })
+    );
+    const offDone = window.electron.onUpdateDownloaded?.((info) =>
+      setStatus({ state: "downloaded", version: info?.version })
+    );
+    return () => {
+      off?.();
+      offAvail?.();
+      offDone?.();
+    };
+  }, [isElectron]);
+
+  const check = async () => {
+    setStatus({ state: "checking" });
+    const res = await window.electron?.checkForUpdates?.();
+    if (res && !res.ok) {
+      setStatus(
+        res.reason === "dev"
+          ? { state: "error", message: "Updates only run in the installed app." }
+          : { state: "error", message: res.reason }
+      );
+    }
+    // On success the event stream (checking/none/available/progress/
+    // downloaded) drives the status text.
+  };
+
+  const statusText = (() => {
+    if (!status) return null;
+    switch (status.state) {
+      case "checking": return "Checking…";
+      case "none": return "You're up to date.";
+      case "available": return `Update available${status.version ? ` (v${status.version})` : ""} — downloading…`;
+      case "progress": return `Downloading… ${status.percent ?? 0}%`;
+      case "downloaded": return `v${status.version || ""} downloaded — restart to install.`;
+      case "error": return `Update check failed: ${status.message}`;
+      default: return null;
+    }
+  })();
+
+  return (
+    <Section icon={<Icon.Spark />} title="About">
+      <Row name="Version">
+        <span className="mono" style={{ fontSize: 13, color: "var(--ink-2)" }}>
+          {pkg.version}
+        </span>
+      </Row>
+      <Row
+        name={isElectron ? "Windows app updates" : "Web app updates"}
+        hint={
+          isElectron
+            ? "Checks GitHub Releases; downloads install on restart"
+            : "The web app updates itself automatically in the background"
+        }
+      >
+        {isElectron ? (
+          status?.state === "downloaded" ? (
+            <button className="btn sm primary" onClick={() => window.electron?.quitAndInstall?.()}>
+              Restart to update
+            </button>
+          ) : (
+            <button className="btn ghost sm" onClick={check} disabled={status?.state === "checking"}>
+              Check for updates
+            </button>
+          )
+        ) : (
+          <span style={{ fontSize: 12, color: "var(--ink-4)" }}>Automatic</span>
+        )}
+      </Row>
+      {statusText && (
+        <p className="set-note" role="status">{statusText}</p>
+      )}
+    </Section>
   );
 }

@@ -26,6 +26,25 @@ contextBridge.exposeInMainWorld("electron", {
   },
   quitAndInstall: () => ipcRenderer.send("quit-and-install"),
 
+  // Manual update check (Settings → About). Resolves { ok, version|reason }.
+  checkForUpdates: () => ipcRenderer.invoke("updates:check"),
+  onUpdateStatus: (cb) => {
+    // One subscription for the lightweight status stream the About panel
+    // shows: checking / none / progress / error. (available/downloaded have
+    // their own dedicated subscribers above.)
+    const handlers = [
+      ["update-checking", () => cb({ state: "checking" })],
+      ["update-none", () => cb({ state: "none" })],
+      ["update-progress", (_e, p) => cb({ state: "progress", percent: p?.percent })],
+      ["update-error", (_e, msg) => cb({ state: "error", message: msg })],
+    ].map(([ch, fn]) => {
+      const handler = (e, payload) => fn(e, payload);
+      ipcRenderer.on(ch, handler);
+      return [ch, handler];
+    });
+    return () => handlers.forEach(([ch, h]) => ipcRenderer.removeListener(ch, h));
+  },
+
   // Focus-mode website blocker (Windows). All async; each resolves to a status
   // object { ok, active/blocked, error?, cancelled?, supported?, presets? }.
   blocker: {
