@@ -70,8 +70,6 @@ export default function DesktopWorkoutHub({
             />
           )}
 
-          <WorkoutPlanner plan={weeklyPlan} onChange={setDayPlan} />
-
           <div className="card dwh-today">
             <div className="card-head">
               <div className="card-title"><Icon.Play /> Start a session</div>
@@ -112,6 +110,10 @@ export default function DesktopWorkoutHub({
           </div>
 
           <WorkoutImport profile={profile} onImported={onImported} />
+
+          {/* The muscle-group × day split matrix is a background planning tool;
+             it sits below the actionable cards (calendar, start, import). */}
+          <WorkoutPlanner plan={weeklyPlan} onChange={setDayPlan} />
         </div>
 
         {/* RIGHT — progress at a glance */}

@@ -224,6 +224,30 @@ is still `http://localhost:3000` — password-reset emails will redirect to
 localhost. Set it to `https://ligand-eta.vercel.app` in Auth settings. The
 rest of SECURITY_MANUAL_CHECKLIST.md also remains for the user.
 
+### Section 3 — UI/UX audit (DONE)
+
+Systematic sweep: every main tab (Home, Habits, Tasks, Pomodoro, Journal,
+Notes, Workout, Settings) at 375 / 390 / 430 / 768 / 1280 / 1440, via a
+programmatic audit (horizontal overflow + offending elements, sub-30px touch
+targets, duplicate headings) plus screenshots of Home / Workout mobile and
+the desktop hub. Baseline finding: **zero horizontal overflow at any width on
+any tab** — the earlier sessions' overflow work has held. Real issues found
+and fixed:
+
+| Screen | Problem | Severity | Change | Widths tested |
+|---|---|---|---|---|
+| Home (mobile goals grid) | Goal names shattered mid-word ("Produc tivity", "Colleg e Planni") — status pill squeezed the name column and `overflow-wrap:anywhere` split words | High (reads broken) | Head stacks vertically ≤640px; `anywhere` → `break-word` | 375/390/430 (verified clean after) |
+| Home (mobile) | "Go to goal" link 77×22px tap target | Med | min-height 36px | 375 |
+| Pomodoro | Preset apply buttons 27px tall | Med | min-height 36px | 375 |
+| Settings (mobile) | Accent swatches 24×24px | Med | invisible 36px hit halo (::after) | 375 |
+| Workout (mobile) | 4 secondary hero actions wrapped their LABELS ("Repeat last" on two lines) | Low | row wraps (flex-wrap), labels nowrap | 390 |
+| Workout (desktop) | Tall muscle-matrix planner pushed Start-a-session + AI import below the fold | Med | Reordered: calendar → start → import → matrix | 1280/1440 |
+
+Not changed (checked, judged fine): mobile hero hierarchy, stats strip,
+Recent/PR chips, Habits/Tasks/Journal/Notes layouts, safe-area handling
+(unchanged from prior phases), bottom-tab clearance. No features were
+removed or relocated off-screen.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
