@@ -14,6 +14,7 @@ import {
   createWorkoutTemplate,
   createScheduledWorkout,
   createFitnessProfile,
+  createMeal,
   createSong,
   shiftDay,
   todayKey,
@@ -542,6 +543,43 @@ export function useStore() {
     [setData]
   );
 
+  // -- meals + water (gentle nutrition log) -----------------------
+  const addMeal = useCallback(
+    (opts) => {
+      const meal = opts && opts.id ? opts : createMeal(opts);
+      setData((d) => ({ ...d, meals: [...(d.meals || []), meal] }));
+      return meal;
+    },
+    [setData]
+  );
+
+  const removeMeal = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        meals: (d.meals || []).filter((m) => m.id !== id),
+      })),
+    [setData]
+  );
+
+  // Glasses of water for a given day. Delta-based on purpose: rapid +/+/+
+  // taps land as three atomic updates instead of racing a stale absolute
+  // count. Clamped so a stuck button can't run away.
+  const addWater = useCallback(
+    (date, delta) =>
+      setData((d) => {
+        const cur = (d.waterLog || {})[date] || 0;
+        return {
+          ...d,
+          waterLog: {
+            ...(d.waterLog || {}),
+            [date]: Math.max(0, Math.min(24, cur + delta)),
+          },
+        };
+      }),
+    [setData]
+  );
+
   // -- fitness profile (one per app) -----------------------------
   // Shallow-merges a patch onto the existing profile, creating a default one
   // first if none exists yet (so onboarding steps can patch incrementally).
@@ -623,6 +661,9 @@ export function useStore() {
       addScheduledWorkout,
       updateScheduledWorkout,
       deleteScheduledWorkout,
+      addMeal,
+      removeMeal,
+      addWater,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -669,6 +710,9 @@ export function useStore() {
       addScheduledWorkout,
       updateScheduledWorkout,
       deleteScheduledWorkout,
+      addMeal,
+      removeMeal,
+      addWater,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -692,6 +736,8 @@ export function useStore() {
     workoutTemplates: data.workoutTemplates || [],
     scheduledWorkouts: data.scheduledWorkouts || [],
     fitnessProfile: data.fitnessProfile || null,
+    meals: data.meals || [],
+    waterLog: data.waterLog || {},
     songLog: data.songLog || [],
     ...actions,
   };

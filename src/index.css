@@ -5840,6 +5840,56 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 .wl-g-exnote { font-size: 12.5px; color: var(--ink-3); font-style: italic; margin-top: 2px; }
 
+/* Fuel — gentle nutrition log (Workout tab segment). */
+.fuel { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.fuel-water-count { font-family: var(--font-mono); font-size: 13px; color: var(--ink-3); }
+.fuel-water-row { display: flex; align-items: center; gap: 12px; }
+.fuel-water-btn { width: 44px; height: 44px; padding: 0; font-size: 20px; justify-content: center; flex: none; }
+.fuel-cups { display: flex; align-items: center; gap: 5px; flex: 1; flex-wrap: wrap; }
+.fuel-cup {
+  width: 18px; height: 24px; border-radius: 4px 4px 7px 7px;
+  border: 1.5px solid var(--line-strong); background: transparent;
+}
+.fuel-cup.full { background: oklch(0.72 0.09 230); border-color: oklch(0.62 0.1 230); }
+.fuel-cup-extra { font-size: 11.5px; color: var(--ink-3); font-family: var(--font-mono); }
+.fuel-suggestion {
+  font-size: 12.5px; color: var(--accent-ink, var(--accent));
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+  border-radius: var(--r-md); padding: 8px 10px; margin: 0 0 10px;
+  line-height: 1.45;
+}
+.fuel-meals { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.fuel-meal {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--panel-2);
+}
+.fuel-meal-time { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); flex: none; }
+.fuel-meal-name { font-size: 13.5px; color: var(--ink); flex: 1; min-width: 0; overflow-wrap: break-word; }
+.fuel-meal-tags { display: flex; gap: 4px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.fuel-add { display: flex; flex-direction: column; gap: 8px; }
+.fuel-add .input { height: 44px; }
+.fuel-tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.fuel-tag {
+  padding: 6px 11px; min-height: 32px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+}
+.fuel-tag.on { border-color: var(--accent); color: var(--accent-ink, var(--accent)); background: color-mix(in oklab, var(--accent) 10%, var(--panel)); }
+.fuel-tag.sm { padding: 2px 8px; min-height: 0; font-size: 10.5px; cursor: default; }
+.fuel-save { align-self: flex-end; min-height: 40px; }
+.fuel-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.fuel-day {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 2px; border-radius: var(--r-md); border: 1px solid var(--line);
+}
+.fuel-day.today { border-color: color-mix(in oklab, var(--accent) 45%, var(--line)); }
+.fuel-day-label { font-size: 10px; font-weight: 650; text-transform: uppercase; color: var(--ink-4); }
+.fuel-day-meals { font-family: var(--font-mono); font-size: 14px; color: var(--ink-2); }
+.fuel-day-water { font-size: 10px; min-height: 13px; }
+.fuel-note { font-size: 11px; color: var(--ink-4); margin: 10px 0 0; line-height: 1.5; }
+
 /* Day ring — the "time visibility" widget on Home. */
 .dayring-card { overflow: hidden; }
 .dayring-left { font-size: 11.5px; color: var(--ink-3); font-family: var(--font-mono); }

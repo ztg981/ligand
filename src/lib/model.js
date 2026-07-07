@@ -358,6 +358,31 @@ export function createScheduledWorkout({
   };
 }
 
+// A logged meal — deliberately gentle: no calories, no macros, no “good/bad”
+// foods. Balance is captured as simple tags the user taps; suggestions built
+// on them stay supportive (add a veg, remember water), never restrictive.
+export const MEAL_TAGS = ["protein", "veg", "fruit", "grain", "dairy", "treat"];
+export function createMeal({
+  name = "Meal",
+  date = todayKey(),
+  time = null, // "HH:MM" — defaults to now at the call site
+  tags = [],
+  notes = "",
+} = {}) {
+  const now = new Date();
+  return {
+    id: uid("meal"),
+    name,
+    date,
+    time:
+      time ||
+      `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    tags: tags.filter((t) => MEAL_TAGS.includes(t)),
+    notes,
+    createdAt: now.toISOString(),
+  };
+}
+
 // ---- workout helpers -------------------------------------------
 // Total volume (weight × reps summed over completed strength sets) for a
 // session. Cardio sets contribute no volume. Used for the session summary,
@@ -586,6 +611,9 @@ export function seedData() {
     workoutTemplates: [], // saved routines
     scheduledWorkouts: [], // dated planned instances (see createScheduledWorkout)
     fitnessProfile: null,
+    meals: [], // gentle nutrition log (see createMeal)
+    waterLog: {}, // date -> glasses count
+
     songLog: [], // lightweight "what I was listening to" log (see Journal tab)
   };
 }

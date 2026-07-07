@@ -7,6 +7,7 @@ import FitnessProgress from "../components/FitnessProgress.jsx";
 import ExerciseBrowser from "../components/ExerciseBrowser.jsx";
 import EquipmentSheet from "../components/EquipmentSheet.jsx";
 import WorkoutSetup from "../components/WorkoutSetup.jsx";
+import NutritionPanel from "../components/NutritionPanel.jsx";
 import {
   workoutsThisWeek,
   weeklyWorkoutStreak,
@@ -103,6 +104,11 @@ export default function WorkoutTab({
   updateFitnessProfile,
   quickPlan = null, // exercises parsed by the global quick-add
   onQuickPlanHandled,
+  meals = [],
+  waterLog = {},
+  addMeal,
+  removeMeal,
+  addWater,
 }) {
   const isMobile = useIsMobile(768);
   const [view, setView] = useState("hub"); // hub | progress | browse
@@ -465,9 +471,23 @@ export default function WorkoutTab({
         <button className={view === "progress" ? "active" : ""} onClick={() => setView("progress")}>
           Progress
         </button>
+        <button className={view === "fuel" ? "active" : ""} onClick={() => setView("fuel")}>
+          Fuel
+        </button>
       </div>
 
       {resumeBanner}
+
+      {view === "fuel" && (
+        <NutritionPanel
+          meals={meals}
+          waterLog={waterLog}
+          addMeal={addMeal}
+          removeMeal={removeMeal}
+          addWater={addWater}
+          trainedToday={workouts.some((w) => w.date === todayKey())}
+        />
+      )}
 
       {view === "progress" && (
         <FitnessProgress

@@ -985,6 +985,11 @@ export default function App() {
             updateFitnessProfile={store.updateFitnessProfile}
             quickPlan={quickWorkoutPlan}
             onQuickPlanHandled={() => setQuickWorkoutPlan(null)}
+            meals={store.meals}
+            waterLog={store.waterLog}
+            addMeal={store.addMeal}
+            removeMeal={store.removeMeal}
+            addWater={store.addWater}
           />
         );
       case "settings":
