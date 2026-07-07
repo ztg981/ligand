@@ -137,27 +137,132 @@ function extractRest(seg) {
 // Cardio duration: "20 min treadmill" / "bike 15 minutes" / "run for 30m"
 const DURATION_RE = /\b(\d+(?:\.\d+)?)\s*(minutes|mins|min|m)\b/i;
 
-// "@ 185" / "at 185 lbs" / "with 60kg"
-const WEIGHT_AT_RE = /(?:@|\bat\b|\bwith\b)\s*(\d+(?:\.\d+)?)\s*(?:lbs?|kgs?|kg|pounds?)?\b/i;
+// "@ 185" (unit optional after @) / "at 95 lb" / "with 60kg" (unit REQUIRED
+// after at/with, so "with 5 minutes" never reads as a 5-weight).
+const WEIGHT_AT_RE =
+  /(?:@\s*(\d+(?:\.\d+)?)\s*(?:lbs?|kgs?|kg|pounds?)?|\b(?:at|with)\s+(\d+(?:\.\d+)?)\s*(?:lbs?|kgs?|kg|pounds?)\b)/i;
+
+/* Technique cues, effort targets, and instructions are DESCRIPTIONS of an
+   exercise, not exercises. Anything matching these becomes a note on the
+   exercise it follows (or the next one, for a leading cue) — never a phantom
+   "Slow Controlled" entry in the plan. */
+const CUE_RE =
+  /\b(slow(?:er|ly)?|controlled?|tempo|squeeze|pause[d]?|strict|explosive|deep|full range|negatives?|hold|easy|hard|light|heavy|focus|form|each\s+(?:leg|side|arm)|per\s+(?:leg|side|arm)|to failure|failure|amrap|drop\s*sets?|rpe\s*\d+(?:\.\d+)?|rir\s*\d+|warm[\s-]?up|cool[\s-]?down|at the (?:top|bottom)|last set)\b/i;
+
+// Extract inline cue phrases that should move from the name into notes.
+const INLINE_CUES = [
+  /\b(?:each|per)\s+(?:leg|side|arm)\b/i,
+  /\brpe\s*\d+(?:\.\d+)?\b/i,
+  /\brir\s*\d+\b/i,
+  /\bto failure\b/i,
+  /\bamrap\b/i,
+  /\bdrop\s*sets?\b/i,
+  /\bwarm[\s-]?up\b/i,
+  /\bcool[\s-]?down\b/i,
+];
+
+// Distance for cardio ("run 2 miles"): recorded as a note, since the model
+// tracks cardio by minutes.
+const DISTANCE_RE = /\b(\d+(?:\.\d+)?)\s*(miles?|mi|kilometers?|km|k|meters?)\b/i;
+
+// "3 rounds" / "4 rounds of ..." — rounds are sets.
+const ROUNDS_RE = /\b(\d+)\s*rounds?\b(?:\s*of)?/i;
+
+// "plank for 45 seconds" — a timed strength hold; keep the time as a note.
+const HOLD_RE = /\bfor\s+(\d+(?:\.\d+)?)\s*(seconds|secs|sec|s)\b/i;
+
+// A segment with structure numbers stripped that still contains a cue and no
+// other substance is a note, not an exercise.
+function isCueOnly(text) {
+  if (!text) return false;
+  if (!CUE_RE.test(text)) return false;
+  // Remove every cue phrase + connective filler; if nothing meaningful
+  // remains, it was purely a description.
+  const leftover = text
+    .replace(new RegExp(CUE_RE.source, "gi"), " ")
+    .replace(/\b(and|with|the|a|at|on|for|then|really|very|nice|good|keep|it|stay)\b/gi, " ")
+    .replace(/[\d.,;:!'"()-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return leftover.length === 0;
+}
 
 function parseSegment(seg) {
-  let text = seg.trim();
+  let text = seg.trim().replace(/^(?:then|and)\s+/i, "");
   if (!text || SKIP_LINE.test(text) || NOTE_LINE.test(text)) return null;
+
+  const notes = [];
+
+  // Pure description segments ("slow and controlled", "RPE 8", "squeeze at
+  // the bottom") attach to the previous exercise as a note.
+  if (isCueOnly(text)) {
+    return { noteOnly: true, note: text.replace(/\s+/g, " ").trim() };
+  }
 
   const restOut = extractRest(text);
   text = restOut.seg;
   const restSec = restOut.restSec;
 
+  // Superset: "superset curls and tricep pushdowns (for 3 rounds)"
+  const ss = text.match(/^superset\s+(.+?)\s+(?:and|&|with)\s+(.+?)(?:\s+for\s+(\d+)\s*rounds?)?$/i);
+  if (ss) {
+    const rounds = ss[3] ? Number(ss[3]) : 3;
+    return {
+      multi: [ss[1], ss[2]].map((n) => ({
+        name: n.trim(),
+        muscleGroup: "other",
+        type: "strength",
+        targetSets: rounds,
+        targetReps: null,
+        targetWeight: null,
+        targetMinutes: null,
+        restSec,
+        notes: "superset",
+      })),
+    };
+  }
+
   let targetWeight = null;
   const atW = text.match(WEIGHT_AT_RE);
   if (atW) {
-    targetWeight = Number(atW[1]);
+    targetWeight = Number(atW[1] ?? atW[2]);
     text = text.replace(atW[0], " ");
   }
 
   let targetSets = null;
   let targetReps = null;
   let name = "";
+
+  // Rounds count as sets ("plank ... 3 rounds", "3 rounds of burpees").
+  const rounds = text.match(ROUNDS_RE);
+  if (rounds) {
+    targetSets = Number(rounds[1]);
+    text = text.replace(rounds[0], " ");
+  }
+
+  // Timed hold: "plank for 45 seconds" → note, not reps.
+  const hold = text.match(HOLD_RE);
+  if (hold) {
+    notes.push(`${hold[1]}${hold[2].startsWith("s") ? "s" : ""} hold`.replace("ss hold", "s hold"));
+    text = text.replace(hold[0], " ");
+  }
+
+  // Inline cues inside a structured segment ("3x8 each leg", "squat RPE 8")
+  // move into notes before name extraction.
+  for (const re of INLINE_CUES) {
+    const m2 = text.match(re);
+    if (m2) {
+      notes.push(m2[0].toLowerCase());
+      text = text.replace(m2[0], " ");
+    }
+  }
+
+  // Cardio distance → note ("2 miles").
+  const dist = text.match(DISTANCE_RE);
+  if (dist && CARDIO_WORDS.test(seg)) {
+    notes.push(dist[0].toLowerCase());
+    text = text.replace(dist[0], " ");
+  }
 
   // "<name> <w> for <s> sets of <r>"  e.g. "Squat 135 for 3 sets of 8"
   let m = text.match(
@@ -179,6 +284,16 @@ function parseSegment(seg) {
       targetReps = Number(m[3]);
       name = m[1] || m[4];
       text = name === m[1] ? m[4] || "" : "";
+    }
+  }
+
+  // "N sets of NAME" (no rep count): "3 sets of lateral raises"
+  if (!name) {
+    m = text.match(/^(\d+)\s*sets?\s+(?:of\s+)?([a-z].*)$/i);
+    if (m) {
+      targetSets = Number(m[1]);
+      name = m[2];
+      text = "";
     }
   }
 
@@ -228,13 +343,13 @@ function parseSegment(seg) {
   if (!name) name = text; // bare exercise name ("calves", "some flyes")
   const cleanName = (s) =>
     (s || "")
-      .replace(/\b(heavy|light|some|maybe|a few|few|finish with|then|and)\b/gi, " ")
+      .replace(/\b(heavy|light|some|maybe|a few|few|finish with|then|and|with|on|the|easy|hard|slow(?:ly)?|controlled?)\b/gi, " ")
       .replace(/\bfor\b\s*$/i, " ")
       .replace(/[.,;:!]+$/g, "")
       .replace(/^[.,;:!\-\s]+/, "")
       .replace(/\s+/g, " ")
       .trim();
-  const descriptor = (seg.match(/\b(heavy|light|felt \w+|to failure|slow|paused)\b/i) || [])[0] || null;
+  const descriptor = (seg.match(/\b(heavy|light|felt \w+|slow and controlled|slow|controlled|paused|easy|hard)\b/i) || [])[0] || null;
   name = cleanName(name);
   trailing = cleanName(trailing);
 
@@ -250,6 +365,10 @@ function parseSegment(seg) {
   // signal the caller to attach the rest time to the previous exercise.
   if (!name || /^\d+$/.test(name)) {
     if (restSec != null) return { restOnly: true, restSec };
+    // "…, 3 rounds" — a bare count belongs to the exercise it follows.
+    if (targetSets != null && targetReps == null && targetWeight == null) {
+      return { setsOnly: true, sets: targetSets };
+    }
     // A bare-number segment like "135x8" still describes work: keep it as an
     // editable placeholder rather than silently dropping the user's numbers.
     if (targetSets != null || targetReps != null || targetWeight != null) {
@@ -259,6 +378,9 @@ function parseSegment(seg) {
     }
   }
 
+  const allNotes = [trailing, ...notes, descriptor && !notes.length ? descriptor : null]
+    .map((n) => (n || "").trim())
+    .filter(Boolean);
   return {
     name,
     muscleGroup: isCardio ? "cardio" : "other",
@@ -268,7 +390,7 @@ function parseSegment(seg) {
     targetWeight: isCardio ? null : targetWeight,
     targetMinutes,
     restSec,
-    notes: trailing || descriptor || null,
+    notes: allNotes.length ? [...new Set(allNotes)].join("; ") : null,
   };
 }
 
@@ -288,6 +410,10 @@ export function parseWorkoutText(text) {
     .map((s) => s.trim())
     .filter(Boolean);
   const parsed = [];
+  let pendingNote = null; // a leading cue ("warm up:") held for the next exercise
+  const appendNote = (ex, note) => {
+    ex.notes = ex.notes ? `${ex.notes}; ${note}` : note;
+  };
   for (const seg of segments) {
     const p = parseSegment(seg);
     if (!p) continue;
@@ -297,7 +423,28 @@ export function parseWorkoutText(text) {
       if (prev && prev.restSec == null) prev.restSec = p.restSec;
       continue;
     }
-    parsed.push(p);
+    if (p.setsOnly) {
+      // "plank for 45 seconds, 3 rounds" — the rounds apply to the hold.
+      const prev = parsed[parsed.length - 1];
+      if (prev) prev.targetSets = p.sets;
+      continue;
+    }
+    if (p.noteOnly) {
+      // "…, slow and controlled" — a description of the exercise it follows,
+      // NEVER a new exercise. A cue with nothing before it waits for the next.
+      const prev = parsed[parsed.length - 1];
+      if (prev) appendNote(prev, p.note);
+      else pendingNote = pendingNote ? `${pendingNote}; ${p.note}` : p.note;
+      continue;
+    }
+    const items = p.multi || [p];
+    for (const item of items) {
+      if (pendingNote) {
+        appendNote(item, pendingNote);
+        pendingNote = null;
+      }
+      parsed.push(item);
+    }
   }
   return sanitizeImportedExercises(parsed);
 }
