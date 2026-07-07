@@ -79,15 +79,28 @@ function stripBlock(content) {
   return content.replace(re, "").replace(/[\r\n]+$/g, "") + "\r\n";
 }
 
-// Normalise a user-entered domain: drop scheme/path/www, lowercase.
+function isValidDomain(domain) {
+  if (!domain || domain.length > 253 || !domain.includes(".")) return false;
+  return domain.split(".").every((label) =>
+    label.length > 0 &&
+    label.length <= 63 &&
+    /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)
+  );
+}
+
+// Normalise a user-entered domain: accept pasted URLs, drop path/www, lowercase,
+// and reject anything that cannot be a plain hostname.
 function normalizeDomain(d) {
-  return String(d || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/.*$/, "")
-    .replace(/\s+/g, "");
+  const raw = String(d || "").trim().toLowerCase();
+  if (!raw) return "";
+  let host;
+  try {
+    host = new URL(raw.includes("://") ? raw : `https://${raw}`).hostname;
+  } catch {
+    host = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  }
+  host = host.replace(/^www\./, "").replace(/\.$/, "");
+  return isValidDomain(host) ? host : "";
 }
 
 function buildBlockText(domains) {
@@ -199,4 +212,4 @@ function status() {
   };
 }
 
-module.exports = { apply, clear, status, PRESETS, hasBlock, HOSTS_PATH };
+module.exports = { apply, clear, status, PRESETS, hasBlock, HOSTS_PATH, normalizeDomain, buildBlockText };

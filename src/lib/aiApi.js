@@ -413,6 +413,13 @@ export async function importWorkout(notes) {
         error: "The AI service is overloaded right now. Retry in a minute, or use Quick parse.",
       };
     }
+    if (errorKind === "rate_limited") {
+      return {
+        ok: false,
+        kind: "busy",
+        error: "AI import is taking a breather for a bit. Try again later, or use Quick parse.",
+      };
+    }
     if (errorKind === "bad_request") {
       return {
         ok: false,

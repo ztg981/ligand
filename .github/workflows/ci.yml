@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-build-audit:
+    name: Test, build, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node
+        # actions/setup-node v4.4.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit and security regression tests
+        run: npm test
+
+      - name: Verify security headers
+        run: npm run security:headers
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Scan repository and bundle for privileged secrets
+        run: npm run security:scan
+
+      - name: Audit high and critical dependency advisories
+        run: npm audit --audit-level=high
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Dependency review
+        # actions/dependency-review-action v4.7.3
+        uses: actions/dependency-review-action@595b5aeba73380359d98a5e087f648dbb0edce1b
+        with:
+          fail-on-severity: high

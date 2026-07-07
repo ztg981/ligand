@@ -1,0 +1,4 @@
+project_id = "ligand"
+
+[functions.gemini-insights]
+verify_jwt = true

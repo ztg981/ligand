@@ -42,6 +42,8 @@ const MAX_NOTE_LEN = 200;
 function cleanText(value, maxLen) {
   if (typeof value !== "string") return "";
   return value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     // eslint-disable-next-line no-control-regex -- stripping control chars is the point
     .replace(/[\u0000-\u001F\u007F]/g, " ")
