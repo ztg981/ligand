@@ -248,6 +248,61 @@ Recent/PR chips, Habits/Tasks/Journal/Notes layouts, safe-area handling
 (unchanged from prior phases), bottom-tab clearance. No features were
 removed or relocated off-screen.
 
+### Section 7 — Feature discoverability (exact paths)
+
+| Feature | Mobile path | Desktop path |
+|---|---|---|
+| Alarms (incl. photo-scan setup) | **Avatar → Alarms** (also Settings → Alarms) | Settings → Alarms |
+| Photo-scan target setup | Avatar → Alarms → Add/Edit alarm → "Scan to dismiss" → Take photo | same via Settings → Alarms |
+| Test an alarm | Alarms card → ▶ button on the alarm row | same |
+| AI workout import | — (desktop planning tool) | Workout → Plan → "Import from notes" (AI or Quick parse) |
+| Manual workout creator | Workout → hero → **Create** | Workout → Plan → **New workout** |
+| Weekly workout calendar (scheduled instances) | Today's plan surfaces on the Workout hero | Workout → Plan → **This week** card |
+| Weekly split matrix | — | Workout → Plan → Weekly plan card |
+| Workout templates | Workout → Start workout → template list; save from any preview | same |
+| Repeat last session | Workout hero → Repeat last | Workout → Plan → Repeat last |
+| Progress analytics | Workout → Progress segment | Workout → Progress segment |
+| Website blocker | — (Windows app only) | Settings → Focus block (Electron) |
+| Theme settings | Settings → Theme (phone-local mode) | Settings → Appearance + Theme FAB |
+| UI sound settings | Settings → Sound | Settings → Notifications (UI sounds + volume) |
+| Update settings / version | Settings → About | Settings → **About** (version + Check for updates on Windows) |
+| Data export / import | Settings → Account (Export) | Settings → Data & behavior (Export / Import) |
+| Notifications | Settings → Notifications | Settings → Notifications |
+| Pomodoro (mobile) | Avatar → Pomodoro | top tab |
+| Journal (mobile) | Avatar → Journal | top tab |
+
+Navigation was deliberately NOT overloaded: the phone bottom bar stays at 5
+tabs; secondary tools live one tap away in the avatar menu with literal
+labels (Pomodoro, Journal, Alarms, Settings, Badges).
+
+### Section 6 — Update systems (audited + acted on)
+
+**6A Web/Vercel: production auto-deploys master — VERIFIED.** Fetched
+https://ligand-eta.vercel.app after pushing `3b1760d`: the served bundle
+contains this session's markers ("Quick parse", wk-resume,
+settings-focus-flash) and the new CSP/X-Frame-Options headers from
+vercel.json are live. So pushing master IS deploying production. (No Vercel
+CLI auth in this environment; verification done against the live site
+itself.)
+
+**6B PWA: `registerType: "autoUpdate"`** — the service worker updates in the
+background and the new build activates on the next open; users cannot get
+stuck on stale JS by ignoring a prompt (which is why a click-to-update
+prompt was intentionally not added). Version is visible in Settings → About
+on both layouts. **Forcing an update on iPhone:** close the PWA fully
+(swipe away), reopen; if it still looks stale open it once with a network
+connection and reopen again (two visits: one fetches the new SW, the next
+activates it). Nuclear option: Settings → Safari → Advanced → Website Data →
+delete the site's data (local data is preserved for signed-in users in
+Supabase; guest data would be lost — export first).
+
+**6C Windows:** update UI added (About card: version, Check for updates,
+checking/progress/downloaded states, Restart to update). v1.1.0 installer
+build + GitHub release: see the release record below (published this
+session). The full installed-app auto-update handshake (old app detects →
+downloads → swaps) still cannot be exercised in this headless environment —
+stated plainly rather than claimed.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
