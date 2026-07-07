@@ -17,6 +17,14 @@ test("CORS allows configured origins and localhost, not arbitrary sites", () => 
   assert.equal(corsHeadersForOrigin("https://evil.example", allowed)["Access-Control-Allow-Origin"], undefined);
 });
 
+test("opaque 'null' origin (packaged Electron app over file://) is admitted", () => {
+  // Auth + rate limiting remain the real gate; blocking the opaque origin
+  // locked the entire desktop app out of AI (403 before auth).
+  const allowed = ["https://ligand.example"];
+  assert.equal(isAllowedOrigin("null", allowed), true);
+  assert.equal(corsHeadersForOrigin("null", allowed)["Access-Control-Allow-Origin"], "null");
+});
+
 test("goal insight context drops unknown fields and bounds user text", () => {
   const result = sanitizeContext("goal-summary", {
     name: "<b>Launch</b>",

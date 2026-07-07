@@ -28,6 +28,7 @@ const IMPORT_MUSCLE_GROUPS = new Set([
 ]);
 
 const DEFAULT_ALLOWED_ORIGINS = [
+  "https://ligand-eta.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:4173",
@@ -52,6 +53,13 @@ export function parseAllowedOrigins(raw) {
 
 export function isAllowedOrigin(origin, configuredOrigins = []) {
   if (!origin) return true;
+  // The packaged Electron desktop app loads over file://, so its fetches carry
+  // the opaque origin "null". Blocking it locked ALL desktop-app AI out (every
+  // call 403'd before auth even ran). The origin check is defense-in-depth
+  // only — every request still requires a valid user JWT and is rate-limited —
+  // so admitting the opaque origin restores the desktop app without weakening
+  // the actual security boundary.
+  if (origin === "null") return true;
   const allowed = configuredOrigins.length ? configuredOrigins : DEFAULT_ALLOWED_ORIGINS;
   if (allowed.includes(origin)) return true;
   return /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i.test(origin);
