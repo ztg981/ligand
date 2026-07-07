@@ -303,6 +303,51 @@ session). The full installed-app auto-update handshake (old app detects →
 downloads → swaps) still cannot be exercised in this headless environment —
 stated plainly rather than claimed.
 
+### Section 10 — Final verification and evidence (2026-07-07)
+
+**Quality gates on the final tree:** `npm test` 28/28 pass · `npm run build`
+green (PWA precache 45 entries) · `npm audit --audit-level=high` 0
+vulnerabilities · `git status` clean · fresh-load console: zero errors, zero
+warnings, zero unhandled rejections across all 8 tabs × light + dark ·
+`npm run lint` still fails with the PRE-EXISTING 74-error baseline (Electron
+CommonJS globals, react-compiler set-state-in-effect/purity rules, unused
+vars in old code) — documented by the security session too; no NEW lint
+errors were introduced by this session's files.
+
+**Deployment evidence:**
+- Web production: https://ligand-eta.vercel.app — auto-deploys master
+  (verified by fetching the live bundle and finding this session's code).
+- Supabase: hardened `gemini-insights` deployed to `auypprgibgftwpwuvxqa`
+  (2×, final includes the clampInt fix); migration
+  `202607060001_security_hardening.sql` applied and verified; secret
+  `LIGAND_ALLOWED_ORIGINS` set.
+- Windows: **v1.1.0 published** —
+  https://github.com/ztg981/ligand/releases/tag/v1.1.0, not a draft, assets
+  `Ligand-Setup-1.1.0.exe` (127,442,390 bytes, matches latest.yml size +
+  sha512 exactly), `latest.yml`, `Ligand-Setup-1.1.0.exe.blockmap`.
+  Gotcha fixed during publish: electron-builder's own upload only attached
+  yml+blockmap and left a draft; manual `gh release upload` of the exe
+  initially produced a DOT-named asset (`Ligand.Setup.1.1.0.exe`) that
+  latest.yml does NOT reference — auto-update would have 404'd. Replaced
+  with the dash-named file and published. An installed 1.0.1 app should now
+  detect 1.1.0 on launch; the actual installed-app handshake remains
+  UNVERIFIED here (headless environment, no installed copy) — the feed
+  itself is verified consistent.
+
+**Environments genuinely tested:** Chromium (dev preview) at
+375/390/430/768/1280/1440, light+dark, guest mode; deployed Edge Function
+over real HTTP (anon + real signed-up user tokens); GitHub release assets.
+**Not tested:** real iOS Safari/PWA, real camera/vibration, UAC elevation,
+installed-Electron update handshake, two-device signed-in sync, signed-in
+BROWSER session (auth flows exercised via HTTP API instead).
+
+**Screenshots taken this session:** mobile Home (goal-name fix before/after),
+mobile Workout home (hero + planned-today), mobile workout builder, desktop
+Workout planning hub (reordered), desktop hub with calendar. Mobile guided
+active-workout and alarm overlay were verified via DOM inspection (the
+screenshot tool intermittently returned stale frames); their behavior is
+covered by the interaction logs above.
+
 ## Phase 26 — Workout hub: actually split into desktop vs mobile (2026-07-05, Claude Code)
 
 **Honest correction.** Earlier phases claimed the Workout experience was "two
