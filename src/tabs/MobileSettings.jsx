@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS } from "../theme/useTweaks.js";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
+import { downloadBackup } from "../lib/backup.js";
 import pkg from "../../package.json";
 
 /* MobileSettings - a simplified, phone-focused settings list shown instead of
@@ -42,30 +43,6 @@ function Row({ name, hint, children }) {
   );
 }
 
-// Same export payload as the desktop Settings "Export data" action.
-function exportData() {
-  const keys = [
-    "ligand.data",
-    "ligand.settings",
-    "ligand.tweaks",
-    "ligand.mobileTheme",
-    "ligand.pomodoro",
-    "ligand.userPresets",
-  ];
-  const dump = {};
-  keys.forEach((k) => {
-    const v = localStorage.getItem(k);
-    if (v) dump[k] = JSON.parse(v);
-  });
-  const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `ligand-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function MobileSettings({
   mobileTheme = "auto",
   setMobileTheme,
@@ -82,10 +59,28 @@ export default function MobileSettings({
   addAlarm,
   updateAlarm,
   removeAlarm,
+  onTestAlarm,
+  focusSection = null, // e.g. "alarms" — scroll that card into view on open
+  onFocusHandled,
 }) {
   const { notifications, habits, uiSounds = {} } = settings;
   const [signingOut, setSigningOut] = useState(false);
   const loggedIn = Boolean(accountEmail);
+  const alarmsRef = useRef(null);
+
+  useEffect(() => {
+    if (focusSection === "alarms" && alarmsRef.current) {
+      alarmsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      alarmsRef.current.classList.add("settings-focus-flash");
+      const t = setTimeout(
+        () => alarmsRef.current?.classList.remove("settings-focus-flash"),
+        1600
+      );
+      onFocusHandled?.();
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [focusSection, onFocusHandled]);
 
   return (
     <>
@@ -209,12 +204,15 @@ export default function MobileSettings({
         </Section>
 
         {/* Alarms */}
-        <AlarmsPanel
-          alarms={alarms}
-          addAlarm={addAlarm}
-          updateAlarm={updateAlarm}
-          removeAlarm={removeAlarm}
-        />
+        <div ref={alarmsRef}>
+          <AlarmsPanel
+            alarms={alarms}
+            addAlarm={addAlarm}
+            updateAlarm={updateAlarm}
+            removeAlarm={removeAlarm}
+            onTest={onTestAlarm}
+          />
+        </div>
 
         {/* Account */}
         <Section icon={<Icon.Cloud />} title="Account">
@@ -244,7 +242,7 @@ export default function MobileSettings({
             )}
           </Row>
           <Row name="Export data" hint="Download everything as a JSON backup">
-            <button className="btn ghost sm" onClick={exportData}>
+            <button className="btn ghost sm" onClick={() => downloadBackup()}>
               ↓ Export
             </button>
           </Row>

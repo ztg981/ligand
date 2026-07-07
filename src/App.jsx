@@ -7,7 +7,7 @@ import { configure as configureUiSounds, ding, pop } from "./lib/uiSounds.js";
 import HyperfocusBackdrop from "./components/HyperfocusBackdrop.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
-import { hasMeaningfulLocalData } from "./lib/syncManager.js";
+import { clearLocalBlob, hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
 import MigrationModal from "./components/MigrationModal.jsx";
 import SetNewPassword from "./components/SetNewPassword.jsx";
@@ -59,6 +59,15 @@ export default function App() {
   const [guestMode, setGuestMode] = useLocalStorage("ligand.guestMode", false);
   const [authRequested, setAuthRequested] = useState(false);
   const showAuthScreen = !authLoading && !session && (!guestMode || authRequested);
+  const handleSignOut = async () => {
+    const result = await signOut();
+    if (!result?.error) {
+      clearLocalBlob();
+      setGuestMode(false);
+      setAuthRequested(false);
+    }
+    return result;
+  };
 
   // Once a session exists, drop any pending "open auth" request.
   useEffect(() => {
@@ -457,6 +466,12 @@ export default function App() {
   const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
     useBadges(badgeStats);
   const [showBadges, setShowBadges] = useState(false);
+  // When set, the Settings screen scrolls that section into view on open
+  // (e.g. avatar menu → Alarms). Cleared once handled.
+  const [settingsFocus, setSettingsFocus] = useState(null);
+  // "Test alarm": raises the real overlay (sound + photo-scan flow) on demand
+  // without waiting for the scheduled time or stamping lastFired.
+  const [testAlarm, setTestAlarm] = useState(null);
 
   // --- custom wallpaper gallery (data URLs in their own key to avoid bloating
   // ligand.settings). Up to 5 photos; the active one is picked by
@@ -971,14 +986,15 @@ export default function App() {
               requestNotifyPermission={notif.requestPermission}
               notifyPermission={notif.permission}
               accountEmail={user?.email ?? null}
-              onSignOut={async () => {
-                await signOut();
-              }}
+              onSignOut={handleSignOut}
               onRequestAuth={() => setAuthRequested(true)}
               alarms={store.alarms}
               addAlarm={store.addAlarm}
               updateAlarm={store.updateAlarm}
               removeAlarm={store.removeAlarm}
+              onTestAlarm={setTestAlarm}
+              focusSection={settingsFocus}
+              onFocusHandled={() => setSettingsFocus(null)}
             />
           );
         }
@@ -1004,6 +1020,7 @@ export default function App() {
             addAlarm={store.addAlarm}
             updateAlarm={store.updateAlarm}
             removeAlarm={store.removeAlarm}
+            onTestAlarm={setTestAlarm}
           />
         );
       default:
@@ -1076,12 +1093,14 @@ export default function App() {
           onClearNotifications={notif.clearAll}
           userName={userDisplayName}
           onOpenSettings={() => setTab("settings")}
+          onOpenAlarms={() => {
+            setSettingsFocus("alarms");
+            setTab("settings");
+          }}
           onOpenBadges={() => setShowBadges(true)}
           onClearData={store.resetData}
           accountEmail={user?.email ?? null}
-          onSignOut={async () => {
-            await signOut();
-          }}
+          onSignOut={handleSignOut}
           onRequestAuth={() => setAuthRequested(true)}
           syncStatus={syncStatus}
         />
@@ -1174,8 +1193,14 @@ export default function App() {
 
       <BadgeCelebration queue={badgeToasts} onDismiss={dismissBadgeToast} />
 
-      {firingAlarm && (
-        <AlarmOverlay alarm={firingAlarm} onDismiss={dismissAlarm} />
+      {(firingAlarm || testAlarm) && (
+        <AlarmOverlay
+          alarm={firingAlarm || testAlarm}
+          onDismiss={() => {
+            if (firingAlarm) dismissAlarm();
+            setTestAlarm(null);
+          }}
+        />
       )}
 
       <SearchModal

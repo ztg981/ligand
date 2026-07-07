@@ -93,9 +93,12 @@ function PhotoCapture({ value, onCapture }) {
   );
 }
 
-export default function AlarmsPanel({ alarms = [], addAlarm, updateAlarm, removeAlarm }) {
+const EMPTY_DRAFT = { time: "07:00", label: "Wake up", targetLabel: "", targetPhoto: null, days: [] };
+
+export default function AlarmsPanel({ alarms = [], addAlarm, updateAlarm, removeAlarm, onTest }) {
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ time: "07:00", label: "Wake up", targetLabel: "", targetPhoto: null, days: [] });
+  const [editingId, setEditingId] = useState(null); // alarm being edited (form reused)
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
 
   const camSupported = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
@@ -105,15 +108,30 @@ export default function AlarmsPanel({ alarms = [], addAlarm, updateAlarm, remove
       days: s.days.includes(d) ? s.days.filter((x) => x !== d) : [...s.days, d],
     }));
 
+  const startEdit = (a) => {
+    setDraft({
+      time: a.time,
+      label: a.label,
+      targetLabel: a.targetLabel || "",
+      targetPhoto: a.targetPhoto || null,
+      days: a.days || [],
+    });
+    setEditingId(a.id);
+    setAdding(true);
+  };
+
   const save = () => {
-    addAlarm?.({
+    const fields = {
       time: draft.time,
       label: draft.label.trim() || "Alarm",
       targetLabel: draft.targetLabel.trim(),
       targetPhoto: draft.targetPhoto,
       days: draft.days,
-    });
-    setDraft({ time: "07:00", label: "Wake up", targetLabel: "", targetPhoto: null, days: [] });
+    };
+    if (editingId) updateAlarm?.(editingId, fields);
+    else addAlarm?.(fields);
+    setDraft(EMPTY_DRAFT);
+    setEditingId(null);
     setAdding(false);
   };
 
@@ -150,6 +168,18 @@ export default function AlarmsPanel({ alarms = [], addAlarm, updateAlarm, remove
                   onClick={() => updateAlarm?.(a.id, { enabled: !a.enabled })}
                 >
                   <span className="alarm-toggle-knob" />
+                </button>
+                {onTest && (
+                  <button
+                    className="iconbtn sm"
+                    title="Test this alarm now (sound + dismissal flow)"
+                    onClick={() => onTest(a)}
+                  >
+                    <Icon.Play width={13} height={13} />
+                  </button>
+                )}
+                <button className="iconbtn sm" title="Edit alarm" onClick={() => startEdit(a)}>
+                  <Icon.Pencil width={13} height={13} />
                 </button>
                 <button className="iconbtn sm" title="Delete alarm" onClick={() => removeAlarm?.(a.id)}>
                   <Icon.Trash width={13} height={13} />
@@ -226,8 +256,19 @@ export default function AlarmsPanel({ alarms = [], addAlarm, updateAlarm, remove
           )}
 
           <div className="row" style={{ gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
-            <button className="btn ghost sm" onClick={() => setAdding(false)}>Cancel</button>
-            <button className="btn primary sm" onClick={save}>Save alarm</button>
+            <button
+              className="btn ghost sm"
+              onClick={() => {
+                setAdding(false);
+                setEditingId(null);
+                setDraft(EMPTY_DRAFT);
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn primary sm" onClick={save}>
+              {editingId ? "Save changes" : "Save alarm"}
+            </button>
           </div>
         </div>
       ) : (

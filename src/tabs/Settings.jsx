@@ -10,6 +10,7 @@ import BlockerPanel from "../components/BlockerPanel.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { FOCUS_MUSIC, spotifySearch, youtubeSearch } from "../lib/focusMusic.js";
+import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
 
 /* Built-in one-click appearance presets */
 const BUILT_IN_PRESETS = [
@@ -96,6 +97,7 @@ export default function Settings({
   addAlarm,
   updateAlarm,
   removeAlarm,
+  onTestAlarm,
 }) {
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
@@ -475,6 +477,7 @@ export default function Settings({
           addAlarm={addAlarm}
           updateAlarm={updateAlarm}
           removeAlarm={removeAlarm}
+          onTest={onTestAlarm}
         />
 
         {/* Focus-mode website blocker — desktop (Electron/Windows) only; the
@@ -830,19 +833,7 @@ export default function Settings({
           <Row name="Export data" hint="Download all your goals, tasks and journal as JSON">
             <button
               className="btn ghost sm"
-              onClick={() => {
-                const keys = ["ligand.data", "ligand.settings", "ligand.tweaks", "ligand.pomodoro", "ligand.userPresets"];
-                const dump = {};
-                keys.forEach((k) => {
-                  const v = localStorage.getItem(k);
-                  if (v) dump[k] = JSON.parse(v);
-                });
-                const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url; a.download = `ligand-backup-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click(); URL.revokeObjectURL(url);
-              }}
+              onClick={() => downloadBackup()}
             >
               ↓ Export
             </button>
@@ -854,24 +845,18 @@ export default function Settings({
                 type="file"
                 accept=".json,application/json"
                 style={{ display: "none" }}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    try {
-                      const data = JSON.parse(ev.target.result);
-                      if (!window.confirm("Import will overwrite your current data. Continue?")) return;
-                      Object.entries(data).forEach(([k, v]) =>
-                        localStorage.setItem(k, JSON.stringify(v))
-                      );
-                      window.location.reload();
-                    } catch {
-                      alert("Couldn't read the backup file. Is it a valid Ligand JSON export?");
-                    }
-                  };
-                  reader.readAsText(file);
+                  const result = await readBackupFile(file);
                   e.target.value = ""; // allow re-picking same file
+                  if (!result.ok) {
+                    alert(result.error);
+                    return;
+                  }
+                  if (!window.confirm("Import will overwrite your current Ligand data. Continue?")) return;
+                  applyBackupData(localStorage, result.data);
+                  window.location.reload();
                 }}
               />
             </label>

@@ -129,7 +129,11 @@ export default function AlarmOverlay({ alarm, onDismiss }) {
   };
   useEffect(() => () => clearInterval(holdTimer.current), []);
 
-  const showEscape = attempts >= 4;
+  // The hold-to-dismiss hatch appears after several honest scan attempts —
+  // or IMMEDIATELY when the camera can't open at all (blocked permission /
+  // no camera), since scanning is impossible then and the user must never
+  // be trapped with un-stoppable audio.
+  const showEscape = attempts >= 4 || Boolean(camError);
   const now = new Date();
   const timeStr = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 

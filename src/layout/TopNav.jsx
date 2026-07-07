@@ -121,6 +121,7 @@ function AvatarMenu({
   onOpenSettings,
   onOpenPomodoro,
   onOpenJournal,
+  onOpenAlarms,
   onOpenBadges,
   onClearData,
   accountEmail = null,
@@ -202,6 +203,18 @@ function AvatarMenu({
               }}
             >
               <Icon.Book /> Journal
+            </button>
+
+            {/* Alarms lives in Settings; this is the discoverable front door on
+               a phone (the label literally says Alarms, no vague wording). */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenAlarms?.();
+                close();
+              }}
+            >
+              <Icon.Bell /> Alarms
             </button>
 
             <button
@@ -495,6 +508,7 @@ export default function TopNav({
   onClearNotifications,
   userName = "You",
   onOpenSettings,
+  onOpenAlarms,
   onOpenBadges,
   onClearData,
   accountEmail = null,
@@ -617,6 +631,7 @@ export default function TopNav({
             onOpenSettings={onOpenSettings}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenJournal={() => setTab("journal")}
+            onOpenAlarms={onOpenAlarms}
             onOpenBadges={onOpenBadges}
             onClearData={onClearData}
             accountEmail={accountEmail}

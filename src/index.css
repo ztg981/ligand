@@ -5710,6 +5710,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 .wl-g-exnote { font-size: 12.5px; color: var(--ink-3); font-style: italic; margin-top: 2px; }
 
+/* Brief highlight on a settings card that was jumped to (avatar → Alarms). */
+.settings-focus-flash > .card, .settings-focus-flash.card {
+  animation: settingsFocusFlash 1.6s var(--ease);
+}
+@keyframes settingsFocusFlash {
+  0%, 35% { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: none; }
+}
+
 /* Week schedule calendar (scheduled workout instances). */
 .wksch { margin-bottom: 14px; }
 .wksch-nav { display: flex; align-items: center; gap: 6px; }
