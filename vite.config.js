@@ -33,22 +33,22 @@ export default defineConfig({
         description: 'Focus, habits, and goals - designed for ADHD',
         // Matches --accent in the light theme (src/index.css): oklch(0.62 0.09 245).
         theme_color: '#558cb9',
-        // Matches --bg in the dark theme, used for the splash background
-        // shown while the app loads on the home screen.
-        background_color: '#15161a',
+        // Keep the install surface light so iOS 26 web-app previews do not
+        // synthesize a dark surround from the manifest background.
+        background_color: '#f7f9fc',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
           {
-            src: '/pwa-192.png',
+            src: '/pwa-fullbleed-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/pwa-512.png',
+            src: '/pwa-fullbleed-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',
