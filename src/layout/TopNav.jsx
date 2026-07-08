@@ -36,10 +36,54 @@ function timeAgo(ts) {
   return `${d}d ago`;
 }
 
+/* The soonest enabled alarm and how far off it is, for the popover's alarm
+   shortcut. Walks up to 8 days ahead so weekly-repeating alarms resolve; a
+   day-less alarm counts as "every day". Returns null when nothing is armed. */
+function nextAlarm(alarms = [], now = new Date()) {
+  let best = null;
+  for (const a of alarms) {
+    if (!a?.enabled || !a.time) continue;
+    const [hh, mm] = a.time.split(":").map(Number);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) continue;
+    for (let add = 0; add < 8; add++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() + add);
+      d.setHours(hh, mm, 0, 0);
+      if (d <= now) continue;
+      const weekday = (d.getDay() + 6) % 7; // Mon=0..Sun=6
+      if (a.days?.length && !a.days.includes(weekday)) continue;
+      if (!best || d < best.when) best = { when: d, alarm: a };
+      break;
+    }
+  }
+  if (!best) return null;
+  const mins = Math.round((best.when - now) / 60000);
+  let rel;
+  if (mins < 1) rel = "under a minute";
+  else if (mins < 60) rel = `${mins} min`;
+  else if (mins < 60 * 24) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    rel = m ? `${h}h ${m}m` : `${h}h`;
+  } else {
+    rel = `${Math.round(mins / (60 * 24))}d`;
+  }
+  const timeStr = best.when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return { rel, timeStr, label: best.alarm.label || "Alarm" };
+}
+
 /* The notification bell: a dot badge when there are unread items, and a
-   small dropdown listing the most recent few. Opening marks all as read. */
-function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
-  const { open, toggle, triggerRef, menuRef } = useDropdown();
+   small dropdown listing the most recent few. Opening marks all as read.
+
+   The popover also carries an Alarms shortcut in its footer. On a phone the
+   bell is the most obvious "reminders live here" affordance, so tapping it is
+   the natural way to reach alarms — no digging through the avatar overflow. */
+function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear, onOpenAlarms, alarms = [] }) {
+  const { open, toggle, close, triggerRef, menuRef } = useDropdown();
+  const hasUnread = unreadCount > 0;
+  // Recompute only while the popover is open (cheap, and keeps the "in Xm"
+  // label fresh each time it's shown without a background timer).
+  const upcoming = open ? nextAlarm(alarms) : null;
 
   const onToggle = () => {
     if (!open) onOpen?.(); // opening clears the unread badge
@@ -50,28 +94,16 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
     <div style={{ position: "relative" }}>
       <button
         ref={triggerRef}
-        className="iconbtn"
-        title="Notifications"
+        className={"iconbtn notif-bell" + (hasUnread ? " has-unread" : "")}
+        title="Notifications & alarms"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={hasUnread ? `Notifications, ${unreadCount} unread` : "Notifications"}
         onClick={onToggle}
         style={{ position: "relative" }}
       >
         <Icon.Bell />
-        {unreadCount > 0 && (
-          <span
-            style={{
-              position: "absolute",
-              top: 6,
-              right: 7,
-              width: 6,
-              height: 6,
-              borderRadius: 999,
-              background: "var(--accent)",
-              boxShadow: "0 0 5px var(--accent-glow)",
-            }}
-          />
-        )}
+        {hasUnread && <span className="notif-dot" aria-hidden="true" />}
       </button>
 
       {open && (
@@ -90,8 +122,12 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
             </div>
           ) : (
             <div className="notif-list">
-              {items.slice(0, 8).map((n) => (
-                <div key={n.id} className="notif-item">
+              {items.slice(0, 8).map((n, i) => (
+                <div
+                  key={n.id}
+                  className="notif-item"
+                  style={{ "--i": i }}
+                >
                   <span className="notif-ic">
                     {NOTIF_ICON[n.type] || <Icon.Spark />}
                   </span>
@@ -103,6 +139,27 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {onOpenAlarms && (
+            <button
+              className="notif-alarm-cta"
+              onClick={() => {
+                close();
+                onOpenAlarms();
+              }}
+            >
+              <span className="notif-alarm-ic"><Icon.Bell /></span>
+              <span className="notif-alarm-txt">
+                <span className="notif-alarm-title">Alarms</span>
+                <span className="notif-alarm-sub">
+                  {upcoming
+                    ? `Next: ${upcoming.timeStr} · in ${upcoming.rel}`
+                    : "Set a photo-scan wake-up"}
+                </span>
+              </span>
+              <span className="notif-alarm-arrow"><Icon.Arrow /></span>
+            </button>
           )}
         </div>
       )}
@@ -543,6 +600,7 @@ export default function TopNav({
   setTab,
   goals,
   tasks = [],
+  alarms = [],
   activeGoal,
   setActiveGoal,
   onAddGoal,
@@ -680,6 +738,8 @@ export default function TopNav({
             unreadCount={unreadCount}
             onOpen={onOpenNotifications}
             onClear={onClearNotifications}
+            onOpenAlarms={onOpenAlarms}
+            alarms={alarms}
           />
           <ThemeMenu theme={theme} themeChoice={themeChoice} setThemeChoice={setThemeChoice} />
           <div className="topbar-tools-sep" />

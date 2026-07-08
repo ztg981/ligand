@@ -10,6 +10,10 @@ import WeeklyReview from "../widgets/WeeklyReview.jsx";
 import DailyFocus from "../widgets/DailyFocus.jsx";
 import GoalsGrid from "../widgets/GoalsGrid.jsx";
 import DayRing from "../widgets/DayRing.jsx";
+import FocusTrend from "../widgets/FocusTrend.jsx";
+import ConsistencyDots from "../widgets/ConsistencyDots.jsx";
+import TaskMomentum from "../widgets/TaskMomentum.jsx";
+import JournalStreak from "../widgets/JournalStreak.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -63,6 +67,9 @@ export default function Home({
   scheduledWorkouts = [],
   onOpenWorkout,
   onOpenAlarms,
+  onOpenPomodoro,
+  onGoToTasks,
+  onOpenJournal,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -322,6 +329,10 @@ export default function Home({
           onOpenWorkout={onOpenWorkout}
           onOpenAlarms={onOpenAlarms}
         />
+        <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />
+        <ConsistencyDots focusLog={focusLog} />
+        <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />
+        <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
@@ -353,6 +364,10 @@ export default function Home({
             onOpenWorkout={onOpenWorkout}
             onOpenAlarms={onOpenAlarms}
           />
+          <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />
+          <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />
+          <ConsistencyDots focusLog={focusLog} />
+          <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />
           {/* Days showing up - distinct calendar days the app was actually
               opened (never elapsed days, never more than once per day). */}
           {activeDays > 0 && (

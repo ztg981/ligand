@@ -822,6 +822,8 @@ export default function App() {
             focusLog={store.focusLog}
             scheduledWorkouts={store.scheduledWorkouts}
             onOpenWorkout={() => setTab("workout")}
+            onOpenPomodoro={() => setTab("pomodoro")}
+            onOpenJournal={() => setTab("journal")}
             onOpenAlarms={() => {
               setSettingsFocus("alarms");
               setTab("settings");
@@ -1101,6 +1103,7 @@ export default function App() {
           setTab={setTab}
           goals={orderedActiveGoals}
           tasks={store.tasks}
+          alarms={store.alarms}
           setGoalOrder={store.setGoalOrder}
           activeGoal={activeGoal}
           setActiveGoal={setActiveGoal}
