@@ -154,7 +154,13 @@ export function createHabit({ name, cadence = "daily" } = {}) {
   };
 }
 
-export function createReflection({ text, prompt = null, mood = null, location = null } = {}) {
+export function createReflection({
+  text,
+  prompt = null,
+  mood = null,
+  location = null,
+  attachments = [],
+} = {}) {
   return {
     id: uid("refl"),
     text: text || "",
@@ -162,6 +168,8 @@ export function createReflection({ text, prompt = null, mood = null, location = 
     mood,
     // Optional resolved place name (e.g. "New York, New York"). Never coords.
     location,
+    // Optional image attachments: [{ id, dataUrl }]. Ride the sync blob.
+    attachments,
     createdAt: new Date().toISOString(),
   };
 }
@@ -176,6 +184,7 @@ export function createSong({
   album = null,
   mood = null,
   note = null,
+  artworkUrl = null, // small album-art thumbnail from the iTunes lookup
   journalEntryId = null,
   date = todayKey(),
 } = {}) {
@@ -186,6 +195,7 @@ export function createSong({
     album,
     mood,
     note,
+    artworkUrl,
     journalEntryId,
     date,
     createdAt: new Date().toISOString(),

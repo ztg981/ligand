@@ -185,6 +185,13 @@ export const Icon = {
       <path d="M9.5 2.5V5.5H13M6 8h4M6 10.5h3" />
     </>
   ),
+  Image: make(
+    <>
+      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+      <circle cx="5.6" cy="6.2" r="1.1" />
+      <path d="M3 11.5l3-3 2.2 2.2L10.5 8 13 10.5" />
+    </>
+  ),
   Pencil: make(
     <>
       <path d="M9.5 3.2l3.3 3.3" />

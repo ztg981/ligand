@@ -7,6 +7,7 @@ import { flashElement } from "../lib/scrollFlash.js";
 import { formatEntryDateTime, todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { searchItunesSongs } from "../lib/itunesSearch.js";
+import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js";
 
 const SONG_SEARCH_DEBOUNCE_MS = 400;
 
@@ -36,6 +37,8 @@ function SongForm({ onSave, onCancel }) {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState(null);
+  const [artworkUrl, setArtworkUrl] = useState(null);
+  const [picked, setPicked] = useState(false); // a search result was chosen
   const [note, setNote] = useState("");
   const [mood, setMood] = useState(null);
   const [results, setResults] = useState([]);
@@ -48,6 +51,8 @@ function SongForm({ onSave, onCancel }) {
   const onTitleChange = (v) => {
     setTitle(v);
     setAlbum(null);
+    setArtworkUrl(null);
+    setPicked(false);
     clearTimeout(debounceRef.current);
     const q = v.trim();
     if (!q) {
@@ -69,14 +74,78 @@ function SongForm({ onSave, onCancel }) {
     setTitle(r.title);
     setArtist(r.artist);
     setAlbum(r.album);
+    setArtworkUrl(r.artworkUrl || null);
+    setPicked(true);
     setShowResults(false);
+  };
+
+  const clearPick = () => {
+    setPicked(false);
+    setArtworkUrl(null);
   };
 
   const submit = () => {
     const t = title.trim();
     if (!t) return;
-    onSave({ title: t, artist: artist.trim(), album, note: note.trim() || null, mood });
+    onSave({
+      title: t,
+      artist: artist.trim(),
+      album,
+      artworkUrl,
+      note: note.trim() || null,
+      mood,
+    });
   };
+
+  // A chosen result collapses the search into a tidy "now this song" card.
+  if (picked) {
+    return (
+      <div className="song-form">
+        <div className="song-picked">
+          {artworkUrl ? (
+            <img src={artworkUrl} alt="" className="song-picked-art" />
+          ) : (
+            <span className="song-picked-art song-picked-art-empty">
+              <Icon.Music width={18} height={18} />
+            </span>
+          )}
+          <div className="song-picked-meta">
+            <div className="song-picked-title">{title}</div>
+            <div className="song-picked-artist">{artist}{album ? ` · ${album}` : ""}</div>
+          </div>
+          <button type="button" className="song-picked-change" onClick={clearPick} title="Change">
+            <Icon.Close width={13} height={13} />
+          </button>
+        </div>
+        <input
+          className="input"
+          placeholder="Why I'm saving this (optional)"
+          value={note}
+          autoFocus
+          onChange={(e) => setNote(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+        />
+        <div className="row mood-row" style={{ gap: 6 }}>
+          {MOODS.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              className={"chip mood-chip" + (mood === m.value ? " accent" : "")}
+              onClick={() => setMood(mood === m.value ? null : m.value)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+          <button type="button" className="btn ghost sm" onClick={onCancel}>Cancel</button>
+          <button type="button" className="btn primary sm" onClick={submit}>
+            <Icon.Music width={13} height={13} /> Save song
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="song-form">
@@ -85,7 +154,7 @@ function SongForm({ onSave, onCancel }) {
           <input
             className="input"
             autoFocus
-            placeholder="Song title…"
+            placeholder="Search a song…"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             onFocus={() => results.length > 0 && setShowResults(true)}
@@ -195,6 +264,19 @@ export default function Journal({
   const [attachedSongIds, setAttachedSongIds] = useState([]);
   const attachedSongs = songLog.filter((s) => attachedSongIds.includes(s.id));
 
+  // Image attachments staged for the entry-in-progress (kept local until save).
+  const [images, setImages] = useState([]); // [{ id, dataUrl }]
+  const [imgMsg, setImgMsg] = useState("");
+  const [viewImg, setViewImg] = useState(null); // lightbox data URL
+  const imgInputRef = useRef(null);
+
+  const addImages = async (files) => {
+    const { added, error } = await readImageAttachments(files, images.length);
+    if (added.length) setImages((prev) => [...prev, ...added]);
+    setImgMsg(error);
+  };
+  const removeImage = (id) => setImages((prev) => prev.filter((a) => a.id !== id));
+
   // Entries newest- or oldest-first by createdAt (ISO strings sort chrono).
   const orderedJournal = useMemo(() => {
     const arr = [...(journal || [])];
@@ -227,13 +309,16 @@ export default function Journal({
 
   const save = () => {
     const t = text.trim();
-    if (!t) return;
-    const entry = addJournalEntry({ text: t, prompt, mood, location });
+    // An image-only entry is still worth saving.
+    if (!t && images.length === 0) return;
+    const entry = addJournalEntry({ text: t, prompt, mood, location, attachments: images });
     attachedSongIds.forEach((id) => updateSong(id, { journalEntryId: entry.id }));
     setText("");
     setMood(null);
     setLocation(null);
     setAttachedSongIds([]);
+    setImages([]);
+    setImgMsg("");
   };
 
   return (
@@ -282,12 +367,60 @@ export default function Journal({
 
             <textarea
               className="input journal-compose-textarea"
-              placeholder="Write as much or as little as you like…"
+              placeholder="Write as much or as little as you like… (paste screenshots right here)"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onPaste={(e) => {
+                const imgs = imagesFromClipboard(e.clipboardData?.items);
+                if (imgs.length) {
+                  e.preventDefault();
+                  addImages(imgs);
+                }
+              }}
               rows={6}
               style={{ resize: "vertical", width: "100%", lineHeight: 1.5 }}
             />
+
+            {/* Optional image attachments */}
+            <div className="row" style={{ gap: 8, marginTop: 8, alignItems: "center" }}>
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => imgInputRef.current?.click()}
+                title="Attach an image (or just paste one)"
+              >
+                <Icon.Image width={13} height={13} /> Add image
+              </button>
+              <input
+                ref={imgInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  addImages([...e.target.files]);
+                  e.target.value = "";
+                }}
+              />
+              {imgMsg && <span className="notes-attach-msg" role="alert" style={{ margin: 0 }}>{imgMsg}</span>}
+            </div>
+            {images.length > 0 && (
+              <div className="notes-attach-strip" style={{ marginTop: 8 }}>
+                {images.map((a) => (
+                  <span key={a.id} className="notes-attach">
+                    <img src={a.dataUrl} alt="attachment" onClick={() => setViewImg(a.dataUrl)} />
+                    <button
+                      type="button"
+                      className="notes-attach-x"
+                      title="Remove image"
+                      onClick={() => removeImage(a.id)}
+                    >
+                      <Icon.Close width={11} height={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Optional mood */}
             <div className="row mood-row" style={{ gap: 6, marginTop: 10 }}>
@@ -354,8 +487,8 @@ export default function Journal({
               <button
                 className="btn primary"
                 onClick={save}
-                disabled={!text.trim()}
-                style={{ flex: "none", opacity: text.trim() ? 1 : 0.5 }}
+                disabled={!text.trim() && images.length === 0}
+                style={{ flex: "none", opacity: text.trim() || images.length ? 1 : 0.5 }}
               >
                 <Icon.Check /> Save entry
               </button>
@@ -444,6 +577,15 @@ export default function Journal({
                       <div className="journal-entry-text" style={{ color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                         {e.text}
                       </div>
+                      {(e.attachments || []).length > 0 && (
+                        <div className="notes-attach-strip" style={{ marginTop: 8 }}>
+                          {e.attachments.map((a) => (
+                            <span key={a.id} className="notes-attach static">
+                              <img src={a.dataUrl} alt="journal attachment" onClick={() => setViewImg(a.dataUrl)} />
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {attached.length > 0 && (
                         <div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                           {attached.map((s) => (
@@ -501,9 +643,13 @@ export default function Journal({
               <div className="stack song-log-list">
                 {orderedSongs.map((s) => (
                   <div key={s.id} className="song-log-row">
-                    <span className="song-log-ic">
-                      <Icon.Music width={13} height={13} />
-                    </span>
+                    {s.artworkUrl ? (
+                      <img src={s.artworkUrl} alt="" className="song-log-art" />
+                    ) : (
+                      <span className="song-log-ic">
+                        <Icon.Music width={13} height={13} />
+                      </span>
+                    )}
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div className="song-log-title">
                         {s.title}
@@ -529,6 +675,12 @@ export default function Journal({
           </div>
         </div>
       </div>
+
+      {viewImg && (
+        <div className="notes-lightbox" role="presentation" onClick={() => setViewImg(null)}>
+          <img src={viewImg} alt="attachment enlarged" />
+        </div>
+      )}
     </>
   );
 }

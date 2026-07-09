@@ -4820,6 +4820,37 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .journal-listening-to svg { flex: none; opacity: 0.75; }
 
+/* Picked-song preview card — a chosen search result collapses here. */
+.song-picked {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: var(--r-md);
+  background: var(--panel); border: 1px solid var(--line);
+}
+.song-picked-art {
+  flex: none; width: 46px; height: 46px; border-radius: 8px;
+  object-fit: cover; background: var(--panel-3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.song-picked-art-empty {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-4);
+}
+.song-picked-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.song-picked-title { font-size: 14px; font-weight: 650; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-picked-artist { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song-picked-change {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: transparent; cursor: pointer;
+  color: var(--ink-3);
+}
+.song-picked-change:hover { background: var(--panel-2); color: var(--ink); }
+.song-log-art {
+  flex: none; width: 40px; height: 40px; border-radius: 8px;
+  object-fit: cover; background: var(--panel-3);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
 .song-log-list { gap: 10px; }
 .song-log-row {
   display: flex; align-items: flex-start; gap: 10px;
@@ -6242,16 +6273,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 /* Hyperfocus color picker swatches (Settings → Appearance). */
 .hf-theme-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 300px; }
 
-/* Desktop wordmark in the handwritten display face (matches the Day dial's
-   center date). Phones keep the dot-only mark, so this is desktop-only. */
+/* Desktop wordmark: a modern geometric display face, styled as a tight
+   uppercase mark that sits cleanly next to the logo dot. Phones keep the
+   dot-only mark, so this is desktop-only. */
 @media (min-width: 768px) {
   .brand-name {
-    font-family: "Caveat", "Segoe Script", cursive;
-    font-size: 24px;
+    font-family: "Space Grotesk", var(--font-sans);
+    font-size: 15.5px;
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     line-height: 1;
-    transform: translateY(-1px);
   }
 }
 /* Badges shortcut lives with the other tools on desktop; on phones the
