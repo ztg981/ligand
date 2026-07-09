@@ -110,9 +110,11 @@ export default function DayDial({
   showSleepBand = true,
   onSelect, // (id) => void
   onCreateRange, // (startMin, endMin) => void
+  onMove, // (id, newStart, newEnd) => void — drag an existing block
 }) {
   const svgRef = useRef(null);
   const [drag, setDrag] = useState(null); // { from, to }
+  const [moving, setMoving] = useState(null); // { id, start, end } live move preview
   const [, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 60_000);
@@ -148,6 +150,46 @@ export default function DayDial({
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
+
+  // Press a wedge: distinguish a click (select) from a drag (move the block).
+  // Duration is preserved; the block slides around the ring, snapping to 15
+  // min and clamped inside the day. Shortest-path delta handles the midnight
+  // wrap so a small drag near 12am doesn't fling the block across the dial.
+  const onBlockDown = (e, b) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const downMin = minuteFromEvent(e);
+    const dur = b.end - b.start;
+    let didMove = false;
+    let finalStart = b.start; // tracked outside React state so `up` stays pure
+    const move = (ev) => {
+      let delta = minuteFromEvent(ev) - downMin;
+      if (delta > DAY_MIN / 2) delta -= DAY_MIN;
+      if (delta < -DAY_MIN / 2) delta += DAY_MIN;
+      if (Math.abs(delta) >= SNAP) didMove = true;
+      let ns = Math.round((b.start + delta) / SNAP) * SNAP;
+      ns = Math.max(0, Math.min(DAY_MIN - dur, ns));
+      finalStart = ns;
+      setMoving({ id: b.id, start: ns, end: ns + dur });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setMoving(null);
+      // Commit AFTER clearing the preview, outside any state updater, so this
+      // never calls a parent setState mid-render.
+      if (didMove && finalStart !== b.start) onMove?.(b.id, finalStart, finalStart + dur);
+      else onSelect?.(b.id);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  // Render blocks with the live-moved position substituted for the one being
+  // dragged, so the wedge follows the pointer.
+  const renderBlocks = blocks.map((b) =>
+    moving && moving.id === b.id ? { ...b, start: moving.start, end: moving.end } : b
+  );
 
   const labels = useMemo(() => layoutLabels(blocks), [blocks]);
   const totalMin = scheduledMinutes(blocks);
@@ -261,18 +303,19 @@ export default function DayDial({
         </g>
       )}
 
-      {/* block wedges */}
-      {blocks.map((b) => {
+      {/* block wedges — drag to move, click to edit */}
+      {renderBlocks.map((b) => {
         const cat = categoryById(b.category);
         const selected = b.id === selectedId;
+        const isMoving = moving?.id === b.id;
         return (
           <g
             key={b.id}
-            onClick={() => onSelect?.(b.id)}
-            style={{ cursor: "pointer" }}
+            onPointerDown={(e) => onBlockDown(e, b)}
+            style={{ cursor: isMoving ? "grabbing" : "grab", touchAction: "none" }}
             opacity={b.done ? 0.45 : 1}
           >
-            <path d={sectorPath(b.start, b.end)} fill={cat.color} opacity="0.9" />
+            <path d={sectorPath(b.start, b.end)} fill={cat.color} opacity={isMoving ? 1 : 0.9} />
             {textures && cat.pattern && (
               <path d={sectorPath(b.start, b.end)} fill={`url(#dp-${cat.pattern})`} />
             )}
@@ -286,7 +329,7 @@ export default function DayDial({
                 opacity="0.8"
               />
             )}
-            {selected && (
+            {(selected || isMoving) && (
               <>
                 <path
                   d={sectorPath(b.start, b.end, R_IN - 5, R_OUT + 5, 1)}
@@ -297,6 +340,7 @@ export default function DayDial({
                 <path d={sectorPath(b.start, b.end)} fill="none" stroke="var(--ink)" strokeWidth="1.5" opacity="0.6" />
               </>
             )}
+            {isMoving && <RangeTip from={b.start} to={b.end} />}
           </g>
         );
       })}

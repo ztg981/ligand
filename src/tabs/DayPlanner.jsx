@@ -441,8 +441,8 @@ export default function DayPlanner({
           <div className="eyebrow">Planner</div>
           <h1 className="page-title">Your day, as a shape</h1>
           <p className="page-sub">
-            Drag on the dial to carve out time. Protected hours stay put when
-            the day moves.
+            Drag empty ring to carve out time; drag a block to move it; click
+            to edit. Protected hours stay put.
           </p>
         </div>
         <div className="dp-nav">
@@ -488,6 +488,11 @@ export default function DayPlanner({
               showSleepBand={pref.showSleepBand}
               onSelect={openExisting}
               onCreateRange={(s, e) => openNew(s, e)}
+              onMove={(id, ns, ne) => {
+                const b = blocks.find((x) => x.id === id);
+                if (b?.protected) return; // protected hours don't move
+                updateDayBlock?.(id, { start: ns, end: ne });
+              }}
             />
           </div>
           {sidePanel}
