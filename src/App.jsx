@@ -182,6 +182,31 @@ export default function App() {
     if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
     else root.removeAttribute("data-hyperfocus");
   }, [hyperfocus]);
+  // The chosen hyperfocus look (Settings → Appearance → Hyperfocus color).
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-hf-theme",
+      settings.hyperfocus?.theme || "crimson"
+    );
+  }, [settings.hyperfocus?.theme]);
+
+  // Cinematic entry: when hyperfocus turns ON (a real toggle, not a reload
+  // that restores it), play one of two full-screen intro sweeps at random.
+  const [hfIntro, setHfIntro] = useState(null); // "wipe" | "slats" | null
+  const hfPrev = useRef(hyperfocus);
+  useEffect(() => {
+    const was = hfPrev.current;
+    hfPrev.current = hyperfocus;
+    const reduce =
+      settings.behavior?.reduceMotion ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!was && hyperfocus && !reduce) {
+      setHfIntro(Math.random() < 0.5 ? "wipe" : "slats");
+      const t = setTimeout(() => setHfIntro(null), 1450);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [hyperfocus, settings.behavior?.reduceMotion]);
 
   // Desktop website blocker auto-mode: when "Auto-block during focus sessions"
   // is enabled (see BlockerPanel), the blocklist applies while a focus session
@@ -1113,6 +1138,25 @@ export default function App() {
 
       {/* Hyperfocus animated backdrop — only mounted while the mode is active. */}
       {hyperfocus && <HyperfocusBackdrop />}
+      {hfIntro && (
+        <div className={`hf-intro hf-intro-${hfIntro}`} aria-hidden="true">
+          {hfIntro === "slats" ? (
+            <>
+              <span className="hf-slat s1" />
+              <span className="hf-slat s2" />
+              <span className="hf-slat s3" />
+              <span className="hf-slat s4" />
+              <span className="hf-slat s5" />
+            </>
+          ) : (
+            <>
+              <span className="hf-wipe-core" />
+              <span className="hf-wipe-ring r1" />
+              <span className="hf-wipe-ring r2" />
+            </>
+          )}
+        </div>
+      )}
 
       <div className="shell">
         <TopNav

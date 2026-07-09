@@ -259,6 +259,28 @@ export default function Settings({
               ))}
             </div>
           </Row>
+          <Row name="Hyperfocus color" hint="The look Hyperfocus mode locks into">
+            <div className="palette-row">
+              {[
+                { id: "crimson", name: "Crimson", swatch: "#8b0000" },
+                { id: "monster", name: "Monster", swatch: "#2fca12" },
+                { id: "cyber", name: "Cyber", swatch: "#00cfae" },
+                { id: "violet", name: "Violet", swatch: "#8b5cf6" },
+                { id: "ember", name: "Ember", swatch: "#e85f00" },
+                { id: "ice", name: "Ice", swatch: "#2fb5e0" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  className={"palette-pick" + ((settings.hyperfocus?.theme || "crimson") === t.id ? " active" : "")}
+                  onClick={() => setSection("hyperfocus", { theme: t.id })}
+                  aria-pressed={(settings.hyperfocus?.theme || "crimson") === t.id}
+                >
+                  <span className="palette-dot" style={{ background: t.swatch }} />
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </Row>
           <Row name="Accent">
             <div className="row" style={{ gap: 4 }}>
               {ACCENTS.map((a) => (
@@ -344,7 +366,19 @@ export default function Settings({
                     style={{ flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
                     onClick={() => setTweak(p.tweaks)}
                   >
-                    <span className="preset-swatch" style={{ background: "var(--panel-2)" }} />
+                    <span
+                      className="preset-swatch"
+                      style={{
+                        // A real preview of the saved look: its base tone
+                        // blended into its accent hue (was a flat panel color
+                        // that read as a black hole in dark mode).
+                        background: `linear-gradient(135deg, ${
+                          p.tweaks?.theme === "dark" ? "#1b1d24" : "#faf6f0"
+                        } 40%, oklch(${p.tweaks?.theme === "dark" ? 0.72 : 0.68} 0.12 ${
+                          p.tweaks?.accent ?? 245
+                        }))`,
+                      }}
+                    />
                     <span className="preset-name">{p.name}</span>
                     <span className="preset-desc">Your preset</span>
                   </button>

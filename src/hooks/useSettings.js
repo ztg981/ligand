@@ -51,6 +51,9 @@ export const SETTINGS_DEFAULTS = {
     track: "rain",  // "rain" | "stream" | "waves"
     volume: 30,     // 0–100 percentage
   },
+  hyperfocus: {
+    theme: "crimson", // crimson | monster | cyber | violet | ember | ice
+  },
 };
 
 // Deep-ish merge so newly added nested keys get defaults.
