@@ -36,7 +36,7 @@ function toPlan(ex) {
 
 const EXAMPLE = "chest day - bench heavy 4 sets, some incline dumbbell, flyes, finish with dips";
 
-export default function WorkoutImport({ onImported, compact = false }) {
+export default function WorkoutImport({ onImported, compact = false, bare = false }) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -85,10 +85,12 @@ export default function WorkoutImport({ onImported, compact = false }) {
     errorKind && errorKind !== "empty" && errorKind !== "quick-parse";
 
   return (
-    <div className="card wk-import">
-      <div className="card-head">
-        <div className="card-title"><Icon.Spark /> Import from notes</div>
-      </div>
+    <div className={bare ? "wk-import" : "card wk-import"}>
+      {!bare && (
+        <div className="card-head">
+          <div className="card-title"><Icon.Spark /> Import from notes</div>
+        </div>
+      )}
       {!compact && (
         <p className="wk-import-sub">
           Paste rough notes and AI will turn them into a structured session you can

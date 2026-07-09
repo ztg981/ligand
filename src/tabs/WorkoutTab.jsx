@@ -523,6 +523,7 @@ export default function WorkoutTab({
           relDate={relDate}
           fmtDuration={fmtDuration}
           schedule={scheduleApi}
+          onImported={(plan) => setPreview({ plan, source: "imported" })}
         />
       ) : (
         <DesktopWorkoutHub

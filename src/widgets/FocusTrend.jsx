@@ -44,16 +44,19 @@ function useCountUp(target) {
   const [val, setVal] = useState(0);
   const rafRef = useRef(0);
   useEffect(() => {
+    const dur = 700;
+    // Safety net so the final number is correct even if rAF is throttled
+    // (e.g. the tab was in the background when this mounted).
+    const settle = setTimeout(() => setVal(target), dur + 60);
     const reduce =
       typeof document !== "undefined" &&
       (document.documentElement.getAttribute("data-reduce-motion") === "true" ||
         window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
     if (reduce || target === 0) {
       rafRef.current = requestAnimationFrame(() => setVal(target));
-      return () => cancelAnimationFrame(rafRef.current);
+      return () => { cancelAnimationFrame(rafRef.current); clearTimeout(settle); };
     }
     const start = performance.now();
-    const dur = 700;
     const tick = (t) => {
       const p = Math.min(1, (t - start) / dur);
       const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
@@ -61,7 +64,7 @@ function useCountUp(target) {
       if (p < 1) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => { cancelAnimationFrame(rafRef.current); clearTimeout(settle); };
   }, [target]);
   return val;
 }
@@ -77,11 +80,12 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
   // Scale so a modest session still reads as meaningful, but a big day dominates.
   const scaleMax = Math.max(best, 25);
 
-  // Trigger the grow-in after first paint so the transition actually runs.
+  // Trigger the grow-in just after first paint so the transition runs. A timer
+  // (not rAF) so it still fires if the tab mounts while backgrounded.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    const t = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(t);
+    const t = setTimeout(() => setMounted(true), 30);
+    return () => clearTimeout(t);
   }, []);
 
   const countedTotal = useCountUp(total);

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
 import { todayKey } from "../lib/model.js";
+import WorkoutImportSheet from "./WorkoutImportSheet.jsx";
 
 /* MobileWorkoutHome — the phone Workout landing: EXECUTION first.
 
@@ -27,7 +29,9 @@ export default function MobileWorkoutHome({
   relDate,
   fmtDuration,
   schedule = null, // { list, onStart, onCreate, onRepeatLast }
+  onImported = null, // same review pipeline the desktop import uses
 }) {
+  const [importOpen, setImportOpen] = useState(false);
   // A workout scheduled for TODAY (planned on any device) beats the generic
   // split cue: it's a concrete session, one tap from starting.
   const todaysPlanned = (schedule?.list || []).find(
@@ -97,6 +101,11 @@ export default function MobileWorkoutHome({
               <Icon.Note width={13} height={13} /> Create
             </button>
           )}
+          {onImported && (
+            <button className="btn ghost sm" onClick={() => setImportOpen(true)}>
+              <Icon.Spark width={13} height={13} /> Import
+            </button>
+          )}
           {schedule?.onRepeatLast && (
             <button className="btn ghost sm" onClick={schedule.onRepeatLast}>
               <Icon.Reset width={13} height={13} /> Repeat last
@@ -162,6 +171,13 @@ export default function MobileWorkoutHome({
           </div>
         </div>
       )}
+
+      {/* Paste-your-notes import — same pipeline as the desktop card. */}
+      <WorkoutImportSheet
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={onImported}
+      />
     </div>
   );
 }

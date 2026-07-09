@@ -29,12 +29,15 @@ export default function TaskMomentum({ tasks = [], onOpenTasks }) {
   const [shown, setShown] = useState(0);
   const rafRef = useRef(0);
   useEffect(() => {
+    const dur = 850;
+    // Safety net: land the exact value even if rAF is throttled (background
+    // tab) so the ring is never wrong, only un-animated.
+    const settle = setTimeout(() => setShown(pct), dur + 60);
     if (prefersReduced() || pct === 0) {
       rafRef.current = requestAnimationFrame(() => setShown(pct));
-      return () => cancelAnimationFrame(rafRef.current);
+      return () => { cancelAnimationFrame(rafRef.current); clearTimeout(settle); };
     }
     const start = performance.now();
-    const dur = 850;
     const tick = (now) => {
       const p = Math.min(1, (now - start) / dur);
       const eased = 1 - Math.pow(1 - p, 3);
@@ -42,7 +45,7 @@ export default function TaskMomentum({ tasks = [], onOpenTasks }) {
       if (p < 1) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => { cancelAnimationFrame(rafRef.current); clearTimeout(settle); };
   }, [pct]);
 
   const offset = C - (C * shown) / 100;
