@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
+import { searchItunesSongs } from "../lib/itunesSearch.js";
+
+// Attachments are stored as data URLs inside the note (they ride the normal
+// sync blob), so keep them small: reject anything over ~1.4MB encoded.
+const MAX_ATTACH_BYTES = 1.4 * 1024 * 1024;
+const MAX_ATTACH_COUNT = 6;
 
 /* Notes - the calmest tab in the app.
    A frictionless plain-text scratchpad, like iPhone Notes. No goal links,
@@ -68,6 +74,97 @@ export default function Notes({
   const draftRef = useRef("");
   const selectedIdRef = useRef(null);
   const editingRef = useRef(false);
+  const notesRef = useRef(notes);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  const [attachMsg, setAttachMsg] = useState("");
+  const [viewImg, setViewImg] = useState(null); // lightbox data URL
+  const [songOpen, setSongOpen] = useState(false);
+  const [songQ, setSongQ] = useState("");
+  const [songResults, setSongResults] = useState([]);
+  const fileInputRef = useRef(null);
+
+  // Fast capture: opening the tab lands you IN the newest note with the
+  // cursor ready (iPhone-Notes style) — paste immediately, no clicks. If
+  // there are no notes yet, start a fresh one.
+  const bootedRef = useRef(false);
+  useEffect(() => {
+    if (bootedRef.current || autoOpenNoteId) return;
+    bootedRef.current = true;
+    const newest = [...notesRef.current].sort((a, b) =>
+      String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || ""))
+    )[0];
+    const id = newest ? newest.id : addNote().id;
+    setSelectedId(id);
+    setMobileView("editor");
+    // Focus after the editor pane has actually mounted (RAF can fire before
+    // the selection-driven re-render lands).
+    setTimeout(() => textareaRef.current?.focus(), 120);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Song lookup for the quick "♪" insert — debounced, best-effort. All
+  // setState happens inside the async timer callback, never synchronously.
+  useEffect(() => {
+    const active = songOpen && songQ.trim().length >= 2;
+    const t = setTimeout(
+      async () => {
+        setSongResults(active ? await searchItunesSongs(songQ, 5) : []);
+      },
+      active ? 350 : 0
+    );
+    return () => clearTimeout(t);
+  }, [songQ, songOpen]);
+
+  const attachFiles = (files) => {
+    const id = selectedIdRef.current;
+    if (!id) return;
+    const note = notesRef.current.find((n) => n.id === id);
+    const existing = note?.attachments || [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        setAttachMsg("Only images for now (PNG, JPG, screenshots).");
+        continue;
+      }
+      if (existing.length >= MAX_ATTACH_COUNT) {
+        setAttachMsg(`Up to ${MAX_ATTACH_COUNT} images per note.`);
+        break;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        if (dataUrl.length > MAX_ATTACH_BYTES) {
+          setAttachMsg("That image is too large (keep under ~1 MB so sync stays fast).");
+          return;
+        }
+        setAttachMsg("");
+        const cur = notesRef.current.find((n) => n.id === id);
+        updateNote(id, {
+          attachments: [
+            ...(cur?.attachments || []),
+            { id: `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, dataUrl },
+          ],
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeAttachment = (attId) => {
+    const id = selectedIdRef.current;
+    const cur = notesRef.current.find((n) => n.id === id);
+    updateNote(id, { attachments: (cur?.attachments || []).filter((a) => a.id !== attId) });
+  };
+
+  const insertSong = (s) => {
+    const line = `♪ ${s.title} — ${s.artist}`;
+    setDraft((d) => (d.trim() ? `${d}\n${line}` : line));
+    editingRef.current = true;
+    setSongOpen(false);
+    setSongQ("");
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
 
   // Keep refs in step so leaveCurrent (and unmount cleanup) can read the
   // latest values without re-subscribing effects.
@@ -80,11 +177,13 @@ export default function Notes({
 
   // Leaving a note: persist its text, or discard it entirely if it's blank
   // (so an opened-but-untouched note never clutters the list - iPhone-style).
+  // A note that holds only an image is NOT blank.
   const leaveCurrent = () => {
     const id = selectedIdRef.current;
     if (!id) return;
     const text = draftRef.current;
-    if (text.trim() === "") {
+    const hasAttachments = (notesRef.current.find((n) => n.id === id)?.attachments || []).length > 0;
+    if (text.trim() === "" && !hasAttachments) {
       removeNote(id);
     } else if (editingRef.current) {
       updateNote(id, { text });
@@ -319,6 +418,35 @@ export default function Notes({
                 <button
                   type="button"
                   className="iconbtn"
+                  title="Add a song line"
+                  onClick={() => setSongOpen((o) => !o)}
+                  style={{ color: songOpen ? "var(--accent-ink, var(--accent))" : "var(--ink-3)" }}
+                >
+                  ♪
+                </button>
+                <button
+                  type="button"
+                  className="iconbtn"
+                  title="Attach an image (or just paste one)"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ color: "var(--ink-3)" }}
+                >
+                  <Icon.Plus width={15} height={15} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    attachFiles([...e.target.files]);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  className="iconbtn"
                   title="Delete note"
                   onClick={() => handleDelete(selectedNote.id)}
                   style={{ color: "var(--ink-3)" }}
@@ -326,16 +454,68 @@ export default function Notes({
                   <Icon.Trash width={15} height={15} />
                 </button>
               </div>
+
+              {songOpen && (
+                <div className="notes-song">
+                  <input
+                    className="input"
+                    autoFocus
+                    placeholder="Search a song to drop in…"
+                    value={songQ}
+                    onChange={(e) => setSongQ(e.target.value)}
+                  />
+                  {songResults.length > 0 && (
+                    <div className="notes-song-results">
+                      {songResults.map((s) => (
+                        <button key={s.id} className="notes-song-row" onClick={() => insertSong(s)}>
+                          {s.artworkUrl && <img src={s.artworkUrl} alt="" />}
+                          <span className="notes-song-t">{s.title}</span>
+                          <span className="notes-song-a">{s.artist}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <textarea
                 ref={textareaRef}
                 className="notes-textarea"
-                placeholder="Start writing…"
+                placeholder="Start writing… (paste screenshots right here)"
                 value={draft}
                 onChange={(e) => {
                   editingRef.current = true;
                   setDraft(e.target.value);
                 }}
+                onPaste={(e) => {
+                  const imgs = [...(e.clipboardData?.items || [])]
+                    .filter((i) => i.type.startsWith("image/"))
+                    .map((i) => i.getAsFile())
+                    .filter(Boolean);
+                  if (imgs.length) {
+                    e.preventDefault();
+                    attachFiles(imgs);
+                  }
+                }}
               />
+
+              {attachMsg && <p className="notes-attach-msg" role="alert">{attachMsg}</p>}
+              {(selectedNote.attachments || []).length > 0 && (
+                <div className="notes-attach-strip">
+                  {(selectedNote.attachments || []).map((a) => (
+                    <span key={a.id} className="notes-attach">
+                      <img src={a.dataUrl} alt="attachment" onClick={() => setViewImg(a.dataUrl)} />
+                      <button
+                        className="notes-attach-x"
+                        title="Remove image"
+                        onClick={() => removeAttachment(a.id)}
+                      >
+                        <Icon.Close width={10} height={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="notes-editor-placeholder">
@@ -350,6 +530,12 @@ export default function Notes({
           )}
         </div>
       </div>
+
+      {viewImg && (
+        <div className="notes-lightbox" role="presentation" onClick={() => setViewImg(null)}>
+          <img src={viewImg} alt="attachment enlarged" />
+        </div>
+      )}
     </>
   );
 }

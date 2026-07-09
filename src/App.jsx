@@ -19,6 +19,7 @@ import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { paletteFor } from "./theme/palettes.js";
+import { goalHealth } from "./lib/goalHealth.js";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -661,6 +662,20 @@ export default function App() {
         uncheckedHabitsCount === 1
           ? "A habit is still open today. No pressure, just a nudge."
           : `${uncheckedHabitsCount} habits are still open today. No pressure, just a nudge.`,
+        { oncePerDay: true }
+      );
+    }
+    // A goal that's gone quiet (7+ days with no activity) gets a gentle,
+    // NAMED nudge — once per day, never shaming, recovery goals excluded
+    // for privacy.
+    const quiet = activeGoals.find(
+      (g) => g.type !== "recovery" && goalHealth(g, store.tasks).level === "red"
+    );
+    if (quiet) {
+      notif.push(
+        "overdue",
+        `"${quiet.name}" misses you`,
+        "It's been quiet over there. One tiny task today would wake it back up.",
         { oncePerDay: true }
       );
     }

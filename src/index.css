@@ -6141,6 +6141,41 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .dp-habit-chip:hover { color: var(--accent-ink, var(--accent)); border-color: var(--accent); }
 
+/* Notes — attachments strip, quick-song popover, lightbox. */
+.notes-attach-msg { font-size: 12px; color: var(--danger, #d9534f); margin: 6px 0 0; }
+.notes-attach-strip { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 0 2px; }
+.notes-attach { position: relative; }
+.notes-attach img {
+  width: 84px; height: 84px; object-fit: cover;
+  border-radius: 10px; border: 1px solid var(--line); cursor: zoom-in;
+}
+.notes-attach-x {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--panel);
+  color: var(--ink-2); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.notes-song { margin: 8px 0 4px; }
+.notes-song .input { width: 100%; height: 40px; }
+.notes-song-results { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.notes-song-row {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 4px 8px; border: none; border-radius: 8px;
+  background: transparent; cursor: pointer; text-align: left; font-size: 13px;
+}
+.notes-song-row:hover { background: var(--panel-2); }
+.notes-song-row img { width: 28px; height: 28px; border-radius: 6px; }
+.notes-song-t { color: var(--ink); font-weight: 550; }
+.notes-song-a { color: var(--ink-4); font-size: 12px; }
+.notes-lightbox {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out;
+}
+.notes-lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 12px; }
+
 /* ---- Hyperfocus entry animations (two variants, chosen at random) ----
    Full-screen, pointer-transparent, ~1.3s, removed from the DOM after.
    Reduced-motion users never see them (gated in App.jsx). */

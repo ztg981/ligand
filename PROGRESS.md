@@ -2,6 +2,47 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 30 — Ring v2, Routines, theme wave, Hyperfocus, Notes v2 (2026-07-09, Claude Code)
+
+- **Dial selection is visible** (`the complaint`): drag shows a filled +
+  outlined wedge with a floating range tip (times + duration); the editor's
+  From/To range stays on the dial as a dashed ghost wedge, live-updating;
+  selected blocks get an accent outline ring. Place buttons → compact
+  dashed +30m/+1h pills. Verified live (2:00–3:30 PM tip mid-drag).
+- **Routines**: Workout → Routines — saved routines as cards
+  (Start/Schedule/Edit-in-place/Duplicate/Delete), New routine via the
+  builder, 6-starter library (one-tap editable copies, library-matched).
+  Fixed a latent Save-as-template crash (plan items fed into the
+  logged-sets condenser).
+- **Themes**: Emerald Flow (gradient green dark), Liquid Glass (iridescent
+  light with genuinely frosted panels); Caveat desktop wordmark; Badges
+  trophy in topbar tools; Notes now left of Journal.
+- **Hyperfocus**: 6 selectable looks (Crimson/Monster/Cyber/Violet/Ember/
+  Ice — Settings → Appearance) via --hf-* variable refactor; entering
+  plays one of two full-screen intros at random (ink-wipe rings / skewed
+  glowing slats), reduced-motion safe. Verified monster + wipe live.
+- **Polish**: user presets show REAL gradient previews (was a black
+  tile); Settings packs into masonry columns (dead gaps gone; 3-up
+  ≥1600px); Airplane/Zen Pomodoro scenes get night variants in dark mode.
+- **Notes v2**: opening the tab lands IN the newest note with the cursor
+  ready (instant paste); image attachments (paste screenshots directly or
+  the + button; ≤6 per note, ~1.4MB cap; thumbnails + lightbox; sync via
+  the normal blob; image-only notes no longer auto-discard); a light ♪
+  song-search line insert (iTunes lookup, plain-text insert).
+- **Notifications audit**: generation confirmed present for overdue
+  goals, urgent tasks, re-entry, open habits, daily reminder, Pomodoro
+  phase completion — all fire the in-app bell + a system notification
+  when permission is granted (Electron renderer supports HTML5
+  Notification natively, so PC gets them). ADDED the missing case: a
+  named once-per-day nudge when a specific goal has gone quiet 7+ days
+  (recovery goals excluded).
+- **Deferred honestly** (not attempted, to avoid rushing a working tab):
+  image attachments in Journal entries and the journal music-search UI
+  restyle. Both are the natural next pass; Notes has the reference
+  implementation to copy.
+
+45/45 tests, build green, features verified live in Chromium at 1440.
+
 ## Phase 29 — Day dial, cross-device pull, mobile import (2026-07-08, Claude Code)
 
 ### Day tab (`c4b2f5d`) — the big planner
