@@ -125,7 +125,13 @@ export function useSupabaseSync(session) {
     const onWrite = () => {
       if (!activeRef.current) return;
       clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(pushNow, DEBOUNCE_MS);
+      // Null the ref when the timer fires: pullNow treats a SET ref as
+      // "local edits pending" and skips, so a stale id would block pulling
+      // forever after the first edit.
+      debounceRef.current = setTimeout(() => {
+        debounceRef.current = null;
+        pushNow();
+      }, DEBOUNCE_MS);
     };
     window.addEventListener("ligand:localwrite", onWrite);
     return () => {
@@ -134,22 +140,50 @@ export function useSupabaseSync(session) {
     };
   }, [userId, pushNow]);
 
-  // --- 3. Retry when connectivity returns / app is foregrounded ---------
-  // A failed push previously sat as "offline" until the NEXT local edit.
-  // Now regaining network (or switching back to the tab/PWA) retries
-  // immediately; pushNow no-ops when the blob hasn't changed.
+  // Pull the cloud blob when it differs from the last state we pushed/pulled.
+  // This is what makes "plan on the PC, open the phone, it's there" work
+  // WITHOUT signing out and back in: previously the cloud was only read at
+  // login, so an already-open device never saw another device's edits until
+  // its own next push overwrote them. Guards:
+  //   - skipped while a local edit is waiting to push (debounce pending) —
+  //     local changes win, exactly the documented last-write-wins policy;
+  //   - a no-op when the fetched blob matches lastPushedRef (common case).
+  const pullNow = useCallback(async () => {
+    if (!userId || !supabase || !activeRef.current) return;
+    if (debounceRef.current) return; // local edits about to push — don't clobber
+    const res = await fetchUserData(userId);
+    if (!res.ok || !res.row?.data) return;
+    const json = JSON.stringify(res.row.data);
+    if (json === lastPushedRef.current) return; // already in step
+    applyBlobToLocal(res.row.data);
+    lastPushedRef.current = json;
+    setStatus("synced");
+  }, [userId]);
+
+  // --- 3. Reconcile when connectivity returns / app is foregrounded ------
+  // Push first (no-op when nothing changed locally), then pull anything a
+  // second device wrote while this one was asleep.
   useEffect(() => {
     if (!userId || !supabase) return undefined;
-    const retry = () => {
-      if (activeRef.current) pushNow();
+    const reconcile = () => {
+      if (!activeRef.current) return;
+      if (document.visibilityState === "hidden") {
+        // Backgrounding: flush local changes up, nothing to pull for a
+        // screen nobody is looking at.
+        pushNow();
+        return;
+      }
+      Promise.resolve(pushNow()).then(pullNow);
     };
-    window.addEventListener("online", retry);
-    document.addEventListener("visibilitychange", retry);
+    window.addEventListener("online", reconcile);
+    document.addEventListener("visibilitychange", reconcile);
+    window.addEventListener("focus", reconcile);
     return () => {
-      window.removeEventListener("online", retry);
-      document.removeEventListener("visibilitychange", retry);
+      window.removeEventListener("online", reconcile);
+      document.removeEventListener("visibilitychange", reconcile);
+      window.removeEventListener("focus", reconcile);
     };
-  }, [userId, pushNow]);
+  }, [userId, pushNow, pullNow]);
 
   // --- First-login migration, resolved by the app (Phase 4 UI) ---
   // importExisting === true  → push the current local blob as the first row.
