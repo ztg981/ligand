@@ -358,6 +358,39 @@ export function createScheduledWorkout({
   };
 }
 
+// A timed block on the day dial. start/end are MINUTES from local midnight
+// (end > start). Blocks can link back to the record they schedule (a task,
+// habit, workout instance) so completing one completes the other.
+export function createDayBlock({
+  date = todayKey(),
+  start = 9 * 60,
+  end = 10 * 60,
+  title = "Block",
+  category = "focus", // see BLOCK_CATEGORIES in lib/dayPlanner.js
+  protected: isProtected = false,
+  done = false,
+  linkType = null, // null | "task" | "habit" | "workout"
+  linkId = null,
+  notes = "",
+} = {}) {
+  const now = new Date().toISOString();
+  return {
+    id: uid("blk"),
+    date,
+    start: Math.max(0, Math.min(24 * 60, Math.round(start))),
+    end: Math.max(1, Math.min(24 * 60, Math.round(end))),
+    title,
+    category,
+    protected: Boolean(isProtected),
+    done: Boolean(done),
+    linkType,
+    linkId,
+    notes,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 // A logged meal — deliberately gentle: no calories, no macros, no “good/bad”
 // foods. Balance is captured as simple tags the user taps; suggestions built
 // on them stay supportive (add a veg, remember water), never restrictive.
@@ -613,6 +646,7 @@ export function seedData() {
     fitnessProfile: null,
     meals: [], // gentle nutrition log (see createMeal)
     waterLog: {}, // date -> glasses count
+    dayBlocks: [], // timed day-dial blocks (see createDayBlock)
 
     songLog: [], // lightweight "what I was listening to" log (see Journal tab)
   };

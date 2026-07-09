@@ -65,6 +65,7 @@ export default function Home({
   alarms = [],
   focusLog = [],
   scheduledWorkouts = [],
+  dayBlocks = [],
   onOpenWorkout,
   onOpenAlarms,
   onOpenPomodoro,
@@ -326,6 +327,7 @@ export default function Home({
           alarms={alarms}
           focusLog={focusLog}
           scheduledWorkouts={scheduledWorkouts}
+          dayBlocks={dayBlocks}
           onOpenWorkout={onOpenWorkout}
           onOpenAlarms={onOpenAlarms}
         />

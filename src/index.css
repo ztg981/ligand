@@ -5907,6 +5907,98 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 
 .wl-g-exnote { font-size: 12.5px; color: var(--ink-3); font-style: italic; margin-top: 2px; }
 
+/* ============================================================
+   Day planner — the big dial tab. Fine dotted paper texture,
+   hand-written center date, textured wedges, leader-line labels.
+   ============================================================ */
+.dp-wrap {
+  /* the fine dot grid behind the dial (radial paper feel) */
+  background-image: radial-gradient(color-mix(in oklab, var(--ink) 14%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  border-radius: var(--r-2xl);
+  padding: 4px 10px 20px;
+  margin: -4px -10px 0;
+}
+.dp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dp-nav { display: flex; align-items: center; gap: 6px; }
+.dp-grid {
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) 360px;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .dp-grid { grid-template-columns: 1fr; }
+}
+.dp-dial-wrap { min-width: 0; }
+.dial { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; touch-action: none; }
+.dial-hour { font-size: 12px; fill: var(--ink-3); font-family: var(--font-mono); letter-spacing: 0.02em; }
+.dial-weekday { font-size: 13px; fill: var(--ink-4); letter-spacing: 0.28em; font-weight: 600; }
+.dial-date { font-family: "Caveat", "Segoe Script", cursive; font-size: 44px; fill: var(--ink); }
+.dial-year { font-size: 12px; fill: var(--ink-4); font-family: var(--font-mono); letter-spacing: 0.14em; }
+.dial-total { font-size: 13px; fill: var(--ink-2); font-weight: 550; }
+.dial-now { font-size: 11px; fill: oklch(0.62 0.19 25); font-family: var(--font-mono); }
+.dial-lbl { font-size: 13px; font-weight: 600; fill: var(--ink); }
+.dial-lbl-time { font-size: 10.5px; fill: var(--ink-3); font-family: var(--font-mono); }
+
+.dp-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dp-empty { font-size: 12.5px; color: var(--ink-3); margin: 0; line-height: 1.5; }
+.dp-mobile-note { font-size: 12.5px; color: var(--ink-3); margin: 0 0 12px; }
+
+.dp-editor-title { width: 100%; height: 42px; font-size: 14.5px; margin-bottom: 10px; }
+.dp-editor-times { display: flex; gap: 10px; margin-bottom: 10px; }
+.dp-time { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.dp-time span { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-4); }
+.dp-time .input { height: 40px; }
+.dp-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dp-cat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; min-height: 30px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+}
+.dp-cat.on { border-color: var(--cat); color: var(--ink); background: color-mix(in oklab, var(--cat) 14%, var(--panel)); }
+.dp-cat-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--cat); flex: none; }
+.dp-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--ink-2); margin: 6px 0; cursor: pointer;
+}
+.dp-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.dp-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.dp-danger { color: var(--danger, #d9534f); }
+
+.dp-list { display: flex; flex-direction: column; gap: 6px; }
+.dp-row { display: flex; align-items: center; gap: 8px; }
+.dp-row.done .dp-row-title { text-decoration: line-through; color: var(--ink-4); }
+.dp-row-check {
+  width: 22px; height: 22px; flex: none;
+  border: 1.5px solid var(--line-strong); border-radius: 7px;
+  background: transparent; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: white;
+}
+.dp-row-check.on { background: oklch(0.65 0.14 150); border-color: oklch(0.6 0.14 150); }
+.dp-row-dot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
+.dp-row-main {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+  background: transparent; border: none; cursor: pointer; text-align: left; padding: 4px 0;
+}
+.dp-row-title { font-size: 13px; font-weight: 550; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-row-time { font-size: 10.5px; color: var(--ink-4); font-family: var(--font-mono); }
+
+.dp-place { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.dp-place:first-of-type { border-top: none; }
+.dp-place-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-habits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.dp-habit-chip {
+  padding: 5px 10px; min-height: 30px;
+  border: 1px dashed var(--line-strong); border-radius: 999px;
+  background: transparent; cursor: pointer;
+  font-size: 12px; color: var(--ink-3);
+}
+.dp-habit-chip:hover { color: var(--accent-ink, var(--accent)); border-color: var(--accent); }
+
 /* Fuel — gentle nutrition log (Workout tab segment). */
 .fuel { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
 .fuel-water-count { font-family: var(--font-mono); font-size: 13px; color: var(--ink-3); }

@@ -15,6 +15,7 @@ import {
   createScheduledWorkout,
   createFitnessProfile,
   createMeal,
+  createDayBlock,
   createSong,
   shiftDay,
   todayKey,
@@ -543,6 +544,36 @@ export function useStore() {
     [setData]
   );
 
+  // -- day blocks (timed day-dial planner) -------------------------
+  const addDayBlock = useCallback(
+    (opts) => {
+      const block = opts && opts.id ? opts : createDayBlock(opts);
+      setData((d) => ({ ...d, dayBlocks: [...(d.dayBlocks || []), block] }));
+      return block;
+    },
+    [setData]
+  );
+
+  const updateDayBlock = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        dayBlocks: (d.dayBlocks || []).map((b) =>
+          b.id === id ? { ...b, ...patch, updatedAt: new Date().toISOString() } : b
+        ),
+      })),
+    [setData]
+  );
+
+  const deleteDayBlock = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        dayBlocks: (d.dayBlocks || []).filter((b) => b.id !== id),
+      })),
+    [setData]
+  );
+
   // -- meals + water (gentle nutrition log) -----------------------
   const addMeal = useCallback(
     (opts) => {
@@ -664,6 +695,9 @@ export function useStore() {
       addMeal,
       removeMeal,
       addWater,
+      addDayBlock,
+      updateDayBlock,
+      deleteDayBlock,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -713,6 +747,9 @@ export function useStore() {
       addMeal,
       removeMeal,
       addWater,
+      addDayBlock,
+      updateDayBlock,
+      deleteDayBlock,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -738,6 +775,7 @@ export function useStore() {
     fitnessProfile: data.fitnessProfile || null,
     meals: data.meals || [],
     waterLog: data.waterLog || {},
+    dayBlocks: data.dayBlocks || [],
     songLog: data.songLog || [],
     ...actions,
   };

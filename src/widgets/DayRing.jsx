@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey } from "../lib/model.js";
+import { categoryById } from "../lib/dayPlanner.js";
 
 /* DayRing — a small "time visibility" dial for Home.
 
@@ -52,6 +53,7 @@ export default function DayRing({
   alarms = [],
   focusLog = [],
   scheduledWorkouts = [],
+  dayBlocks = [],
   onOpenWorkout,
   onOpenAlarms,
 }) {
@@ -106,12 +108,25 @@ export default function DayRing({
 
   const nextAlarm = todaysAlarms.find((a) => a.hours > nowH);
 
-  // Center line: the single most useful "what's fixed next" fact.
-  const nextLine = nextAlarm
-    ? `Next: ${nextAlarm.label} · ${fmtHM(nextAlarm.hours)}`
-    : plannedToday.length
-      ? `Planned: ${plannedToday[0].name}`
-      : null;
+  // Blocks planned on the Day dial (desktop) show here too, so the phone
+  // sees the same day-shape that was planned on the PC.
+  const todaysBlocks = useMemo(
+    () => dayBlocks.filter((b) => b.date === today),
+    [dayBlocks, today]
+  );
+  const nextBlock = [...todaysBlocks]
+    .filter((b) => !b.done && b.start / 60 > nowH)
+    .sort((a, b) => a.start - b.start)[0];
+
+  // Center line: the single most useful "what's fixed next" fact. A planned
+  // block beats an alarm beats a dateless planned workout.
+  const nextLine = nextBlock
+    ? `Next: ${nextBlock.title} · ${fmtHM(nextBlock.start / 60)}`
+    : nextAlarm
+      ? `Next: ${nextAlarm.label} · ${fmtHM(nextAlarm.hours)}`
+      : plannedToday.length
+        ? `Planned: ${plannedToday[0].name}`
+        : null;
 
   const hoursLeft = Math.max(0, 24 - nowH);
 
@@ -141,6 +156,18 @@ export default function DayRing({
               strokeLinecap="round"
             />
           )}
+          {/* planned day-dial blocks (thin inner arcs, category colored) */}
+          {todaysBlocks.map((b) => (
+            <path
+              key={b.id}
+              d={arcPath(b.start / 60, Math.max(b.start / 60 + 0.2, b.end / 60), R - STROKE / 2 - 5)}
+              fill="none"
+              stroke={categoryById(b.category).color}
+              strokeWidth={4}
+              strokeLinecap="round"
+              opacity={b.done ? 0.35 : 0.9}
+            />
+          ))}
           {/* trained arcs (real completed workouts) */}
           {trainedArcs.map((a) => (
             <path

@@ -453,6 +453,7 @@ function SyncPill({ status }) {
 
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
+  { id: "day", label: "Day", icon: <Icon.Timer /> },
   { id: "habits", label: "Habits", icon: <Icon.CheckCircle /> },
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },

@@ -37,6 +37,7 @@ import Journal from "./tabs/Journal.jsx";
 import Notes from "./tabs/Notes.jsx";
 import Habits from "./tabs/Habits.jsx";
 import WorkoutTab from "./tabs/WorkoutTab.jsx";
+import DayPlanner from "./tabs/DayPlanner.jsx";
 import Settings from "./tabs/Settings.jsx";
 import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -821,6 +822,7 @@ export default function App() {
             alarms={store.alarms}
             focusLog={store.focusLog}
             scheduledWorkouts={store.scheduledWorkouts}
+            dayBlocks={store.dayBlocks}
             onOpenWorkout={() => setTab("workout")}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenJournal={() => setTab("journal")}
@@ -828,6 +830,21 @@ export default function App() {
               setSettingsFocus("alarms");
               setTab("settings");
             }}
+          />
+        );
+      case "day":
+        return (
+          <DayPlanner
+            dayBlocks={store.dayBlocks}
+            addDayBlock={store.addDayBlock}
+            updateDayBlock={store.updateDayBlock}
+            deleteDayBlock={store.deleteDayBlock}
+            tasks={store.tasks}
+            toggleTask={store.toggleTask}
+            goals={activeGoals}
+            scheduledWorkouts={store.scheduledWorkouts}
+            alarms={store.alarms}
+            onOpenWorkout={() => setTab("workout")}
           />
         );
       case "habits":
