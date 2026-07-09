@@ -2,6 +2,46 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 29 — Day dial, cross-device pull, mobile import (2026-07-08, Claude Code)
+
+### Day tab (`c4b2f5d`) — the big planner
+
+New desktop tab **Day** (Home → Day): an interactive 24-hour dial
+(Reassign-inspired, built entirely from Ligand tokens — dotted paper
+texture, Caveat script center date, textured category wedges with
+wave/stripe/dot/hatch patterns, dotted leader-line labels, warm now-needle,
+shaded sleep window). Drag on the ring to carve a block (15-min snap →
+prefilled editor, verified live), click wedges to edit; side panel has the
+accessible block list, editor (category chips, protected toggle), "Place
+onto your day" (newest tasks → 30m, today's planned workouts → 1h, habits →
+15m via a free-slot finder with an inline day-is-full note — a blocking
+`alert()` froze the renderer in testing and was removed), and persisted dial
+preferences. Blocks are minute-precise `dayBlocks` records (linkType/linkId
+back to tasks/habits/workouts; done syncs BOTH ways — verified). Today's
+blocks also render as arcs on the mobile Home DayRing, so the phone sees the
+day-shape planned on the PC. 5 new pure-helper tests (overlap, merged
+totals, free-slot).
+
+### Cross-device pull (`e98b3cc`) — the real PC↔iPhone fix
+
+The cloud row was previously read only at login; an open phone never saw PC
+edits until its own push clobbered them. Now foreground/online events push
+pending local edits then PULL the cloud blob when it differs (guarded
+against pending local debounce; fixed a latent bug where the fired timer id
+would have blocked pulls forever). Plan on PC → open phone → it's there.
+
+### Mobile workout import (`b173b11`)
+
+Workout hero → **Import** opens a paste-your-notes bottom sheet rendering
+the SAME WorkoutImport component as desktop (same AI retry/fallback chain,
+same Quick parse, same sanitizer, same review modal — shells differ,
+behavior cannot drift). Verified at 390px: cue-heavy notes → Lateral Raise +
+Bench Press library-matched, no overflow.
+
+Suite 45/45 · build green · zero console errors on fresh loads (390 + 1440).
+Concurrent-session work committed as found: Home analytics widgets + bell
+alarm shortcut (`4899f9c`), iOS icon fix (`7ac3780`).
+
 ## Phase 28 — Overnight product pass (2026-07-07, Claude Code)
 
 Baseline: master `638dc10` clean, 28/28 tests, build green. Research notes
