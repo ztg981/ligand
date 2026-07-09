@@ -8,6 +8,8 @@ import ExerciseBrowser from "../components/ExerciseBrowser.jsx";
 import EquipmentSheet from "../components/EquipmentSheet.jsx";
 import WorkoutSetup from "../components/WorkoutSetup.jsx";
 import NutritionPanel from "../components/NutritionPanel.jsx";
+import RoutinesPanel from "../components/RoutinesPanel.jsx";
+import { enrichWithLibrary } from "../lib/workoutParser.js";
 import {
   workoutsThisWeek,
   weeklyWorkoutStreak,
@@ -98,6 +100,8 @@ export default function WorkoutTab({
   scheduledWorkouts = [],
   addWorkout,
   addTemplate,
+  updateTemplate,
+  deleteTemplate,
   addScheduledWorkout,
   updateScheduledWorkout,
   deleteScheduledWorkout,
@@ -205,10 +209,24 @@ export default function WorkoutTab({
       });
     }
   };
-  const handleSaveTemplate = (name, exercises) =>
-    addTemplate?.(
-      createWorkoutTemplate({ name, exercises: workoutToTemplatePlan(exercises) })
-    );
+  // Save a routine from EITHER shape: logged exercises (from the in-gym
+  // logger, which have .sets) get condensed to targets; plan items (from the
+  // builder/preview/import) are already targets and pass through unchanged.
+  // The old unconditional workoutToTemplatePlan crashed on plan items
+  // (ex.sets is undefined there).
+  const toTemplatePlan = (exercises) =>
+    (exercises || []).some((e) => Array.isArray(e.sets))
+      ? workoutToTemplatePlan(exercises)
+      : exercises;
+  const handleSaveTemplate = (name, exercises) => {
+    const plan = toTemplatePlan(exercises);
+    if (preview?.templateId) {
+      // Editing an existing routine: save in place.
+      updateTemplate?.(preview.templateId, { name, exercises: plan });
+    } else {
+      addTemplate?.(createWorkoutTemplate({ name, exercises: plan }));
+    }
+  };
 
   const startFree = () => {
     setChoosing(false);
@@ -404,6 +422,25 @@ export default function WorkoutTab({
     });
   // Manual builder (works on desktop AND mobile) — empty plan, editable name.
   const openBuilder = () => setPreview({ plan: [], source: "builder" });
+
+  // ---- routines (templates as first-class cards) ---------------------------
+  const editRoutine = (t) =>
+    setPreview({
+      plan: t.exercises || [],
+      source: "builder",
+      name: t.name,
+      templateId: t.id,
+    });
+  const scheduleRoutine = (t) =>
+    setPreview({ plan: t.exercises || [], source: "routine", name: t.name });
+  const duplicateRoutine = (t) =>
+    addTemplate?.(
+      createWorkoutTemplate({ name: `${t.name} copy`, exercises: t.exercises || [] })
+    );
+  const addStarterRoutine = (r) =>
+    addTemplate?.(
+      createWorkoutTemplate({ name: r.name, exercises: enrichWithLibrary(r.exercises) })
+    );
   // Build today's session from the last completed one ("same as last time").
   const repeatLast = () => {
     if (!workouts.length) return;
@@ -428,6 +465,7 @@ export default function WorkoutTab({
     imported: { eyebrow: "Imported from your notes", title: "Review your workout" },
     builder: { eyebrow: "Workout builder", title: "New workout" },
     repeat: { eyebrow: "Based on your last session", title: "Repeat last workout" },
+    routine: { eyebrow: "From your routines", title: "Schedule or start" },
     generated: { eyebrow: "Generated for you", title: "Today's workout" },
   };
   const previewCopy = PREVIEW_COPY[preview?.source] || PREVIEW_COPY.generated;
@@ -465,6 +503,9 @@ export default function WorkoutTab({
         <button className={view === "hub" ? "active" : ""} onClick={() => setView("hub")}>
           {isMobile ? "Today" : "Plan"}
         </button>
+        <button className={view === "routines" ? "active" : ""} onClick={() => setView("routines")}>
+          Routines
+        </button>
         <button className={view === "browse" ? "active" : ""} onClick={() => setView("browse")}>
           Exercises
         </button>
@@ -477,6 +518,19 @@ export default function WorkoutTab({
       </div>
 
       {resumeBanner}
+
+      {view === "routines" && (
+        <RoutinesPanel
+          templates={templates}
+          onStart={startFromTemplate}
+          onSchedule={scheduleRoutine}
+          onEdit={editRoutine}
+          onDuplicate={duplicateRoutine}
+          onDelete={(id) => deleteTemplate?.(id)}
+          onNew={openBuilder}
+          onAddStarter={addStarterRoutine}
+        />
+      )}
 
       {view === "fuel" && (
         <NutritionPanel

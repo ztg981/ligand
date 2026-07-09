@@ -457,8 +457,8 @@ const TOOLS = [
   { id: "habits", label: "Habits", icon: <Icon.CheckCircle /> },
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
-  { id: "journal", label: "Journal", icon: <Icon.Book /> },
   { id: "notes", label: "Notes", icon: <Icon.Note /> },
+  { id: "journal", label: "Journal", icon: <Icon.Book /> },
   { id: "workout", label: "Workout", icon: <Icon.Dumbbell /> },
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
@@ -733,6 +733,9 @@ export default function TopNav({
           </button>
           <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
             <Icon.Search />
+          </button>
+          <button className="iconbtn topbar-badges" title="Badges" onClick={onOpenBadges}>
+            <Icon.Trophy />
           </button>
           <NotificationBell
             items={notifications}

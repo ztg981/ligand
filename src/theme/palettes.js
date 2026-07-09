@@ -8,6 +8,7 @@
 
 export const LIGHT_PALETTES = [
   { id: "paper", name: "Soft Paper", desc: "Warm cream (default)", swatch: "#faf6f0" },
+  { id: "glass", name: "Liquid Glass", desc: "Iridescent chrome, frosted panels", swatch: "linear-gradient(135deg,#fdfbf7,#e9edf5 45%,#f6efe9)" },
   { id: "porcelain", name: "Porcelain", desc: "Cool, clean neutral", swatch: "#f7f8fa" },
   { id: "meadow", name: "Meadow", desc: "Calm green tint", swatch: "#f4f7f2" },
   { id: "contrast-light", name: "High Contrast", desc: "Maximum readability", swatch: "#ffffff" },
@@ -15,6 +16,7 @@ export const LIGHT_PALETTES = [
 
 export const DARK_PALETTES = [
   { id: "midnight", name: "Midnight", desc: "Deep neutral (default)", swatch: "#15161a" },
+  { id: "emerald", name: "Emerald Flow", desc: "Modern gradient green", swatch: "linear-gradient(160deg,#0b1512,#123528 70%,#0a2b1e)" },
   { id: "navy", name: "Deep Navy", desc: "Blue-black", swatch: "#0e1420" },
   { id: "forest", name: "Calm Forest", desc: "Green-tinted dark", swatch: "#121711" },
   { id: "lowstim", name: "Low Stim", desc: "Muted, ambient off", swatch: "#1a1a1c" },

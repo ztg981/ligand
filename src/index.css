@@ -143,6 +143,66 @@
   --accent-ink: oklch(0.34 0.11 var(--accent-h));
 }
 
+/* Liquid Glass — iridescent chrome light look inspired by liquid-metal
+   wallpapers: a soft pearlescent gradient behind genuinely frosted panels. */
+[data-theme="light"][data-palette="glass"] {
+  --nav-rgb: 250, 250, 252;
+  --bg: #f4f5f8;
+  --bg-2: #edeff4;
+  --panel: rgba(255, 255, 255, 0.62);
+  --panel-2: rgba(255, 255, 255, 0.48);
+  --panel-3: rgba(238, 241, 247, 0.7);
+  --line: rgba(80, 90, 120, 0.13);
+  --line-strong: rgba(80, 90, 120, 0.22);
+  --ink: #17181d;
+  --ink-2: #43464f;
+  --ink-3: #7b7f8b;
+  --ink-4: #aeb2bf;
+  --app-bg:
+    radial-gradient(90rem 60rem at 85% -10%, rgba(255, 214, 224, 0.5), transparent 55%),
+    radial-gradient(70rem 50rem at -10% 30%, rgba(196, 220, 255, 0.55), transparent 55%),
+    radial-gradient(60rem 60rem at 60% 110%, rgba(255, 240, 214, 0.5), transparent 60%),
+    linear-gradient(135deg, #fdfdfc 0%, #eef0f5 45%, #f4efe9 100%);
+}
+[data-palette="glass"] .card,
+[data-palette="glass"] .modal,
+[data-palette="glass"] .bottom-sheet,
+[data-palette="glass"] .notif-pop,
+[data-palette="glass"] .avatar-pop,
+[data-palette="glass"] .goal-dd-panel {
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 1px 2px rgba(60, 70, 100, 0.06),
+    0 14px 34px -18px rgba(60, 70, 100, 0.3);
+}
+
+/* Emerald Flow — modern gradient green (not woodland; sleek and saturated). */
+[data-theme="dark"][data-palette="emerald"] {
+  --nav-rgb: 12, 22, 18;
+  --bg: #0c1612;
+  --bg-2: #101d17;
+  --panel: #12241c;
+  --panel-2: #162a20;
+  --panel-3: #1b3226;
+  --line: rgba(120, 240, 190, 0.09);
+  --line-strong: rgba(120, 240, 190, 0.16);
+  --ink: #e7f3ec;
+  --ink-2: #a9c4b5;
+  --ink-3: #6f8f7e;
+  --ink-4: #45604f;
+  --accent: oklch(0.78 0.16 160);
+  --accent-soft: oklch(0.32 0.07 160);
+  --accent-glow: oklch(0.75 0.18 160 / 0.5);
+  --accent-ink: oklch(0.85 0.13 160);
+  --app-bg:
+    radial-gradient(70rem 50rem at 110% -10%, rgba(38, 255, 176, 0.10), transparent 55%),
+    radial-gradient(60rem 60rem at -15% 110%, rgba(0, 200, 130, 0.12), transparent 60%),
+    linear-gradient(160deg, #0b1512 0%, #0e1f19 40%, #11332a 78%, #0a271c 100%);
+}
+
 [data-theme="dark"][data-palette="navy"] {
   --nav-rgb: 14, 20, 32;
   --bg: #0e1420;
@@ -5940,6 +6000,10 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .dial-now { font-size: 11px; fill: oklch(0.62 0.19 25); font-family: var(--font-mono); }
 .dial-lbl { font-size: 13px; font-weight: 600; fill: var(--ink); }
 .dial-lbl-time { font-size: 10.5px; fill: var(--ink-3); font-family: var(--font-mono); }
+/* Floating range tip shown while dragging / composing a block. */
+.dial-tip-bg { fill: var(--panel); stroke: var(--accent); stroke-width: 1.2; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25)); }
+.dial-tip-range { font-size: 14px; font-weight: 650; fill: var(--ink); }
+.dial-tip-dur { font-size: 11px; fill: var(--ink-3); font-family: var(--font-mono); }
 
 .dp-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .dp-empty { font-size: 12.5px; color: var(--ink-3); margin: 0; line-height: 1.5; }
@@ -5987,9 +6051,21 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .dp-row-title { font-size: 13px; font-weight: 550; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dp-row-time { font-size: 10.5px; color: var(--ink-4); font-family: var(--font-mono); }
 
-.dp-place { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.dp-place { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
 .dp-place:first-of-type { border-top: none; }
-.dp-place-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-place-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+/* Compact single-line placement pill — the old two-line ghost button read
+   as misaligned stray text. */
+.dp-place .btn {
+  flex: none; white-space: nowrap;
+  min-height: 30px; padding: 4px 11px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  font-family: var(--font-mono); letter-spacing: 0.01em;
+  color: var(--accent-ink, var(--accent));
+  border: 1px dashed color-mix(in oklab, var(--accent) 55%, var(--line-strong));
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+}
+.dp-place .btn:hover { border-style: solid; background: color-mix(in oklab, var(--accent) 12%, transparent); }
 .dp-habits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .dp-habit-chip {
   padding: 5px 10px; min-height: 30px;
@@ -5998,6 +6074,59 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   font-size: 12px; color: var(--ink-3);
 }
 .dp-habit-chip:hover { color: var(--accent-ink, var(--accent)); border-color: var(--accent); }
+
+/* Desktop wordmark in the handwritten display face (matches the Day dial's
+   center date). Phones keep the dot-only mark, so this is desktop-only. */
+@media (min-width: 768px) {
+  .brand-name {
+    font-family: "Caveat", "Segoe Script", cursive;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    transform: translateY(-1px);
+  }
+}
+/* Badges shortcut lives with the other tools on desktop; on phones the
+   avatar menu keeps it (one less crowded icon in the pill). */
+@media (max-width: 767px) { .topbar-badges { display: none; } }
+
+/* Routines — prebuilt workouts as first-class cards. */
+.routines { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+.rt-empty { font-size: 12.5px; color: var(--ink-3); margin: 0; line-height: 1.5; }
+.rt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.rt-card {
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--panel-2); padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.rt-name { font-size: 15px; font-weight: 650; color: var(--ink); }
+.rt-meta { font-size: 11px; color: var(--ink-4); font-family: var(--font-mono); margin-top: 2px; }
+.rt-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.rt-chip {
+  font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--accent-ink, var(--accent));
+}
+.rt-exs { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.rt-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.rt-danger { color: var(--danger, #d9534f); }
+.rt-starters { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.rt-starter {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 10px 12px; min-height: 54px;
+  border: 1px dashed var(--line-strong); border-radius: var(--r-md);
+  background: transparent; cursor: pointer; text-align: left;
+}
+.rt-starter:hover:not(:disabled) { border-color: var(--accent); }
+.rt-starter.added { opacity: 0.55; cursor: default; border-style: solid; }
+.rt-starter-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.rt-starter-desc { font-size: 11.5px; color: var(--ink-4); }
+/* The workout segmented control now holds 5 items — let it scroll on phones
+   instead of squeezing labels. */
+.fit-view-seg { overflow-x: auto; scrollbar-width: none; }
+.fit-view-seg::-webkit-scrollbar { display: none; }
+.fit-view-seg button { white-space: nowrap; }
 
 /* Fuel — gentle nutrition log (Workout tab segment). */
 .fuel { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }

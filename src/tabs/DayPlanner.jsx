@@ -333,7 +333,7 @@ export default function DayPlanner({
                   })
                 }
               >
-                Place 1h
+                + 1h
               </button>
             </div>
           ))}
@@ -351,7 +351,7 @@ export default function DayPlanner({
                   })
                 }
               >
-                Place 30m
+                + 30m
               </button>
             </div>
           ))}
@@ -477,6 +477,11 @@ export default function DayPlanner({
               blocks={blocks}
               alarms={dialAlarms}
               selectedId={selectedId}
+              draftRange={
+                draft && hhmmToMinutes(draft.startHH) != null && hhmmToMinutes(draft.endHH) != null
+                  ? { start: hhmmToMinutes(draft.startHH), end: hhmmToMinutes(draft.endHH) }
+                  : null
+              }
               textures={pref.textures}
               sleepStart={pref.sleepStart}
               sleepEnd={pref.sleepEnd}

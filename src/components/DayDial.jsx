@@ -73,12 +73,37 @@ function layoutLabels(blocks) {
   return items;
 }
 
+// Floating time-range tooltip pinned beside an arc (drag feedback).
+function RangeTip({ from, to }) {
+  const [s, e] = from <= to ? [from, to] : [to, from];
+  if (e - s < 1) return null;
+  const mid = (s + e) / 2;
+  const a = minToAngle(mid);
+  const right = Math.cos(a) >= 0;
+  const [ax, ay] = pt(mid, R_OUT + 26);
+  const w = 168;
+  const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
+  const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
+  return (
+    <g pointerEvents="none">
+      <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
+      <text x={x + w / 2} y={y + 20} textAnchor="middle" className="dial-tip-range">
+        {minutesToLabel(s)} – {minutesToLabel(e)}
+      </text>
+      <text x={x + w / 2} y={y + 38} textAnchor="middle" className="dial-tip-dur">
+        {fmtDuration(e - s)}
+      </text>
+    </g>
+  );
+}
+
 export default function DayDial({
   date, // YYYY-MM-DD being viewed
   isToday,
   blocks = [],
   alarms = [], // [{ id, label, minutes }]
   selectedId = null,
+  draftRange = null, // { start, end } being composed in the editor — ghost wedge
   textures = true,
   sleepStart = "23:00",
   sleepEnd = "07:00",
@@ -197,14 +222,43 @@ export default function DayDial({
         onPointerDown={onBandDown}
       />
 
-      {/* drag preview */}
+      {/* drag preview — filled wedge + crisp outline + floating range tip,
+          so the portion being selected is unmistakable while dragging */}
       {drag && drag.from !== drag.to && (
-        <path
-          d={sectorPath(Math.min(drag.from, drag.to), Math.max(drag.from, drag.to), R_IN, R_OUT, 0)}
-          fill="var(--accent)"
-          opacity="0.35"
-          pointerEvents="none"
-        />
+        <g pointerEvents="none">
+          <path
+            d={sectorPath(Math.min(drag.from, drag.to), Math.max(drag.from, drag.to), R_IN, R_OUT, 0)}
+            fill="var(--accent)"
+            opacity="0.3"
+          />
+          <path
+            d={sectorPath(Math.min(drag.from, drag.to), Math.max(drag.from, drag.to), R_IN, R_OUT, 0)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2.5"
+          />
+          <RangeTip from={drag.from} to={drag.to} />
+        </g>
+      )}
+
+      {/* editor draft — the range currently in the From/To fields stays
+          visible as a dashed ghost wedge and live-updates as times change */}
+      {!drag && draftRange && draftRange.end > draftRange.start && (
+        <g pointerEvents="none">
+          <path
+            d={sectorPath(draftRange.start, draftRange.end, R_IN, R_OUT, 0)}
+            fill="var(--accent)"
+            opacity="0.22"
+          />
+          <path
+            d={sectorPath(draftRange.start, draftRange.end, R_IN, R_OUT, 0)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2.5"
+            strokeDasharray="7 5"
+          />
+          <RangeTip from={draftRange.start} to={draftRange.end} />
+        </g>
       )}
 
       {/* block wedges */}
@@ -233,7 +287,15 @@ export default function DayDial({
               />
             )}
             {selected && (
-              <path d={sectorPath(b.start, b.end)} fill="none" stroke="var(--ink)" strokeWidth="2.5" />
+              <>
+                <path
+                  d={sectorPath(b.start, b.end, R_IN - 5, R_OUT + 5, 1)}
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="3"
+                />
+                <path d={sectorPath(b.start, b.end)} fill="none" stroke="var(--ink)" strokeWidth="1.5" opacity="0.6" />
+              </>
             )}
           </g>
         );
