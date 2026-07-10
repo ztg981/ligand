@@ -6280,15 +6280,50 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    uppercase mark that sits cleanly next to the logo dot. Phones keep the
    dot-only mark, so this is desktop-only. */
 @media (min-width: 768px) {
-  .brand-name {
-    font-family: "Dancing Script", "Segoe Script", cursive;
-    font-size: 21px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    line-height: 1;
+  /* Base wordmark; each [data-wordmark] variant tunes family/size/weight so
+     every face sits cleanly next to the logo dot (a picker in Settings). */
+  .brand-name { line-height: 1; }
+  [data-wordmark="instrument"] .brand-name {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 23px; font-style: italic; font-weight: 400; letter-spacing: 0.005em;
     transform: translateY(-1px);
   }
+  [data-wordmark="dancing"] .brand-name {
+    font-family: "Dancing Script", "Segoe Script", cursive;
+    font-size: 21px; font-weight: 700; transform: translateY(-1px);
+  }
+  [data-wordmark="vibes"] .brand-name {
+    font-family: "Great Vibes", "Segoe Script", cursive;
+    font-size: 24px; font-weight: 400; transform: translateY(-2px);
+  }
+  [data-wordmark="caveat"] .brand-name {
+    font-family: "Caveat", "Segoe Script", cursive;
+    font-size: 23px; font-weight: 600; transform: translateY(-1px);
+  }
+  [data-wordmark="grotesk"] .brand-name {
+    font-family: "Space Grotesk", var(--font-sans);
+    font-size: 15.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  [data-wordmark="plain"] .brand-name {
+    font-family: var(--font-sans);
+    font-size: 16px; font-weight: 650; letter-spacing: -0.01em;
+  }
 }
+/* The picker chips in Settings preview each face. */
+.wordmark-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 320px; }
+.wordmark-pick {
+  min-height: 34px; padding: 4px 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer; color: var(--ink);
+  line-height: 1;
+}
+.wordmark-pick.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wordmark-pick[data-f="instrument"] { font-family: "Instrument Serif", serif; font-style: italic; font-size: 18px; }
+.wordmark-pick[data-f="dancing"] { font-family: "Dancing Script", cursive; font-weight: 700; font-size: 17px; }
+.wordmark-pick[data-f="vibes"] { font-family: "Great Vibes", cursive; font-size: 19px; }
+.wordmark-pick[data-f="caveat"] { font-family: "Caveat", cursive; font-weight: 600; font-size: 18px; }
+.wordmark-pick[data-f="grotesk"] { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+.wordmark-pick[data-f="plain"] { font-family: var(--font-sans); font-weight: 650; font-size: 14px; }
 /* Badges shortcut lives with the other tools on desktop; on phones the
    avatar menu keeps it (one less crowded icon in the pill). */
 @media (max-width: 767px) { .topbar-badges { display: none; } }

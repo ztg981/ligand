@@ -19,7 +19,20 @@ export const TWEAK_DEFAULTS = {
   // the mode and the palette chosen for that mode.
   lightPalette: "paper",
   darkPalette: "midnight",
+  // Desktop wordmark face (see WORDMARK_FONTS). Elegant editorial italic by
+  // default; a picker in Settings lets the user swap it.
+  wordmarkFont: "instrument",
 };
+
+// Desktop wordmark font options (applied via html[data-wordmark]).
+export const WORDMARK_FONTS = [
+  { id: "instrument", name: "Editorial", sample: "Ligand" },
+  { id: "dancing", name: "Cursive", sample: "Ligand" },
+  { id: "vibes", name: "Signature", sample: "Ligand" },
+  { id: "caveat", name: "Handwritten", sample: "Ligand" },
+  { id: "grotesk", name: "Modern", sample: "LIGAND" },
+  { id: "plain", name: "Clean", sample: "Ligand" },
+];
 
 // Accent swatches offered in the panel — single-hue family, varied by angle.
 export const ACCENTS = [
@@ -43,13 +56,14 @@ export function useTweaks() {
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.density = tweaks.density;
+    root.dataset.wordmark = tweaks.wordmarkFont;
     root.style.setProperty("--accent-h", tweaks.accent);
     root.style.setProperty("--ambient-opacity", tweaks.ambient / 100);
     root.style.setProperty("--r-md", tweaks.radius - 2 + "px");
     root.style.setProperty("--r-lg", tweaks.radius + "px");
     root.style.setProperty("--r-xl", tweaks.radius + 2 + "px");
     root.style.setProperty("--r-2xl", tweaks.radius + 4 + "px");
-  }, [tweaks.density, tweaks.accent, tweaks.ambient, tweaks.radius]);
+  }, [tweaks.density, tweaks.accent, tweaks.ambient, tweaks.radius, tweaks.wordmarkFont]);
 
   // Patch one or more keys at once.
   const set = (patch) => setTweaks((prev) => ({ ...prev, ...patch }));

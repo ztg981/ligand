@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { ACCENTS, TWEAK_DEFAULTS } from "../theme/useTweaks.js";
+import { ACCENTS, TWEAK_DEFAULTS, WORDMARK_FONTS } from "../theme/useTweaks.js";
 import { DARK_PALETTES, LIGHT_PALETTES } from "../theme/palettes.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
@@ -255,6 +255,22 @@ export default function Settings({
                 >
                   <span className="palette-dot" style={{ background: p.swatch }} />
                   {p.name}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row name="Wordmark" hint="The Ligand logo type in the top bar">
+            <div className="wordmark-row">
+              {WORDMARK_FONTS.map((f) => (
+                <button
+                  key={f.id}
+                  data-f={f.id}
+                  className={"wordmark-pick" + (tweaks.wordmarkFont === f.id ? " active" : "")}
+                  onClick={() => setTweak({ wordmarkFont: f.id })}
+                  title={f.name}
+                  aria-pressed={tweaks.wordmarkFont === f.id}
+                >
+                  {f.sample}
                 </button>
               ))}
             </div>
