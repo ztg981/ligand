@@ -8,6 +8,7 @@ import { formatEntryDateTime, todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { searchItunesSongs } from "../lib/itunesSearch.js";
 import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js";
+import MoodTrend from "../widgets/MoodTrend.jsx";
 
 const SONG_SEARCH_DEBOUNCE_MS = 400;
 
@@ -498,6 +499,7 @@ export default function Journal({
 
         {/* Past entries */}
         <div className="col-5 stack" style={{ gap: 12, minWidth: 0 }}>
+          <MoodTrend journal={journal} />
           <div className="card">
             <div className="card-head">
               <div className="card-title">
