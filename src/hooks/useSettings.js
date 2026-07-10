@@ -14,6 +14,7 @@ export const SETTINGS_DEFAULTS = {
   notifications: {
     enabled: false, // master switch (placeholder for now)
     pomodoroChime: true, // soft sound when a focus block ends
+    pomodoroAlarm: false, // ring an insistent alarm until dismissed (kitchen-timer style)
     dailyReminder: false, // a gentle nudge once a day
     reminderTime: "09:00",
   },

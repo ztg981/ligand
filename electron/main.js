@@ -23,6 +23,15 @@ const THEME_INK = "#f0eeec";
 
 app.setName("Ligand");
 
+// Windows requires an explicit AppUserModelID for renderer-fired HTML5
+// notifications (new Notification(...)) to surface as native toasts and to
+// group under the app's Start-menu shortcut. Must match the electron-builder
+// appId. Without this, Pomodoro/alarm notifications silently never appear on
+// Windows. No-op on other platforms.
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.ligand.app");
+}
+
 let mainWindow = null;
 
 function createWindow() {

@@ -2293,6 +2293,22 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 .pomo-center .gauge-num .v { color: #fff; font-size: 42px; }
 .pomo-center .gauge-num .l { color: rgba(255, 255, 255, 0.85); font-size: 12px; }
+
+/* "Ring until dismissed" completion alarm — a soft-pulsing dismiss banner. */
+.pomo-alarm-stop {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--danger, #e0533d) 55%, transparent);
+  background: color-mix(in oklab, var(--danger, #e0533d) 16%, var(--panel));
+  color: var(--danger, #e0533d); font-weight: 650; font-size: 13.5px;
+  animation: pomoAlarmPulse 1.1s ease-in-out infinite;
+}
+.pomo-alarm-stop:hover { background: color-mix(in oklab, var(--danger, #e0533d) 26%, var(--panel)); }
+@keyframes pomoAlarmPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--danger, #e0533d) 40%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in oklab, var(--danger, #e0533d) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .pomo-alarm-stop { animation: none; } }
 .pomo-soon {
   position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
@@ -6307,6 +6323,10 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   /* Base wordmark; each [data-wordmark] variant tunes family/size/weight so
      every face sits cleanly next to the logo dot (a picker in Settings). */
   .brand-name { line-height: 1; }
+  [data-wordmark="sora"] .brand-name {
+    font-family: "Sora", var(--font-sans);
+    font-size: 18px; font-weight: 700; letter-spacing: -0.035em;
+  }
   [data-wordmark="instrument"] .brand-name {
     font-family: "Instrument Serif", Georgia, serif;
     font-size: 23px; font-style: italic; font-weight: 400; letter-spacing: 0.005em;
@@ -6342,6 +6362,7 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   line-height: 1;
 }
 .wordmark-pick.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wordmark-pick[data-f="sora"] { font-family: "Sora", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: -0.035em; }
 .wordmark-pick[data-f="instrument"] { font-family: "Instrument Serif", serif; font-style: italic; font-size: 18px; }
 .wordmark-pick[data-f="dancing"] { font-family: "Dancing Script", cursive; font-weight: 700; font-size: 17px; }
 .wordmark-pick[data-f="vibes"] { font-family: "Great Vibes", cursive; font-size: 19px; }

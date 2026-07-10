@@ -196,6 +196,12 @@ export default function MobileSettings({
               }}
             />
           </Row>
+          <Row name="Ring until dismissed" hint="Insistent alarm when a focus block ends, until you tap stop">
+            <Switch
+              checked={notifications.pomodoroAlarm ?? false}
+              onChange={(v) => setSection("notifications", { pomodoroAlarm: v })}
+            />
+          </Row>
           <Row name="Habit reminders" hint="A gentle nudge when you open the app">
             <Switch
               checked={notifications.dailyReminder}

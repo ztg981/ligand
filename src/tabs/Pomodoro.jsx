@@ -4,7 +4,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
-import { pomodoroComplete, phaseChange } from "../lib/uiSounds.js";
+import { pomodoroComplete, phaseChange, startAlarm } from "../lib/uiSounds.js";
 import {
   playAmbient,
   stopAmbient,
@@ -507,6 +507,7 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
    ============================================================ */
 export default function Pomodoro({
   chimeEnabled = true,
+  alarmOnComplete = false,
   onPhaseComplete,
   onFocusStateChange,
   ambientOverride = "none",
@@ -519,15 +520,40 @@ export default function Pomodoro({
   const [focusTaskId, setFocusTaskId] = useLocalStorage("ligand.focusTaskId", "");
   // Carries the latest values into the phase-end callback without stale closures.
   const focusEndRef = useRef(null);
+  // When "ring until dismissed" is on, a finished focus block starts an
+  // insistent looping alarm; we hold its stop fn here and surface a Stop button.
+  const alarmStopRef = useRef(null);
+  const [alarmRinging, setAlarmRinging] = useState(false);
+  const stopAlarm = () => {
+    if (alarmStopRef.current) {
+      alarmStopRef.current();
+      alarmStopRef.current = null;
+    }
+    setAlarmRinging(false);
+  };
+  // Latest alarm preference without re-subscribing the phase-end callback.
+  const alarmPrefRef = useRef(alarmOnComplete);
+  alarmPrefRef.current = alarmOnComplete;
 
   const pomo = usePomodoro({
     onPhaseEnd: ({ endedPhase }) => {
       // A finished WORK block is a reward (descending bing-bong); a finished
       // break is "back to focus" (rising lift). Both follow the Pomodoro chime
-      // setting, not the UI-sounds toggle.
+      // setting, not the UI-sounds toggle. If the user opted into the insistent
+      // "ring until dismissed" alarm, a finished FOCUS block loops that instead
+      // of the gentle chime (kitchen-timer style), until they hit Stop.
       if (chimeEnabled) {
-        if (endedPhase === PHASES.WORK) pomodoroComplete();
-        else phaseChange();
+        if (endedPhase === PHASES.WORK) {
+          if (alarmPrefRef.current) {
+            stopAlarm(); // clear any prior ring first
+            alarmStopRef.current = startAlarm();
+            setAlarmRinging(true);
+          } else {
+            pomodoroComplete();
+          }
+        } else {
+          phaseChange();
+        }
       }
       // Log a completed focus block against its linked task's goal (if any).
       if (endedPhase === PHASES.WORK && focusEndRef.current) {
@@ -607,6 +633,16 @@ export default function Pomodoro({
 
   // Always silence the audio when leaving the Pomodoro tab.
   useEffect(() => () => stopAmbient(), []);
+
+  // Safety: an insistent completion alarm auto-stops after 90s so it can never
+  // ring forever if the user has stepped away. Also stop it on unmount.
+  useEffect(() => {
+    if (!alarmRinging) return;
+    const t = setTimeout(() => stopAlarm(), 90000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarmRinging]);
+  useEffect(() => () => stopAlarm(), []);
 
   // Escape key exits focus mode - never trap the user.
   useEffect(() => {
@@ -743,6 +779,13 @@ export default function Pomodoro({
             />
           </div>
         </div>
+
+        {/* Insistent completion alarm — a dismiss banner while it rings. */}
+        {alarmRinging && (
+          <button className="pomo-alarm-stop" onClick={stopAlarm} data-mute-click>
+            <Icon.Bell /> Alarm ringing — tap to stop
+          </button>
+        )}
 
         {/* Transport controls */}
         <div className="row" style={{ gap: 10 }}>

@@ -986,6 +986,7 @@ export default function App() {
         return (
           <Pomodoro
             chimeEnabled={settings.notifications.pomodoroChime}
+            alarmOnComplete={settings.notifications.pomodoroAlarm}
             ambientOverride={settings.wallpaper?.sound ?? "none"}
             tasks={store.tasks}
             goals={activeGoals}

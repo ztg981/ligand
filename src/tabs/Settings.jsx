@@ -506,6 +506,15 @@ export default function Settings({
               onChange={(v) => setSection("notifications", { pomodoroChime: v })}
             />
           </Row>
+          <Row
+            name="Ring until dismissed"
+            hint="When a focus block ends, ring an insistent alarm (kitchen-timer style) until you tap to stop"
+          >
+            <Switch
+              checked={notifications.pomodoroAlarm ?? false}
+              onChange={(v) => setSection("notifications", { pomodoroAlarm: v })}
+            />
+          </Row>
           <Row name="UI sounds" hint="Subtle click/ding when toggling switches, moving sliders, completing tasks">
             <Switch
               checked={uiSounds.enabled ?? true}
