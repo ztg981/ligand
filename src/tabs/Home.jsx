@@ -44,6 +44,21 @@ function prettyDate() {
   });
 }
 
+// Optional dashboard cards the user can hide to fit their brain. Core cards
+// (needs-attention, goals, pick-one) are always shown and aren't listed here.
+// Ids are stable and persisted, so hiding survives reloads and new widgets
+// default to visible.
+const HOME_WIDGETS = [
+  { id: "upnext", label: "Up next" },
+  { id: "dayring", label: "Your day ring" },
+  { id: "focustrend", label: "Focus this week" },
+  { id: "consistency", label: "Focus consistency" },
+  { id: "taskmomentum", label: "Task momentum" },
+  { id: "journalstreak", label: "Journal streak" },
+  { id: "weekreview", label: "Your week (AI)" },
+  { id: "didyouknow", label: "Did you know" },
+];
+
 export default function Home({
   goals,
   tasks,
@@ -75,6 +90,15 @@ export default function Home({
   onOpenDay,
 }) {
   const [reviewDates, setReviewDates] = useState({});
+
+  // Which optional dashboard cards the user has hidden, plus the edit toggle.
+  const [hiddenCards, setHiddenCards] = useLocalStorage("ligand.home.hidden", []);
+  const [customizing, setCustomizing] = useState(false);
+  const show = (id) => !hiddenCards.includes(id);
+  const toggleCard = (id) =>
+    setHiddenCards((h) =>
+      h.includes(id) ? h.filter((x) => x !== id) : [...h, id]
+    );
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);
   const doneCount = tasks.length - activeTasks.length;
@@ -264,7 +288,43 @@ export default function Home({
           </h1>
           <p className="page-sub">{showEncouragement ? message : prettyDate()}</p>
         </div>
+        <button
+          className={"btn ghost sm home-customize-btn" + (customizing ? " active" : "")}
+          onClick={() => setCustomizing((v) => !v)}
+          title="Show or hide dashboard cards"
+        >
+          <Icon.Gear width={14} height={14} /> {customizing ? "Done" : "Customize"}
+        </button>
       </div>
+
+      {/* Customize panel — toggle which optional cards appear. */}
+      {customizing && (
+        <div className="card home-customize-panel">
+          <div className="card-head">
+            <div className="card-title"><Icon.Gear width={14} height={14} /> Customize dashboard</div>
+          </div>
+          <p style={{ fontSize: 12.5, color: "var(--ink-3)", margin: "0 0 10px", lineHeight: 1.45 }}>
+            Hide any card you don't want. Your goals and what-needs-attention always stay.
+          </p>
+          <div className="home-customize-grid">
+            {HOME_WIDGETS.map((w) => {
+              const on = show(w.id);
+              return (
+                <button
+                  key={w.id}
+                  className={"home-customize-chip" + (on ? " on" : "")}
+                  onClick={() => toggleCard(w.id)}
+                >
+                  <span className="home-customize-check">
+                    {on ? <Icon.Check width={12} height={12} /> : null}
+                  </span>
+                  {w.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Gentle re-entry banner - only after a real gap away. */}
       {daysAway >= 2 && (
@@ -303,13 +363,15 @@ export default function Home({
           onOpenHabits={onGoToHabits}
         />
 
-        <UpNext
-          dayBlocks={dayBlocks}
-          alarms={alarms}
-          tasks={tasks}
-          onOpenDay={onOpenDay}
-          onGoToTasks={onGoToTasks}
-        />
+        {show("upnext") && (
+          <UpNext
+            dayBlocks={dayBlocks}
+            alarms={alarms}
+            tasks={tasks}
+            onOpenDay={onOpenDay}
+            onGoToTasks={onGoToTasks}
+          />
+        )}
 
         {/* Compact "days showing up" — same activeDays source as desktop, always
             visible (a zero-state when there's no streak yet). */}
@@ -332,19 +394,21 @@ export default function Home({
           </div>
         </div>
 
-        <DayRing
-          workouts={workouts}
-          alarms={alarms}
-          focusLog={focusLog}
-          scheduledWorkouts={scheduledWorkouts}
-          dayBlocks={dayBlocks}
-          onOpenWorkout={onOpenWorkout}
-          onOpenAlarms={onOpenAlarms}
-        />
-        <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />
-        <ConsistencyDots focusLog={focusLog} />
-        <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />
-        <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />
+        {show("dayring") && (
+          <DayRing
+            workouts={workouts}
+            alarms={alarms}
+            focusLog={focusLog}
+            scheduledWorkouts={scheduledWorkouts}
+            dayBlocks={dayBlocks}
+            onOpenWorkout={onOpenWorkout}
+            onOpenAlarms={onOpenAlarms}
+          />
+        )}
+        {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
+        {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
+        {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
+        {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
@@ -352,7 +416,7 @@ export default function Home({
         <ProgressTracker goals={goals} tasks={tasks} />
         <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
         {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
-        <DidYouKnow />
+        {show("didyouknow") && <DidYouKnow />}
       </div>
 
       <div className="grid grid-12 home-desktop-grid">
@@ -368,25 +432,29 @@ export default function Home({
 
         {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
-          <UpNext
-            dayBlocks={dayBlocks}
-            alarms={alarms}
-            tasks={tasks}
-            onOpenDay={onOpenDay}
-            onGoToTasks={onGoToTasks}
-          />
-          <DayRing
-            workouts={workouts}
-            alarms={alarms}
-            focusLog={focusLog}
-            scheduledWorkouts={scheduledWorkouts}
-            onOpenWorkout={onOpenWorkout}
-            onOpenAlarms={onOpenAlarms}
-          />
-          <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />
-          <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />
-          <ConsistencyDots focusLog={focusLog} />
-          <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />
+          {show("upnext") && (
+            <UpNext
+              dayBlocks={dayBlocks}
+              alarms={alarms}
+              tasks={tasks}
+              onOpenDay={onOpenDay}
+              onGoToTasks={onGoToTasks}
+            />
+          )}
+          {show("dayring") && (
+            <DayRing
+              workouts={workouts}
+              alarms={alarms}
+              focusLog={focusLog}
+              scheduledWorkouts={scheduledWorkouts}
+              onOpenWorkout={onOpenWorkout}
+              onOpenAlarms={onOpenAlarms}
+            />
+          )}
+          {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
+          {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
+          {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
+          {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
           {/* Days showing up - distinct calendar days the app was actually
               opened (never elapsed days, never more than once per day). */}
           {activeDays > 0 && (
@@ -413,7 +481,7 @@ export default function Home({
             </div>
           )}
 
-          <WeeklyReview goals={goals} tasks={tasks} journal={journal} />
+          {show("weekreview") && <WeeklyReview goals={goals} tasks={tasks} journal={journal} />}
 
           {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
 
@@ -442,7 +510,7 @@ export default function Home({
             </div>
           )}
 
-          <DidYouKnow />
+          {show("didyouknow") && <DidYouKnow />}
         </div>
       </div>
     </>

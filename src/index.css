@@ -7072,6 +7072,33 @@ html[data-electron="true"] .topbar .goal-dropdown {
 }
 .upnext-empty { font-size: 12.5px; color: var(--ink-4); line-height: 1.45; margin: 2px 0 0; }
 
+/* ── Home customize: hide/show dashboard cards ──────────────────────────── */
+.page-head { position: relative; }
+.home-customize-btn { flex: none; align-self: flex-start; }
+.home-customize-btn.active { background: var(--accent-soft); color: var(--accent-ink); }
+.home-customize-panel { margin-bottom: 14px; }
+.home-customize-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.home-customize-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink-3); font-size: 12.5px; font-weight: 550;
+  transition: all 0.15s var(--ease);
+}
+.home-customize-chip.on {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.home-customize-chip:hover { transform: translateY(-1px); }
+.home-customize-check {
+  width: 14px; height: 14px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 4px; border: 1.5px solid var(--line-strong);
+}
+.home-customize-chip.on .home-customize-check {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .moodtrend-line { animation: none; stroke-dashoffset: 0; }
   .focustrend-fill { transition: none; }
