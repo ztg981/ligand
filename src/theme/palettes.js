@@ -16,6 +16,7 @@ export const LIGHT_PALETTES = [
 
 export const DARK_PALETTES = [
   { id: "midnight", name: "Midnight", desc: "Deep neutral (default)", swatch: "#15161a" },
+  { id: "glassdark", name: "Liquid Glass", desc: "Frosted chrome, iridescent", swatch: "linear-gradient(135deg,#2a2d3a,#1a1d28 45%,#2d2836)" },
   { id: "emerald", name: "Emerald Flow", desc: "Modern gradient green", swatch: "linear-gradient(160deg,#0b1512,#123528 70%,#0a2b1e)" },
   { id: "navy", name: "Deep Navy", desc: "Blue-black", swatch: "#0e1420" },
   { id: "forest", name: "Calm Forest", desc: "Green-tinted dark", swatch: "#121711" },
