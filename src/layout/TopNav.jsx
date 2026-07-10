@@ -225,6 +225,7 @@ const AVATAR_BG =
 function AvatarMenu({
   userName = "You",
   onOpenSettings,
+  onOpenDay,
   onOpenPomodoro,
   onOpenJournal,
   onOpenAlarms,
@@ -285,6 +286,18 @@ function AvatarMenu({
                 </div>
               </div>
             </div>
+
+            {/* Day planner is a desktop top tab; on phones it lives here so
+               the dial (read-only) and the day's blocks stay reachable. */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenDay?.();
+                close();
+              }}
+            >
+              <Icon.Calendar /> Day planner
+            </button>
 
             {/* Pomodoro is already a top-bar tab on tablet/desktop; this
                shortcut only shows on phone, where it moved out of the
@@ -750,6 +763,7 @@ export default function TopNav({
           <AvatarMenu
             userName={userName}
             onOpenSettings={onOpenSettings}
+            onOpenDay={() => setTab("day")}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenJournal={() => setTab("journal")}
             onOpenAlarms={onOpenAlarms}

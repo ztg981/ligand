@@ -111,6 +111,7 @@ export default function DayDial({
   onSelect, // (id) => void
   onCreateRange, // (startMin, endMin) => void
   onMove, // (id, newStart, newEnd) => void — drag an existing block
+  readOnly = false, // mobile: display + tap-to-edit only (no drag create/move)
 }) {
   const svgRef = useRef(null);
   const [drag, setDrag] = useState(null); // { from, to }
@@ -204,7 +205,7 @@ export default function DayDial({
   return (
     <svg
       ref={svgRef}
-      className="dial"
+      className={"dial" + (readOnly ? " dial--ro" : "")}
       viewBox={`0 0 ${SIZE} ${SIZE}`}
       role="img"
       aria-label={`${weekday} ${dateScript}: ${blocks.length} blocks, ${fmtDuration(totalMin)} scheduled`}
@@ -252,17 +253,20 @@ export default function DayDial({
         </>
       )}
 
-      {/* invisible drag-create band (under the wedges) */}
-      <circle
-        cx={C}
-        cy={C}
-        r={(R_OUT + R_IN) / 2}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={R_OUT - R_IN}
-        style={{ cursor: "crosshair" }}
-        onPointerDown={onBandDown}
-      />
+      {/* invisible drag-create band (under the wedges). Disabled in read-only
+          mode so it never intercepts a scroll on the phone. */}
+      {!readOnly && (
+        <circle
+          cx={C}
+          cy={C}
+          r={(R_OUT + R_IN) / 2}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={R_OUT - R_IN}
+          style={{ cursor: "crosshair" }}
+          onPointerDown={onBandDown}
+        />
+      )}
 
       {/* drag preview — filled wedge + crisp outline + floating range tip,
           so the portion being selected is unmistakable while dragging */}
@@ -311,8 +315,9 @@ export default function DayDial({
         return (
           <g
             key={b.id}
-            onPointerDown={(e) => onBlockDown(e, b)}
-            style={{ cursor: isMoving ? "grabbing" : "grab", touchAction: "none" }}
+            onPointerDown={readOnly ? undefined : (e) => onBlockDown(e, b)}
+            onClick={readOnly ? () => onSelect?.(b.id) : undefined}
+            style={{ cursor: "pointer", touchAction: readOnly ? "auto" : "none" }}
             opacity={b.done ? 0.45 : 1}
           >
             <path d={sectorPath(b.start, b.end)} fill={cat.color} opacity={isMoving ? 1 : 0.9} />

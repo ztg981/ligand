@@ -462,9 +462,24 @@ export default function DayPlanner({
 
       {isMobile ? (
         <>
+          <div className="dp-mobile-dial">
+            <DayDial
+              date={date}
+              isToday={isToday}
+              blocks={blocks}
+              alarms={dialAlarms}
+              selectedId={selectedId}
+              textures={pref.textures}
+              sleepStart={pref.sleepStart}
+              sleepEnd={pref.sleepEnd}
+              showSleepBand={pref.showSleepBand}
+              onSelect={openExisting}
+              readOnly
+            />
+          </div>
           <p className="dp-mobile-note">
-            The full dial lives on a bigger screen — here's the list view.
-            Today's shape also shows on Home.
+            Tap a block to edit it, or Add below. Editing on a bigger screen
+            lets you drag blocks right on the dial.
           </p>
           {sidePanel}
         </>

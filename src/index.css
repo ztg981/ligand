@@ -6089,6 +6089,9 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .dp-dial-wrap { min-width: 0; }
 .dial { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; touch-action: none; }
+/* Read-only mobile dial: never traps a vertical scroll. */
+.dial--ro { touch-action: auto; max-width: 400px; }
+.dp-mobile-dial { margin-bottom: 14px; }
 .dial-hour { font-size: 12px; fill: var(--ink-3); font-family: var(--font-mono); letter-spacing: 0.02em; }
 .dial-weekday { font-size: 13px; fill: var(--ink-4); letter-spacing: 0.28em; font-weight: 600; }
 .dial-date { font-family: "Caveat", "Segoe Script", cursive; font-size: 44px; fill: var(--ink); }
@@ -6278,12 +6281,12 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    dot-only mark, so this is desktop-only. */
 @media (min-width: 768px) {
   .brand-name {
-    font-family: "Space Grotesk", var(--font-sans);
-    font-size: 15.5px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    font-family: "Dancing Script", "Segoe Script", cursive;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     line-height: 1;
+    transform: translateY(-1px);
   }
 }
 /* Badges shortcut lives with the other tools on desktop; on phones the
