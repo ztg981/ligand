@@ -2,6 +2,32 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 31 — Wordmark, Journal media, dial drag-to-move, mobile dial (2026-07-09, Claude Code)
+
+- **Wordmark**: iterated per feedback — the Space Grotesk uppercase mark
+  read wrong; settled on **Dancing Script** (elegant cursive, 21px/700,
+  desktop only). Phones keep the dot.
+- **Journal image attachments** (the deferred item): new shared
+  `lib/imageAttach.js` (image-only, 6/entry, ~1.4MB cap, paste OR upload)
+  now backs BOTH Notes and Journal. Compose gets Add-image + paste-in-
+  place, thumbnail strip + lightbox; past entries render images;
+  image-only entries save. `attachments[]` on the reflection model.
+- **Journal music UI**: picking an iTunes result collapses into a polished
+  picked-song card (album art + title/artist + change); saved songs and
+  the log show real album artwork (`artworkUrl` on the song model). New
+  Image icon.
+- **Day dial drag-to-move**: grab a wedge and slide it around the ring
+  (15-min snap, duration preserved, shortest-path delta for the midnight
+  wrap, clamped in-day, protected locked). Click still edits. Fixed a
+  setState-in-updater React warning found in testing.
+- **Mobile Day**: the Day planner was desktop-only and unreachable on
+  phones — added a Day planner entry to the mobile avatar menu, and the
+  mobile Day tab now shows a **read-only dial** (touch-action:auto so it
+  never traps scroll; tap a wedge to edit) above the block list.
+
+All verified live (1440 + 390), tests 45/45, build green, zero console
+errors. Commits: bc25eb5, 5823cd1, 62497cd.
+
 ## Phase 30 — Ring v2, Routines, theme wave, Hyperfocus, Notes v2 (2026-07-09, Claude Code)
 
 - **Dial selection is visible** (`the complaint`): drag shows a filled +
