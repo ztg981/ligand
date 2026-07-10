@@ -14,6 +14,7 @@ import FocusTrend from "../widgets/FocusTrend.jsx";
 import ConsistencyDots from "../widgets/ConsistencyDots.jsx";
 import TaskMomentum from "../widgets/TaskMomentum.jsx";
 import JournalStreak from "../widgets/JournalStreak.jsx";
+import UpNext from "../widgets/UpNext.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -71,6 +72,7 @@ export default function Home({
   onOpenPomodoro,
   onGoToTasks,
   onOpenJournal,
+  onOpenDay,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -301,6 +303,14 @@ export default function Home({
           onOpenHabits={onGoToHabits}
         />
 
+        <UpNext
+          dayBlocks={dayBlocks}
+          alarms={alarms}
+          tasks={tasks}
+          onOpenDay={onOpenDay}
+          onGoToTasks={onGoToTasks}
+        />
+
         {/* Compact "days showing up" — same activeDays source as desktop, always
             visible (a zero-state when there's no streak yet). */}
         <div className="card home-streak-mobile">
@@ -358,6 +368,13 @@ export default function Home({
 
         {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          <UpNext
+            dayBlocks={dayBlocks}
+            alarms={alarms}
+            tasks={tasks}
+            onOpenDay={onOpenDay}
+            onGoToTasks={onGoToTasks}
+          />
           <DayRing
             workouts={workouts}
             alarms={alarms}
