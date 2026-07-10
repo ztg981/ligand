@@ -10,7 +10,6 @@ import ConfirmButton from "../components/ConfirmButton.jsx";
 import BlockerPanel from "../components/BlockerPanel.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
-import { FOCUS_MUSIC, spotifySearch, youtubeSearch } from "../lib/focusMusic.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
 import pkg from "../../package.json";
 
@@ -71,12 +70,6 @@ function Row({ name, hint, children, className = "" }) {
     </div>
   );
 }
-
-const SoonTag = () => (
-  <span className="chip" style={{ fontSize: 10 }}>
-    Coming soon
-  </span>
-);
 
 export default function Settings({
   tweaks,
@@ -611,54 +604,6 @@ export default function Settings({
           <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
             Tracks: Rain, Stream, and Waves, all CC0 ambient loops. Music plays across all tabs and pauses only when you turn it off.
           </p>
-        </Section>
-
-        {/* Focus music (discovery only - no playback) */}
-        <Section
-          icon={<Icon.Music />}
-          title="Focus music"
-          sub="These are hand-picked for focus, no lyrics, no distractions. Tap a link to open it in Spotify or YouTube; nothing plays inside Ligand."
-        >
-          <div className="focus-music-grid">
-            {FOCUS_MUSIC.map((m) => (
-              <div key={m.genre} className="focus-music-card">
-                <div className="focus-music-genre">{m.genre}</div>
-                <div className="focus-music-goodfor">Good for: {m.goodFor}</div>
-                <div className="row" style={{ gap: 6, marginTop: 8 }}>
-                  <a
-                    className="btn ghost sm"
-                    href={spotifySearch(m.query)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open in Spotify
-                  </a>
-                  <a
-                    className="btn ghost sm"
-                    href={youtubeSearch(m.query)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Open on YouTube
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Spotify account link - placeholder only; no OAuth yet. */}
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
-            <Row
-              name={
-                <span className="row" style={{ gap: 6, alignItems: "center" }}>
-                  Connect Spotify <SoonTag />
-                </span>
-              }
-              hint="Once connected, this would auto-populate your song log from what's currently playing"
-            >
-              <Switch checked={false} onChange={() => {}} disabled />
-            </Row>
-          </div>
         </Section>
 
         {/* Wallpaper &amp; sound */}

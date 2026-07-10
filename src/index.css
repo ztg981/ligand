@@ -3197,20 +3197,6 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .upcoming-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
 .upcoming-more { font-size: 11px; color: var(--ink-4); padding: 8px 6px 0; }
 
-/* Focus music suggestions (Settings) - curated discovery cards, no playback. */
-.focus-music-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 10px;
-}
-.focus-music-card {
-  padding: 10px 12px; border-radius: var(--r-md);
-  background: var(--panel-2); border: 1px solid var(--line);
-}
-.focus-music-genre { font-size: 13px; font-weight: 600; color: var(--ink); }
-.focus-music-goodfor { font-size: 11px; color: var(--ink-3); margin-top: 2px; line-height: 1.4; }
-.focus-music-card .btn { font-size: 11px; padding: 0 8px; height: 26px; }
-
 /* Wallpaper gallery: built-ins + custom photos + an upload tile. */
 .wp-gallery {
   display: grid;
