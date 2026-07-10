@@ -794,6 +794,25 @@ export default function App() {
     }
   };
 
+  // Command-palette actions (Ctrl/⌘K). Each runs on select; navigation tabs
+  // plus the app's main capture/create points, so the palette is a keyboard
+  // jump-off for the whole app, not just a search box. Plain const so the
+  // React compiler can memoize it (a manual useMemo here made it bail).
+  const go = (t) => () => setTab(t);
+  const paletteActions = [
+    { id: "qa", label: "Quick add…", sub: "Task, note, workout, alarm, or focus", keywords: "new create capture add task note", icon: <Icon.Plus />, run: () => setQuickAddOpen(true) },
+    { id: "focus", label: "Start a focus session", sub: "Open the Pomodoro timer", keywords: "pomodoro timer focus deep work", icon: <Icon.Timer />, run: go("pomodoro") },
+    { id: "new-goal", label: "New goal", sub: "Create a goal", keywords: "add create goal target", icon: <Icon.Target />, run: () => setShowGoalModal(true) },
+    { id: "go-home", label: "Go to Home", sub: "Dashboard", keywords: "dashboard overview", icon: <Icon.Home />, run: go("home") },
+    { id: "go-day", label: "Go to Day planner", sub: "The day dial", keywords: "day dial schedule planner ring", icon: <Icon.Timer />, run: go("day") },
+    { id: "go-habits", label: "Go to Habits", sub: "Check in on habits", keywords: "habit streak check in", icon: <Icon.CheckCircle />, run: go("habits") },
+    { id: "go-tasks", label: "Go to Tasks", sub: "Your task list", keywords: "todo task list", icon: <Icon.Check />, run: go("tasks") },
+    { id: "go-notes", label: "Go to Notes", sub: "Scratchpad", keywords: "note scratchpad write", icon: <Icon.Note />, run: go("notes") },
+    { id: "go-journal", label: "Go to Journal", sub: "Reflections & mood", keywords: "journal reflect mood diary", icon: <Icon.Book />, run: go("journal") },
+    { id: "go-workout", label: "Go to Workout", sub: "Training & routines", keywords: "gym workout exercise fitness routine", icon: <Icon.Dumbbell />, run: go("workout") },
+    { id: "go-settings", label: "Go to Settings", sub: "Preferences & appearance", keywords: "settings preferences theme appearance options", icon: <Icon.Gear />, run: go("settings") },
+  ];
+
   const handleCreateGoal = (goalInput) => {
     // Fitness goals carry a fitnessProfile payload from onboarding; persist it
     // app-wide (one lifter) and keep it off the goal object itself.
@@ -1340,6 +1359,7 @@ export default function App() {
         tasks={store.tasks}
         journal={store.journal}
         countUps={store.countUps}
+        actions={paletteActions}
         onNavigate={handleSearchNavigate}
       />
     </div>

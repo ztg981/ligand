@@ -11,6 +11,7 @@ import { Icon } from "./Icons.jsx";
    ============================================================ */
 
 const GROUP_META = {
+  command: { label: "Commands", icon: <Icon.Bolt /> },
   goal: { label: "Goals", icon: <Icon.Target /> },
   task: { label: "Tasks", icon: <Icon.Check /> },
   journal: { label: "Journal", icon: <Icon.Book /> },
@@ -18,8 +19,29 @@ const GROUP_META = {
   tracker: { label: "Trackers", icon: <Icon.Flame /> },
 };
 
-const GROUP_ORDER = ["goal", "task", "journal", "habit", "tracker"];
+const GROUP_ORDER = ["command", "goal", "task", "journal", "habit", "tracker"];
 const PER_GROUP = 6;
+
+/* Filter the runnable command actions by the query. Each action carries a
+   `keywords` string so "focus", "timer", or "pomodoro" all find the timer.
+   An empty query returns every command — that's the palette's default view. */
+function matchCommands(query, actions) {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return (actions || [])
+    .filter((a) => {
+      if (terms.length === 0) return true;
+      const hay = (a.label + " " + (a.keywords || "")).toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    })
+    .map((a) => ({
+      key: "command:" + a.id,
+      type: "command",
+      label: a.label,
+      sub: a.sub || "Command",
+      icon: a.icon || GROUP_META.command.icon,
+      run: a.run,
+    }));
+}
 
 function truncate(s, n = 64) {
   const one = (s || "").replace(/\s+/g, " ").trim();
@@ -39,15 +61,22 @@ function whenLabel(iso) {
 
 /* Build grouped results for a query. Every search term must appear
    somewhere in an item's haystack (AND match), case-insensitive. */
-function buildResults(query, { goals, tasks, journal, countUps }) {
+function buildResults(query, { goals, tasks, journal, countUps, actions }) {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (terms.length === 0) return [];
+  const commandItems = matchCommands(query, actions);
+  // With no query, the palette shows just its command menu (a jump-off point).
+  if (terms.length === 0) {
+    return commandItems.length
+      ? [{ type: "command", label: GROUP_META.command.label, items: commandItems.slice(0, 12) }]
+      : [];
+  }
   const match = (hay) => {
     const h = (hay || "").toLowerCase();
     return terms.every((t) => h.includes(t));
   };
 
   const groups = {
+    command: commandItems,
     goal: [],
     task: [],
     journal: [],
@@ -142,6 +171,7 @@ export default function SearchModal({
   tasks = [],
   journal = [],
   countUps = [],
+  actions = [],
   onNavigate,
 }) {
   const [q, setQ] = useState("");
@@ -158,8 +188,8 @@ export default function SearchModal({
   }, [open]);
 
   const results = useMemo(
-    () => buildResults(q, { goals, tasks, journal, countUps }),
-    [q, goals, tasks, journal, countUps]
+    () => buildResults(q, { goals, tasks, journal, countUps, actions }),
+    [q, goals, tasks, journal, countUps, actions]
   );
   const flat = useMemo(() => results.flatMap((g) => g.items), [results]);
 
@@ -171,7 +201,9 @@ export default function SearchModal({
   if (!open) return null;
 
   const choose = (item) => {
-    onNavigate?.(item);
+    // Commands run an action; everything else navigates to a record.
+    if (item.run) item.run();
+    else onNavigate?.(item);
     onClose?.();
   };
 
@@ -207,7 +239,7 @@ export default function SearchModal({
           <input
             ref={inputRef}
             className="search-input"
-            placeholder="Search goals, tasks, journal…"
+            placeholder="Search or jump to… (try “focus”, “journal”, a task)"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -215,12 +247,12 @@ export default function SearchModal({
         </div>
 
         <div className="search-results">
-          {empty ? (
+          {flat.length === 0 ? (
             <div className="search-hint">
-              Start typing to search your goals, tasks, and journal.
+              {empty
+                ? "Type to search your goals, tasks, and journal."
+                : "Nothing found. Try a different word."}
             </div>
-          ) : flat.length === 0 ? (
-            <div className="search-hint">Nothing found. Try a different word.</div>
           ) : (
             results.map((group) => (
               <div key={group.type} className="search-group">
