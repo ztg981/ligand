@@ -2,6 +2,28 @@
 
 _Session date: 2026-06-14 (updated 2026-07-05)_
 
+## Phase 32 — Wordmark picker, dark Liquid Glass (2026-07-09, Claude Code)
+
+- **Wordmark font picker** (Settings → Appearance → Wordmark): six faces,
+  each chip previewed in its own font — Editorial (Instrument Serif italic,
+  the new default), Cursive (Dancing Script), Signature (Great Vibes),
+  Handwritten (Caveat), Modern (Space Grotesk caps), Clean (Geist).
+  `wordmarkFont` tweak → `html[data-wordmark]`; each variant size/weight/
+  baseline-tuned. Ends the guess-the-font loop by handing the choice to the
+  user. Verified: all six switch the top-bar mark live and persist.
+- **Dark Liquid Glass** palette (Settings → Dark look): frosted smoked-chrome
+  panels (real backdrop-blur + saturation) over a violet→blue→rose aurora —
+  the dark twin of the silver light glass, so glass is now selectable in
+  BOTH modes. Verified live; card backdrop blur(20px) saturate(1.5).
+- Theme sweep: Emerald / dark-glass / light-glass all clean across the 9
+  tabs — zero console errors, no horizontal overflow.
+
+**Honestly deferred:** PDF / arbitrary-file attachments. Images are capped
+small (~1.4MB) precisely because attachments ride the localStorage→Supabase
+sync blob; PDFs there would bloat and could break sync. Doing this right
+needs Supabase Storage buckets + signed URLs + RLS + cleanup — a separate
+feature, not a data-URL bolt-on. Left undone rather than shipped unreliably.
+
 ## Phase 31 — Wordmark, Journal media, dial drag-to-move, mobile dial (2026-07-09, Claude Code)
 
 - **Wordmark**: iterated per feedback — the Space Grotesk uppercase mark
