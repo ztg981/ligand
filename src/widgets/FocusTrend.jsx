@@ -69,9 +69,26 @@ function useCountUp(target) {
   return val;
 }
 
+// All-time totals from the full focus log: lifetime minutes and the single
+// best day. Cheap (one pass) and only shown once there's history worth a nod.
+function buildLifetime(focusLog) {
+  const perDay = new Map();
+  let lifetime = 0;
+  for (const e of focusLog) {
+    if (!e?.date) continue;
+    const m = e.minutes || 0;
+    lifetime += m;
+    perDay.set(e.date, (perDay.get(e.date) || 0) + m);
+  }
+  let bestDay = 0;
+  for (const v of perDay.values()) bestDay = Math.max(bestDay, v);
+  return { lifetime, bestDay };
+}
+
 export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
   const today = todayKey();
   const days = useMemo(() => buildDays(focusLog, today), [focusLog, today]);
+  const { lifetime, bestDay } = useMemo(() => buildLifetime(focusLog), [focusLog]);
 
   const total = days.reduce((n, d) => n + d.minutes, 0);
   const best = days.reduce((m, d) => Math.max(m, d.minutes), 0);
@@ -143,6 +160,29 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
             : "Nothing today yet. Even one session counts."}
         </p>
       )}
+
+      {/* All-time stats — only once there's history beyond this week, so it
+          adds a sense of progress without repeating the weekly number. */}
+      {lifetime > total && (
+        <div className="focustrend-lifetime">
+          <span title="Total focused minutes, all time">
+            <strong>{fmtMins(lifetime)}</strong> all-time
+          </span>
+          {bestDay > 0 && (
+            <span title="Your best single day">
+              best day <strong>{fmtMins(bestDay)}</strong>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+// Minutes → "45 min" or "3h 20m" once it passes an hour.
+function fmtMins(m) {
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}h ${r}m` : `${h}h`;
 }
