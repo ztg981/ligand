@@ -1250,11 +1250,11 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
    systems the inset resolves to zero, so their layout is unchanged. */
 @media (display-mode: standalone) and (min-width: 641px) {
   html:not([data-electron="true"]) .shell {
-    padding-top: max(var(--shell-py), calc(env(safe-area-inset-top, 0px) + 8px));
+    padding-top: max(var(--shell-py), env(safe-area-inset-top, 0px));
   }
 
   html:not([data-electron="true"]) .topbar {
-    top: calc(12px + env(safe-area-inset-top, 0px));
+    top: env(safe-area-inset-top, 0px);
   }
 
   /* Hide scrolled page content in the gap occupied by the iPadOS clock and
@@ -1263,8 +1263,13 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
     display: block;
     position: fixed;
     inset: 0 0 auto;
-    height: calc(12px + env(safe-area-inset-top, 0px));
-    background: var(--bg);
+    height: env(safe-area-inset-top, 0px);
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--bg) 58%, var(--accent-soft)) 0%,
+      var(--bg) 52%,
+      color-mix(in oklab, var(--bg) 88%, var(--accent-soft)) 100%
+    );
     z-index: 19;
     pointer-events: none;
   }
