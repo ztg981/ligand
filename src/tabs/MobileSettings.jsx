@@ -13,9 +13,9 @@ import pkg from "../../package.json";
    timings, wallpaper gallery, AI config, density, radius, ambient glow, etc.)
    stay on the desktop Settings page.
 
-   IMPORTANT: theme here is the SEPARATE mobile theme (ligand.mobileTheme) so
-   changing it on a phone never touches the desktop `tweaks.theme` and vice
-   versa. Accent, notifications, habits and sound are shared app preferences. */
+   All preferences shown here use phone/iPad-local storage. Account content
+   still syncs, but appearance, notifications, habits and sound cannot rewrite
+   the PC's settings. */
 
 function Section({ icon, title, children }) {
   return (
@@ -94,9 +94,8 @@ export default function MobileSettings({
       </div>
 
       <div className="stack" style={{ gap: 12 }}>
-        {/* Theme (the mobile home for what used to be the floating Theme/Tweaks
-           panel on desktop). Theme is phone-local; accent, radius and density
-           are shared app-wide tweaks. */}
+        {/* Theme is the mobile home for what used to be the floating desktop
+           Theme/Tweaks panel. Every control in this section is device-local. */}
         <Section icon={<Icon.Wand />} title="Theme">
           <Row name="Mode" hint="This phone only. Auto follows your system">
             <Segmented

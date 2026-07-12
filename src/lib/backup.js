@@ -5,7 +5,9 @@ export const MAX_BACKUP_BYTES = 6 * ONE_MIB;
 export const BACKUP_KEYS = Object.freeze([
   "ligand.data",
   "ligand.settings",
+  "ligand.mobileSettings",
   "ligand.tweaks",
+  "ligand.mobileTweaks",
   "ligand.mobileTheme",
   "ligand.pomodoro",
   "ligand.pomodoroPresets",

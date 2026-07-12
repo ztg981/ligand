@@ -13,16 +13,9 @@
    ============================================================ */
 import { supabase } from "./supabaseClient.js";
 import { SEED_GOAL_IDS } from "./model.js";
+import { isSyncedKey } from "./syncPolicy.js";
 
 const SEED_GOAL_ID_SET = new Set(SEED_GOAL_IDS);
-
-// Device-local UI choice — NOT user data, so it never syncs.
-const GUEST_KEY = "ligand.guestMode";
-
-/** Is a localStorage key part of the synced user-data keyspace? */
-function isSyncedKey(key) {
-  return Boolean(key) && key.startsWith("ligand.") && key !== GUEST_KEY;
-}
 
 /** Snapshot every synced `ligand.*` key into one plain object. */
 export function collectLocalBlob() {

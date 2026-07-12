@@ -5,7 +5,8 @@ import { useLocalStorage } from "./useLocalStorage.js";
    Notifications, habits, the assistant, wallpaper/sound, and general behavior.
    Persisted under its own key so it's easy to reason about and reset. */
 
-const STORAGE_KEY = "ligand.settings";
+const DESKTOP_STORAGE_KEY = "ligand.settings";
+const MOBILE_STORAGE_KEY = "ligand.mobileSettings";
 
 export const SETTINGS_DEFAULTS = {
   profile: {
@@ -67,8 +68,23 @@ function withDefaults(stored) {
   return out;
 }
 
-export function useSettings() {
-  const [stored, setStored] = useLocalStorage(STORAGE_KEY, SETTINGS_DEFAULTS);
+function mobileInitialSettings() {
+  if (typeof window === "undefined") return SETTINGS_DEFAULTS;
+  try {
+    return JSON.parse(
+      window.localStorage.getItem(DESKTOP_STORAGE_KEY) || "null"
+    ) || SETTINGS_DEFAULTS;
+  } catch {
+    return SETTINGS_DEFAULTS;
+  }
+}
+
+export function useSettings(scope = "desktop") {
+  const isMobileScope = scope === "mobile";
+  const [stored, setStored] = useLocalStorage(
+    isMobileScope ? MOBILE_STORAGE_KEY : DESKTOP_STORAGE_KEY,
+    isMobileScope ? mobileInitialSettings : SETTINGS_DEFAULTS
+  );
   const settings = withDefaults(stored);
 
   // Reflect behavior preferences at the document root so CSS can honor them.

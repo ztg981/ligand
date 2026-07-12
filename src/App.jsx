@@ -49,6 +49,7 @@ import AlarmOverlay from "./components/AlarmOverlay.jsx";
 import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useElectron } from "./hooks/useElectron.js";
+import { isHandheldDevice } from "./lib/deviceScope.js";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -101,7 +102,12 @@ export default function App() {
     }
   }, [needsMigration, runMigration]);
 
-  const { tweaks, set } = useTweaks();
+  // Preference scope follows the physical device, not viewport width. An iPad
+  // keeps its own settings in desktop layout, while a narrow PC window still
+  // uses the PC's preferences.
+  const [usesMobilePreferences] = useState(isHandheldDevice);
+  const preferenceScope = usesMobilePreferences ? "mobile" : "desktop";
+  const { tweaks, set } = useTweaks(preferenceScope);
   const store = useStore();
   // Photo-scan alarms: watch the clock and raise the firing alarm (if any).
   const { firing: firingAlarm, dismiss: dismissAlarm } = useAlarms(
@@ -114,7 +120,7 @@ export default function App() {
   // Desktop shell detection: stamps <html data-electron> and keeps the native
   // window-controls overlay themed. Inert in the browser/PWA build.
   useElectron();
-  const { settings, setSection, reset: resetSettings } = useSettings();
+  const { settings, setSection, reset: resetSettings } = useSettings(preferenceScope);
   const isGuest = !session;
   const notif = useNotifications({ enabled: settings.notifications.enabled });
   const { goals, addGoal } = store;
@@ -721,13 +727,10 @@ export default function App() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Mobile keeps its OWN theme preference (ligand.mobileTheme), fully separate
-  // from the desktop `tweaks.theme`, so flipping light/dark on a phone never
-  // changes the PC and vice-versa. Default: auto (follow the system scheme).
-  const [mobileTheme, setMobileTheme] = useLocalStorage("ligand.mobileTheme", "auto");
-  const themeChoice = isMobile ? mobileTheme : tweaks.theme;
-  const setThemeChoice = (val) =>
-    isMobile ? setMobileTheme(val) : set({ theme: val });
+  // Theme lives in the device-scoped tweak record alongside accent, palettes,
+  // corner radius and density.
+  const themeChoice = tweaks.theme;
+  const setThemeChoice = (val) => set({ theme: val });
 
   // The actual light/dark to apply: "auto" follows the OS, otherwise the
   // explicit choice. A wallpaper's tone still wins over this (handled below).
@@ -1095,8 +1098,8 @@ export default function App() {
         if (isMobile) {
           return (
             <MobileSettings
-              mobileTheme={mobileTheme}
-              setMobileTheme={setMobileTheme}
+              mobileTheme={themeChoice}
+              setMobileTheme={setThemeChoice}
               tweaks={tweaks}
               setTweak={set}
               settings={settings}

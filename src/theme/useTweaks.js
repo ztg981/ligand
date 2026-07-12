@@ -7,7 +7,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
    Persistence now goes through the shared useLocalStorage hook (Step 2),
    with no change to how components consume `{ tweaks, set }`. */
 
-const STORAGE_KEY = "ligand.tweaks";
+const DESKTOP_STORAGE_KEY = "ligand.tweaks";
+const MOBILE_STORAGE_KEY = "ligand.mobileTweaks";
 
 export const TWEAK_DEFAULTS = {
   theme: "light", // "light" | "dark" | "auto" (auto follows the OS color scheme)
@@ -50,10 +51,34 @@ export const ACCENTS = [
   { id: 20, color: "oklch(0.65 0.13 20)" },
 ];
 
-export function useTweaks() {
+function mobileInitialTweaks() {
+  if (typeof window === "undefined") return TWEAK_DEFAULTS;
+  try {
+    const desktop = JSON.parse(
+      window.localStorage.getItem(DESKTOP_STORAGE_KEY) || "null"
+    );
+    const legacyMobileTheme = JSON.parse(
+      window.localStorage.getItem("ligand.mobileTheme") || "null"
+    );
+    return {
+      ...TWEAK_DEFAULTS,
+      ...(desktop || {}),
+      ...(legacyMobileTheme ? { theme: legacyMobileTheme } : {}),
+    };
+  } catch {
+    return TWEAK_DEFAULTS;
+  }
+}
+
+export function useTweaks(scope = "desktop") {
+  const isMobileScope = scope === "mobile";
+  const storageKey = isMobileScope ? MOBILE_STORAGE_KEY : DESKTOP_STORAGE_KEY;
   // Persisted via the shared hook. Spread defaults under the stored value so
   // any newly added tweak keys get sensible fallbacks.
-  const [stored, setTweaks] = useLocalStorage(STORAGE_KEY, TWEAK_DEFAULTS);
+  const [stored, setTweaks] = useLocalStorage(
+    storageKey,
+    isMobileScope ? mobileInitialTweaks : TWEAK_DEFAULTS
+  );
   const tweaks = { ...TWEAK_DEFAULTS, ...stored };
 
   // Apply tweaks to the document root as CSS variables / data attributes.
@@ -81,6 +106,7 @@ export function useTweaks() {
   // another face are left alone. Guarded by a flag so it never fights a later
   // manual choice (supersedes the old v2 instrument→sora migration).
   useEffect(() => {
+    if (isMobileScope) return;
     const FLAG = "ligand.wordmark.v3";
     if (localStorage.getItem(FLAG)) return;
     localStorage.setItem(FLAG, "1");
@@ -88,7 +114,7 @@ export function useTweaks() {
       set({ wordmarkFont: "instrument" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMobileScope]);
 
   return { tweaks, set };
 }
