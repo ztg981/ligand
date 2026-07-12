@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { enrichWithLibrary, parseWorkoutText } from "../lib/workoutParser.js";
+import { parseQuickAdd } from "../lib/quickParse.js";
 
 /* QuickAdd — ONE capture point for the things you need to write down before
    working memory drops them: a task, a note, a workout, an alarm, or jumping
@@ -46,9 +47,22 @@ export default function QuickAdd({
   const [alarmTime, setAlarmTime] = useState(nextHalfHour);
   const [saved, setSaved] = useState(false);
   const [hint, setHint] = useState("");
+  // Natural-language tokens the user has tapped OFF (kind strings). A wrong
+  // guess is one tap to undo — the token text then stays in the task.
+  const [offTokens, setOffTokens] = useState([]);
   const inputRef = useRef(null);
   const scrimRef = useRef(null);
   const closeTimer = useRef(null);
+
+  // Live parse (tasks only — notes and workouts are freeform by design).
+  const parsed = useMemo(
+    () => (type === "task" ? parseQuickAdd(text) : null),
+    [type, text]
+  );
+  const activeTokens = (parsed?.tokens || []).filter(
+    (tk) => !offTokens.includes(tk.kind)
+  );
+  const tokenOn = (kind) => activeTokens.some((tk) => tk.kind === kind);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -102,7 +116,28 @@ export default function QuickAdd({
     }
     if (!t) return;
     if (type === "task") {
-      addTask?.({ text: t });
+      // Apply only the tokens still switched on: strip their text from the
+      // task and set the structured fields they represent. Time tokens are
+      // NOT stripped — unless the user took the alarm suggestion, "at 7am"
+      // is real information that belongs in the task text.
+      let taskText = t;
+      for (const tk of activeTokens.filter((x) => x.kind !== "time")) {
+        taskText = taskText
+          .replace(tk.match, " ")
+          .replace(/\s{2,}/g, " ")
+          .replace(/\s+([,.!?])/g, "$1")
+          .trim();
+      }
+      if (!taskText) taskText = t; // never save an empty task
+      addTask?.({
+        text: taskText,
+        ...(tokenOn("urgent")
+          ? { label: "Urgent" }
+          : tokenOn("today")
+            ? { label: "Today" }
+            : {}),
+        ...(tokenOn("repeat") && parsed?.repeat ? { repeat: parsed.repeat } : {}),
+      });
       flashSavedAndClose();
     } else if (type === "note") {
       addNote?.({ text: t });
@@ -131,7 +166,7 @@ export default function QuickAdd({
 
   const multiline = type === "note" || type === "workout";
   const placeholder = {
-    task: "What needs doing?",
+    task: 'Try "call mom today" or "meds every day urgent"',
     note: "What's on your mind?",
     workout: 'e.g. "bench 3x8 @ 135, rest 90s, 3 sets of lateral raises"',
     alarm: "Label (optional)",
@@ -210,6 +245,57 @@ export default function QuickAdd({
               live in Settings → Alarms.
             </p>
           )}
+
+          {/* Natural-language chips: what Ligand understood from the text.
+             Tap a chip to toggle it off (the words then stay in the task). */}
+          {type === "task" && (parsed?.tokens?.length || 0) > 0 && (
+            <div className="qa-parse-row" aria-label="Understood from your text">
+              {parsed.tokens
+                .filter((tk) => tk.kind !== "time")
+                .map((tk) => {
+                  const on = !offTokens.includes(tk.kind);
+                  return (
+                    <button
+                      key={tk.kind}
+                      type="button"
+                      className={"qa-parse-chip " + tk.kind + (on ? " on" : "")}
+                      aria-pressed={on}
+                      title={on ? "Tap to keep this as plain text" : "Tap to re-apply"}
+                      onClick={() =>
+                        setOffTokens((s) =>
+                          s.includes(tk.kind)
+                            ? s.filter((k) => k !== tk.kind)
+                            : [...s, tk.kind]
+                        )
+                      }
+                    >
+                      {tk.kind === "urgent" && <Icon.Bell width={11} height={11} />}
+                      {tk.kind === "today" && <Icon.Calendar width={11} height={11} />}
+                      {tk.kind === "repeat" && <Icon.Timer width={11} height={11} />}
+                      {tk.display}
+                      {on && <Icon.Close width={10} height={10} />}
+                    </button>
+                  );
+                })}
+              {parsed.time && (
+                <button
+                  type="button"
+                  className="qa-parse-chip alarm-suggest"
+                  title="Switch to an alarm at this time"
+                  onClick={() => {
+                    setAlarmTime(parsed.time);
+                    setText(parsed.cleanText);
+                    setType("alarm");
+                    setOffTokens([]);
+                  }}
+                >
+                  <Icon.Bell width={11} height={11} /> Set{" "}
+                  {parsed.tokens.find((tk) => tk.kind === "time")?.display} alarm?
+                </button>
+              )}
+            </div>
+          )}
+
           {hint && <p className="qa-hint" role="alert">{hint}</p>}
         </>
       )}

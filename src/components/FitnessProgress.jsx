@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { Icon } from "./Icons.jsx";
-import { workoutVolume, todayKey, shiftDay } from "../lib/model.js";
+import {
+  workoutVolume,
+  todayKey,
+  shiftDay,
+  setsPerMuscleWeek,
+  epley1RM,
+  exerciseBest1RM,
+} from "../lib/model.js";
 import { MUSCLE_LABEL } from "../lib/exercises.js";
 
 /* FitnessProgress - the analytics view for a Fitness goal:
@@ -76,6 +83,17 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
     return { entries, max };
   }, [workouts, today]);
 
+  // --- weekly working sets per muscle group ---
+  // Set count per muscle per week is the volume metric hypertrophy research
+  // leans on; ~10-20 working sets is the usual growth guideline. Bars scale
+  // to the 20-set ceiling so the guideline band means the same thing on
+  // every row.
+  const weekSets = useMemo(() => {
+    const counts = setsPerMuscleWeek(workouts, today);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [workouts, today]);
+  const SET_SCALE = 24; // bar x-axis max; keeps 10-20 zone visually stable
+
   // --- per-exercise history ---
   const exerciseOptions = useMemo(() => {
     const seen = new Map();
@@ -102,19 +120,23 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
       .forEach((w) => {
         (w.exercises || []).forEach((ex) => {
           if (ex.exerciseId !== id) return;
-          let topW = 0, vol = 0;
+          let topW = 0, vol = 0, e1rm = 0;
           (ex.sets || []).forEach((s) => {
-            if (s.done && s.weight != null) {
+            if (s.done && !s.warmup && s.weight != null) {
               topW = Math.max(topW, s.weight);
               if (s.reps) vol += s.weight * s.reps;
+              const e = epley1RM(s.weight, s.reps);
+              if (e != null) e1rm = Math.max(e1rm, e);
             }
           });
-          rows.push({ date: w.date, topW, vol });
+          rows.push({ date: w.date, topW, vol, e1rm });
         });
       });
     return {
       weight: rows.map((r) => ({ y: r.topW })),
       volume: rows.map((r) => ({ y: r.vol })),
+      e1rm: rows.filter((r) => r.e1rm > 0).map((r) => ({ y: r.e1rm })),
+      best1rm: exerciseBest1RM(workouts, id),
       latest: rows[rows.length - 1],
       first: rows[0],
     };
@@ -159,6 +181,46 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
           </div>
         </div>
       </div>
+
+      {/* Weekly working sets per muscle — the science-based volume check.
+         The shaded band marks the ~10-20 sets/week growth guideline. */}
+      <div className="fit-section-label"><Icon.Flame /> Weekly sets per muscle</div>
+      {weekSets.length === 0 ? (
+        <div className="card fit-empty">
+          Complete some working sets this week and this fills in — research ties
+          growth most closely to sets per muscle per week (10–20 is the usual sweet spot).
+        </div>
+      ) : (
+        <div className="card fp-weeksets">
+          <div className="fp-weeksets-zonehint" aria-hidden="true">
+            <span className="fp-weeksets-zonechip" /> 10–20 set growth zone
+          </div>
+          {weekSets.map(([g, n]) => {
+            const inZone = n >= 10 && n <= 20;
+            return (
+              <div key={g} className="fp-bal-row" title={`${n} working sets in the last 7 days`}>
+                <span className="fp-bal-name">{MUSCLE_LABEL[g] || g}</span>
+                <span className="fp-bal-track fp-weeksets-track">
+                  <span
+                    className="fp-weeksets-zone"
+                    style={{ left: `${(10 / SET_SCALE) * 100}%`, width: `${(10 / SET_SCALE) * 100}%` }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={"fp-bal-fill" + (inZone ? " inzone" : "")}
+                    style={{ width: `${Math.min(100, (n / SET_SCALE) * 100)}%` }}
+                  />
+                </span>
+                <span className="fp-bal-val">{n} set{n === 1 ? "" : "s"}</span>
+              </div>
+            );
+          })}
+          <p className="fp-weeksets-note">
+            Working sets only — warm-ups don't count. Under the zone is fine while
+            you're building up; it's a guide, not a grade.
+          </p>
+        </div>
+      )}
 
       {/* Muscle group balance */}
       <div className="fit-section-label"><Icon.Grid /> Muscle balance · last 28 days</div>
@@ -212,7 +274,29 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
               </div>
               <Sparkline values={exHistory.volume} color="oklch(0.7 0.13 var(--hue-lav))" />
             </div>
+            <div className="fp-ex-chart">
+              <div className="fp-ex-chart-head">
+                <span title="Estimated one-rep max (Epley): compares sets at different rep counts on one scale">
+                  Est. 1RM
+                </span>
+                {exHistory.e1rm.length > 0 && (
+                  <span className="fp-ex-latest">
+                    {Math.round(exHistory.e1rm[exHistory.e1rm.length - 1].y)} {unit}
+                  </span>
+                )}
+              </div>
+              <Sparkline values={exHistory.e1rm} color="oklch(0.68 0.14 55)" />
+            </div>
           </div>
+          {exHistory.best1rm && (
+            <div className="fp-ex-1rm-best">
+              <Icon.Trophy width={13} height={13} /> Best est. 1RM:{" "}
+              <strong>{Math.round(exHistory.best1rm.e1rm)} {unit}</strong>
+              <span className="fp-ex-1rm-src">
+                from {exHistory.best1rm.weight} × {exHistory.best1rm.reps}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

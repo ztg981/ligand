@@ -885,6 +885,7 @@ export default function App() {
             onOpenWorkout={() => setTab("workout")}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenJournal={() => setTab("journal")}
+            addJournalEntry={store.addJournalEntry}
             onOpenDay={() => setTab("day")}
             onOpenAlarms={() => {
               setSettingsFocus("alarms");

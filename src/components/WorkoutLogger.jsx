@@ -12,6 +12,7 @@ import {
   lastExercisePerformance,
   estimateWorkoutMinutes,
   platesFor,
+  warmupRamp,
 } from "../lib/model.js";
 import { searchExercises, findExercise, MUSCLE_LABEL } from "../lib/exercises.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -212,6 +213,32 @@ export default function WorkoutLogger({
       })
     );
 
+  // Generate a progressive warm-up ramp (40/60/80% of the working weight,
+  // rounded to real plates) and prepend it — the pattern Strong and Hevy made
+  // standard. Working weight = the heaviest weight in play for this exercise
+  // (entered this session, or last time's as the fallback).
+  const addWarmupSets = (exId) => {
+    const ex = exercises.find((e) => e.id === exId);
+    if (!ex || ex.type === "cardio") return;
+    const lp = lastPerf(ex.exerciseId);
+    const working = Math.max(0, ...ex.sets.map((s) => s.weight || 0), lp?.weight || 0);
+    const ramp = warmupRamp(working, unit);
+    if (!ramp.length) return;
+    setExercises((list) =>
+      list.map((e) =>
+        e.id !== exId
+          ? e
+          : {
+              ...e,
+              sets: [
+                ...ramp.map((r) => createSet({ ...r, warmup: true })),
+                ...e.sets,
+              ],
+            }
+      )
+    );
+  };
+
   const removeSet = (exId, setId) =>
     setExercises((list) =>
       list.map((e) =>
@@ -265,6 +292,7 @@ export default function WorkoutLogger({
     if (
       exercise.type !== "cardio" &&
       exercise.exerciseId &&
+      !set.warmup && // ramping up isn't a record
       set.weight != null &&
       set.weight > 0 &&
       !celebratedRef.current.has(exercise.exerciseId)
@@ -321,8 +349,12 @@ export default function WorkoutLogger({
                   return isCardio ? { ...x, done: true } : { ...x, weight, reps, done: true };
                 }
                 // Carry this set's numbers forward to later, not-yet-logged sets
-                // (standard gym-logger behavior: your adjustment sticks).
-                if (!isCardio && xi > idx && !x.done) return { ...x, weight, reps };
+                // (standard gym-logger behavior: your adjustment sticks) — but
+                // only between WORKING sets. Warm-up ramp steps each have their
+                // own prescribed weight (40/60/80%), so carrying values into or
+                // out of them would flatten the ramp.
+                if (!isCardio && xi > idx && !x.done && !s.warmup && !x.warmup)
+                  return { ...x, weight, reps };
                 return x;
               }),
             }
@@ -332,6 +364,7 @@ export default function WorkoutLogger({
     if (
       !isCardio &&
       cur.exerciseId &&
+      !s.warmup && // ramping up isn't a record
       weight > 0 &&
       !celebratedRef.current.has(cur.exerciseId)
     ) {
@@ -620,7 +653,35 @@ export default function WorkoutLogger({
 
           {!exComplete ? (
             <>
-              <div className="wl-g-setlabel">Set {curSetIdx + 1} of {cur.sets.length}</div>
+              {activeSet?.warmup ? (
+                <div className="wl-g-setlabel warmup">
+                  <Icon.Flame width={12} height={12} /> Warm-up{" "}
+                  {cur.sets.slice(0, curSetIdx + 1).filter((s) => s.warmup).length} of{" "}
+                  {cur.sets.filter((s) => s.warmup).length}
+                </div>
+              ) : (
+                <div className="wl-g-setlabel">
+                  Set {cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length} of{" "}
+                  {cur.sets.filter((s) => !s.warmup).length}
+                </div>
+              )}
+
+              {/* One-tap warm-up ramp, offered before anything is logged. */}
+              {cur.type !== "cardio" &&
+                curSetIdx === 0 &&
+                !cur.sets.some((s) => s.warmup || s.done) &&
+                warmupRamp(topW, unit).length > 0 && (
+                  <button
+                    className="wl-g-warmup-offer"
+                    onClick={() => addWarmupSets(cur.id)}
+                  >
+                    <Icon.Flame width={13} height={13} /> Add warm-up ramp (
+                    {warmupRamp(topW, unit)
+                      .map((r) => r.weight)
+                      .join(" · ")}{" "}
+                    {unit})
+                  </button>
+                )}
 
               {cur.type === "cardio" ? (
                 <div className="wl-g-fields">
@@ -667,7 +728,10 @@ export default function WorkoutLogger({
               )}
 
               <button className="btn primary wl-g-log" onClick={guidedLogSet}>
-                <Icon.Check width={16} height={16} /> Log set {curSetIdx + 1}
+                <Icon.Check width={16} height={16} />{" "}
+                {activeSet?.warmup
+                  ? "Log warm-up"
+                  : `Log set ${cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length}`}
               </button>
             </>
           ) : (
@@ -871,8 +935,10 @@ export default function WorkoutLogger({
               </div>
 
               {ex.sets.map((s, i) => (
-                <div key={s.id} className={"wl-set" + (s.done ? " done" : "")}>
-                  <span className="wl-set-n">{i + 1}</span>
+                <div key={s.id} className={"wl-set" + (s.done ? " done" : "") + (s.warmup ? " warmup" : "")}>
+                  <span className={"wl-set-n" + (s.warmup ? " warmup" : "")} title={s.warmup ? "Warm-up set" : undefined}>
+                    {s.warmup ? "W" : ex.sets.slice(0, i + 1).filter((x) => !x.warmup).length}
+                  </span>
                   {ex.type === "cardio" ? (
                     <input
                       className="input wl-set-input"
@@ -951,9 +1017,22 @@ export default function WorkoutLogger({
                 </div>
               )}
 
-              <button className="wl-add-set" onClick={() => addSet(ex.id)}>
-                <Icon.Plus width={13} height={13} /> Add set
-              </button>
+              <div className="wl-set-actions-row">
+                <button className="wl-add-set" onClick={() => addSet(ex.id)}>
+                  <Icon.Plus width={13} height={13} /> Add set
+                </button>
+                {ex.type !== "cardio" &&
+                  !ex.sets.some((s) => s.warmup) &&
+                  warmupRamp(topWeight, unit).length > 0 && (
+                    <button
+                      className="wl-add-set wl-add-warmup"
+                      onClick={() => addWarmupSets(ex.id)}
+                      title="Add a 40/60/80% warm-up ramp before your working sets"
+                    >
+                      <Icon.Flame width={13} height={13} /> Warm-up
+                    </button>
+                  )}
+              </div>
             </div>
           </div>
           );

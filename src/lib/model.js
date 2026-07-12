@@ -273,8 +273,10 @@ export function createFitnessProfile({
 
 // A single logged set within an exercise. Strength sets carry reps + weight;
 // cardio sets carry a duration. `done` flips true when ticked mid-workout.
-export function createSet({ reps = null, weight = null, durationSec = null, done = false } = {}) {
-  return { id: uid("set"), reps, weight, durationSec, done };
+export function createSet({ reps = null, weight = null, durationSec = null, done = false, warmup = false } = {}) {
+  // warmup sets ramp you up to the working weight; they're excluded from
+  // volume, PRs and set-count stats (only working sets drive progress math).
+  return { id: uid("set"), reps, weight, durationSec, done, warmup };
 }
 
 // One exercise inside a workout session: a snapshot of the library entry
@@ -435,7 +437,8 @@ export function workoutVolume(workout) {
   let total = 0;
   workout.exercises.forEach((ex) => {
     (ex.sets || []).forEach((s) => {
-      if (s.done && s.weight && s.reps) total += s.weight * s.reps;
+      // Warm-up ramps don't count toward working volume.
+      if (s.done && !s.warmup && s.weight && s.reps) total += s.weight * s.reps;
     });
   });
   return total;
@@ -458,13 +461,84 @@ export function exercisePR(workouts, exerciseId) {
     (w.exercises || []).forEach((ex) => {
       if (ex.exerciseId !== exerciseId) return;
       (ex.sets || []).forEach((s) => {
-        if (s.done && s.weight != null) {
+        if (s.done && !s.warmup && s.weight != null) {
           if (!best || s.weight > best.weight) best = { weight: s.weight, reps: s.reps };
         }
       });
     });
   });
   return best;
+}
+
+// ---- estimated one-rep max (e1RM) --------------------------------
+// Epley formula: weight × (1 + reps/30). The standard the big gym loggers
+// (Strong, Hevy) use to compare sets at different rep counts on one scale.
+// A single rep IS the max; zero/invalid inputs return null.
+export function epley1RM(weight, reps) {
+  if (!weight || weight <= 0 || !reps || reps <= 0) return null;
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30) * 10) / 10;
+}
+
+// Best estimated 1RM for an exercise across history (working sets only).
+// Returns { e1rm, weight, reps, date } or null. This can rise even when the
+// raw weight PR doesn't — doing 135×10 beats 140×3 on this scale, which is
+// exactly why lifters track it.
+export function exerciseBest1RM(workouts, exerciseId) {
+  let best = null;
+  (workouts || []).forEach((w) => {
+    (w.exercises || []).forEach((ex) => {
+      if (ex.exerciseId !== exerciseId) return;
+      (ex.sets || []).forEach((s) => {
+        if (!s.done || s.warmup) return;
+        const e = epley1RM(s.weight, s.reps);
+        if (e != null && (!best || e > best.e1rm)) {
+          best = { e1rm: e, weight: s.weight, reps: s.reps, date: w.date };
+        }
+      });
+    });
+  });
+  return best;
+}
+
+// ---- warm-up ramp -------------------------------------------------
+// Progressive warm-up sets for a working weight (the Hevy/Strong pattern):
+// ~40%×10, ~60%×6, ~80%×3, rounded to real plate increments (5 lbs / 2.5 kg).
+// Steps that round below a meaningful load are dropped, so light working
+// weights get a shorter ramp instead of silly 10-pound "sets".
+export function warmupRamp(workingWeight, unit = "lbs") {
+  if (!workingWeight || workingWeight <= 0) return [];
+  const inc = unit === "kg" ? 2.5 : 5;
+  const steps = [
+    { pct: 0.4, reps: 10 },
+    { pct: 0.6, reps: 6 },
+    { pct: 0.8, reps: 3 },
+  ];
+  const out = [];
+  for (const st of steps) {
+    const w = Math.round((workingWeight * st.pct) / inc) * inc;
+    if (w >= inc * 2 && w < workingWeight) out.push({ weight: w, reps: st.reps });
+  }
+  return out;
+}
+
+// ---- weekly training volume by muscle group -----------------------
+// Completed working sets per muscle group in the rolling 7-day window.
+// Set count per muscle per week is the volume metric hypertrophy research
+// actually uses (the usual growth guideline is ~10–20 sets/muscle/week).
+export function setsPerMuscleWeek(workouts, refKey = todayKey()) {
+  const cutoff = shiftDay(refKey, -6);
+  const counts = {};
+  (workouts || []).forEach((w) => {
+    if (!w.date || w.date < cutoff || w.date > refKey) return;
+    (w.exercises || []).forEach((ex) => {
+      if (ex.type === "cardio") return;
+      const g = ex.muscleGroup || "other";
+      const n = (ex.sets || []).filter((s) => s.done && !s.warmup).length;
+      if (n > 0) counts[g] = (counts[g] || 0) + n;
+    });
+  });
+  return counts;
 }
 
 // How many distinct calendar weeks (Mon-anchored ISO-ish) had >=1 workout,

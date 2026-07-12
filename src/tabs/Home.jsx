@@ -14,6 +14,7 @@ import FocusTrend from "../widgets/FocusTrend.jsx";
 import ConsistencyDots from "../widgets/ConsistencyDots.jsx";
 import TaskMomentum from "../widgets/TaskMomentum.jsx";
 import JournalStreak from "../widgets/JournalStreak.jsx";
+import WindDown from "../widgets/WindDown.jsx";
 import UpNext from "../widgets/UpNext.jsx";
 import { Icon } from "../components/Icons.jsx";
 
@@ -49,6 +50,7 @@ function prettyDate() {
 // Ids are stable and persisted, so hiding survives reloads and new widgets
 // default to visible.
 const HOME_WIDGETS = [
+  { id: "winddown", label: "Evening wind-down" },
   { id: "upnext", label: "Up next" },
   { id: "dayring", label: "Your day ring" },
   { id: "focustrend", label: "Focus this week" },
@@ -88,6 +90,7 @@ export default function Home({
   onGoToTasks,
   onOpenJournal,
   onOpenDay,
+  addJournalEntry,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -353,6 +356,18 @@ export default function Home({
          and motivating, not a squished desktop dashboard. The full desktop grid
          below is hidden <768px via CSS (.home-desktop-grid). ---- */}
       <div className="home-mobile-only">
+        {/* Evening-gated: renders nothing before 5pm, so the top slot belongs
+            to the day while the day is still happening. */}
+        {show("winddown") && (
+          <WindDown
+            tasks={tasks}
+            goals={goals}
+            focusLog={focusLog}
+            workouts={workouts}
+            journal={journal}
+            addJournalEntry={addJournalEntry}
+          />
+        )}
         <DailyFocus
           goals={goals}
           tasks={tasks}
@@ -432,6 +447,16 @@ export default function Home({
 
         {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          {show("winddown") && (
+            <WindDown
+              tasks={tasks}
+              goals={goals}
+              focusLog={focusLog}
+              workouts={workouts}
+              journal={journal}
+              addJournalEntry={addJournalEntry}
+            />
+          )}
           {show("upnext") && (
             <UpNext
               dayBlocks={dayBlocks}

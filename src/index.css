@@ -5219,6 +5219,42 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 .fp-bal-val { font-size: 11.5px; color: var(--ink-4); font-family: var(--font-mono); }
 
+/* Weekly sets-per-muscle: bars share a fixed 24-set scale so the shaded
+   10-20 "growth zone" band sits at the same place on every row. */
+.fp-weeksets { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.fp-weeksets-track { position: relative; overflow: visible; }
+.fp-weeksets-zone {
+  position: absolute; top: -2px; bottom: -2px;
+  background: color-mix(in oklab, oklch(0.7 0.12 150) 14%, transparent);
+  border-inline: 1px dashed color-mix(in oklab, oklch(0.6 0.12 150) 45%, transparent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+.fp-weeksets .fp-bal-fill { position: relative; z-index: 1; }
+.fp-weeksets .fp-bal-fill.inzone {
+  background: linear-gradient(90deg, oklch(0.68 0.13 150), oklch(0.6 0.13 150));
+}
+.fp-weeksets-zonehint {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; color: var(--ink-4);
+  margin-bottom: 2px;
+}
+.fp-weeksets-zonechip {
+  width: 18px; height: 9px; border-radius: 3px;
+  background: color-mix(in oklab, oklch(0.7 0.12 150) 14%, transparent);
+  border: 1px dashed color-mix(in oklab, oklch(0.6 0.12 150) 45%, transparent);
+}
+.fp-weeksets-note { font-size: 11px; color: var(--ink-4); line-height: 1.45; margin: 4px 0 0; }
+
+/* Best estimated 1RM line under the exercise charts. */
+.fp-ex-1rm-best {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ink-3);
+  padding-top: 2px;
+}
+.fp-ex-1rm-best strong { color: var(--ink); font-family: var(--font-mono); }
+.fp-ex-1rm-src { color: var(--ink-4); font-size: 11px; }
+
 .fp-exercise { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
 .fp-ex-select { height: 42px; }
 .fp-ex-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -5551,6 +5587,37 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   padding: 4px 2px;
 }
 .wl-add-ex { width: 100%; justify-content: center; height: 44px; }
+
+/* Warm-up ramp sets: visually quieter rows with a flame-orange "W" marker. */
+.wl-set.warmup .wl-set-input { opacity: 0.82; }
+.wl-set-n.warmup {
+  color: oklch(0.62 0.15 55);
+  font-weight: 700;
+}
+.wl-set.warmup {
+  background: color-mix(in oklab, oklch(0.62 0.15 55) 5%, transparent);
+  border-radius: 8px;
+}
+.wl-set-actions-row { display: flex; gap: 14px; align-items: center; }
+.wl-add-warmup { color: oklch(0.6 0.14 55); }
+.wl-g-setlabel.warmup {
+  color: oklch(0.62 0.15 55);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.wl-g-warmup-offer {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0 0 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px dashed color-mix(in oklab, oklch(0.62 0.15 55) 55%, transparent);
+  background: color-mix(in oklab, oklch(0.62 0.15 55) 7%, transparent);
+  color: oklch(0.55 0.14 55);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.wl-g-warmup-offer:hover { background: color-mix(in oklab, oklch(0.62 0.15 55) 13%, transparent); }
+.wl-g-warmup-offer:active { transform: scale(0.97); }
 
 /* Grid columns collapse to one input for cardio (no reps column). */
 .wl-ex[data-cardio="true"] .wl-set-labels,
@@ -6509,6 +6576,43 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .qa-time { width: 130px; height: 44px; margin-bottom: 8px; font-size: 15px; }
 .qa-note { font-size: 12px; color: var(--ink-3); margin: 8px 0 0; line-height: 1.5; }
 .qa-hint { font-size: 12.5px; color: var(--danger, #d9534f); margin: 8px 0 0; }
+
+/* Natural-language parse chips: what Quick Add understood, one tap to undo. */
+.qa-parse-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.qa-parse-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--ink-3);
+  font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease),
+              border-color 0.15s var(--ease), transform 0.15s var(--ease);
+  animation: qaChipIn 0.22s var(--ease) both;
+}
+@keyframes qaChipIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+.qa-parse-chip.on {
+  background: var(--accent-soft);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+  color: var(--accent-ink);
+}
+.qa-parse-chip.urgent.on {
+  background: color-mix(in oklab, oklch(0.62 0.19 20) 14%, var(--panel));
+  border-color: color-mix(in oklab, oklch(0.62 0.19 20) 40%, transparent);
+  color: oklch(0.5 0.17 20);
+}
+.qa-parse-chip.alarm-suggest {
+  border-style: dashed;
+  background: transparent;
+  color: var(--accent-ink);
+}
+.qa-parse-chip.alarm-suggest:hover { background: var(--accent-soft); }
+.qa-parse-chip:active { transform: scale(0.96); }
 .qa-modal { width: min(440px, calc(100vw - 40px)); }
 .qa-modal-body { padding: 16px 18px 18px; }
 .qa-modal .quick-note-textarea { min-height: 90px; }
@@ -6820,9 +6924,20 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    top-right corner (electron/main.js). Everything here is inert in the browser
    / PWA build, where the data-electron attribute is never set.
    ============================================================ */
-/* The nav pill becomes the window's drag handle... */
+/* Meet the native caption controls at the top edge. Windows always anchors its
+   overlay to y=0, so a floating top margin leaves the glyphs stranded above the
+   nav. This Electron-only layout turns the nav into a proper integrated title
+   bar while preserving the floating pill in the browser/PWA. */
+html[data-electron="true"] .shell {
+  padding-top: 0;
+}
+
+/* The nav bar becomes the window's drag handle... */
 html[data-electron="true"] .topbar {
   -webkit-app-region: drag;
+  top: 0;
+  margin-top: 0;
+  border-radius: 0 0 var(--r-2xl) var(--r-2xl);
   /* ...with room on the right so the native window controls (~130px band in
      the top-right corner) don't overlap the search / notifications / avatar. */
   padding-right: 130px;
@@ -7023,6 +7138,61 @@ html[data-electron="true"] .topbar .goal-dropdown {
 .jstreak-lbl.today { color: var(--accent-ink); }
 .jstreak-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; margin: 12px 0 0; }
 
+/* ── WindDown: evening wins recap + close-the-day ritual ────────────────── */
+.winddown-card {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--accent) 7%, var(--panel)),
+    var(--panel) 55%
+  );
+}
+.winddown-time { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); }
+.winddown-lead { font-size: 12.5px; color: var(--ink-3); margin: 2px 0 10px; line-height: 1.5; }
+.winddown-lead.quiet { margin-bottom: 12px; }
+.winddown-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.winddown-item {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--ink-2);
+  padding: 5px 0;
+  animation: winddownIn 0.3s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+@keyframes winddownIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.winddown-check {
+  flex: none;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--accent) 40%, transparent);
+  animation: checkPopSpring 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 100ms);
+}
+.winddown-close-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  width: 100%;
+  justify-content: center;
+}
+.winddown-reflect { margin-top: 4px; }
+.winddown-card.closed { padding: 12px 16px; }
+.winddown-closed-row { display: flex; align-items: center; gap: 11px; }
+.winddown-moon {
+  flex: none;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.winddown-closed-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.winddown-closed-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+[data-reduce-motion="true"] .winddown-item { animation: none; }
+@media (prefers-reduced-motion: reduce) { .winddown-item { animation: none; } }
+
 /* FocusTrend all-time footer — quiet secondary stats. */
 .focustrend-lifetime {
   display: flex; flex-wrap: wrap; gap: 4px 14px;
@@ -7112,6 +7282,8 @@ html[data-electron="true"] .topbar .goal-dropdown {
   .focustrend-fill { transition: none; }
   .consistency-cell { animation: none; }
   .taskring-arc { transition: none; }
+  .qa-parse-chip { animation: none; }
+  .winddown-check { animation: none; }
   .tab-fade,
   .bottom-nav-item.active .bottom-nav-ic,
   .notif-dot, .notif-bell.has-unread:hover svg, .notif-item,
@@ -7123,6 +7295,8 @@ html[data-electron="true"] .topbar .goal-dropdown {
 [data-reduce-motion="true"] .moodtrend-line { animation: none; stroke-dashoffset: 0; }
 [data-reduce-motion="true"] .consistency-cell { animation: none; }
 [data-reduce-motion="true"] .taskring-arc { transition: none; }
+[data-reduce-motion="true"] .qa-parse-chip { animation: none; }
+[data-reduce-motion="true"] .winddown-check { animation: none; }
 [data-reduce-motion="true"] .tab-fade,
 [data-reduce-motion="true"] .bottom-nav-item.active .bottom-nav-ic,
 [data-reduce-motion="true"] .notif-dot,
