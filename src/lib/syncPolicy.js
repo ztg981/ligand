@@ -1,11 +1,9 @@
-// Content belongs to the account; preferences belong to the device. Keeping
-// this policy separate from the Supabase client makes accidental preference
-// syncing straightforward to catch in tests.
+// Account content and desktop preferences sync between the PC website and the
+// Electron app. Phone/iPad preferences and truly machine-local UI state stay
+// on their device.
 export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.guestMode",
-  "ligand.settings",
   "ligand.mobileSettings",
-  "ligand.tweaks",
   "ligand.mobileTweaks",
   "ligand.mobileTheme",
   "ligand.customWallpaper",

@@ -7,13 +7,13 @@ test("account content remains synced", () => {
   assert.equal(isSyncedKey("ligand.activeWorkout"), true);
   assert.equal(isSyncedKey("ligand.dayPlanner"), true);
   assert.equal(isSyncedKey("ligand.badges"), true);
+  assert.equal(isSyncedKey("ligand.settings"), true);
+  assert.equal(isSyncedKey("ligand.tweaks"), true);
 });
 
-test("appearance and device settings never sync", () => {
+test("mobile appearance and machine-local settings never sync", () => {
   const localKeys = [
-    "ligand.settings",
     "ligand.mobileSettings",
-    "ligand.tweaks",
     "ligand.mobileTweaks",
     "ligand.mobileTheme",
     "ligand.customWallpapers",
