@@ -191,9 +191,11 @@ export default function App() {
     );
   }, [settings.hyperfocus?.theme]);
 
-  // Cinematic entry: when hyperfocus turns ON (a real toggle, not a reload
-  // that restores it), play one of two full-screen intro sweeps at random.
-  const [hfIntro, setHfIntro] = useState(null); // "wipe" | "slats" | null
+  // Cinematic transitions: when hyperfocus turns ON (a real toggle, not a
+  // reload that restores it), play one of three full-screen intro sweeps at
+  // random; when it turns OFF, a "dawn" bloom washes the dark away so leaving
+  // feels like a deliberate release, not a light switch.
+  const [hfIntro, setHfIntro] = useState(null); // "wipe" | "slats" | "aurora" | "dawn" | null
   const hfPrev = useRef(hyperfocus);
   useEffect(() => {
     const was = hfPrev.current;
@@ -201,12 +203,19 @@ export default function App() {
     const reduce =
       settings.behavior?.reduceMotion ||
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (!was && hyperfocus && !reduce) {
-      setHfIntro(Math.random() < 0.5 ? "wipe" : "slats");
-      const t = setTimeout(() => setHfIntro(null), 1450);
-      return () => clearTimeout(t);
-    }
-    return undefined;
+    if (was === hyperfocus || reduce) return undefined;
+    const variants = ["wipe", "slats", "aurora"];
+    const pick = hyperfocus
+      ? variants[Math.floor(Math.random() * variants.length)]
+      : "dawn";
+    // Scheduled (not set synchronously in the effect body) so the sweep starts
+    // on the next tick, after the token swap has painted underneath it.
+    const t0 = setTimeout(() => setHfIntro(pick), 0);
+    const t = setTimeout(() => setHfIntro(null), 1450);
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t);
+    };
   }, [hyperfocus, settings.behavior?.reduceMotion]);
 
   // Desktop website blocker auto-mode: when "Auto-block during focus sessions"
@@ -753,9 +762,15 @@ export default function App() {
     }
     // The user's chosen LOOK for whichever mode is actually showing — auto
     // mode swaps palettes together with the mode (Soft Paper by day, Deep
-    // Navy by night, for example).
-    root.dataset.palette = paletteFor(effectiveMode, tweaks);
-  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom, tweaks]);
+    // Navy by night, for example). EXCEPT in Hyperfocus: its dark token set
+    // owns the whole screen, and palette selectors (two attributes) out-rank
+    // the hyperfocus block in CSS specificity — a light palette left stamped
+    // here would paint light-mode ink onto the hyperfocus dark background
+    // (unreadable). So the palette attribute comes off entirely for the
+    // duration; it's restored the moment hyperfocus ends.
+    if (hyperfocus) delete root.dataset.palette;
+    else root.dataset.palette = paletteFor(effectiveMode, tweaks);
+  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom, tweaks, hyperfocus]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {
@@ -1177,7 +1192,7 @@ export default function App() {
       {hyperfocus && <HyperfocusBackdrop />}
       {hfIntro && (
         <div className={`hf-intro hf-intro-${hfIntro}`} aria-hidden="true">
-          {hfIntro === "slats" ? (
+          {hfIntro === "slats" && (
             <>
               <span className="hf-slat s1" />
               <span className="hf-slat s2" />
@@ -1185,11 +1200,30 @@ export default function App() {
               <span className="hf-slat s4" />
               <span className="hf-slat s5" />
             </>
-          ) : (
+          )}
+          {hfIntro === "wipe" && (
             <>
               <span className="hf-wipe-core" />
               <span className="hf-wipe-ring r1" />
               <span className="hf-wipe-ring r2" />
+            </>
+          )}
+          {hfIntro === "aurora" && (
+            <>
+              <span className="hf-aurora a1" />
+              <span className="hf-aurora a2" />
+              <span className="hf-aurora a3" />
+              <span className="hf-aurora-veil" />
+            </>
+          )}
+          {hfIntro === "dawn" && (
+            <>
+              <span className="hf-dawn-bloom" />
+              <span className="hf-dawn-mote m1" />
+              <span className="hf-dawn-mote m2" />
+              <span className="hf-dawn-mote m3" />
+              <span className="hf-dawn-mote m4" />
+              <span className="hf-dawn-mote m5" />
             </>
           )}
         </div>

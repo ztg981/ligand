@@ -29,6 +29,11 @@ export const TWEAK_DEFAULTS = {
 export const WORDMARK_FONTS = [
   { id: "sora", name: "Logotype", sample: "Ligand" },
   { id: "instrument", name: "Editorial", sample: "Ligand" },
+  { id: "playfair", name: "Classic", sample: "Ligand" },
+  { id: "fraunces", name: "Storybook", sample: "Ligand" },
+  { id: "abril", name: "Poster", sample: "Ligand" },
+  { id: "pacifico", name: "Retro", sample: "Ligand" },
+  { id: "unbounded", name: "Future", sample: "Ligand" },
   { id: "dancing", name: "Cursive", sample: "Ligand" },
   { id: "vibes", name: "Signature", sample: "Ligand" },
   { id: "caveat", name: "Handwritten", sample: "Ligand" },

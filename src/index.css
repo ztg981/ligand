@@ -6408,6 +6408,77 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   60%  { transform: translateX(0) skewX(-8deg); opacity: 1; }
   100% { transform: translateX(130vw) skewX(-8deg); opacity: 0.9; }
 }
+/* Variant C — "aurora": three soft blurred color curtains fall from the top
+   edge and drape across the screen before melting away, with a brief dark
+   veil underneath so the token swap hides inside the drape. */
+.hf-aurora {
+  position: absolute; top: -20vh; height: 130vh; width: 46vw;
+  filter: blur(38px);
+  opacity: 0;
+  background: linear-gradient(180deg,
+    rgba(var(--hf-rgb, 139, 0, 0), 0.55),
+    rgba(var(--hf-rgb, 139, 0, 0), 0.12) 60%,
+    transparent);
+  transform: translateY(-100%) rotate(6deg);
+  animation: hfAurora 1.35s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+.hf-aurora.a1 { left: -6vw; animation-delay: 0s; }
+.hf-aurora.a2 { left: 30vw; animation-delay: 0.12s; transform: translateY(-100%) rotate(-5deg); }
+.hf-aurora.a3 { left: 64vw; animation-delay: 0.22s; }
+@keyframes hfAurora {
+  0%   { transform: translateY(-100%) rotate(6deg); opacity: 0; }
+  30%  { opacity: 0.95; }
+  60%  { transform: translateY(0) rotate(0deg); opacity: 0.8; }
+  100% { transform: translateY(12vh) rotate(-2deg); opacity: 0; }
+}
+.hf-aurora-veil {
+  position: absolute; inset: 0;
+  background: rgba(10, 10, 12, 0.9);
+  opacity: 0;
+  animation: hfAuroraVeil 1.35s ease-in-out forwards;
+}
+@keyframes hfAuroraVeil {
+  0% { opacity: 0; } 35% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; }
+}
+
+/* Exit — "dawn": leaving hyperfocus blooms warm light from the center and a
+   few soft motes drift upward, washing the dark session away. Uses neutral
+   warm tones (the --hf-* vars are already gone when this plays). */
+.hf-dawn-bloom {
+  position: absolute; left: 50%; top: 55%;
+  width: 40vmax; height: 40vmax; margin: -20vmax 0 0 -20vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255, 244, 224, 0.95) 0%,
+    rgba(255, 236, 210, 0.55) 40%,
+    rgba(255, 250, 240, 0) 70%);
+  transform: scale(0);
+  animation: hfDawnBloom 1.3s cubic-bezier(0.22, 0.9, 0.3, 1) forwards;
+}
+@keyframes hfDawnBloom {
+  0%   { transform: scale(0); opacity: 0.4; }
+  45%  { transform: scale(3.4); opacity: 1; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+.hf-dawn-mote {
+  position: absolute; bottom: 30%;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 240, 214, 0.9);
+  box-shadow: 0 0 14px 4px rgba(255, 236, 200, 0.55);
+  opacity: 0;
+  animation: hfDawnMote 1.25s ease-out forwards;
+}
+.hf-dawn-mote.m1 { left: 22%; animation-delay: 0.1s; }
+.hf-dawn-mote.m2 { left: 38%; animation-delay: 0.24s; width: 7px; height: 7px; }
+.hf-dawn-mote.m3 { left: 52%; animation-delay: 0.05s; }
+.hf-dawn-mote.m4 { left: 66%; animation-delay: 0.3s; width: 6px; height: 6px; }
+.hf-dawn-mote.m5 { left: 80%; animation-delay: 0.18s; width: 8px; height: 8px; }
+@keyframes hfDawnMote {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  25%  { opacity: 0.95; }
+  100% { transform: translateY(-46vh) scale(1); opacity: 0; }
+}
+
 [data-reduce-motion="true"] .hf-intro { display: none; }
 
 /* Hyperfocus color picker swatches (Settings → Appearance). */
@@ -6449,6 +6520,27 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
     font-family: var(--font-sans);
     font-size: 16px; font-weight: 650; letter-spacing: -0.01em;
   }
+  [data-wordmark="playfair"] .brand-name {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 21px; font-style: italic; font-weight: 600; letter-spacing: 0.005em;
+    transform: translateY(-1px);
+  }
+  [data-wordmark="fraunces"] .brand-name {
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 19px; font-weight: 560; letter-spacing: -0.012em;
+  }
+  [data-wordmark="abril"] .brand-name {
+    font-family: "Abril Fatface", Georgia, serif;
+    font-size: 19px; font-weight: 400; letter-spacing: 0.012em;
+  }
+  [data-wordmark="pacifico"] .brand-name {
+    font-family: "Pacifico", "Segoe Script", cursive;
+    font-size: 17px; font-weight: 400; transform: translateY(-2px);
+  }
+  [data-wordmark="unbounded"] .brand-name {
+    font-family: "Unbounded", var(--font-sans);
+    font-size: 13.5px; font-weight: 600; letter-spacing: 0.015em;
+  }
 }
 /* The picker chips in Settings preview each face. */
 .wordmark-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; max-width: 320px; }
@@ -6466,6 +6558,24 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .wordmark-pick[data-f="caveat"] { font-family: "Caveat", cursive; font-weight: 600; font-size: 18px; }
 .wordmark-pick[data-f="grotesk"] { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 .wordmark-pick[data-f="plain"] { font-family: var(--font-sans); font-weight: 650; font-size: 14px; }
+.wordmark-pick[data-f="playfair"] { font-family: "Playfair Display", serif; font-style: italic; font-weight: 600; font-size: 17px; }
+.wordmark-pick[data-f="fraunces"] { font-family: "Fraunces", serif; font-weight: 560; font-size: 16px; }
+.wordmark-pick[data-f="abril"] { font-family: "Abril Fatface", serif; font-size: 16px; letter-spacing: 0.01em; }
+.wordmark-pick[data-f="pacifico"] { font-family: "Pacifico", cursive; font-size: 15px; }
+.wordmark-pick[data-f="unbounded"] { font-family: "Unbounded", sans-serif; font-weight: 600; font-size: 11.5px; letter-spacing: 0.01em; }
+/* A little life in the picker: chips lift on hover and the chosen one lands
+   with a spring (motion-gated below). */
+.wordmark-pick { transition: transform 0.18s var(--ease), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease); }
+.wordmark-pick:hover { transform: translateY(-2px); }
+.wordmark-pick.active { animation: wordmarkLand 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes wordmarkLand { 0% { transform: scale(0.92); } 60% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-pick, .wordmark-pick:hover { transform: none; transition: none; }
+  .wordmark-pick.active { animation: none; }
+}
+[data-reduce-motion="true"] .wordmark-pick,
+[data-reduce-motion="true"] .wordmark-pick:hover { transform: none; transition: none; }
+[data-reduce-motion="true"] .wordmark-pick.active { animation: none; }
 /* Badges shortcut lives with the other tools on desktop; on phones the
    avatar menu keeps it (one less crowded icon in the pill). */
 @media (max-width: 767px) { .topbar-badges { display: none; } }
@@ -6990,6 +7100,29 @@ html[data-electron="true"] .topbar .goal-dropdown {
    ============================================================ */
 @keyframes tabFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .tab-fade { animation: tabFadeIn 150ms var(--ease); }
+
+/* Dashboard cascade: Home's cards rise in one beat after another instead of
+   appearing as a single slab. Only the first ten children get a delay — deep
+   below the fold everything just appears, so scrolling never waits. */
+.home-mobile-only > *,
+.home-desktop-grid .stack > * {
+  animation: popIn 0.38s var(--ease) both;
+}
+.home-mobile-only > *:nth-child(1),  .home-desktop-grid .stack > *:nth-child(1)  { animation-delay: 0ms; }
+.home-mobile-only > *:nth-child(2),  .home-desktop-grid .stack > *:nth-child(2)  { animation-delay: 40ms; }
+.home-mobile-only > *:nth-child(3),  .home-desktop-grid .stack > *:nth-child(3)  { animation-delay: 80ms; }
+.home-mobile-only > *:nth-child(4),  .home-desktop-grid .stack > *:nth-child(4)  { animation-delay: 120ms; }
+.home-mobile-only > *:nth-child(5),  .home-desktop-grid .stack > *:nth-child(5)  { animation-delay: 160ms; }
+.home-mobile-only > *:nth-child(6),  .home-desktop-grid .stack > *:nth-child(6)  { animation-delay: 200ms; }
+.home-mobile-only > *:nth-child(7),  .home-desktop-grid .stack > *:nth-child(7)  { animation-delay: 240ms; }
+.home-mobile-only > *:nth-child(8),  .home-desktop-grid .stack > *:nth-child(8)  { animation-delay: 280ms; }
+.home-mobile-only > *:nth-child(9),  .home-desktop-grid .stack > *:nth-child(9)  { animation-delay: 320ms; }
+.home-mobile-only > *:nth-child(10), .home-desktop-grid .stack > *:nth-child(10) { animation-delay: 360ms; }
+@media (prefers-reduced-motion: reduce) {
+  .home-mobile-only > *, .home-desktop-grid .stack > * { animation: none; }
+}
+[data-reduce-motion="true"] .home-mobile-only > *,
+[data-reduce-motion="true"] .home-desktop-grid .stack > * { animation: none; }
 
 /* Bottom-tab icon springs when its tab becomes active. */
 @keyframes navIconSpring { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
