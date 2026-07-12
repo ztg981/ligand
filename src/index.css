@@ -1245,6 +1245,19 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   .goal-widget-size-wide,
   .goal-widget-size-large { grid-column: span 4; }
 }
+/* iPad Home Screen apps keep the desktop navigation, but still have an iPadOS
+   status bar. Keep the sticky nav inside the OS-provided safe area. On desktop
+   systems the inset resolves to zero, so their layout is unchanged. */
+@media (display-mode: standalone) and (min-width: 641px) {
+  html:not([data-electron="true"]) .shell {
+    padding-top: max(var(--shell-py), calc(env(safe-area-inset-top, 0px) + 8px));
+  }
+
+  html:not([data-electron="true"]) .topbar {
+    top: calc(12px + env(safe-area-inset-top, 0px));
+  }
+}
+
 @media (max-width: 640px) {
   .goal-widget-grid { grid-template-columns: minmax(0, 1fr); }
   .goal-widget-shell { grid-column: span 1; }
