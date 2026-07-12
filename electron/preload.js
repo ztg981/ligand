@@ -1,14 +1,24 @@
 // Preload — runs with contextIsolation on, so it's the only safe bridge
 // between the sandboxed renderer and Electron. It exposes a tiny, read-only
 // surface the web app feature-detects to know it's running in the desktop
-// shell (see useElectron.js), plus a one-way setter to recolor the native
-// window-controls overlay so its glyphs stay legible against the current theme.
+// shell (see useElectron.js), plus a narrow bridge for the custom window
+// controls rendered inside Ligand's own draggable navigation bar.
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electron", {
   isElectron: true,
   platform: process.platform, // "win32" | "darwin" | "linux"
-  setTitleBarOverlay: (opts) => ipcRenderer.send("titlebar-overlay", opts),
+  windowControls: {
+    minimize: () => ipcRenderer.send("window:control", "minimize"),
+    toggleMaximize: () => ipcRenderer.send("window:control", "maximize"),
+    close: () => ipcRenderer.send("window:control", "close"),
+    isMaximized: () => ipcRenderer.invoke("window:is-maximized"),
+    onMaximizedChange: (cb) => {
+      const handler = (_event, maximized) => cb(Boolean(maximized));
+      ipcRenderer.on("window:maximized", handler);
+      return () => ipcRenderer.removeListener("window:maximized", handler);
+    },
+  },
 
   // Auto-update bridge. The main process (electron-updater) fires these when a
   // newer release is found / finished downloading; the renderer shows a subtle

@@ -16,6 +16,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import WindowControls from "../components/WindowControls.jsx";
 
 // Per-type icon for the notification feed.
 const NOTIF_ICON = {
@@ -774,6 +775,7 @@ export default function TopNav({
             onRequestAuth={onRequestAuth}
           />
         </div>
+        <WindowControls />
         </div>
       </DndContext>
 

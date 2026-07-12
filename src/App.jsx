@@ -50,6 +50,7 @@ import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useElectron } from "./hooks/useElectron.js";
 import { isHandheldDevice } from "./lib/deviceScope.js";
+import { StandaloneWindowChrome } from "./components/WindowControls.jsx";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -1155,28 +1156,39 @@ export default function App() {
   // cloud copy arrives.
   if (authLoading || syncHydrating) {
     return (
-      <div className="app-loading">
-        <div className="spinner" />
-        <div>{syncHydrating ? "Syncing your data…" : "Loading…"}</div>
-      </div>
+      <>
+        <StandaloneWindowChrome />
+        <div className="app-loading">
+          <div className="spinner" />
+          <div>{syncHydrating ? "Syncing your data…" : "Loading…"}</div>
+        </div>
+      </>
     );
   }
 
   // Arrived via a password-reset email link → let them set a new password
   // before anything else (takes priority over the normal app / auth gate).
   if (recovery) {
-    return <SetNewPassword />;
+    return (
+      <>
+        <StandaloneWindowChrome />
+        <SetNewPassword />
+      </>
+    );
   }
 
   // Not logged in and hasn't chosen guest mode → the sign-in / sign-up gate.
   if (showAuthScreen) {
     return (
-      <AuthScreen
-        onContinueAsGuest={() => {
-          setGuestMode(true);
-          setAuthRequested(false);
-        }}
-      />
+      <>
+        <StandaloneWindowChrome />
+        <AuthScreen
+          onContinueAsGuest={() => {
+            setGuestMode(true);
+            setAuthRequested(false);
+          }}
+        />
+      </>
     );
   }
 

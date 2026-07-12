@@ -46,18 +46,10 @@ function createWindow() {
     icon: path.join(__dirname, "..", "public", "pwa-512.png"),
     show: false, // reveal on ready-to-show to avoid a white flash
     autoHideMenuBar: true,
-    // Spotify/Discord-style: no separate title bar. The native min/max/close
-    // controls are drawn as a transparent overlay in the top-right so they sit
-    // directly over the app's own nav pill, which serves as the drag handle
-    // (see -webkit-app-region in index.css). The symbol color starts dark (the
-    // app's default light theme) and is updated per-theme at runtime via the
-    // "titlebar-overlay" IPC below so the glyphs stay legible in both modes.
-    titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "rgba(0, 0, 0, 0)", // transparent — the nav shows through
-      symbolColor: "#2a2722",
-      height: 52,
-    },
+    // Frameless lets Ligand keep its floating rounded nav as the draggable
+    // title bar. Window controls live inside that nav instead of being pinned
+    // to the absolute top edge by Windows.
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -73,6 +65,14 @@ function createWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
+
+  const sendMaximized = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("window:maximized", mainWindow.isMaximized());
+    }
+  };
+  mainWindow.on("maximize", sendMaximized);
+  mainWindow.on("unmaximize", sendMaximized);
 
   // Open external http(s) links in the user's real browser instead of a new
   // Electron window (security + expected behavior for outbound links).
@@ -169,17 +169,18 @@ app.whenReady().then(() => {
   // Kick off the background update check once the window exists.
   setupAutoUpdates(mainWindow);
 
-  // The renderer flips the window-controls glyph color to match the active
-  // theme (light nav → dark glyphs, dark nav → light glyphs). Fire-and-forget;
-  // guarded so a malformed payload or unsupported platform can't crash.
-  ipcMain.on("titlebar-overlay", (_event, opts) => {
-    if (mainWindow && opts && typeof opts === "object") {
-      try {
-        mainWindow.setTitleBarOverlay(opts);
-      } catch {
-        /* setTitleBarOverlay is Windows/Linux only — ignore elsewhere */
-      }
-    }
+  ipcMain.on("window:control", (event, action) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) return;
+    if (action === "minimize") win.minimize();
+    else if (action === "maximize") {
+      if (win.isMaximized()) win.unmaximize();
+      else win.maximize();
+    } else if (action === "close") win.close();
+  });
+  ipcMain.handle("window:is-maximized", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return Boolean(win && !win.isDestroyed() && win.isMaximized());
   });
 
   // ---- Focus-mode website blocker (Windows hosts file) ----
