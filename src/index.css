@@ -1256,6 +1256,18 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   html:not([data-electron="true"]) .topbar {
     top: calc(12px + env(safe-area-inset-top, 0px));
   }
+
+  /* Hide scrolled page content in the gap occupied by the iPadOS clock and
+     system icons. The phone layout has the same cover in its mobile rules. */
+  html:not([data-electron="true"]) .topbar-status-cover {
+    display: block;
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(12px + env(safe-area-inset-top, 0px));
+    background: var(--bg);
+    z-index: 19;
+    pointer-events: none;
+  }
 }
 
 @media (max-width: 640px) {
