@@ -1,8 +1,7 @@
-export function isHandheldDevice(nav = globalThis.navigator) {
+export function usesMobilePreferenceScope(nav = globalThis.navigator) {
   if (!nav) return false;
   const ua = nav.userAgent || "";
-  return (
-    /Android|iPhone|iPad|iPod/i.test(ua) ||
-    (nav.platform === "MacIntel" && nav.maxTouchPoints > 1)
-  );
+  // iPad intentionally follows the desktop preference record so Safari on
+  // iPad, the PC website, and Electron all share one appearance/settings set.
+  return /Android|iPhone|iPod/i.test(ua);
 }

@@ -49,7 +49,7 @@ import AlarmOverlay from "./components/AlarmOverlay.jsx";
 import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useElectron } from "./hooks/useElectron.js";
-import { isHandheldDevice } from "./lib/deviceScope.js";
+import { usesMobilePreferenceScope } from "./lib/deviceScope.js";
 import { StandaloneWindowChrome } from "./components/WindowControls.jsx";
 
 export default function App() {
@@ -103,10 +103,10 @@ export default function App() {
     }
   }, [needsMigration, runMigration]);
 
-  // Preference scope follows the physical device, not viewport width. An iPad
-  // keeps its own settings in desktop layout, while a narrow PC window still
-  // uses the PC's preferences.
-  const [usesMobilePreferences] = useState(isHandheldDevice);
+  // Preference scope follows the device family, not viewport width. iPad joins
+  // the desktop preference set; phones keep a separate mobile set. A narrow PC
+  // window therefore never switches to phone preferences.
+  const [usesMobilePreferences] = useState(usesMobilePreferenceScope);
   const preferenceScope = usesMobilePreferences ? "mobile" : "desktop";
   const { tweaks, set } = useTweaks(preferenceScope);
   const store = useStore();
