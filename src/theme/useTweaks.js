@@ -19,9 +19,10 @@ export const TWEAK_DEFAULTS = {
   // the mode and the palette chosen for that mode.
   lightPalette: "paper",
   darkPalette: "midnight",
-  // Desktop wordmark face (see WORDMARK_FONTS). Clean geometric logotype by
-  // default; a picker in Settings lets the user swap it.
-  wordmarkFont: "sora",
+  // Desktop wordmark face (see WORDMARK_FONTS). Editorial serif by default
+  // (reverted from the Sora logotype per the user's saved preference); a
+  // picker in Settings lets the user swap it.
+  wordmarkFont: "instrument",
 };
 
 // Desktop wordmark font options (applied via html[data-wordmark]).
@@ -69,16 +70,17 @@ export function useTweaks() {
   // Patch one or more keys at once.
   const set = (patch) => setTweaks((prev) => ({ ...prev, ...patch }));
 
-  // One-time migration: the default wordmark changed from the editorial serif
-  // ("instrument") to the Sora logotype ("sora"). Anyone still sitting on the
-  // old default gets bumped once; users who explicitly picked another face are
-  // left alone. Guarded by a flag so it never fights a later manual choice.
+  // One-time migration: the default wordmark reverted from the Sora logotype
+  // ("sora") back to the editorial serif ("instrument"). Anyone still sitting
+  // on the outgoing default gets bumped once; users who explicitly picked
+  // another face are left alone. Guarded by a flag so it never fights a later
+  // manual choice (supersedes the old v2 instrument→sora migration).
   useEffect(() => {
-    const FLAG = "ligand.wordmark.v2";
+    const FLAG = "ligand.wordmark.v3";
     if (localStorage.getItem(FLAG)) return;
     localStorage.setItem(FLAG, "1");
-    if (!stored.wordmarkFont || stored.wordmarkFont === "instrument") {
-      set({ wordmarkFont: "sora" });
+    if (!stored.wordmarkFont || stored.wordmarkFont === "sora") {
+      set({ wordmarkFont: "instrument" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
