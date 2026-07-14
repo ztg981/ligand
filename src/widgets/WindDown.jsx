@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
-import { todayKey } from "../lib/model.js";
+import { todayKey, shiftDay } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { collectDayWins, winLines } from "../lib/dayWins.js";
 
@@ -33,6 +33,12 @@ export default function WindDown({
   const [reflecting, setReflecting] = useState(false);
   const [reflection, setReflection] = useState("");
 
+  // "Tomorrow, I'll start with…" — an implementation intention set the night
+  // before (Gollwitzer). Deciding the first move while calm removes the
+  // morning what-do-I-even-start-with wall; Home surfaces it next morning.
+  const [tomorrowFirst, setTomorrowFirst] = useLocalStorage("ligand.tomorrowFirst", null);
+  const [firstThing, setFirstThing] = useState("");
+
   const wins = useMemo(
     () => collectDayWins({ tasks, goals, focusLog, workouts, journal }, today),
     [tasks, goals, focusLog, workouts, journal, today]
@@ -45,9 +51,12 @@ export default function WindDown({
   const closeDay = () => {
     const t = reflection.trim();
     if (t) addJournalEntry?.({ text: t, prompt: "Closing the day" });
+    const first = firstThing.trim();
+    if (first) setTomorrowFirst({ forDate: shiftDay(today, 1), text: first });
     setClosedOn(today);
     setReflecting(false);
     setReflection("");
+    setFirstThing("");
   };
 
   if (closedToday) {
@@ -62,6 +71,11 @@ export default function WindDown({
                 ? `${lines.length} win${lines.length === 1 ? "" : "s"} today. See you tomorrow.`
                 : "Rest well. Tomorrow is fresh."}
             </div>
+            {tomorrowFirst?.forDate === shiftDay(today, 1) && tomorrowFirst.text && (
+              <div className="winddown-first-note">
+                Tomorrow starts with: <strong>{tomorrowFirst.text}</strong>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -108,6 +122,18 @@ export default function WindDown({
               if (e.key === "Escape") setReflecting(false);
             }}
             maxLength={280}
+          />
+          <input
+            className="input"
+            placeholder="Tomorrow, I'll start with… (optional)"
+            value={firstThing}
+            onChange={(e) => setFirstThing(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") closeDay();
+              if (e.key === "Escape") setReflecting(false);
+            }}
+            maxLength={120}
+            style={{ marginTop: 8 }}
           />
           <div className="row" style={{ gap: 6, justifyContent: "flex-end", marginTop: 8 }}>
             <button className="btn ghost sm" onClick={() => setReflecting(false)}>

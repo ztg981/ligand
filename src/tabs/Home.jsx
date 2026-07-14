@@ -18,6 +18,8 @@ import WindDown from "../widgets/WindDown.jsx";
 import UpNext from "../widgets/UpNext.jsx";
 import ShowUpWeek from "../widgets/ShowUpWeek.jsx";
 import NextBadge from "../widgets/NextBadge.jsx";
+import GoalLoad from "../widgets/GoalLoad.jsx";
+import ResumeThread from "../widgets/ResumeThread.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -56,6 +58,7 @@ const HOME_WIDGETS = [
   { id: "upnext", label: "Up next" },
   { id: "showupweek", label: "Your week" },
   { id: "nextbadge", label: "Almost there (badges)" },
+  { id: "goalload", label: "Your plate" },
   { id: "dayring", label: "Your day ring" },
   { id: "focustrend", label: "Focus this week" },
   { id: "consistency", label: "Focus consistency" },
@@ -249,9 +252,15 @@ export default function Home({
     "ligand.pickOneHiddenDate",
     null
   );
+  // Last night's "tomorrow, I'll start with…" (set in the evening wind-down).
+  // When one exists for today it wins the Pick-one slot — morning-you gets the
+  // decision evening-you already made, instead of a fresh choice to make.
+  const [tomorrowFirst] = useLocalStorage("ligand.tomorrowFirst", null);
+  const nightPick =
+    tomorrowFirst?.forDate === todayKey() && tomorrowFirst.text ? tomorrowFirst.text : null;
   const [pickOneCollapsing, setPickOneCollapsing] = useState(false);
   const hiddenToday = pickOneHiddenDate === todayKey();
-  const showPickOne = Boolean(smallWin) && !hiddenToday;
+  const showPickOne = Boolean(nightPick || smallWin) && !hiddenToday;
 
   const hidePickOne = () => {
     // Collapse first, then commit the hidden date so it animates out cleanly.
@@ -265,10 +274,13 @@ export default function Home({
   const pickOneCard = (
     <div className={"card pick-one-card" + (pickOneCollapsing ? " collapsing" : "")}>
       <div className="pick-one-body">
-        <span className="pick-one-ic"><Icon.Spark /></span>
+        <span className="pick-one-ic">{nightPick ? <Icon.Moon /> : <Icon.Spark />}</span>
         <div className="pick-one-text">
-          <div className="pick-one-title">Pick one thing</div>
-          <div className="pick-one-suggestion">{smallWin?.text}</div>
+          <div className="pick-one-title">
+            {nightPick ? "Your first thing" : "Pick one thing"}
+            {nightPick && <span className="pick-one-night"> · chosen last night</span>}
+          </div>
+          <div className="pick-one-suggestion">{nightPick || smallWin?.text}</div>
         </div>
         <button
           className="pick-one-hide"
@@ -289,6 +301,26 @@ export default function Home({
       </div>
       <GoalsGrid goals={goals} tasks={tasks} onOpenGoal={onOpenGoal} />
     </div>
+  );
+
+  // "Pick up the thread" — the where-you-left-off cue after 2+ days away.
+  const resumeCard = (
+    <ResumeThread
+      daysAway={daysAway}
+      tasks={tasks}
+      focusLog={focusLog}
+      journal={journal}
+      onGoToTasks={onGoToTasks}
+      onOpenPomodoro={onOpenPomodoro}
+      onOpenJournal={onOpenJournal}
+    />
+  );
+
+  const goalLoadCard = show("goalload") && (
+    <GoalLoad
+      goals={goals}
+      onStartFreshStart={triageCount > 0 ? onStartFreshStart : undefined}
+    />
   );
 
   // Fresh-start entry point — a calm, always-available door into the guided
@@ -467,11 +499,13 @@ export default function Home({
         {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
         {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
         {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
+        {resumeCard}
         {freshStartCard}
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
         {goalsSection}
+        {goalLoadCard}
         <ProgressTracker goals={goals} tasks={tasks} />
         <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
         {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
@@ -481,11 +515,13 @@ export default function Home({
       <div className="grid grid-12 home-desktop-grid">
         {/* Left column - the main content */}
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
+          {resumeCard}
           {freshStartCard}
           {needsAttention}
           {goalsToReview}
           {showPickOne && pickOneCard}
           {goalsSection}
+          {goalLoadCard}
           <ProgressTracker goals={goals} tasks={tasks} />
           <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
         </div>

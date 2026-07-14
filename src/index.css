@@ -7363,6 +7363,52 @@ html[data-electron="true"] .electron-drag-strip {
 .jstreak-lbl.today { color: var(--accent-ink); }
 .jstreak-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; margin: 12px 0 0; }
 
+/* ── GoalLoad: "your plate" capacity bar ────────────────────────────────── */
+.goalload-bar { display: flex; gap: 5px; margin: 4px 0 5px; }
+.goalload-seg {
+  flex: 1; height: 14px; border-radius: 6px;
+  background: var(--panel-3);
+  border: 1px dashed var(--line);
+}
+.goalload-seg.filled {
+  background: var(--seg, var(--accent));
+  border: none; opacity: 0.85;
+}
+.goalload-seg.filled.over {
+  opacity: 1;
+  box-shadow: 0 0 0 1.5px color-mix(in oklab, oklch(0.62 0.16 20) 55%, transparent);
+}
+.goalload-zone-lbl {
+  display: flex; justify-content: flex-start;
+  font-size: 10px; color: var(--ink-4); font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+.goalload-line { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin: 0 0 10px; }
+
+/* ── ResumeThread: where-you-left-off cues after a gap ──────────────────── */
+.resume-card {
+  background: linear-gradient(
+    150deg,
+    color-mix(in oklab, var(--accent) 6%, var(--panel)),
+    var(--panel) 55%
+  );
+}
+.resume-sub { font-size: 12px; color: var(--ink-3); margin: 0 0 10px; line-height: 1.5; }
+.resume-row { display: flex; align-items: center; gap: 10px; }
+.resume-ic {
+  flex: none; width: 26px; height: 26px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.resume-text { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink); line-height: 1.4; }
+
+/* Wind-down: tomorrow's-first-thing note + Pick-one night variant */
+.winddown-first-note {
+  font-size: 11.5px; color: var(--ink-3); margin-top: 5px; line-height: 1.45;
+}
+.winddown-first-note strong { color: var(--ink); font-weight: 600; }
+.pick-one-night { font-size: 10.5px; font-weight: 500; color: var(--ink-4); }
+
 /* Focus chip on goal cards (picked in the fresh-start review). */
 .ov-focus-chip {
   display: inline-flex; align-items: center; gap: 3px;
