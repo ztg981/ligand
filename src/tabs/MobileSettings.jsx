@@ -207,6 +207,30 @@ export default function MobileSettings({
               onChange={(v) => setSection("notifications", { dailyReminder: v })}
             />
           </Row>
+          {notifications.dailyReminder && (
+            <Row name="Reminder time">
+              <input
+                type="time"
+                className="input"
+                value={notifications.reminderTime}
+                onChange={(e) => setSection("notifications", { reminderTime: e.target.value })}
+                style={{ maxWidth: 120 }}
+              />
+            </Row>
+          )}
+          {notifications.dailyReminder && (
+            <Row name="Tie it to a routine" hint={'"After I ___, I\'ll open Ligand"'}>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. finish breakfast"
+                value={notifications.anchor ?? ""}
+                maxLength={60}
+                onChange={(e) => setSection("notifications", { anchor: e.target.value })}
+                style={{ maxWidth: 180 }}
+              />
+            </Row>
+          )}
         </Section>
 
         {/* Habits */}

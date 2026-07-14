@@ -336,6 +336,11 @@ export default function FreshStartReview({
                 move its date, shelve it, or keep it. Nothing changes until you
                 finish, and shelved goals are never deleted.
               </p>
+              <p className="fsr-intro-why">
+                Why this helps: research on goal re-engagement finds that
+                reshaping goals that stopped fitting predicts <em>more</em>{" "}
+                follow-through, not less. Letting go makes room.
+              </p>
               <div className="row" style={{ gap: 8, marginTop: 18 }}>
                 <button className="btn primary" onClick={() => setStep(0)}>
                   Start the reset <Icon.Arrow width={13} height={13} />
@@ -416,15 +421,26 @@ export default function FreshStartReview({
               Back
             </button>
             {step < summaryStep ? (
-              <button
-                className="btn primary sm"
-                onClick={() => setStep((s) => s + 1)}
-                disabled={!decided}
-                title={decided ? "" : "Pick one of the moves above"}
-              >
-                {step === summaryStep - 1 ? "Review" : "Next"}{" "}
-                <Icon.Arrow width={13} height={13} />
-              </button>
+              <span className="row" style={{ gap: 10, alignItems: "center" }}>
+                {!decided && (
+                  <button
+                    className="fsr-skip"
+                    onClick={() => setStep((s) => s + 1)}
+                    title="No decision — this goal stays exactly as it is"
+                  >
+                    Decide later
+                  </button>
+                )}
+                <button
+                  className="btn primary sm"
+                  onClick={() => setStep((s) => s + 1)}
+                  disabled={!decided}
+                  title={decided ? "" : "Pick one of the moves above"}
+                >
+                  {step === summaryStep - 1 ? "Review" : "Next"}{" "}
+                  <Icon.Arrow width={13} height={13} />
+                </button>
+              </span>
             ) : (
               <button
                 className="btn primary sm"

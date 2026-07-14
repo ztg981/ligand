@@ -77,6 +77,43 @@ It should help users build habits, reach goals, track progress, journal, use Pom
 - Placeholder AI helpers for encouragement, summaries, re-entry text, and reflection prompts.
 - Placeholder notification and wallpaper/sound modules.
 
+## Consistency & Re-engagement Systems (added 2026-07-14)
+
+Built for the "the app doesn't push me enough" problem. All local-first.
+
+- **Tray residency (Electron)**: closing the window hides to tray (renderer
+  keeps running, so reminders/alarms still fire). `settings.desktop`
+  { closeToTray, launchAtLogin } syncs to main via `desktop:configure` IPC;
+  login launch passes `--hidden`. Quit for real from the tray menu.
+- **Daily reminder**: fires AT `settings.notifications.reminderTime` via a
+  30s tick in App.jsx whenever the app runs (not just on open). Optional
+  `notifications.anchor` ("after I ___") personalizes the wording
+  (implementation intentions).
+- **ShowUpWeek widget** (`ligand.showUpWeek`): flexible N-of-7 weekly
+  showing-up target; lib `src/lib/showingUp.js` (tested). Weeks that fall
+  short are skipped, never punished; kept weeks bank forever.
+- **NextBadge widget**: progress bars toward the 1-2 nearest badges
+  (goal-gradient); lib `src/lib/badgeProgress.js` (tested).
+- **Fresh-start review**: detection in `src/lib/goalTriage.js` (tested) —
+  never-started >= 14d, target date passed, quiet >= 14d, window mostly
+  elapsed. Wizard `src/components/FreshStartReview.jsx`: one goal per step,
+  timeline viz, four moves (shrink / move date / shelve / keep) + "decide
+  later"; decisions batch-apply on Finish; summary picks up to 3 focus
+  goals (sets `goal.pinned`, spotlighted in GoalsGrid). Offer state in
+  `ligand.freshStart` (3-day snooze, 7-day cooldown) — auto-opens on
+  return-from-gap or goal pile-up; manual entry card on Home.
+- **ResumeThread widget**: after 2+ days away, "pick up the thread" cues
+  (open Today tasks, last focus, last journal) with one-tap jumps.
+- **GoalLoad widget**: "your plate" capacity bar (comfortable up to 5).
+- **Tomorrow's first thing**: WindDown asks "Tomorrow, I'll start with…"
+  (`ligand.tomorrowFirst`); next morning the Pick-one card shows it as
+  "Your first thing · chosen last night".
+- **Fresh-start re-entry copy**: Monday/1st-of-month returns get
+  fresh-start framing in `reentryMessage`.
+
+Tone rule for all of it: reshaping/quitting is information, never failure;
+a property test asserts triage copy contains no shame words.
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

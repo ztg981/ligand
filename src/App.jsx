@@ -21,6 +21,7 @@ import { useTweaks } from "./theme/useTweaks.js";
 import { paletteFor } from "./theme/palettes.js";
 import { goalHealth } from "./lib/goalHealth.js";
 import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
+import { summarizeWeek, DEFAULT_TARGET } from "./lib/showingUp.js";
 import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
@@ -758,6 +759,30 @@ export default function App() {
         { oncePerDay: true }
       );
     }
+    // Weekly-target nudge (goal-gradient): when exactly ONE more open day
+    // makes the week and the week is getting late, say so — a near, concrete
+    // finish line pulls; a distant "be consistent" doesn't. Positive framing
+    // only, and never early in the week.
+    try {
+      const target =
+        JSON.parse(window.localStorage.getItem("ligand.showUpWeek") || "null")?.target ??
+        DEFAULT_TARGET;
+      const week = summarizeWeek({
+        visitDates: [...(visitDates || []), todayKey()],
+        target,
+        todayStr: todayKey(),
+      });
+      if (week.toGo === 1 && week.reachable && week.daysLeft <= 4) {
+        notif.push(
+          "week",
+          "One day from making your week",
+          `Today already counts. Just one more open day hits your ${target}-a-week target.`,
+          { oncePerDay: true }
+        );
+      }
+    } catch {
+      /* malformed storage — skip the nudge */
+    }
     // Fresh-start review: when the user returns to a pile of out-of-date
     // goals, open the guided reset (and leave a notification trail). The
     // decision logic — pile size, gap, snooze, cooldown — is in goalTriage.
@@ -769,7 +794,9 @@ export default function App() {
         state: freshStartState,
       })
     ) {
-      setShowFreshStart(true);
+      // Open a beat after first paint so the dashboard exists under the
+      // overlay (and the modal open isn't a synchronous cascade).
+      window.setTimeout(() => setShowFreshStart(true), 400);
       notif.push(
         "freshstart",
         "Time for a two-minute reset?",
