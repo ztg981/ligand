@@ -26,6 +26,7 @@ export const BACKUP_KEYS = Object.freeze([
   "ligand.activeWorkout",
   "ligand.pickOneHiddenDate",
   "ligand.goalSidebarCollapsed",
+  "ligand.showUpWeek",
 ]);
 
 const BACKUP_KEY_SET = new Set(BACKUP_KEYS);

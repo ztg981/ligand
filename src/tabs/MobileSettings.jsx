@@ -201,7 +201,7 @@ export default function MobileSettings({
               onChange={(v) => setSection("notifications", { pomodoroAlarm: v })}
             />
           </Row>
-          <Row name="Habit reminders" hint="A gentle nudge when you open the app">
+          <Row name="Habit reminders" hint="A gentle daily nudge at your chosen time while Ligand is open">
             <Switch
               checked={notifications.dailyReminder}
               onChange={(v) => setSection("notifications", { dailyReminder: v })}

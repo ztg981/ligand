@@ -16,6 +16,8 @@ import TaskMomentum from "../widgets/TaskMomentum.jsx";
 import JournalStreak from "../widgets/JournalStreak.jsx";
 import WindDown from "../widgets/WindDown.jsx";
 import UpNext from "../widgets/UpNext.jsx";
+import ShowUpWeek from "../widgets/ShowUpWeek.jsx";
+import NextBadge from "../widgets/NextBadge.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -52,6 +54,8 @@ function prettyDate() {
 const HOME_WIDGETS = [
   { id: "winddown", label: "Evening wind-down" },
   { id: "upnext", label: "Up next" },
+  { id: "showupweek", label: "Your week" },
+  { id: "nextbadge", label: "Almost there (badges)" },
   { id: "dayring", label: "Your day ring" },
   { id: "focustrend", label: "Focus this week" },
   { id: "consistency", label: "Focus consistency" },
@@ -91,6 +95,10 @@ export default function Home({
   onOpenJournal,
   onOpenDay,
   addJournalEntry,
+  visitDates = [],
+  badgeStats,
+  unlockedBadgeIds = [],
+  onOpenBadges,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -409,6 +417,14 @@ export default function Home({
           </div>
         </div>
 
+        {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
+        {show("nextbadge") && (
+          <NextBadge
+            badgeStats={badgeStats}
+            unlockedIds={unlockedBadgeIds}
+            onOpenBadges={onOpenBadges}
+          />
+        )}
         {show("dayring") && (
           <DayRing
             workouts={workouts}
@@ -464,6 +480,14 @@ export default function Home({
               tasks={tasks}
               onOpenDay={onOpenDay}
               onGoToTasks={onGoToTasks}
+            />
+          )}
+          {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
+          {show("nextbadge") && (
+            <NextBadge
+              badgeStats={badgeStats}
+              unlockedIds={unlockedBadgeIds}
+              onOpenBadges={onOpenBadges}
             />
           )}
           {show("dayring") && (

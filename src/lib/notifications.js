@@ -43,7 +43,7 @@ export async function requestPermission() {
 export function notify(title, body = "") {
   if (!isSupported() || Notification.permission !== "granted") return false;
   try {
-    new Notification(title, {
+    const n = new Notification(title, {
       body,
       // A tiny inline dot keeps the OS chrome from showing a broken-image icon
       // without shipping an asset. Optional — browsers fall back gracefully.
@@ -54,6 +54,16 @@ export function notify(title, body = "") {
         ),
       tag: "ligand",
     });
+    // Clicking the toast should land the user IN the app — especially when
+    // Ligand is sitting hidden in the desktop tray. Best-effort everywhere.
+    n.onclick = () => {
+      try {
+        window.focus();
+        window.electron?.desktop?.showWindow?.();
+      } catch {
+        /* focus can be refused — harmless */
+      }
+    };
     return true;
   } catch {
     return false;

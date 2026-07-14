@@ -103,9 +103,21 @@ export function summarizeProgress({ goals = [], tasks = [] } = {}) {
   return `${done} done, ${active} to go across ${goalCount} goal${goalCount === 1 ? "" : "s"}.`;
 }
 
-/* A gentle welcome-back note shown when the app hasn't been opened in a while. */
-export function reentryMessage(daysAway = 0) {
+/* A gentle welcome-back note shown when the app hasn't been opened in a while.
+   Fresh-start effect (Dai, Milkman & Riis 2014): temporal landmarks — a new
+   week, a new month — measurably boost the motivation to restart, so when a
+   return lands on one we name it. Landmark framing only ever ADDS warmth; the
+   ordinary message is already shame-free. */
+export function reentryMessage(daysAway = 0, now = new Date()) {
   // TODO(ai): could personalise based on what was left in progress.
+  const isMonday = now.getDay() === 1;
+  const isMonthStart = now.getDate() === 1;
+  if (isMonthStart) {
+    return "You're back on the first of the month — a natural fresh start. Everything you built is still here. Pick one small thing to begin with.";
+  }
+  if (isMonday) {
+    return "Back on a Monday — a brand-new week, clean slate included. Your streaks paused, they didn't reset. One tiny step starts it.";
+  }
   if (daysAway >= 14) {
     return "It's been a little while, and that's completely fine. Nothing's broken, your streaks are paused, not lost. Want to pick one small thing?";
   }

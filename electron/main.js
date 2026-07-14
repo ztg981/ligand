@@ -5,7 +5,7 @@
 // the built files from dist/index.html over file:// (which is why vite.config
 // uses base "./" so asset paths stay relative). The web/PWA build is
 // unchanged — this is an additional shell, not a replacement.
-const { app, BrowserWindow, Menu, shell, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, Tray, shell, ipcMain } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const appBlocker = require("./appBlocker");
@@ -33,6 +33,60 @@ if (process.platform === "win32") {
 }
 
 let mainWindow = null;
+let tray = null;
+// True once the user really means to leave (tray → Quit, updater restart, OS
+// shutdown). Until then, closing the window just hides it (see "close" below).
+let quitting = false;
+// Mirrors settings.desktop.closeToTray in the renderer; synced over IPC so the
+// close handler works even though main can't read localStorage.
+let closeToTray = true;
+
+// Started with --hidden (login launch): create the window but keep it tucked
+// in the tray until the user asks for it.
+const startHidden = process.argv.includes("--hidden");
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+// The tray icon is what keeps Ligand alive (and reminders/alarms firing)
+// after the window closes. The .ico ships in public/ (dev) and is copied
+// into dist/ by the build (packaged).
+function createTray() {
+  if (tray) return;
+  const iconPath = app.isPackaged
+    ? path.join(__dirname, "..", "dist", "ligand.ico")
+    : path.join(__dirname, "..", "public", "ligand.ico");
+  try {
+    tray = new Tray(iconPath);
+  } catch {
+    // Missing icon or unsupported environment — app still works, it just
+    // quits on close like before.
+    tray = null;
+    return;
+  }
+  tray.setToolTip("Ligand");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "Open Ligand", click: showMainWindow },
+      { type: "separator" },
+      {
+        label: "Quit Ligand",
+        click: () => {
+          quitting = true;
+          app.quit();
+        },
+      },
+    ])
+  );
+  tray.on("click", showMainWindow);
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -63,7 +117,18 @@ function createWindow() {
   Menu.setApplicationMenu(null);
 
   mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+    if (!startHidden) mainWindow.show();
+  });
+
+  // Close-to-tray: while the tray exists and the setting is on, closing the
+  // window HIDES it instead of quitting. The renderer keeps running, so the
+  // daily reminder, alarms, and Pomodoro can still notify — the whole point
+  // of tray residency. Quit for real from the tray menu.
+  mainWindow.on("close", (event) => {
+    if (!quitting && closeToTray && tray) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
   });
 
   const sendMaximized = () => {
@@ -143,11 +208,30 @@ function setupAutoUpdates(win) {
 }
 
 app.whenReady().then(() => {
+  createTray();
   createWindow();
+
+  // Renderer syncs settings.desktop here (main can't read localStorage).
+  // Login-item registration only happens in the packaged app — in dev it
+  // would register the bare electron binary.
+  ipcMain.on("desktop:configure", (_event, cfg = {}) => {
+    closeToTray = cfg.closeToTray !== false;
+    if (app.isPackaged) {
+      app.setLoginItemSettings({
+        openAtLogin: Boolean(cfg.launchAtLogin),
+        args: ["--hidden"],
+      });
+    }
+  });
+
+  // Show/focus the window (e.g. the user clicked a reminder notification
+  // while Ligand sat in the tray).
+  ipcMain.on("window:show", showMainWindow);
 
   // Renderer clicked "restart to install" — swap in the downloaded update.
   ipcMain.on("quit-and-install", () => {
     try {
+      quitting = true;
       autoUpdater.quitAndInstall();
     } catch {
       /* not packaged / nothing downloaded — ignore */
@@ -190,10 +274,14 @@ app.whenReady().then(() => {
   ipcMain.handle("blocker:apply", (_e, domains) => appBlocker.apply(domains || []));
   ipcMain.handle("blocker:clear", () => appBlocker.clear());
 
-  // macOS: re-create a window when the dock icon is clicked and none are open.
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  // macOS: clicking the dock icon re-shows (or re-creates) the window.
+  app.on("activate", showMainWindow);
+});
+
+// Any real quit path (tray menu, updater restart, OS shutdown, Cmd+Q) flips
+// the flag so the window's close-to-tray handler steps aside.
+app.on("before-quit", () => {
+  quitting = true;
 });
 
 // Always restore sites on exit — the block is only meant to hold while Ligand

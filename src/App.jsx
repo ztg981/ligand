@@ -594,6 +594,15 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mirror desktop tray preferences into the Electron main process (which
+  // can't read localStorage). No-op in the browser/PWA.
+  useEffect(() => {
+    window.electron?.desktop?.configure?.({
+      closeToTray: settings.desktop?.closeToTray ?? true,
+      launchAtLogin: settings.desktop?.launchAtLogin ?? false,
+    });
+  }, [settings.desktop?.closeToTray, settings.desktop?.launchAtLogin]);
+
   // Keep the uiSounds module in sync with the setting (toggle + volume).
   useEffect(() => {
     configureUiSounds({
@@ -695,22 +704,38 @@ export default function App() {
         { oncePerDay: true }
       );
     }
-    // Daily reminder — fires if the user has enabled it and the set time has passed.
-    // Checks on app open only (not a background alarm — browsers can't do that from a closed tab).
-    if (settings.notifications.dailyReminder && settings.notifications.reminderTime) {
-      const [rh, rm] = settings.notifications.reminderTime.split(":").map(Number);
-      const now = new Date();
-      if (now.getHours() > rh || (now.getHours() === rh && now.getMinutes() >= rm)) {
-        notif.push(
-          "daily",
-          "Checking in",
-          "Just a gentle nudge. Ligand's here whenever you're ready today.",
-          { oncePerDay: true }
-        );
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Daily reminder — a live tick, not just a load-time check. Runs every 30s
+  // so the nudge fires AT the chosen time whenever the app is running (open,
+  // in another window, or hidden in the tray) — an external cue at the point
+  // of performance, which is what actually works for ADHD prospective memory.
+  // push()'s oncePerDay dedup makes repeated ticks past the time harmless.
+  // When the user has written an if-then anchor ("after I finish breakfast"),
+  // the wording leans on it — implementation intentions beat bare reminders.
+  useEffect(() => {
+    const { dailyReminder, reminderTime, anchor } = settings.notifications;
+    if (!dailyReminder || !reminderTime) return;
+    const check = () => {
+      const [rh, rm] = reminderTime.split(":").map(Number);
+      const now = new Date();
+      if (now.getHours() > rh || (now.getHours() === rh && now.getMinutes() >= rm)) {
+        const body = anchor?.trim()
+          ? `Your plan: after you ${anchor.trim()}, one small check-in. That's the whole ask.`
+          : "Just a gentle nudge. One small check-in counts as showing up.";
+        notif.push("daily", "Checking in", body, { oncePerDay: true });
+      }
+    };
+    check();
+    const id = window.setInterval(check, 30000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    settings.notifications.dailyReminder,
+    settings.notifications.reminderTime,
+    settings.notifications.anchor,
+  ]);
 
   // System color-scheme, tracked live so the "Auto" theme can follow the OS
   // and update the instant the user flips their system between light and dark.
@@ -910,6 +935,10 @@ export default function App() {
               setSettingsFocus("alarms");
               setTab("settings");
             }}
+            visitDates={visitDates}
+            badgeStats={badgeStats}
+            unlockedBadgeIds={unlockedBadges.map((u) => u.id)}
+            onOpenBadges={() => setShowBadges(true)}
           />
         );
       case "day":

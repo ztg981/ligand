@@ -55,6 +55,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () => handlers.forEach(([ch, h]) => ipcRenderer.removeListener(ch, h));
   },
 
+  // Tray-residency bridge. configure() mirrors settings.desktop into the main
+  // process (close-to-tray flag + launch-at-login registration); showWindow()
+  // raises the window from the tray, e.g. when a notification is clicked.
+  desktop: {
+    configure: (cfg) => ipcRenderer.send("desktop:configure", cfg),
+    showWindow: () => ipcRenderer.send("window:show"),
+  },
+
   // Focus-mode website blocker (Windows). All async; each resolves to a status
   // object { ok, active/blocked, error?, cancelled?, supported?, presets? }.
   blocker: {

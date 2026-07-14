@@ -18,6 +18,14 @@ export const SETTINGS_DEFAULTS = {
     pomodoroAlarm: false, // ring an insistent alarm until dismissed (kitchen-timer style)
     dailyReminder: false, // a gentle nudge once a day
     reminderTime: "09:00",
+    // Implementation intention (Gollwitzer): "After I ___, I'll open Ligand."
+    // Tying the check-in to an existing routine roughly doubles follow-through
+    // vs. a bare reminder; woven into the daily-reminder wording when set.
+    anchor: "",
+  },
+  desktop: {
+    closeToTray: true, // hide to tray on close so reminders/alarms keep working
+    launchAtLogin: false, // start (hidden) with the computer
   },
   habits: {
     showStreaks: true,

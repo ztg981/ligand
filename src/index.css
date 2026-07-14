@@ -7363,6 +7363,53 @@ html[data-electron="true"] .electron-drag-strip {
 .jstreak-lbl.today { color: var(--accent-ink); }
 .jstreak-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; margin: 12px 0 0; }
 
+/* ── ShowUpWeek: flexible weekly showing-up target ──────────────────────── */
+.showup-card.met {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--accent) 9%, var(--panel)),
+    var(--panel) 60%
+  );
+}
+.showup-stat { display: flex; align-items: baseline; gap: 7px; margin: 2px 0 12px; flex-wrap: wrap; }
+.showup-num { font-size: 34px; font-weight: 500; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.showup-unit { font-size: 13px; color: var(--ink-2); }
+.showup-met-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+  color: var(--accent-ink); background: var(--accent-soft);
+  border-radius: 999px; padding: 3px 8px; margin-left: 2px;
+}
+.showup-kept { color: var(--ink-4); }
+.showup-target-select {
+  font-size: 11px; color: var(--ink-3);
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 3px 6px; cursor: pointer;
+}
+.showup-target-select:hover { color: var(--ink-2); border-color: var(--line-strong); }
+
+/* ── NextBadge: goal-gradient progress toward the nearest badges ────────── */
+.nextbadge-row { display: flex; gap: 10px; align-items: flex-start; }
+.nextbadge-ic {
+  flex: none; width: 30px; height: 30px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-ink); margin-top: 1px;
+}
+.nextbadge-body { flex: 1; min-width: 0; }
+.nextbadge-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.nextbadge-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.nextbadge-remaining { font-size: 11px; color: var(--accent-ink); font-weight: 600; white-space: nowrap; }
+.nextbadge-track {
+  height: 6px; border-radius: 999px; background: var(--panel-3);
+  overflow: hidden; margin: 6px 0 4px;
+}
+.nextbadge-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.4s var(--ease);
+}
+.nextbadge-req { font-size: 11px; color: var(--ink-4); line-height: 1.4; }
+
 /* ── WindDown: evening wins recap + close-the-day ritual ────────────────── */
 .winddown-card {
   background: linear-gradient(

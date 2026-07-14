@@ -177,7 +177,7 @@ export default function Settings({
     }
   };
 
-  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {} } = settings;
+  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {}, desktop = {} } = settings;
   const aiLocked = isGuest;
   const aiLockedHint = "Sign in to use AI features.";
 
@@ -537,7 +537,7 @@ export default function Settings({
           )}
           <Row
             name="Daily reminder"
-            hint="Nudges you when you open the app after the set time. Not a background alarm"
+            hint="Fires at the set time whenever Ligand is running — including hidden in the tray on desktop"
           >
             <Switch
               checked={notifications.dailyReminder}
@@ -554,6 +554,44 @@ export default function Settings({
                 style={{ maxWidth: 120 }}
               />
             </Row>
+          )}
+          {notifications.dailyReminder && (
+            <Row
+              name="Tie it to a routine"
+              hint={'"After I ___, I\'ll open Ligand." Anchoring the check-in to something you already do makes it far more likely to happen'}
+            >
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. finish breakfast"
+                value={notifications.anchor ?? ""}
+                maxLength={60}
+                onChange={(e) => setSection("notifications", { anchor: e.target.value })}
+                style={{ maxWidth: 220 }}
+              />
+            </Row>
+          )}
+          {typeof window !== "undefined" && window.electron?.isElectron && (
+            <>
+              <Row
+                name="Keep running in the tray"
+                hint="Closing the window tucks Ligand into the system tray instead of quitting, so reminders and alarms still reach you. Quit fully from the tray icon"
+              >
+                <Switch
+                  checked={desktop.closeToTray ?? true}
+                  onChange={(v) => setSection("desktop", { closeToTray: v })}
+                />
+              </Row>
+              <Row
+                name="Start with your computer"
+                hint="Ligand starts quietly in the tray when you log in — reminders work without you having to remember to open it"
+              >
+                <Switch
+                  checked={desktop.launchAtLogin ?? false}
+                  onChange={(v) => setSection("desktop", { launchAtLogin: v })}
+                />
+              </Row>
+            </>
           )}
         </Section>
 
