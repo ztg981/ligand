@@ -20,11 +20,13 @@ import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
 import { paletteFor } from "./theme/palettes.js";
 import { goalHealth } from "./lib/goalHealth.js";
+import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
+import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
+import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import { wallpaperById } from "./lib/wallpaper.js";
 import { setAiGuestMode } from "./lib/aiApi.js";
@@ -510,6 +512,58 @@ export default function App() {
   const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
     useBadges(badgeStats);
   const [showBadges, setShowBadges] = useState(false);
+
+  // --- Fresh-start review: guided reshaping of out-of-date goals ----------
+  // Detection lives in lib/goalTriage.js; here we hold the offer state
+  // (snooze/cooldown), open the wizard, and apply its batched decisions.
+  const [freshStartState, setFreshStartState] = useLocalStorage("ligand.freshStart", {});
+  const [showFreshStart, setShowFreshStart] = useState(false);
+  const triageItems = useMemo(
+    () => triageGoals(activeGoals, store.tasks),
+    [activeGoals, store.tasks]
+  );
+  // What the Home entry card shows. Zero during a snooze or right after a
+  // finished review — the user just made their calls; nagging them about
+  // goals they consciously kept would undo the whole point.
+  const triageOfferableCount = useMemo(() => {
+    const today = todayKey();
+    const s = freshStartState || {};
+    if (s.snoozedUntil && s.snoozedUntil >= today) return 0;
+    if (s.lastReviewAt && daysBetween(s.lastReviewAt, today) < 7) return 0;
+    return triageItems.length;
+  }, [triageItems, freshStartState]);
+
+  const snoozeFreshStart = () => {
+    setFreshStartState((s) => ({ ...s, snoozedUntil: shiftDay(todayKey(), 3) }));
+    setShowFreshStart(false);
+  };
+
+  const finishFreshStart = (decisions, focusIds) => {
+    for (const [goalId, d] of Object.entries(decisions)) {
+      if (!d?.action) continue;
+      if (d.action === "shrink") {
+        const text = (d.stepText || "").trim();
+        if (text) store.addTask({ text, label: "Today", goalId, term: "short" });
+        store.reviseGoalTargetDate(goalId, d.newDate || null);
+      } else if (d.action === "move") {
+        if (d.newDate) store.reviseGoalTargetDate(goalId, d.newDate);
+      } else if (d.action === "shelve") {
+        store.archiveGoal(goalId);
+      } else if (d.action === "keep") {
+        store.snoozeGoalReview(goalId, 14);
+      }
+    }
+    // Focus picks: pin the chosen keepers, unpin every other active goal so
+    // the spotlight actually means something.
+    if (focusIds?.length) {
+      for (const g of activeGoals) {
+        const want = focusIds.includes(g.id);
+        if (Boolean(g.pinned) !== want) store.updateGoal(g.id, { pinned: want });
+      }
+    }
+    setFreshStartState((s) => ({ ...s, lastReviewAt: todayKey(), snoozedUntil: null }));
+    setShowFreshStart(false);
+  };
   // When set, the Settings screen scrolls that section into view on open
   // (e.g. avatar menu → Alarms). Cleared once handled.
   const [settingsFocus, setSettingsFocus] = useState(null);
@@ -701,6 +755,25 @@ export default function App() {
         "overdue",
         `"${quiet.name}" misses you`,
         "It's been quiet over there. One tiny task today would wake it back up.",
+        { oncePerDay: true }
+      );
+    }
+    // Fresh-start review: when the user returns to a pile of out-of-date
+    // goals, open the guided reset (and leave a notification trail). The
+    // decision logic — pile size, gap, snooze, cooldown — is in goalTriage.
+    if (
+      shouldOfferReview({
+        items: triageItems,
+        activeGoalCount: activeGoals.length,
+        daysAway,
+        state: freshStartState,
+      })
+    ) {
+      setShowFreshStart(true);
+      notif.push(
+        "freshstart",
+        "Time for a two-minute reset?",
+        "Some goals drifted out of date while life happened. A few taps reshapes them.",
         { oncePerDay: true }
       );
     }
@@ -939,6 +1012,8 @@ export default function App() {
             badgeStats={badgeStats}
             unlockedBadgeIds={unlockedBadges.map((u) => u.id)}
             onOpenBadges={() => setShowBadges(true)}
+            triageCount={triageOfferableCount}
+            onStartFreshStart={() => setShowFreshStart(true)}
           />
         );
       case "day":
@@ -1403,6 +1478,16 @@ export default function App() {
 
       {showBadges && (
         <BadgesModal unlocked={unlockedBadges} onClose={() => setShowBadges(false)} />
+      )}
+
+      {showFreshStart && triageItems.length > 0 && (
+        <FreshStartReview
+          items={triageItems}
+          daysAway={daysAway}
+          onFinish={finishFreshStart}
+          onSnooze={snoozeFreshStart}
+          onClose={snoozeFreshStart}
+        />
       )}
 
       <BadgeCelebration queue={badgeToasts} onDismiss={dismissBadgeToast} />

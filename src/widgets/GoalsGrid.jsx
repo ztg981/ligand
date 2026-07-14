@@ -18,6 +18,13 @@ export default function GoalsGrid({ goals = [], tasks = [], onOpenGoal }) {
   const today = todayKey();
   const week = useMemo(() => weekDays(today), [today]);
 
+  // Focus goals (picked in the fresh-start review) come first with a chip —
+  // a spotlight, not a filter: everything else stays visible below.
+  const ordered = useMemo(() => {
+    const pinned = goals.filter((g) => g.pinned);
+    return pinned.length ? [...pinned, ...goals.filter((g) => !g.pinned)] : goals;
+  }, [goals]);
+
   if (goals.length === 0) {
     return (
       <div className="card" style={{ color: "var(--ink-3)", fontSize: 13 }}>
@@ -28,7 +35,7 @@ export default function GoalsGrid({ goals = [], tasks = [], onOpenGoal }) {
 
   return (
     <div className="ov-goals-grid">
-      {goals.map((g) => {
+      {ordered.map((g) => {
         const habits = g.habits || [];
         const checkedThisWeek = habits.filter((h) =>
           week.some((d) => isCheckedOn(h, d))
@@ -52,7 +59,14 @@ export default function GoalsGrid({ goals = [], tasks = [], onOpenGoal }) {
                 )}
                 {g.name}
               </span>
-              <span className={"ov-health-pill " + health.level}>{health.label}</span>
+              <span className="row" style={{ gap: 5, flex: "none" }}>
+                {g.pinned && (
+                  <span className="ov-focus-chip" title="A focus goal — picked in your last reset">
+                    <Icon.Target width={10} height={10} /> Focus
+                  </span>
+                )}
+                <span className={"ov-health-pill " + health.level}>{health.label}</span>
+              </span>
             </div>
 
             <div className="ov-goal-stats">

@@ -7363,6 +7363,137 @@ html[data-electron="true"] .electron-drag-strip {
 .jstreak-lbl.today { color: var(--accent-ink); }
 .jstreak-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; margin: 12px 0 0; }
 
+/* Focus chip on goal cards (picked in the fresh-start review). */
+.ov-focus-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 650; letter-spacing: 0.02em;
+  color: var(--accent-ink); background: var(--accent-soft);
+  border-radius: 999px; padding: 2.5px 7px; white-space: nowrap;
+}
+
+/* ── Fresh-start entry card on Home ─────────────────────────────────────── */
+.fresh-start-card {
+  background: linear-gradient(
+    150deg,
+    color-mix(in oklab, var(--accent) 10%, var(--panel)),
+    var(--panel) 62%
+  );
+  border-color: color-mix(in oklab, var(--accent) 24%, var(--line));
+}
+.fresh-start-ic {
+  flex: none; width: 32px; height: 32px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-ink); margin-top: 1px;
+}
+.fresh-start-title { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+.fresh-start-sub { font-size: 12px; color: var(--ink-3); line-height: 1.5; margin-top: 3px; }
+
+/* ── FreshStartReview: guided goal-reshape wizard ───────────────────────── */
+.fsr-modal {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(86vh, 720px);
+  display: flex; flex-direction: column;
+}
+.fsr-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.fsr-body { overflow-y: auto; flex: 1; min-height: 0; padding: 4px 2px 8px; }
+.fsr-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 12px; border-top: 1px solid var(--line);
+}
+.fsr-dots { display: flex; gap: 6px; margin: 10px 0 4px; }
+.fsr-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--panel-3); transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.fsr-dot.done { background: var(--accent); opacity: 0.55; }
+.fsr-dot.current { background: var(--accent); transform: scale(1.35); opacity: 1; }
+
+.fsr-intro-lead { font-size: 15px; line-height: 1.5; color: var(--ink); margin: 8px 0 0; }
+.fsr-intro-sub { font-size: 12.5px; line-height: 1.55; color: var(--ink-3); margin: 10px 0 0; }
+
+.fsr-goal-head { display: flex; align-items: center; gap: 8px; margin: 8px 0 10px; }
+.fsr-goal-dot { width: 10px; height: 10px; border-radius: 999px; flex: none; }
+.fsr-goal-name { font-size: 16px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+
+.fsr-timeline { margin: 4px 0 12px; }
+.fsr-timeline-track {
+  position: relative; height: 8px; border-radius: 999px;
+  background: var(--panel-3); overflow: visible;
+}
+.fsr-timeline-fill {
+  position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 55%, var(--panel-3));
+}
+.fsr-timeline-track.overdue .fsr-timeline-fill {
+  background: color-mix(in oklab, oklch(0.62 0.16 20) 55%, var(--panel-3));
+}
+.fsr-timeline-now {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 14px; height: 14px; border-radius: 999px;
+  background: var(--accent); border: 2.5px solid var(--panel);
+  box-shadow: 0 1px 5px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.fsr-timeline-track.overdue .fsr-timeline-now { background: oklch(0.62 0.16 20); }
+.fsr-timeline-target {
+  position: absolute; top: -3px; bottom: -3px; transform: translateX(-50%);
+  width: 3px; border-radius: 2px; background: var(--ink-4);
+}
+.fsr-timeline-labels {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 10.5px; color: var(--ink-4); margin-top: 6px;
+  font-family: var(--font-mono);
+}
+.fsr-overdue-lbl { color: oklch(0.55 0.16 20); font-weight: 600; }
+
+.fsr-reasons { list-style: none; margin: 0 0 12px; padding: 0; }
+.fsr-reasons li {
+  font-size: 12.5px; color: var(--ink-2); line-height: 1.5;
+  padding-left: 16px; position: relative;
+}
+.fsr-reasons li::before {
+  content: "·"; position: absolute; left: 4px; color: var(--accent-ink); font-weight: 700;
+}
+.fsr-reasons .fsr-fact { color: var(--ink-4); font-size: 11.5px; }
+
+.fsr-choices { display: flex; flex-direction: column; gap: 8px; }
+.fsr-choice {
+  display: flex; align-items: center; gap: 11px; text-align: left;
+  padding: 11px 13px; border-radius: 14px;
+  background: var(--panel-2); border: 1.5px solid var(--line);
+  cursor: pointer; transition: border-color 0.15s var(--ease), background 0.15s var(--ease), transform 0.1s var(--ease);
+}
+.fsr-choice:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.fsr-choice.picked {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 8%, var(--panel-2));
+}
+.fsr-choice.quiet { opacity: 0.85; }
+.fsr-choice-ic {
+  flex: none; width: 30px; height: 30px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-ink);
+}
+.fsr-choice-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fsr-choice-name { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.fsr-choice-sub { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+.fsr-choice-detail {
+  margin: -2px 0 4px; padding: 10px 12px;
+  border-left: 2.5px solid var(--accent);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.fsr-detail-lbl { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+
+.fsr-summary-counts { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.fsr-summary-counts li {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13.5px; color: var(--ink);
+}
+.fsr-summary-counts svg { color: var(--accent-ink); }
+.fsr-summary-line { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; margin: 12px 0 0; }
+.fsr-focus { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fsr-focus-title { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; }
+.fsr-focus-sub { font-size: 11.5px; color: var(--ink-3); margin: 5px 0 10px; line-height: 1.45; }
+
 /* ── ShowUpWeek: flexible weekly showing-up target ──────────────────────── */
 .showup-card.met {
   background: linear-gradient(

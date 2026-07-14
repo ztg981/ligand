@@ -99,6 +99,8 @@ export default function Home({
   badgeStats,
   unlockedBadgeIds = [],
   onOpenBadges,
+  triageCount = 0,
+  onStartFreshStart,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -289,6 +291,31 @@ export default function Home({
     </div>
   );
 
+  // Fresh-start entry point — a calm, always-available door into the guided
+  // goal reset whenever some goals look out of date. Doing the reset (or
+  // shelving the goals) makes this card disappear on its own.
+  const freshStartCard = triageCount > 0 && onStartFreshStart && (
+    <div className="card fresh-start-card">
+      <div className="row" style={{ gap: 11, alignItems: "flex-start" }}>
+        <span className="fresh-start-ic"><Icon.Reset /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="fresh-start-title">
+            {triageCount === 1
+              ? "One goal looks out of date"
+              : `${triageCount} goals look out of date`}
+          </div>
+          <div className="fresh-start-sub">
+            Plans age — that's information, not a verdict. A guided reset takes
+            about two minutes.
+          </div>
+        </div>
+        <button className="btn sm primary" onClick={onStartFreshStart} style={{ flex: "none" }}>
+          Reset <Icon.Arrow width={13} height={13} />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="page-head">
@@ -440,6 +467,7 @@ export default function Home({
         {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
         {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
         {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
+        {freshStartCard}
         {goalsToReview}
         {urgent.length > 0 && needsAttention}
         {showPickOne && pickOneCard}
@@ -453,6 +481,7 @@ export default function Home({
       <div className="grid grid-12 home-desktop-grid">
         {/* Left column - the main content */}
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
+          {freshStartCard}
           {needsAttention}
           {goalsToReview}
           {showPickOne && pickOneCard}
