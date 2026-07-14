@@ -712,51 +712,61 @@ export default function App() {
   // Fire the on-load notification triggers exactly once per mount. The
   // once-per-day dedup lives inside push(); this guard just stops React
   // StrictMode's double-invoke from firing twice in dev.
+  //
+  // BUDGETED: at most 3 load-time nudges land per day, highest priority
+  // first. Eight simultaneous notifications is a wall, and walls get
+  // ignored — a short, prioritized list actually gets read. Anything cut
+  // by the budget simply tries again tomorrow (the state it describes is
+  // still visible on the dashboard cards regardless).
   const firedLoadTriggers = useRef(false);
   useEffect(() => {
     if (firedLoadTriggers.current) return;
     firedLoadTriggers.current = true;
 
-    if (daysAway >= 3) {
-      notif.push(
-        "reentry",
-        "Hey, no pressure",
-        "Ligand is here when you're ready.",
-        { oncePerDay: true }
+    let budget = 3;
+    const tryPush = (type, title, body) => {
+      if (budget <= 0) return;
+      if (notif.push(type, title, body, { oncePerDay: true })) budget--;
+    };
+
+    // Fresh-start review decision first — it also opens the wizard (which
+    // doesn't count against the notification budget).
+    const offerReview = shouldOfferReview({
+      items: triageItems,
+      activeGoalCount: activeGoals.length,
+      daysAway,
+      state: freshStartState,
+    });
+    if (offerReview) {
+      // Open a beat after first paint so the dashboard exists under the
+      // overlay (and the modal open isn't a synchronous cascade).
+      window.setTimeout(() => setShowFreshStart(true), 400);
+    }
+
+    // Priority order: time-sensitive first, ambient encouragement last.
+    if (urgentCount > 0) {
+      tryPush("urgent", "Urgent tasks", "You have urgent tasks waiting.");
+    }
+    if (offerReview) {
+      tryPush(
+        "freshstart",
+        "Time for a two-minute reset?",
+        "Some goals drifted out of date while life happened. A few taps reshapes them."
       );
     }
     if (overdueGoals.length > 0) {
-      notif.push("overdue", "Goals to review", "You have overdue goals to review.", {
-        oncePerDay: true,
-      });
+      tryPush("overdue", "Goals to review", "You have overdue goals to review.");
     }
-    if (urgentCount > 0) {
-      notif.push("urgent", "Urgent tasks", "You have urgent tasks waiting.", {
-        oncePerDay: true,
-      });
+    if (daysAway >= 3) {
+      tryPush("reentry", "Hey, no pressure", "Ligand is here when you're ready.");
     }
     if (uncheckedHabitsCount > 0) {
-      notif.push(
+      tryPush(
         "habit",
         "Keep the momentum going",
         uncheckedHabitsCount === 1
           ? "A habit is still open today. No pressure, just a nudge."
-          : `${uncheckedHabitsCount} habits are still open today. No pressure, just a nudge.`,
-        { oncePerDay: true }
-      );
-    }
-    // A goal that's gone quiet (7+ days with no activity) gets a gentle,
-    // NAMED nudge — once per day, never shaming, recovery goals excluded
-    // for privacy.
-    const quiet = activeGoals.find(
-      (g) => g.type !== "recovery" && goalHealth(g, store.tasks).level === "red"
-    );
-    if (quiet) {
-      notif.push(
-        "overdue",
-        `"${quiet.name}" misses you`,
-        "It's been quiet over there. One tiny task today would wake it back up.",
-        { oncePerDay: true }
+          : `${uncheckedHabitsCount} habits are still open today. No pressure, just a nudge.`
       );
     }
     // Weekly-target nudge (goal-gradient): when exactly ONE more open day
@@ -773,35 +783,26 @@ export default function App() {
         todayStr: todayKey(),
       });
       if (week.toGo === 1 && week.reachable && week.daysLeft <= 4) {
-        notif.push(
+        tryPush(
           "week",
           "One day from making your week",
-          `Today already counts. Just one more open day hits your ${target}-a-week target.`,
-          { oncePerDay: true }
+          `Today already counts. Just one more open day hits your ${target}-a-week target.`
         );
       }
     } catch {
       /* malformed storage — skip the nudge */
     }
-    // Fresh-start review: when the user returns to a pile of out-of-date
-    // goals, open the guided reset (and leave a notification trail). The
-    // decision logic — pile size, gap, snooze, cooldown — is in goalTriage.
-    if (
-      shouldOfferReview({
-        items: triageItems,
-        activeGoalCount: activeGoals.length,
-        daysAway,
-        state: freshStartState,
-      })
-    ) {
-      // Open a beat after first paint so the dashboard exists under the
-      // overlay (and the modal open isn't a synchronous cascade).
-      window.setTimeout(() => setShowFreshStart(true), 400);
-      notif.push(
-        "freshstart",
-        "Time for a two-minute reset?",
-        "Some goals drifted out of date while life happened. A few taps reshapes them.",
-        { oncePerDay: true }
+    // A goal that's gone quiet (7+ days with no activity) gets a gentle,
+    // NAMED nudge — once per day, never shaming, recovery goals excluded
+    // for privacy.
+    const quiet = activeGoals.find(
+      (g) => g.type !== "recovery" && goalHealth(g, store.tasks).level === "red"
+    );
+    if (quiet) {
+      tryPush(
+        "overdue",
+        `"${quiet.name}" misses you`,
+        "It's been quiet over there. One tiny task today would wake it back up."
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
