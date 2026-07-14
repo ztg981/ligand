@@ -7363,6 +7363,117 @@ html[data-electron="true"] .electron-drag-strip {
 .jstreak-lbl.today { color: var(--accent-ink); }
 .jstreak-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; margin: 12px 0 0; }
 
+/* ── Sleep: morning check-in gate + diary card ──────────────────────────── */
+.sleep-gate {
+  position: fixed; inset: 0; z-index: 1200;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in oklab, var(--accent) 10%, var(--bg)), var(--bg) 70%);
+  animation: sleepGateIn 0.45s var(--ease);
+  padding: 24px;
+}
+@keyframes sleepGateIn { from { opacity: 0; } to { opacity: 1; } }
+[data-reduce-motion="true"] .sleep-gate { animation: none; }
+.sleep-gate-inner {
+  width: min(400px, 100%);
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+}
+.sleep-gate-ic {
+  width: 46px; height: 46px; border-radius: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); color: var(--accent-ink);
+  margin-bottom: 14px;
+}
+.sleep-gate-ic svg { width: 22px; height: 22px; }
+.sleep-gate-title { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+.sleep-gate-sub { font-size: 13px; color: var(--ink-3); line-height: 1.5; margin: 8px 0 0; }
+.sleep-gate-line { font-size: 14px; color: var(--ink-2); line-height: 1.55; margin: 10px 0 0; }
+.sleep-gate-go { margin-top: 18px; }
+
+.sleep-gate-times {
+  display: flex; align-items: flex-end; gap: 10px;
+  margin-top: 22px;
+}
+.sleep-gate-field { display: flex; flex-direction: column; gap: 5px; }
+.sleep-gate-field > span {
+  font-size: 11px; font-weight: 600; color: var(--ink-3); text-align: left;
+}
+.sleep-gate-field .input { width: 118px; font-size: 15px; }
+.sleep-gate-arrow { color: var(--ink-4); padding-bottom: 10px; }
+.sleep-gate-duration {
+  font-size: 13px; color: var(--accent-ink); font-weight: 600; margin-top: 10px;
+}
+
+.sleep-gate-quality {
+  display: flex; gap: 6px; margin-top: 16px; flex-wrap: wrap; justify-content: center;
+}
+.sleep-q {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 10px; border-radius: 12px;
+  background: var(--panel-2); border: 1.5px solid var(--line);
+  font-size: 11px; font-weight: 600; color: var(--ink-3); cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.sleep-q:hover { border-color: var(--line-strong); }
+.sleep-q.on {
+  border-color: var(--accent); color: var(--ink);
+  background: color-mix(in oklab, var(--accent) 9%, var(--panel-2));
+}
+.sleep-q-dots { display: flex; gap: 2.5px; min-height: 6px; }
+.sleep-q-dot {
+  width: 5px; height: 5px; border-radius: 999px; background: var(--ink-4);
+}
+.sleep-q.on .sleep-q-dot { background: var(--accent); }
+
+.sleep-gate-note { margin-top: 16px; width: 100%; }
+.sleep-gate-actions {
+  display: flex; align-items: center; gap: 14px; margin-top: 16px;
+}
+.sleep-gate-skip {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--ink-4); text-decoration: underline;
+  text-underline-offset: 3px; padding: 4px;
+}
+.sleep-gate-skip:hover { color: var(--ink-2); }
+
+/* Diary card: 14-night duration bars, quality-tinted */
+.sleep-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; margin: 0; }
+.sleep-chart {
+  position: relative; display: flex; align-items: flex-end; gap: 4px;
+  height: 74px; margin-top: 4px;
+}
+.sleep-avg-line {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1.5px dashed color-mix(in oklab, var(--accent) 55%, transparent);
+  pointer-events: none;
+}
+.sleep-bar {
+  flex: 1; min-width: 0; border-radius: 5px 5px 2px 2px;
+  height: var(--h, 0%);
+  background: var(--accent);
+  transition: height 0.4s var(--ease);
+}
+.sleep-bar.q1 { opacity: 0.35; }
+.sleep-bar.q2 { opacity: 0.5; }
+.sleep-bar.q3 { opacity: 0.68; }
+.sleep-bar.q4 { opacity: 0.85; }
+.sleep-bar.q5 { opacity: 1; }
+.sleep-bar.empty {
+  height: 100%;
+  background: none; border-radius: 5px;
+  border: 1px dashed color-mix(in oklab, var(--line) 80%, transparent);
+  opacity: 0.5;
+}
+.sleep-bar.today { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sleep-chart-lbls {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 10px; color: var(--ink-4); font-family: var(--font-mono);
+  margin-top: 7px;
+}
+.sleep-lastline { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin: 10px 0 0; }
+.sleep-wakeline { font-size: 11.5px; color: var(--ink-4); line-height: 1.5; margin: 6px 0 0; }
+
 /* ── GoalLoad: "your plate" capacity bar ────────────────────────────────── */
 .goalload-bar { display: flex; gap: 5px; margin: 4px 0 5px; }
 .goalload-seg {

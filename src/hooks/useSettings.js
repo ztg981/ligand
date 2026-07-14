@@ -27,6 +27,11 @@ export const SETTINGS_DEFAULTS = {
     closeToTray: true, // hide to tray on close so reminders/alarms keep working
     launchAtLogin: false, // start (hidden) with the computer
   },
+  sleep: {
+    morningCheckIn: true, // the calm "how did you sleep?" front door
+    bedtimeReminder: false, // a soft wind-down nudge before target lights-out
+    bedtime: "23:00",
+  },
   habits: {
     showStreaks: true,
     weekStartsMonday: true,

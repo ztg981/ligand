@@ -23,6 +23,8 @@ import { goalHealth } from "./lib/goalHealth.js";
 import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
 import { summarizeWeek, DEFAULT_TARGET } from "./lib/showingUp.js";
 import FreshStartReview from "./components/FreshStartReview.jsx";
+import { useSleepLog } from "./hooks/useSleepLog.js";
+import MorningCheckIn from "./components/MorningCheckIn.jsx";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -534,6 +536,38 @@ export default function App() {
     return triageItems.length;
   }, [triageItems, freshStartState]);
 
+  // --- Sleep diary: the calm morning front door + dashboard card ----------
+  // Self-contained under ligand.sleep (see useSleepLog). The gate shows on
+  // the first open of a morning until today's night is logged or skipped;
+  // "manual" opens come from the sleep card at any hour.
+  const { sleepLog, logSleep, entryFor: sleepEntryFor } = useSleepLog();
+  const [sleepSkippedOn, setSleepSkippedOn] = useLocalStorage("ligand.sleepSkipped", null);
+  const [sleepGateManual, setSleepGateManual] = useState(false);
+  // Decided ONCE at mount, then closed only by the user's own tap — so the
+  // post-save "Start your day" moment isn't yanked away the instant the
+  // entry lands in the log.
+  const [morningGateOpen, setMorningGateOpen] = useState(
+    () =>
+      settings.sleep?.morningCheckIn !== false &&
+      new Date().getHours() < 12 &&
+      !(sleepLog || []).some((e) => e.date === todayKey()) &&
+      sleepSkippedOn !== todayKey()
+  );
+  const showSleepGate = sleepGateManual || morningGateOpen;
+  // Prefill from the most recent night so a steady sleeper saves in one tap.
+  const lastSleepEntry = useMemo(() => {
+    const arr = [...(sleepLog || [])].sort((a, b) => a.date.localeCompare(b.date));
+    return arr[arr.length - 1] || null;
+  }, [sleepLog]);
+
+  const closeSleepGate = () => {
+    setSleepGateManual(false);
+    setMorningGateOpen(false);
+    // A close without a saved entry counts as "skip today" — the gate stays
+    // out of the way until tomorrow morning.
+    if (!sleepEntryFor(todayKey())) setSleepSkippedOn(todayKey());
+  };
+
   const snoozeFreshStart = () => {
     setFreshStartState((s) => ({ ...s, snoozedUntil: shiftDay(todayKey(), 3) }));
     setShowFreshStart(false);
@@ -838,6 +872,36 @@ export default function App() {
     settings.notifications.anchor,
   ]);
 
+  // Bedtime wind-down nudge — 30 minutes before target lights-out (a steady
+  // sleep window is the CBT-I lever, and ADHD "revenge bedtime" needs an
+  // external cue, not intention). Modular clock math keeps it working for
+  // after-midnight bedtimes; the 3-hour window plus oncePerDay dedup means
+  // it fires once and never nags at 4am.
+  useEffect(() => {
+    const sleepPrefs = settings.sleep || {};
+    if (!sleepPrefs.bedtimeReminder || !sleepPrefs.bedtime) return;
+    const check = () => {
+      const [bh, bm] = sleepPrefs.bedtime.split(":").map(Number);
+      if (Number.isNaN(bh) || Number.isNaN(bm)) return;
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const remindMin = (bh * 60 + bm - 30 + 1440) % 1440;
+      const dist = (nowMin - remindMin + 1440) % 1440;
+      if (dist < 180) {
+        notif.push(
+          "bedtime",
+          "Winding down soon?",
+          `Lights-out target is ${sleepPrefs.bedtime}. Starting to land now makes the morning kinder.`,
+          { oncePerDay: true }
+        );
+      }
+    };
+    check();
+    const id = window.setInterval(check, 30000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.sleep?.bedtimeReminder, settings.sleep?.bedtime]);
+
   // System color-scheme, tracked live so the "Auto" theme can follow the OS
   // and update the instant the user flips their system between light and dark.
   const [systemTheme, setSystemTheme] = useState(() =>
@@ -1042,6 +1106,8 @@ export default function App() {
             onOpenBadges={() => setShowBadges(true)}
             triageCount={triageOfferableCount}
             onStartFreshStart={() => setShowFreshStart(true)}
+            sleepLog={sleepLog}
+            onLogSleep={() => setSleepGateManual(true)}
           />
         );
       case "day":
@@ -1506,6 +1572,19 @@ export default function App() {
 
       {showBadges && (
         <BadgesModal unlocked={unlockedBadges} onClose={() => setShowBadges(false)} />
+      )}
+
+      {showSleepGate && (
+        <MorningCheckIn
+          manual={sleepGateManual}
+          defaults={
+            lastSleepEntry
+              ? { bedTime: lastSleepEntry.bedTime, wakeTime: lastSleepEntry.wakeTime }
+              : {}
+          }
+          onSave={(draft) => logSleep({ ...draft, date: todayKey() })}
+          onSkip={closeSleepGate}
+        />
       )}
 
       {showFreshStart && triageItems.length > 0 && (

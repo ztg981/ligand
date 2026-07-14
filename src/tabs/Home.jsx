@@ -20,6 +20,7 @@ import ShowUpWeek from "../widgets/ShowUpWeek.jsx";
 import NextBadge from "../widgets/NextBadge.jsx";
 import GoalLoad from "../widgets/GoalLoad.jsx";
 import ResumeThread from "../widgets/ResumeThread.jsx";
+import SleepCard from "../widgets/SleepCard.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -56,6 +57,7 @@ function prettyDate() {
 const HOME_WIDGETS = [
   { id: "winddown", label: "Evening wind-down" },
   { id: "upnext", label: "Up next" },
+  { id: "sleep", label: "Sleep" },
   { id: "showupweek", label: "Your week" },
   { id: "nextbadge", label: "Almost there (badges)" },
   { id: "goalload", label: "Your plate" },
@@ -104,6 +106,8 @@ export default function Home({
   onOpenBadges,
   triageCount = 0,
   onStartFreshStart,
+  sleepLog = [],
+  onLogSleep,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -476,6 +480,7 @@ export default function Home({
           </div>
         </div>
 
+        {show("sleep") && <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} />}
         {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
         {show("nextbadge") && (
           <NextBadge
@@ -547,6 +552,7 @@ export default function Home({
               onGoToTasks={onGoToTasks}
             />
           )}
+          {show("sleep") && <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} />}
           {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
           {show("nextbadge") && (
             <NextBadge

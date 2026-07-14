@@ -29,6 +29,8 @@ export const BACKUP_KEYS = Object.freeze([
   "ligand.showUpWeek",
   "ligand.freshStart",
   "ligand.tomorrowFirst",
+  "ligand.sleep",
+  "ligand.sleepSkipped",
 ]);
 
 const BACKUP_KEY_SET = new Set(BACKUP_KEYS);

@@ -64,7 +64,7 @@ export default function MobileSettings({
   focusSection = null, // e.g. "alarms" — scroll that card into view on open
   onFocusHandled,
 }) {
-  const { notifications, habits, uiSounds = {} } = settings;
+  const { notifications, habits, uiSounds = {}, sleep = {} } = settings;
   const [signingOut, setSigningOut] = useState(false);
   const loggedIn = Boolean(accountEmail);
   const alarmsRef = useRef(null);
@@ -228,6 +228,33 @@ export default function MobileSettings({
                 maxLength={60}
                 onChange={(e) => setSection("notifications", { anchor: e.target.value })}
                 style={{ maxWidth: 180 }}
+              />
+            </Row>
+          )}
+        </Section>
+
+        {/* Sleep */}
+        <Section icon={<Icon.Moon />} title="Sleep">
+          <Row name="Morning check-in" hint="One quiet question — how did you sleep? — before anything else">
+            <Switch
+              checked={sleep.morningCheckIn ?? true}
+              onChange={(v) => setSection("sleep", { morningCheckIn: v })}
+            />
+          </Row>
+          <Row name="Bedtime nudge" hint="A soft reminder 30 min before target lights-out">
+            <Switch
+              checked={sleep.bedtimeReminder ?? false}
+              onChange={(v) => setSection("sleep", { bedtimeReminder: v })}
+            />
+          </Row>
+          {(sleep.bedtimeReminder ?? false) && (
+            <Row name="Target lights-out">
+              <input
+                type="time"
+                className="input"
+                value={sleep.bedtime ?? "23:00"}
+                onChange={(e) => setSection("sleep", { bedtime: e.target.value })}
+                style={{ maxWidth: 120 }}
               />
             </Row>
           )}

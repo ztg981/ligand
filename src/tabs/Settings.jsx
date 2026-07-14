@@ -177,7 +177,7 @@ export default function Settings({
     }
   };
 
-  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {}, desktop = {} } = settings;
+  const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {}, desktop = {}, sleep = {} } = settings;
   const aiLocked = isGuest;
   const aiLockedHint = "Sign in to use AI features.";
 
@@ -592,6 +592,43 @@ export default function Settings({
                 />
               </Row>
             </>
+          )}
+        </Section>
+
+        {/* Sleep */}
+        <Section
+          icon={<Icon.Moon />}
+          title="Sleep"
+          sub="A gentle daily sleep diary. Logging is the whole practice — no scores, no judgments, just your own picture over time."
+        >
+          <Row
+            name="Morning check-in"
+            hint="On your first open of the morning, ask one quiet question — how did you sleep? — before showing anything else"
+          >
+            <Switch
+              checked={sleep.morningCheckIn ?? true}
+              onChange={(v) => setSection("sleep", { morningCheckIn: v })}
+            />
+          </Row>
+          <Row
+            name="Bedtime wind-down nudge"
+            hint="A soft reminder 30 minutes before your target lights-out (needs notifications on)"
+          >
+            <Switch
+              checked={sleep.bedtimeReminder ?? false}
+              onChange={(v) => setSection("sleep", { bedtimeReminder: v })}
+            />
+          </Row>
+          {(sleep.bedtimeReminder ?? false) && (
+            <Row name="Target lights-out">
+              <input
+                type="time"
+                className="input"
+                value={sleep.bedtime ?? "23:00"}
+                onChange={(e) => setSection("sleep", { bedtime: e.target.value })}
+                style={{ maxWidth: 120 }}
+              />
+            </Row>
           )}
         </Section>
 

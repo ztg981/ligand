@@ -114,6 +114,27 @@ Built for the "the app doesn't push me enough" problem. All local-first.
 Tone rule for all of it: reshaping/quitting is information, never failure;
 a property test asserts triage copy contains no shame words.
 
+### Sleep diary (added 2026-07-14, same session)
+
+- Self-contained: `ligand.sleep` (one entry per wake-date, upsert) via
+  `src/hooks/useSleepLog.js`; pure math in `src/lib/sleep.js` (tested —
+  cross-midnight durations, circular wake-time consistency, kind copy).
+  Deliberately NOT in ligand.data, so it can't tangle with cloud sync.
+- **Morning check-in gate** (`MorningCheckIn.jsx`): on the first open
+  before noon, a calm full-screen "how did you sleep?" shows BEFORE the
+  dashboard — the sleep log is the daily anchor habit, and the gate also
+  solves "I don't open the app because I'll have to face everything".
+  Skip is one tap (stamps `ligand.sleepSkipped`); disable in Settings →
+  Sleep. After saving, the dashboard is revealed by the user's own tap.
+- **SleepCard** Home widget: 14-night bars (height = duration, opacity =
+  quality 1-5), dashed avg line, last-night line, wake-consistency line
+  (CBT-I: steady wake time is the anchor). "Edit"/"Log last night" opens
+  the gate manually at any hour.
+- **Bedtime wind-down nudge**: optional, 30 min before target lights-out
+  (`settings.sleep.bedtime`), 30s tick + oncePerDay, works in the tray.
+- Anti-orthosomnia rule: no scores, no verdicts, short nights described
+  never judged (property test in test/sleep.test.mjs).
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.
