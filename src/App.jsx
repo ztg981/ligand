@@ -1511,6 +1511,8 @@ export default function App() {
             setTab("settings");
           }}
           onOpenBadges={() => setShowBadges(true)}
+          onOpenFreshStart={() => setShowFreshStart(true)}
+          hasFreshStart={triageItems.length > 0}
           onClearData={store.resetData}
           accountEmail={user?.email ?? null}
           onSignOut={handleSignOut}

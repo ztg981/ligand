@@ -232,6 +232,8 @@ function AvatarMenu({
   onOpenSleep,
   onOpenAlarms,
   onOpenBadges,
+  onOpenFreshStart,
+  hasFreshStart = false,
   onClearData,
   accountEmail = null,
   onSignOut,
@@ -369,6 +371,22 @@ function AvatarMenu({
             >
               <Icon.Trophy /> Badges
             </button>
+
+            {/* Manual door into the fresh-start goal reset. The automatic
+               popup respects snooze/cooldown so it never nags — but changing
+               your mind should never require waiting one out. Only offered
+               while some goals actually look out of date. */}
+            {hasFreshStart && (
+              <button
+                className="avatar-menu-item"
+                onClick={() => {
+                  onOpenFreshStart?.();
+                  close();
+                }}
+              >
+                <Icon.Reset /> Fresh start reset
+              </button>
+            )}
 
             {loggedIn ? (
               <button
@@ -648,6 +666,8 @@ export default function TopNav({
   onOpenSettings,
   onOpenAlarms,
   onOpenBadges,
+  onOpenFreshStart,
+  hasFreshStart = false,
   onClearData,
   accountEmail = null,
   onSignOut,
@@ -784,6 +804,8 @@ export default function TopNav({
             onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}
             onOpenBadges={onOpenBadges}
+            onOpenFreshStart={onOpenFreshStart}
+            hasFreshStart={hasFreshStart}
             onClearData={onClearData}
             accountEmail={accountEmail}
             onSignOut={onSignOut}
