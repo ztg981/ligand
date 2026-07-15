@@ -217,7 +217,7 @@ export default function App() {
       settings.behavior?.reduceMotion ||
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (was === hyperfocus || reduce) return undefined;
-    const variants = ["wipe", "slats", "aurora"];
+    const variants = ["wipe", "slats", "aurora", "stripes"];
     const pick = hyperfocus
       ? variants[Math.floor(Math.random() * variants.length)]
       : "dawn";
@@ -547,13 +547,18 @@ export default function App() {
   // Decided ONCE at mount, then closed only by the user's own tap — so the
   // post-save "Start your day" moment isn't yanked away the instant the
   // entry lands in the log.
-  const [morningGateOpen, setMorningGateOpen] = useState(
-    () =>
+  const [morningGateOpen, setMorningGateOpen] = useState(() => {
+    // Morning means MORNING: 5:00–11:59. At 1am the user hasn't slept yet —
+    // asking "how did you sleep?" then is nonsense (and got reported as such).
+    const h = new Date().getHours();
+    return (
       settings.sleep?.morningCheckIn !== false &&
-      new Date().getHours() < 12 &&
+      h >= 5 &&
+      h < 12 &&
       !(sleepLog || []).some((e) => e.date === todayKey()) &&
       sleepSkippedOn !== todayKey()
-  );
+    );
+  });
   const showSleepGate = sleepGateManual || morningGateOpen;
   // Prefill from the most recent night so a steady sleeper saves in one tap.
   const lastSleepEntry = useMemo(() => {
@@ -599,6 +604,18 @@ export default function App() {
     }
     setFreshStartState((s) => ({ ...s, lastReviewAt: todayKey(), snoozedUntil: null }));
     setShowFreshStart(false);
+    // A receipt, so the reset visibly DID something (the feed keeps it).
+    const n = { shrink: 0, move: 0, shelve: 0, keep: 0 };
+    for (const d of Object.values(decisions)) if (d?.action) n[d.action]++;
+    const parts = [
+      n.shrink && `${n.shrink} restarted with a tiny step`,
+      n.move && `${n.move} given a new date`,
+      n.shelve && `${n.shelve} shelved`,
+      n.keep && `${n.keep} kept`,
+    ].filter(Boolean);
+    if (parts.length) {
+      notif.push("freshstart", "Reset applied", parts.join(" · ") + ".");
+    }
   };
   // When set, the Settings screen scrolls that section into view on open
   // (e.g. avatar menu → Alarms). Cleared once handled.
@@ -1319,6 +1336,7 @@ export default function App() {
               requestNotifyPermission={notif.requestPermission}
               notifyPermission={notif.permission}
               accountEmail={user?.email ?? null}
+              goals={store.goals}
               onSignOut={handleSignOut}
               onRequestAuth={() => setAuthRequested(true)}
               alarms={store.alarms}
@@ -1339,6 +1357,7 @@ export default function App() {
             setSection={setSection}
             resetSettings={resetSettings}
             resetData={store.resetData}
+            goals={store.goals}
             archivedGoals={archivedGoals}
             restoreGoal={store.restoreGoal}
             removeGoal={store.removeGoal}
@@ -1440,6 +1459,15 @@ export default function App() {
               <span className="hf-aurora a2" />
               <span className="hf-aurora a3" />
               <span className="hf-aurora-veil" />
+            </>
+          )}
+          {hfIntro === "stripes" && (
+            <>
+              <span className="hf-stripe p1" />
+              <span className="hf-stripe p2" />
+              <span className="hf-stripe p3" />
+              <span className="hf-stripe p4" />
+              <span className="hf-stripe p5" />
             </>
           )}
           {hfIntro === "dawn" && (

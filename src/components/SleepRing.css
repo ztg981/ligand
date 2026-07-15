@@ -1,0 +1,81 @@
+/* SleepRing — self-contained styles (imported by SleepRing.jsx). */
+
+.sleepring {
+  position: relative;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sleepring svg {
+  display: block;
+  touch-action: none; /* the ring owns its gestures on touch screens */
+}
+.sleepring.dragging { cursor: grabbing; }
+
+.sleepring-track {
+  fill: none;
+  stroke: var(--panel-3);
+  stroke-width: 22;
+}
+.sleepring-arc {
+  fill: none;
+  stroke-width: 22;
+  stroke-linecap: round;
+  cursor: grab;
+  transition: d 0.15s var(--ease);
+  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent) 35%, transparent));
+}
+.sleepring.dragging .sleepring-arc { transition: none; cursor: grabbing; }
+
+.sleepring-tick { stroke: var(--ink-4); stroke-width: 1; opacity: 0.45; }
+.sleepring-tick.major { stroke-width: 1.6; opacity: 0.8; }
+.sleepring-ticklbl {
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  fill: var(--ink-4);
+  font-weight: 600;
+}
+
+.sleepring-handle { cursor: grab; }
+.sleepring-handle.active { cursor: grabbing; }
+.sleepring-handle-bg {
+  fill: var(--panel);
+  stroke: var(--accent);
+  stroke-width: 2;
+  transition: r 0.12s var(--ease);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+.sleepring-handle.active .sleepring-handle-bg { stroke-width: 3; }
+.sleepring-handle:hover .sleepring-handle-bg { fill: color-mix(in oklab, var(--accent) 10%, var(--panel)); }
+.sleepring-glyph {
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.sleepring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+}
+.sleepring-dur {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.sleepring-sub {
+  font-size: 10.5px;
+  color: var(--ink-4);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}

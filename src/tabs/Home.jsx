@@ -52,23 +52,27 @@ function prettyDate() {
 
 // Optional dashboard cards the user can hide to fit their brain. Core cards
 // (needs-attention, goals, pick-one) are always shown and aren't listed here.
-// Ids are stable and persisted, so hiding survives reloads and new widgets
-// default to visible.
+// Ids are stable and persisted, so hiding survives reloads.
+//
+// `defaultOff` cards start HIDDEN: a dashboard with sixteen widgets is a
+// wall, and walls get avoided — the exact overwhelm this app exists to
+// reduce. Everything stays one Customize-tap away; nothing is deleted.
 const HOME_WIDGETS = [
-  { id: "winddown", label: "Evening wind-down" },
-  { id: "upnext", label: "Up next" },
   { id: "sleep", label: "Sleep" },
   { id: "showupweek", label: "Your week" },
+  { id: "winddown", label: "Evening wind-down" },
+  { id: "upnext", label: "Up next" },
   { id: "nextbadge", label: "Almost there (badges)" },
-  { id: "goalload", label: "Your plate" },
   { id: "dayring", label: "Your day ring" },
-  { id: "focustrend", label: "Focus this week" },
-  { id: "consistency", label: "Focus consistency" },
-  { id: "taskmomentum", label: "Task momentum" },
-  { id: "journalstreak", label: "Journal streak" },
-  { id: "weekreview", label: "Your week (AI)" },
-  { id: "didyouknow", label: "Did you know" },
+  { id: "goalload", label: "Your plate", defaultOff: true },
+  { id: "focustrend", label: "Focus this week", defaultOff: true },
+  { id: "consistency", label: "Focus consistency", defaultOff: true },
+  { id: "taskmomentum", label: "Task momentum", defaultOff: true },
+  { id: "journalstreak", label: "Journal streak", defaultOff: true },
+  { id: "weekreview", label: "Your week (AI)", defaultOff: true },
+  { id: "didyouknow", label: "Did you know", defaultOff: true },
 ];
+const DEFAULT_OFF = new Set(HOME_WIDGETS.filter((w) => w.defaultOff).map((w) => w.id));
 
 export default function Home({
   goals,
@@ -84,7 +88,6 @@ export default function Home({
   showEncouragement = true,
   tone = "warm",
   daysAway = 0,
-  weekVisits = 0,
   activeDays = 0,
   checkInHabit,
   updateHabit,
@@ -112,14 +115,21 @@ export default function Home({
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
-  // Which optional dashboard cards the user has hidden, plus the edit toggle.
+  // Which optional dashboard cards the user has hidden (default-on cards) or
+  // shown (default-off cards), plus the edit toggle. Two lists so shipping a
+  // calmer default never nukes anyone's explicit choices.
   const [hiddenCards, setHiddenCards] = useLocalStorage("ligand.home.hidden", []);
+  const [shownCards, setShownCards] = useLocalStorage("ligand.home.shown", []);
   const [customizing, setCustomizing] = useState(false);
-  const show = (id) => !hiddenCards.includes(id);
-  const toggleCard = (id) =>
-    setHiddenCards((h) =>
-      h.includes(id) ? h.filter((x) => x !== id) : [...h, id]
-    );
+  const show = (id) =>
+    DEFAULT_OFF.has(id) ? shownCards.includes(id) : !hiddenCards.includes(id);
+  const toggleCard = (id) => {
+    if (DEFAULT_OFF.has(id)) {
+      setShownCards((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    } else {
+      setHiddenCards((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]));
+    }
+  };
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.done), [tasks]);
   const doneCount = tasks.length - activeTasks.length;
@@ -580,61 +590,11 @@ export default function Home({
           {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
           {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
           {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
-          {/* Days showing up - distinct calendar days the app was actually
-              opened (never elapsed days, never more than once per day). */}
-          {activeDays > 0 && (
-            <div className="card">
-              <div className="card-head">
-                <div className="card-title">
-                  <Icon.Flame /> Days showing up
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <div
-                  className="mono"
-                  style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em" }}
-                >
-                  {activeDays}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--ink-2)" }}>
-                  {activeDays === 1 ? "day" : "days"}
-                </div>
-              </div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-4)", marginTop: 8 }}>
-                Distinct days you've opened the app. Quiet days never count against you.
-              </div>
-            </div>
-          )}
-
+          {/* The old "Days showing up" card, week-visits stat, and standalone
+              encouragement card are gone from the desktop grid — ShowUpWeek
+              and the greeting line already say all of it, and sixteen cards
+              was the overwhelm this page kept getting blamed for. */}
           {show("weekreview") && <WeeklyReview goals={goals} tasks={tasks} journal={journal} />}
-
-          {showEncouragement && <EncouragingMsg message={message} sub={summary} />}
-
-          {/* Visit streak stat - gentle, framed as "showing up" not performance */}
-          {weekVisits > 0 && (
-            <div className="card" style={{ textAlign: "center", padding: "14px 16px" }}>
-              <div
-                style={{
-                  fontSize: 30,
-                  fontWeight: 700,
-                  letterSpacing: "-0.03em",
-                  color: "var(--accent)",
-                  lineHeight: 1,
-                }}
-              >
-                {weekVisits}
-              </div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-2)", fontWeight: 500, marginTop: 4 }}>
-                {weekVisits === 7
-                  ? "every day this week"
-                  : `day${weekVisits > 1 ? "s" : ""} this week`}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 3 }}>
-                showing up
-              </div>
-            </div>
-          )}
-
           {show("didyouknow") && <DidYouKnow />}
         </div>
       </div>

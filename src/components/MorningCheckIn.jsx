@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "./Icons.jsx";
-import { QUALITY_LABELS, nightLine, sleepDurationMin, durationLabel } from "../lib/sleep.js";
+import SleepRing from "./SleepRing.jsx";
+import { QUALITY_LABELS, nightLine, sleepDurationMin } from "../lib/sleep.js";
 
 /* MorningCheckIn — the calm front door.
 
@@ -68,7 +69,24 @@ export default function MorningCheckIn({
               </p>
             )}
 
-            <div className="sleep-gate-times">
+            {/* The ring is the fast path: drag the moon, drag the sun, or
+                slide the whole arc. The exact inputs stay right below it. */}
+            <div className="sleep-gate-ring">
+              <SleepRing
+                bedTime={bedTime}
+                wakeTime={wakeTime}
+                size={240}
+                onChange={(field, val) => {
+                  if (field === "bed") setBedTime(val);
+                  else if (field === "wake") setWakeTime(val);
+                  else {
+                    setBedTime(val.bed);
+                    setWakeTime(val.wake);
+                  }
+                }}
+              />
+            </div>
+            <div className="sleep-gate-times compact">
               <label className="sleep-gate-field">
                 <span>Lights out</span>
                 <input
@@ -88,9 +106,6 @@ export default function MorningCheckIn({
                   onChange={(e) => setWakeTime(e.target.value)}
                 />
               </label>
-            </div>
-            <div className="sleep-gate-duration mono">
-              {min != null ? durationLabel(min) : "—"}
             </div>
 
             <div className="sleep-gate-quality" role="radiogroup" aria-label="How it felt">

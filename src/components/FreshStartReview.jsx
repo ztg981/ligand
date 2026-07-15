@@ -366,19 +366,36 @@ export default function FreshStartReview({
 
           {step === summaryStep && (
             <div className="fsr-summary">
+              <p className="fsr-summary-intro">
+                Here's exactly what happens when you hit Apply — nothing has
+                changed yet:
+              </p>
               <ul className="fsr-summary-counts">
-                {counts.shrink > 0 && (
-                  <li><Icon.Spark /> {counts.shrink} restarted with a tiny step</li>
-                )}
-                {counts.move > 0 && (
-                  <li><Icon.Calendar /> {counts.move} given a kinder date</li>
-                )}
-                {counts.shelve > 0 && (
-                  <li><Icon.Book /> {counts.shelve} shelved to make room</li>
-                )}
-                {counts.keep > 0 && (
-                  <li><Icon.Check /> {counts.keep} kept as-is</li>
-                )}
+                {items
+                  .filter((it) => decisions[it.goal.id]?.action)
+                  .map((it) => {
+                    const d = decisions[it.goal.id];
+                    const icon =
+                      d.action === ACTIONS.SHRINK ? <Icon.Spark />
+                      : d.action === ACTIONS.MOVE ? <Icon.Calendar />
+                      : d.action === ACTIONS.SHELVE ? <Icon.Book />
+                      : <Icon.Check />;
+                    const outcome =
+                      d.action === ACTIONS.SHRINK
+                        ? `tiny step added${d.newDate ? ` · new date ${d.newDate}` : " · target date cleared"}`
+                        : d.action === ACTIONS.MOVE
+                        ? `new target date ${d.newDate}`
+                        : d.action === ACTIONS.SHELVE
+                        ? "shelved — restore anytime from Settings"
+                        : "kept as-is · nudges quiet for 2 weeks";
+                    return (
+                      <li key={it.goal.id}>
+                        {icon}
+                        <span className="fsr-summary-goal">{it.goal.name}</span>
+                        <span className="fsr-summary-outcome">{outcome}</span>
+                      </li>
+                    );
+                  })}
               </ul>
               <p className="fsr-summary-line">
                 {counts.shelve > 0
@@ -446,7 +463,7 @@ export default function FreshStartReview({
                 className="btn primary sm"
                 onClick={() => onFinish?.(decisions, focusIds)}
               >
-                <Icon.Check width={13} height={13} /> Finish
+                <Icon.Check width={13} height={13} /> Apply changes
               </button>
             )}
           </div>

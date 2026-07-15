@@ -2,6 +2,18 @@
    in index.css so this file has no shared-edit surface). All class names are
    prefixed sltab- to stay out of everyone's way. */
 
+/* Two columns on desktop so wide screens aren't half blank; a single calm
+   column on phones. */
+.sltab-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .sltab-grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+}
+.sltab-ring-wrap { display: flex; justify-content: center; padding: 6px 0 10px; }
+
 .sltab-hero {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
 }

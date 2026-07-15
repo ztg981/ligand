@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { Switch } from "../components/Controls.jsx";
+import SleepRing from "../components/SleepRing.jsx";
 import { todayKey } from "../lib/model.js";
 import {
   buildNights,
@@ -258,7 +259,8 @@ export default function Sleep({
         </button>
       </div>
 
-      <div className="stack" style={{ gap: 12, maxWidth: 720 }}>
+      <div className="sltab-grid">
+        <div className="stack" style={{ gap: 12, minWidth: 0 }}>
         {/* Last night hero */}
         <div className="card">
           <div className="card-head">
@@ -338,11 +340,25 @@ export default function Sleep({
             {wakeLine && <p className="sltab-wakeline">{wakeLine}</p>}
           </div>
         )}
+        </div>
 
+        <div className="stack" style={{ gap: 12, minWidth: 0 }}>
         {/* Target window + preferences */}
         <div className="card">
           <div className="card-head">
             <div className="card-title"><Icon.Target /> Your target window</div>
+          </div>
+          <div className="sltab-ring-wrap">
+            <SleepRing
+              bedTime={bedtime}
+              wakeTime={wakeTarget}
+              size={230}
+              onChange={(field, val) => {
+                if (field === "bed") setSection?.("sleep", { bedtime: val });
+                else if (field === "wake") setSection?.("sleep", { wakeTarget: val });
+                else setSection?.("sleep", { bedtime: val.bed, wakeTarget: val.wake });
+              }}
+            />
           </div>
           <p className="sltab-window-line">
             <strong>{bedtime}</strong> → <strong>{wakeTarget}</strong>
@@ -414,6 +430,7 @@ export default function Sleep({
               <NightRow key={n.key + (n.entry ? "-e" : "-x")} night={n} logSleep={logSleep} removeSleep={removeSleep} />
             ))}
           </div>
+        </div>
         </div>
       </div>
     </>
