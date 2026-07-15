@@ -20,7 +20,7 @@ import {
 const DAYS = 14;
 const MAX_MIN = 12 * 60; // bar scale ceiling: 12h reads as "full"
 
-export default function SleepCard({ sleepLog = [], onLogSleep }) {
+export default function SleepCard({ sleepLog = [], onLogSleep, onOpenSleep }) {
   const today = todayKey();
   const nights = useMemo(() => buildNights(sleepLog, DAYS, today), [sleepLog, today]);
   const stats = useMemo(() => sleepStats(sleepLog, DAYS, today), [sleepLog, today]);
@@ -34,11 +34,18 @@ export default function SleepCard({ sleepLog = [], onLogSleep }) {
     <div className="card sleep-card">
       <div className="card-head">
         <div className="card-title"><Icon.Moon /> Sleep</div>
-        {onLogSleep && (
-          <button className="btn ghost sm" onClick={onLogSleep}>
-            {todayEntry ? "Edit" : "Log last night"}
-          </button>
-        )}
+        <span className="row" style={{ gap: 6 }}>
+          {onLogSleep && (
+            <button className="btn ghost sm" onClick={onLogSleep}>
+              {todayEntry ? "Edit" : "Log last night"}
+            </button>
+          )}
+          {onOpenSleep && (
+            <button className="btn ghost sm" onClick={onOpenSleep} title="Open the Sleep tab">
+              More <Icon.Arrow width={13} height={13} />
+            </button>
+          )}
+        </span>
       </div>
 
       {stats.count === 0 ? (

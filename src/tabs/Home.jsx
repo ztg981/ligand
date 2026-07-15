@@ -108,6 +108,7 @@ export default function Home({
   onStartFreshStart,
   sleepLog = [],
   onLogSleep,
+  onOpenSleep,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -480,7 +481,9 @@ export default function Home({
           </div>
         </div>
 
-        {show("sleep") && <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} />}
+        {show("sleep") && (
+          <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
+        )}
         {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
         {show("nextbadge") && (
           <NextBadge
@@ -552,7 +555,9 @@ export default function Home({
               onGoToTasks={onGoToTasks}
             />
           )}
-          {show("sleep") && <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} />}
+          {show("sleep") && (
+            <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
+          )}
           {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
           {show("nextbadge") && (
             <NextBadge

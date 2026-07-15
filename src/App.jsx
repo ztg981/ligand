@@ -25,6 +25,7 @@ import { summarizeWeek, DEFAULT_TARGET } from "./lib/showingUp.js";
 import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useSleepLog } from "./hooks/useSleepLog.js";
 import MorningCheckIn from "./components/MorningCheckIn.jsx";
+import SleepTab from "./tabs/Sleep.jsx";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -540,7 +541,7 @@ export default function App() {
   // Self-contained under ligand.sleep (see useSleepLog). The gate shows on
   // the first open of a morning until today's night is logged or skipped;
   // "manual" opens come from the sleep card at any hour.
-  const { sleepLog, logSleep, entryFor: sleepEntryFor } = useSleepLog();
+  const { sleepLog, logSleep, removeSleep, entryFor: sleepEntryFor } = useSleepLog();
   const [sleepSkippedOn, setSleepSkippedOn] = useLocalStorage("ligand.sleepSkipped", null);
   const [sleepGateManual, setSleepGateManual] = useState(false);
   // Decided ONCE at mount, then closed only by the user's own tap — so the
@@ -1108,6 +1109,7 @@ export default function App() {
             onStartFreshStart={() => setShowFreshStart(true)}
             sleepLog={sleepLog}
             onLogSleep={() => setSleepGateManual(true)}
+            onOpenSleep={() => setTab("sleep")}
           />
         );
       case "day":
@@ -1239,6 +1241,17 @@ export default function App() {
                 wasFocus ? "Time for a break." : "Ready to focus?"
               );
             }}
+          />
+        );
+      case "sleep":
+        return (
+          <SleepTab
+            sleepLog={sleepLog}
+            logSleep={logSleep}
+            removeSleep={removeSleep}
+            sleepSettings={settings.sleep}
+            setSection={setSection}
+            onLogNight={() => setSleepGateManual(true)}
           />
         );
       case "journal":

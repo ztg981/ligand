@@ -8,6 +8,9 @@ import {
   sleepStats,
   wakeConsistencyLine,
   nightLine,
+  clockLabel,
+  weekDelta,
+  minutesOfDay,
 } from "../src/lib/sleep.js";
 
 const TODAY = "2026-07-14";
@@ -92,6 +95,59 @@ test("wake consistency handles the midnight wrap", () => {
     TODAY
   );
   assert.ok(wild.wake.spreadMin > 90, `spread was ${wild.wake.spreadMin}`);
+});
+
+test("clockLabel formats and wraps", () => {
+  assert.equal(clockLabel(23 * 60 + 30), "11:30 PM");
+  assert.equal(clockLabel(0), "12:00 AM");
+  assert.equal(clockLabel(12 * 60), "12:00 PM");
+  assert.equal(clockLabel(7 * 60 + 5), "7:05 AM");
+  assert.equal(clockLabel(null), "—");
+  assert.equal(clockLabel(1445), "12:05 AM"); // wraps past midnight
+});
+
+test("bed circular mean handles the midnight straddle", () => {
+  // Bedtimes 23:30, 00:30, 00:00 → mean near midnight, NOT noon.
+  const s = sleepStats(
+    [
+      { date: "2026-07-14", bedTime: "23:30", wakeTime: "07:00", quality: 3 },
+      { date: "2026-07-13", bedTime: "00:30", wakeTime: "07:00", quality: 3 },
+      { date: "2026-07-12", bedTime: "00:00", wakeTime: "07:00", quality: 3 },
+    ],
+    14,
+    TODAY
+  );
+  const dist = Math.min(s.bed.meanMin, 1440 - s.bed.meanMin); // distance from midnight
+  assert.ok(dist < 30, `bed mean was ${s.bed.meanMin}`);
+});
+
+test("weekDelta compares the two 7-night windows", () => {
+  const log = [
+    // this week (07-08..07-14): two nights of 8h
+    { date: "2026-07-14", bedTime: "23:00", wakeTime: "07:00", quality: 3 },
+    { date: "2026-07-12", bedTime: "23:00", wakeTime: "07:00", quality: 3 },
+    // previous week (07-01..07-07): two nights of 7h
+    { date: "2026-07-06", bedTime: "23:00", wakeTime: "06:00", quality: 3 },
+    { date: "2026-07-03", bedTime: "23:00", wakeTime: "06:00", quality: 3 },
+  ];
+  const d = weekDelta(log, TODAY);
+  assert.equal(d.thisAvg, 480);
+  assert.equal(d.prevAvg, 420);
+  assert.equal(d.deltaMin, 60);
+});
+
+test("weekDelta needs 2+ nights per window", () => {
+  const d = weekDelta(
+    [{ date: "2026-07-14", bedTime: "23:00", wakeTime: "07:00", quality: 3 }],
+    TODAY
+  );
+  assert.equal(d.thisAvg, null);
+  assert.equal(d.deltaMin, null);
+});
+
+test("minutesOfDay parses and rejects", () => {
+  assert.equal(minutesOfDay("23:45"), 1425);
+  assert.equal(minutesOfDay("bad"), null);
 });
 
 test("copy never judges a short night", () => {

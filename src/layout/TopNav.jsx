@@ -229,6 +229,7 @@ function AvatarMenu({
   onOpenDay,
   onOpenPomodoro,
   onOpenJournal,
+  onOpenSleep,
   onOpenAlarms,
   onOpenBadges,
   onClearData,
@@ -323,6 +324,18 @@ function AvatarMenu({
               }}
             >
               <Icon.Book /> Journal
+            </button>
+
+            {/* Sleep is a top tab on desktop; on the phone (where the diary is
+               most at home) it lives here since the bottom bar is full. */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenSleep?.();
+                close();
+              }}
+            >
+              <Icon.Moon /> Sleep
             </button>
 
             {/* Alarms lives in Settings; this is the discoverable front door on
@@ -473,6 +486,7 @@ const TOOLS = [
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
   { id: "notes", label: "Notes", icon: <Icon.Note /> },
   { id: "journal", label: "Journal", icon: <Icon.Book /> },
+  { id: "sleep", label: "Sleep", icon: <Icon.Moon /> },
   { id: "workout", label: "Workout", icon: <Icon.Dumbbell /> },
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
@@ -767,6 +781,7 @@ export default function TopNav({
             onOpenDay={() => setTab("day")}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenJournal={() => setTab("journal")}
+            onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}
             onOpenBadges={onOpenBadges}
             onClearData={onClearData}

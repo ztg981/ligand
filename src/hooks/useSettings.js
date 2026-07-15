@@ -31,6 +31,7 @@ export const SETTINGS_DEFAULTS = {
     morningCheckIn: true, // the calm "how did you sleep?" front door
     bedtimeReminder: false, // a soft wind-down nudge before target lights-out
     bedtime: "23:00",
+    wakeTarget: "07:00", // draws the target window on the Sleep tab pattern chart
   },
   habits: {
     showStreaks: true,

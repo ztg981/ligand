@@ -1,0 +1,129 @@
+/* Sleep tab — self-contained styles (imported by Sleep.jsx, deliberately not
+   in index.css so this file has no shared-edit surface). All class names are
+   prefixed sltab- to stay out of everyone's way. */
+
+.sltab-hero {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.sltab-hero-main { display: flex; flex-direction: column; gap: 2px; }
+.sltab-hero-dur {
+  font-family: var(--font-mono);
+  font-size: 42px; font-weight: 500; letter-spacing: -0.03em;
+  color: var(--ink); line-height: 1;
+}
+.sltab-hero-window { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.sltab-hero-quality {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 650; color: var(--accent-ink);
+  background: var(--accent-soft); border-radius: 999px; padding: 4px 10px;
+}
+.sltab-hero-note { font-size: 12px; color: var(--ink-3); font-style: italic; margin-top: 4px; }
+.sltab-hero-empty { font-size: 13px; color: var(--ink-3); line-height: 1.55; }
+
+/* ── Pattern chart: nights as vertical windows on a shared time axis ────── */
+.sltab-pattern {
+  display: flex; gap: 10px; margin-top: 6px;
+}
+.sltab-axis {
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-size: 9.5px; color: var(--ink-4); font-family: var(--font-mono);
+  text-align: right; flex: none; padding: 0 2px;
+}
+.sltab-cols {
+  position: relative; flex: 1; display: flex; gap: 4px;
+  height: 210px;
+  border-left: 1px solid var(--line);
+}
+.sltab-gridline {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px solid color-mix(in oklab, var(--line) 55%, transparent);
+  pointer-events: none;
+}
+.sltab-target-band {
+  position: absolute; left: 0; right: 0;
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+  border-top: 1.5px dashed color-mix(in oklab, var(--accent) 45%, transparent);
+  border-bottom: 1.5px dashed color-mix(in oklab, var(--accent) 45%, transparent);
+  pointer-events: none;
+}
+.sltab-col { position: relative; flex: 1; min-width: 0; }
+.sltab-night-bar {
+  position: absolute; left: 15%; right: 15%;
+  border-radius: 999px;
+  background: var(--accent);
+  min-height: 6px;
+  transition: top 0.35s var(--ease), height 0.35s var(--ease);
+}
+.sltab-night-bar.q1 { opacity: 0.35; }
+.sltab-night-bar.q2 { opacity: 0.5; }
+.sltab-night-bar.q3 { opacity: 0.68; }
+.sltab-night-bar.q4 { opacity: 0.85; }
+.sltab-night-bar.q5 { opacity: 1; }
+.sltab-night-bar.today { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sltab-col-lbl {
+  position: absolute; bottom: -18px; left: 0; right: 0;
+  text-align: center; font-size: 9.5px; color: var(--ink-4); font-weight: 600;
+}
+.sltab-col-lbl.today { color: var(--accent-ink); }
+.sltab-pattern-foot {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-top: 26px; font-size: 10px; color: var(--ink-4);
+  font-family: var(--font-mono);
+}
+
+/* ── Stat tiles ─────────────────────────────────────────────────────────── */
+.sltab-stats {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+}
+@media (min-width: 560px) {
+  .sltab-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.sltab-stat {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.sltab-stat-num {
+  font-family: var(--font-mono); font-size: 17px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.01em;
+}
+.sltab-stat-lbl { font-size: 10.5px; color: var(--ink-4); font-weight: 600; }
+.sltab-trendline { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin: 10px 0 0; }
+.sltab-wakeline { font-size: 11.5px; color: var(--ink-4); line-height: 1.5; margin: 6px 0 0; }
+
+/* ── History list with inline editor ────────────────────────────────────── */
+.sltab-history { display: flex; flex-direction: column; }
+.sltab-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 2px; border-top: 1px solid var(--line);
+}
+.sltab-row:first-child { border-top: none; }
+.sltab-row-date { flex: none; width: 74px; font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
+.sltab-row-window { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink); }
+.sltab-row-dur { flex: none; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); }
+.sltab-row-q { flex: none; display: flex; gap: 2px; }
+.sltab-row-qdot { width: 5px; height: 5px; border-radius: 999px; background: var(--accent); }
+.sltab-row-note { color: var(--ink-4); flex: none; display: inline-flex; }
+.sltab-editor {
+  border-top: 1px dashed var(--line);
+  padding: 12px 2px; display: flex; flex-direction: column; gap: 10px;
+}
+.sltab-editor-times { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sltab-editor-times .input { width: 110px; }
+.sltab-editor-q { display: flex; gap: 5px; flex-wrap: wrap; }
+.sltab-editor-qbtn {
+  font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 10px;
+  background: var(--panel-2); border: 1.5px solid var(--line);
+  color: var(--ink-3); cursor: pointer;
+}
+.sltab-editor-qbtn.on {
+  border-color: var(--accent); color: var(--ink);
+  background: color-mix(in oklab, var(--accent) 9%, var(--panel-2));
+}
+.sltab-empty-hint { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
+
+/* ── Schedule card ──────────────────────────────────────────────────────── */
+.sltab-window-line {
+  font-size: 12.5px; color: var(--ink-2); margin: 2px 0 10px; line-height: 1.5;
+}
+.sltab-window-line strong { font-family: var(--font-mono); font-weight: 600; }

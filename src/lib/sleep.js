@@ -116,11 +116,13 @@ function circularStats(minuteList) {
 }
 
 /** Stats over the last `days` nights: logged count, average duration,
- *  average quality, wake-time consistency. Null fields when too little data. */
+ *  average quality, bed/wake circular means + consistency. Null fields when
+ *  too little data. */
 export function sleepStats(log = [], days = 14, todayStr = todayKey()) {
   const nights = buildNights(log, days, todayStr).filter((n) => n.entry);
   const count = nights.length;
-  if (count === 0) return { count: 0, avgMin: null, avgQuality: null, wake: null };
+  if (count === 0)
+    return { count: 0, avgMin: null, avgQuality: null, wake: null, bed: null };
 
   const avgMin = Math.round(nights.reduce((s, n) => s + n.min, 0) / count);
   const avgQuality =
@@ -131,7 +133,45 @@ export function sleepStats(log = [], days = 14, todayStr = todayKey()) {
     .filter((m) => m != null);
   const wake = wakeMinutes.length >= 3 ? circularStats(wakeMinutes) : null;
 
-  return { count, avgMin, avgQuality, wake };
+  const bedMinutes = nights
+    .map((n) => toMinutes(n.entry.bedTime))
+    .filter((m) => m != null);
+  const bed = bedMinutes.length >= 3 ? circularStats(bedMinutes) : null;
+
+  return { count, avgMin, avgQuality, wake, bed };
+}
+
+/** Minutes-of-day → a friendly clock label ("11:23 PM"). */
+export function clockLabel(min) {
+  if (min == null) return "—";
+  const m = ((Math.round(min) % 1440) + 1440) % 1440;
+  const h24 = Math.floor(m / 60);
+  const mm = String(m % 60).padStart(2, "0");
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${mm} ${h24 < 12 ? "AM" : "PM"}`;
+}
+
+/** Average duration this week (last 7 nights) vs the 7 before.
+ *  → { thisAvg, prevAvg, deltaMin } — nulls unless each window has ≥ 2
+ *  logged nights (a one-night "trend" is noise, not information). */
+export function weekDelta(log = [], todayStr = todayKey()) {
+  const nights = buildNights(log, 14, todayStr);
+  const prev = nights.slice(0, 7).filter((n) => n.entry);
+  const cur = nights.slice(7).filter((n) => n.entry);
+  const avg = (arr) =>
+    arr.length >= 2 ? Math.round(arr.reduce((s, n) => s + n.min, 0) / arr.length) : null;
+  const thisAvg = avg(cur);
+  const prevAvg = avg(prev);
+  return {
+    thisAvg,
+    prevAvg,
+    deltaMin: thisAvg != null && prevAvg != null ? thisAvg - prevAvg : null,
+  };
+}
+
+/** Parse "HH:MM" to minutes-of-day (exported for the pattern chart). */
+export function minutesOfDay(hhmm) {
+  return toMinutes(hhmm);
 }
 
 /** Kind wording for wake-time consistency (the CBT-I anchor). */
