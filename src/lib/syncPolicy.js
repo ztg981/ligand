@@ -1,10 +1,8 @@
-// Account content and desktop preferences sync between the PC website and the
-// Electron app. Phone/iPad preferences and truly machine-local UI state stay
-// on their device.
+// Account content, desktop preferences, and the separate phone preference
+// records sync through the account. Each device family reads only its own
+// record; truly machine-local UI state remains excluded.
 export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.guestMode",
-  "ligand.mobileSettings",
-  "ligand.mobileTweaks",
   "ligand.mobileTheme",
   "ligand.customWallpaper",
   "ligand.customWallpapers",

@@ -27,3 +27,15 @@ export function usesMobilePreferenceScope(
 
   return Math.min(...sides) <= 600;
 }
+
+export function isStandaloneWebApp(
+  nav = globalThis.navigator,
+  media = globalThis.matchMedia
+) {
+  if (nav?.standalone === true) return true;
+  try {
+    return Boolean(media?.("(display-mode: standalone)")?.matches);
+  } catch {
+    return false;
+  }
+}

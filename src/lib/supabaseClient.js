@@ -12,6 +12,7 @@
    guest / localStorage-only mode — no crashes.
    ============================================================ */
 import { createClient } from "@supabase/supabase-js";
+import { createCookieHandoffStorage } from "./cookieBridge.js";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -32,6 +33,10 @@ export const supabase = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // Safari copies first-party cookies, but not localStorage, into a newly
+        // installed Home Screen web app. Mirror Supabase's normal localStorage
+        // session through a cookie so future installs inherit the login once.
+        storage: createCookieHandoffStorage(),
       },
     })
   : null;

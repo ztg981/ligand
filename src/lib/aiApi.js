@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient.js";
 import { reflectionPrompt } from "./ai.js"; // fallback
 import { recoveryFallback } from "./recovery.js";
 import { sanitizeImportedExercises } from "./workoutParser.js";
+import { usesMobilePreferenceScope } from "./deviceScope.js";
 
 // Cache duration: 24 hours
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -20,7 +21,10 @@ function getCacheKey(goalId, action) {
 // match SETTINGS_DEFAULTS.ai (goal/weekly ON; journal text & recovery OFF).
 function getPrivacySettings() {
   try {
-    const raw = window.localStorage.getItem("ligand.settings");
+    const key = usesMobilePreferenceScope()
+      ? "ligand.mobileSettings"
+      : "ligand.settings";
+    const raw = window.localStorage.getItem(key);
     const ai = (raw ? JSON.parse(raw) : {})?.ai || {};
     return {
       aiGoalInsights: ai.aiGoalInsights !== false,

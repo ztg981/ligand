@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { usesMobilePreferenceScope } from "../src/lib/deviceScope.js";
+import {
+  isStandaloneWebApp,
+  usesMobilePreferenceScope,
+} from "../src/lib/deviceScope.js";
 
 test("iPhone and Android use mobile preferences", () => {
   assert.equal(usesMobilePreferenceScope({ userAgent: "Mozilla/5.0 (iPhone)" }), true);
@@ -40,6 +43,18 @@ test("Windows and actual Macs keep desktop preferences", () => {
   );
   assert.equal(
     usesMobilePreferenceScope({ userAgent: "Mozilla/5.0 (Macintosh)", platform: "MacIntel", maxTouchPoints: 0 }),
+    false
+  );
+});
+
+test("standalone mode is recognized through either iOS or display-mode", () => {
+  assert.equal(isStandaloneWebApp({ standalone: true }, undefined), true);
+  assert.equal(
+    isStandaloneWebApp({}, () => ({ matches: true })),
+    true
+  );
+  assert.equal(
+    isStandaloneWebApp({}, () => ({ matches: false })),
     false
   );
 });

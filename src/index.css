@@ -3408,6 +3408,56 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .sync-pill.saved .sync-dot { background: oklch(0.65 0.14 150); }
 @keyframes syncPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
 
+.standalone-sync-banner {
+  position: relative;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line));
+  border-radius: var(--r-lg);
+  background: color-mix(in oklab, var(--panel) 86%, var(--accent-soft));
+  box-shadow: var(--shadow-card);
+  color: var(--ink-2);
+}
+.standalone-sync-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.standalone-sync-icon svg { width: 16px; height: 16px; }
+.standalone-sync-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.standalone-sync-copy strong { color: var(--ink); font-weight: 650; }
+.standalone-sync-banner .btn { flex: none; }
+@media (max-width: 640px) {
+  .standalone-sync-banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .standalone-sync-copy { flex-basis: calc(100% - 40px); }
+  .standalone-sync-banner .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Offline banner — appears at the bottom when navigator.onLine is false.
    Warm amber tone: informative but not alarming. */
 .offline-banner {

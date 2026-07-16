@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  readCookieBridge,
+  writeCookieBridge,
+} from "../lib/cookieBridge.js";
+import { COOKIE_HANDOFF_KEYS } from "../lib/preferenceRecords.js";
 
 /* ============================================================
    useLocalStorage — the ONE hook all persisted state flows through.
@@ -26,7 +31,11 @@ export function useLocalStorage(key, initialValue) {
   const readValue = useCallback(() => {
     if (typeof window === "undefined") return resolveInitial();
     try {
-      const raw = window.localStorage.getItem(key);
+      let raw = window.localStorage.getItem(key);
+      if (raw === null && COOKIE_HANDOFF_KEYS.has(key)) {
+        raw = readCookieBridge(key);
+        if (raw !== null) window.localStorage.setItem(key, raw);
+      }
       return raw === null ? resolveInitial() : JSON.parse(raw);
     } catch (err) {
       console.warn(`useLocalStorage: could not read "${key}"`, err);
@@ -42,7 +51,11 @@ export function useLocalStorage(key, initialValue) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
+      const serialized = JSON.stringify(value);
+      window.localStorage.setItem(key, serialized);
+      if (COOKIE_HANDOFF_KEYS.has(key)) {
+        writeCookieBridge(key, serialized);
+      }
       window.dispatchEvent(
         new CustomEvent("ligand:localwrite", { detail: { key } })
       );

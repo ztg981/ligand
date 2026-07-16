@@ -9,12 +9,13 @@ test("account content remains synced", () => {
   assert.equal(isSyncedKey("ligand.badges"), true);
   assert.equal(isSyncedKey("ligand.settings"), true);
   assert.equal(isSyncedKey("ligand.tweaks"), true);
+  assert.equal(isSyncedKey("ligand.profile"), true);
+  assert.equal(isSyncedKey("ligand.mobileSettings"), true);
+  assert.equal(isSyncedKey("ligand.mobileTweaks"), true);
 });
 
-test("mobile appearance and machine-local settings never sync", () => {
+test("only legacy mobile state and machine-local settings stay local", () => {
   const localKeys = [
-    "ligand.mobileSettings",
-    "ligand.mobileTweaks",
     "ligand.mobileTheme",
     "ligand.customWallpapers",
     "ligand.pomodoro",

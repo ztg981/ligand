@@ -52,16 +52,37 @@ import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import QuickAdd from "./components/QuickAdd.jsx";
 import AlarmOverlay from "./components/AlarmOverlay.jsx";
+import StandaloneSyncBanner from "./components/StandaloneSyncBanner.jsx";
 import { useAlarms } from "./hooks/useAlarms.js";
 import { useIsMobile } from "./hooks/useIsMobile.js";
 import { useElectron } from "./hooks/useElectron.js";
-import { usesMobilePreferenceScope } from "./lib/deviceScope.js";
+import {
+  isStandaloneWebApp,
+  usesMobilePreferenceScope,
+} from "./lib/deviceScope.js";
 import { StandaloneWindowChrome } from "./components/WindowControls.jsx";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
   // in background, activates on next navigation). No user prompt needed.
   useRegisterSW({ immediate: true });
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return undefined;
+    const checkForPwaUpdate = () => {
+      if (document.visibilityState === "hidden") return;
+      navigator.serviceWorker
+        .getRegistration()
+        .then((registration) => registration?.update())
+        .catch(() => undefined);
+    };
+    checkForPwaUpdate();
+    window.addEventListener("focus", checkForPwaUpdate);
+    document.addEventListener("visibilitychange", checkForPwaUpdate);
+    return () => {
+      window.removeEventListener("focus", checkForPwaUpdate);
+      document.removeEventListener("visibilitychange", checkForPwaUpdate);
+    };
+  }, []);
   // --- auth (Supabase) ---------------------------------------------------
   // Guest mode is the default and keeps the original local-only behavior.
   // The auth screen only appears when there's no session AND the user hasn't
@@ -113,6 +134,7 @@ export default function App() {
   // the desktop preference set; phones keep a separate mobile set. A narrow PC
   // window therefore never switches to phone preferences.
   const [usesMobilePreferences] = useState(usesMobilePreferenceScope);
+  const [standaloneWebApp] = useState(isStandaloneWebApp);
   const preferenceScope = usesMobilePreferences ? "mobile" : "desktop";
   const { tweaks, set } = useTweaks(preferenceScope);
   const store = useStore();
@@ -136,6 +158,34 @@ export default function App() {
   const [showTweaks, setShowTweaks] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const phonePreferenceSeedRef = useRef(null);
+
+  // After cloud hydration, give established non-default Safari preferences one
+  // chance to seed the new phone-only account record. Fresh PWA defaults are
+  // filtered out by collectLocalBlob, so they cannot win this migration.
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (
+      !userId ||
+      !usesMobilePreferences ||
+      syncHydrating ||
+      syncStatus !== "synced" ||
+      phonePreferenceSeedRef.current === userId
+    ) {
+      return;
+    }
+    phonePreferenceSeedRef.current = userId;
+    window.dispatchEvent(
+      new CustomEvent("ligand:localwrite", {
+        detail: { key: "ligand.mobilePreferencesMigration" },
+      })
+    );
+  }, [
+    session?.user?.id,
+    syncHydrating,
+    syncStatus,
+    usesMobilePreferences,
+  ]);
 
   useLayoutEffect(() => {
     setAiGuestMode(isGuest);
@@ -157,12 +207,16 @@ export default function App() {
       ai.includeJournalText === true ||
       ai.aiRecoveryInsights === true
     ) {
-      setSection("ai", {
-        aiGoalInsights: false,
-        aiWeeklyReview: false,
-        includeJournalText: false,
-        aiRecoveryInsights: false,
-      });
+      setSection(
+        "ai",
+        {
+          aiGoalInsights: false,
+          aiWeeklyReview: false,
+          includeJournalText: false,
+          aiRecoveryInsights: false,
+        },
+        { sync: false }
+      );
     }
   }, [
     isGuest,
@@ -182,7 +236,7 @@ export default function App() {
     } catch {
       // If localStorage is unavailable, still apply the in-memory preference.
     }
-    setSection("habits", { weekStartsMonday: true });
+    setSection("habits", { weekStartsMonday: true }, { sync: false });
   }, [isGuest, settings.habits?.weekStartsMonday, setSection]);
 
   // --- Hyperfocus mode: a dramatic dark-red "locked in" theme. State persists
@@ -305,6 +359,12 @@ export default function App() {
     isGuest && (settings.profile?.name || "").trim() === "Maya"
       ? "Guest"
       : settings.profile?.name || (isGuest ? "Guest" : "You");
+  const showStandaloneSyncWarning =
+    standaloneWebApp &&
+    usesMobilePreferences &&
+    isGuest &&
+    guestMode &&
+    hasMeaningfulLocalData();
 
   // Reorder active goals based on the stored goalOrder array.
   // Any goals not listed in goalOrder (e.g. newly created ones) fall back to the end
@@ -1541,6 +1601,10 @@ export default function App() {
           onRequestAuth={() => setAuthRequested(true)}
           syncStatus={syncStatus}
         />
+
+        {showStandaloneSyncWarning && (
+          <StandaloneSyncBanner onSignIn={() => setAuthRequested(true)} />
+        )}
 
         <div className="body">
           {/* key={tab} remounts on tab switch so the fade/slide-in plays. */}

@@ -1,113 +1,113 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
+import {
+  ACCOUNT_PROFILE_KEY,
+  DESKTOP_SETTINGS_KEY,
+  MOBILE_SETTINGS_KEY,
+  SETTINGS_DEFAULTS,
+  mobileSettingsDefaults,
+  normalizeMobileSettingsRecord,
+  normalizeSettingsRecord,
+  readLegacyProfile,
+} from "../lib/preferenceRecords.js";
 
-/* useSettings — app preferences that aren't visual Tweaks or Pomodoro timings.
-   Notifications, habits, the assistant, wallpaper/sound, and general behavior.
-   Persisted under its own key so it's easy to reason about and reset. */
+/*
+ * General app preferences. Desktop/iPad settings and phone settings use
+ * separate records, while the display name lives in one account-wide profile.
+ */
 
-const DESKTOP_STORAGE_KEY = "ligand.settings";
-const MOBILE_STORAGE_KEY = "ligand.mobileSettings";
-
-export const SETTINGS_DEFAULTS = {
-  profile: {
-    name: "Guest", // shown in the dashboard greeting
-  },
-  notifications: {
-    enabled: false, // master switch (placeholder for now)
-    pomodoroChime: true, // soft sound when a focus block ends
-    pomodoroAlarm: false, // ring an insistent alarm until dismissed (kitchen-timer style)
-    dailyReminder: false, // a gentle nudge once a day
-    reminderTime: "09:00",
-    // Implementation intention (Gollwitzer): "After I ___, I'll open Ligand."
-    // Tying the check-in to an existing routine roughly doubles follow-through
-    // vs. a bare reminder; woven into the daily-reminder wording when set.
-    anchor: "",
-  },
-  desktop: {
-    closeToTray: true, // hide to tray on close so reminders/alarms keep working
-    launchAtLogin: false, // start (hidden) with the computer
-  },
-  sleep: {
-    morningCheckIn: true, // the calm "how did you sleep?" front door
-    bedtimeReminder: false, // a soft wind-down nudge before target lights-out
-    bedtime: "23:00",
-    wakeTarget: "07:00", // draws the target window on the Sleep tab pattern chart
-  },
-  habits: {
-    showStreaks: true,
-    weekStartsMonday: true,
-  },
-  assistant: {
-    encouragement: true, // the warm dashboard lines
-    tone: "warm", // "warm" | "plain" | "cheerful"
-  },
-  ai: {
-    // Per-feature control over what is sent to the Gemini API.
-    aiGoalInsights: true, // goal summary / "At a glance" / overdue advice / prompts
-    aiWeeklyReview: true, // the "Your week" card
-    includeJournalText: false, // off: only aggregate stats leave the device
-    aiRecoveryInsights: false, // recovery data is private unless explicitly on
-  },
-  wallpaper: {
-    id: "none",
-    sound: "none",
-    volume: 40,
-  },
-  behavior: {
-    reduceMotion: false,
-    confirmBeforeDelete: true,
-    showDesktopScrollbars: false,
-  },
-  uiSounds: {
-    enabled: true, // subtle click/pop/ding feedback on interactions
-    volume: 75,    // 0–100%; scales the whole UI sound palette
-  },
-  bgMusic: {
-    enabled: false, // off by default; user must opt in — no autoplay
-    track: "rain",  // "rain" | "stream" | "waves"
-    volume: 30,     // 0–100 percentage
-  },
-  hyperfocus: {
-    theme: "crimson", // crimson | monster | cyber | violet | ember | ice
-  },
-};
-
-// Deep-ish merge so newly added nested keys get defaults.
-function withDefaults(stored) {
-  const s = stored || {};
-  const out = { ...SETTINGS_DEFAULTS };
-  for (const k of Object.keys(SETTINGS_DEFAULTS)) {
-    out[k] = { ...SETTINGS_DEFAULTS[k], ...(s[k] || {}) };
-  }
-  return out;
-}
+export { SETTINGS_DEFAULTS };
 
 export function useSettings(scope = "desktop") {
   const isMobileScope = scope === "mobile";
   const [stored, setStored] = useLocalStorage(
-    isMobileScope ? MOBILE_STORAGE_KEY : DESKTOP_STORAGE_KEY,
-    SETTINGS_DEFAULTS
+    isMobileScope ? MOBILE_SETTINGS_KEY : DESKTOP_SETTINGS_KEY,
+    isMobileScope ? mobileSettingsDefaults : SETTINGS_DEFAULTS
   );
-  const settings = withDefaults(stored);
+  const [profile, setProfile] = useLocalStorage(
+    ACCOUNT_PROFILE_KEY,
+    readLegacyProfile
+  );
+
+  const settings = isMobileScope
+    ? {
+        ...normalizeSettingsRecord(normalizeMobileSettingsRecord(stored)),
+        profile: { ...SETTINGS_DEFAULTS.profile, ...(profile || {}) },
+      }
+    : {
+        ...normalizeSettingsRecord(stored),
+        profile: { ...SETTINGS_DEFAULTS.profile, ...(profile || {}) },
+      };
+
+  // Older builds buried the display name inside desktop/mobile settings.
+  // Re-check after cloud hydration so an isolated Home Screen container can
+  // adopt the account name from the existing synced desktop settings record.
+  useEffect(() => {
+    const adoptLegacyProfile = () => {
+      const legacy = readLegacyProfile();
+      setProfile((current) => {
+        const currentName = String(current?.name || "").trim();
+        if (currentName && currentName !== "Guest" && currentName !== "Maya") {
+          return current;
+        }
+        return legacy.name === currentName ? current : legacy;
+      });
+    };
+    window.addEventListener("ligand:hydrate", adoptLegacyProfile);
+    return () =>
+      window.removeEventListener("ligand:hydrate", adoptLegacyProfile);
+  }, [setProfile]);
 
   // Reflect behavior preferences at the document root so CSS can honor them.
   useEffect(() => {
     document.documentElement.dataset.reduceMotion = settings.behavior.reduceMotion
       ? "true"
       : "false";
-    document.documentElement.dataset.desktopScrollbars = settings.behavior.showDesktopScrollbars
-      ? "show"
-      : "hide";
-  }, [settings.behavior.reduceMotion, settings.behavior.showDesktopScrollbars]);
+    document.documentElement.dataset.desktopScrollbars =
+      settings.behavior.showDesktopScrollbars ? "show" : "hide";
+  }, [
+    settings.behavior.reduceMotion,
+    settings.behavior.showDesktopScrollbars,
+  ]);
 
-  // Patch a whole section at once, e.g. setSection("notifications", { enabled: true }).
-  const setSection = (section, patch) =>
-    setStored((prev) => ({
-      ...prev,
-      [section]: { ...withDefaults(prev)[section], ...patch },
-    }));
+  const setSection = useCallback(
+    (section, patch, options = {}) => {
+      if (section === "profile") {
+        setProfile((current) => ({
+          ...SETTINGS_DEFAULTS.profile,
+          ...(current || {}),
+          ...patch,
+        }));
+        return;
+      }
 
-  const reset = () => setStored(SETTINGS_DEFAULTS);
+      setStored((previous) => {
+        const normalized = isMobileScope
+          ? normalizeMobileSettingsRecord(previous)
+          : normalizeSettingsRecord(previous);
+        return {
+          ...normalized,
+          [section]: { ...normalized[section], ...patch },
+          ...(isMobileScope && options.sync !== false
+            ? { _updatedAt: new Date().toISOString() }
+            : {}),
+        };
+      });
+    },
+    [isMobileScope, setProfile, setStored]
+  );
+
+  const reset = useCallback(() => {
+    if (isMobileScope) {
+      setStored({
+        ...mobileSettingsDefaults(),
+        _updatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+    setStored(SETTINGS_DEFAULTS);
+    setProfile(SETTINGS_DEFAULTS.profile);
+  }, [isMobileScope, setProfile, setStored]);
 
   return { settings, setSection, reset };
 }

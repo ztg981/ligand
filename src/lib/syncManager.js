@@ -14,6 +14,10 @@
 import { supabase } from "./supabaseClient.js";
 import { SEED_GOAL_IDS } from "./model.js";
 import { isSyncedKey } from "./syncPolicy.js";
+import {
+  phonePreferenceSyncValue,
+  shouldSyncPhonePreference,
+} from "./preferenceRecords.js";
 
 const SEED_GOAL_ID_SET = new Set(SEED_GOAL_IDS);
 
@@ -25,7 +29,14 @@ export function collectLocalBlob() {
     const key = window.localStorage.key(i);
     if (!isSyncedKey(key)) continue;
     try {
-      blob[key] = JSON.parse(window.localStorage.getItem(key));
+      const value = phonePreferenceSyncValue(
+        key,
+        JSON.parse(window.localStorage.getItem(key))
+      );
+      // During the one-time phone-preference migration, an untouched fresh
+      // PWA must not overwrite the established Safari appearance with defaults.
+      if (!shouldSyncPhonePreference(key, value)) continue;
+      blob[key] = value;
     } catch {
       /* skip corrupt entries */
     }
