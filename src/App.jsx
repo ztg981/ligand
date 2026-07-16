@@ -32,7 +32,12 @@ import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
-import { wallpaperById } from "./lib/wallpaper.js";
+import {
+  wallpaperById,
+  wallpaperSelectionForMode,
+  wallpaperSettingsForMode,
+  withoutCustomWallpaper,
+} from "./lib/wallpaper.js";
 import { setAiGuestMode } from "./lib/aiApi.js";
 import Home from "./tabs/Home.jsx";
 import Tasks from "./tabs/Tasks.jsx";
@@ -686,9 +691,8 @@ export default function App() {
   // without waiting for the scheduled time or stamping lastFired.
   const [testAlarm, setTestAlarm] = useState(null);
 
-  // --- custom wallpaper gallery (data URLs in their own key to avoid bloating
-  // ligand.settings). Up to 5 photos; the active one is picked by
-  // settings.wallpaper.customId when settings.wallpaper.id === "custom". ---
+  // Custom wallpaper photos live outside ligand.settings so either the Light
+  // or Dark preset can point at one without duplicating the image data.
   const [customWallpapers, setCustomWallpapers] = useLocalStorage("ligand.customWallpapers", []);
 
   // One-time migration from the old single-wallpaper key into the gallery.
@@ -709,14 +713,61 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The active custom photo: the one whose id matches customId, else the first
-  // (covers the migrated legacy wallpaper, which has no stored customId).
-  const activeCustom =
-    settings.wallpaper.id === "custom"
-      ? customWallpapers.find((w) => w.id === settings.wallpaper.customId) ||
-        customWallpapers[0] ||
-        null
-      : null;
+  const selectWallpaperForMode = (mode, selection) => {
+    setSection(
+      "wallpaper",
+      wallpaperSettingsForMode(settings.wallpaper, mode, selection)
+    );
+  };
+
+  const addCustomWallpaper = (file, mode) => {
+    if (!file) return;
+    if (customWallpapers.length >= 5) {
+      window.alert("You can keep up to 5 custom wallpaper photos. Remove one first.");
+      return;
+    }
+    if (file.size > 1.5 * 1024 * 1024) {
+      window.alert("For reliable syncing, choose an image under 1.5 MB.");
+      return;
+    }
+    const totalBytes = customWallpapers.reduce(
+      (sum, item) => sum + new Blob([item.url || ""]).size,
+      0
+    );
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result;
+      if (typeof url !== "string") return;
+      if (totalBytes + new Blob([url]).size > 4 * 1024 * 1024) {
+        window.alert("Your wallpaper photo library is limited to about 4 MB.");
+        return;
+      }
+      const id =
+        "cw-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      setCustomWallpapers((previous) => [...(previous || []), { id, url }]);
+      selectWallpaperForMode(mode, { id: "custom", customId: id });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeCustomWallpaper = (id) => {
+    setCustomWallpapers((previous) =>
+      (previous || []).filter((item) => item.id !== id)
+    );
+    setSection("wallpaper", withoutCustomWallpaper(settings.wallpaper, id));
+  };
+
+  const resetWallpaperPresets = () => {
+    const withoutLight = wallpaperSettingsForMode(
+      settings.wallpaper,
+      "light",
+      { id: "none" }
+    );
+    setSection(
+      "wallpaper",
+      wallpaperSettingsForMode(withoutLight, "dark", { id: "none" })
+    );
+  };
 
   useEffect(() => {
     const today = todayKey();
@@ -1006,6 +1057,18 @@ export default function App() {
   // The actual light/dark to apply: "auto" follows the OS, otherwise the
   // explicit choice. A wallpaper's tone still wins over this (handled below).
   const resolvedTheme = themeChoice === "auto" ? systemTheme : themeChoice;
+  const activeWallpaperSelection = wallpaperSelectionForMode(
+    settings.wallpaper,
+    resolvedTheme
+  );
+  const activeCustom =
+    activeWallpaperSelection.id === "custom"
+      ? customWallpapers.find(
+          (item) => item.id === activeWallpaperSelection.customId
+        ) ||
+        (!activeWallpaperSelection.customId ? customWallpapers[0] : null) ||
+        null
+      : null;
 
   // Apply the chosen wallpaper. The gradient (or photo for custom) is painted
   // behind the ambient blobs via --app-bg; the wallpaper's tone drives the
@@ -1013,7 +1076,7 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     let effectiveMode = resolvedTheme;
-    if (settings.wallpaper.id === "custom" && activeCustom) {
+    if (activeWallpaperSelection.id === "custom" && activeCustom) {
       // Custom photo: use the data URL directly, cover the viewport.
       // Theme follows the user's choice (we can't know the photo's tone).
       root.dataset.theme = resolvedTheme;
@@ -1023,7 +1086,7 @@ export default function App() {
     } else {
       document.body.style.backgroundSize = "";
       document.body.style.backgroundPosition = "";
-      const wp = wallpaperById(settings.wallpaper.id);
+      const wp = wallpaperById(activeWallpaperSelection.id);
       const hasWallpaper = wp.id !== "none";
       // Wallpaper tone wins; otherwise the resolved (auto-aware) theme.
       effectiveMode = hasWallpaper ? wp.tone : resolvedTheme;
@@ -1056,7 +1119,7 @@ export default function App() {
     document
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute("content", browserColor);
-  }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom, tweaks, hyperfocus]);
+  }, [activeWallpaperSelection.id, activeWallpaperSelection.customId, resolvedTheme, activeCustom, tweaks, hyperfocus]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {
@@ -1395,9 +1458,8 @@ export default function App() {
           />
         );
       case "settings":
-        // Phones get a simplified, mobile-focused settings list; the full
-        // desktop Settings (Pomodoro, wallpaper, AI config, density, etc.)
-        // stays desktop-only where it applies.
+        // Phones get a focused settings list with their own appearance presets;
+        // desktop-only window and focus-engine controls stay on desktop.
         if (isMobile) {
           return (
             <MobileSettings
@@ -1407,6 +1469,10 @@ export default function App() {
               setTweak={set}
               settings={settings}
               setSection={setSection}
+              customWallpapers={customWallpapers}
+              onWallpaperChange={selectWallpaperForMode}
+              onUploadCustomWallpaper={addCustomWallpaper}
+              onRemoveCustomWallpaper={removeCustomWallpaper}
               requestNotifyPermission={notif.requestPermission}
               notifyPermission={notif.permission}
               accountEmail={user?.email ?? null}
@@ -1439,7 +1505,10 @@ export default function App() {
             requestNotifyPermission={notif.requestPermission}
             notifyPermission={notif.permission}
             customWallpapers={customWallpapers}
-            setCustomWallpapers={setCustomWallpapers}
+            onWallpaperChange={selectWallpaperForMode}
+            onUploadCustomWallpaper={addCustomWallpaper}
+            onRemoveCustomWallpaper={removeCustomWallpaper}
+            onResetWallpaperPresets={resetWallpaperPresets}
             hasRecoveryGoal={activeGoals.some((g) => g.type === "recovery")}
             isGuest={isGuest}
             alarms={store.alarms}
@@ -1681,7 +1750,7 @@ export default function App() {
           tweaks={tweaks}
           set={set}
           onClose={() => setShowTweaks(false)}
-          wallpaperActive={settings.wallpaper.id !== "none"}
+          wallpaperActive={activeWallpaperSelection.id !== "none"}
         />
       )}
 

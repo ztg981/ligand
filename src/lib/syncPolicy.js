@@ -5,7 +5,6 @@ export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.guestMode",
   "ligand.mobileTheme",
   "ligand.customWallpaper",
-  "ligand.customWallpapers",
   "ligand.pomodoro",
   "ligand.blocker",
   "ligand.hyperfocus",

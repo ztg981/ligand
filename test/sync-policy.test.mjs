@@ -17,7 +17,6 @@ test("account content remains synced", () => {
 test("only legacy mobile state and machine-local settings stay local", () => {
   const localKeys = [
     "ligand.mobileTheme",
-    "ligand.customWallpapers",
     "ligand.pomodoro",
     "ligand.blocker",
   ];

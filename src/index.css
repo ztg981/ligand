@@ -217,6 +217,46 @@
     0 18px 40px -20px rgba(0, 0, 0, 0.6);
 }
 
+/* Glass remains luminous on phones, but floating menus need a much denser
+   surface because iOS composites the page text through them more visibly. */
+@media (max-width: 767px) {
+  [data-theme="light"][data-palette="glass"] {
+    --panel: rgba(255, 255, 255, 0.9);
+    --panel-2: rgba(255, 255, 255, 0.78);
+    --ink-3: #626773;
+    --ink-4: #858b98;
+  }
+  [data-palette="glass"] .notif-pop,
+  [data-palette="glass"] .avatar-pop,
+  [data-palette="glass"] .goal-dd-panel {
+    background: rgba(250, 251, 254, 0.98);
+    -webkit-backdrop-filter: blur(24px) saturate(125%);
+    backdrop-filter: blur(24px) saturate(125%);
+  }
+  [data-theme="dark"][data-palette="glassdark"] {
+    --panel: rgba(34, 38, 50, 0.9);
+    --panel-2: rgba(42, 47, 61, 0.8);
+    --ink-3: #a2a8b8;
+    --ink-4: #747c90;
+  }
+  [data-palette="glassdark"] .notif-pop,
+  [data-palette="glassdark"] .avatar-pop,
+  [data-palette="glassdark"] .goal-dd-panel {
+    background: rgba(28, 31, 41, 0.98);
+    -webkit-backdrop-filter: blur(24px) saturate(125%);
+    backdrop-filter: blur(24px) saturate(125%);
+  }
+
+  .notif-bell + .notif-pop {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    right: auto;
+    left: max(10px, env(safe-area-inset-left, 0px));
+    width: min(300px, calc(100vw - 20px));
+    max-width: none;
+  }
+}
+
 /* Emerald Flow — modern gradient green (not woodland; sleek and saturated). */
 [data-theme="dark"][data-palette="emerald"] {
   --nav-rgb: 12, 22, 18;
@@ -6330,10 +6370,25 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .dp-mobile-note { font-size: 12.5px; color: var(--ink-3); margin: 0 0 12px; }
 
 .dp-editor-title { width: 100%; height: 42px; font-size: 14.5px; margin-bottom: 10px; }
-.dp-editor-times { display: flex; gap: 10px; margin-bottom: 10px; }
-.dp-time { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.dp-editor-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.dp-time { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .dp-time span { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-4); }
-.dp-time .input { height: 40px; }
+.dp-time .input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+}
+@media (max-width: 480px) {
+  .dp-editor-times { grid-template-columns: minmax(0, 1fr); }
+  .dp-time .input { font-size: 16px; }
+}
 .dp-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .dp-cat {
   display: inline-flex; align-items: center; gap: 6px;
@@ -6989,6 +7044,81 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .palette-dot {
   width: 14px; height: 14px; border-radius: 999px; flex: none;
   border: 1px solid rgba(128, 128, 128, 0.35);
+}
+
+/* Appearance is expressed as exactly two mode presets. These are unframed
+   bands inside the Settings tool, not another layer of nested cards. */
+.appearance-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 4px 0 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.appearance-preset {
+  min-width: 0;
+  padding: 12px 10px 14px 0;
+}
+.appearance-preset + .appearance-preset {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.appearance-preset-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+.appearance-preset-head > span:last-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.appearance-preset-head strong { font-size: 13px; font-weight: 650; }
+.appearance-preset-head small { font-size: 10.5px; color: var(--ink-4); }
+.appearance-preset-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--panel-3);
+  color: var(--ink-2);
+}
+.appearance-preset-icon svg { width: 14px; height: 14px; }
+.appearance-preset-label {
+  margin: 10px 0 6px;
+  color: var(--ink-4);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+.appearance-palette-row {
+  justify-content: flex-start;
+  max-width: none;
+}
+.appearance-wallpaper-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.appearance-wallpaper-grid .wp-tile { width: 100%; min-width: 0; }
+.appearance-reset-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+.wp-add input { display: none; }
+@media (max-width: 640px) {
+  .appearance-preset-grid { grid-template-columns: minmax(0, 1fr); }
+  .appearance-preset { padding: 12px 0 14px; }
+  .appearance-preset + .appearance-preset {
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+  .appearance-wallpaper-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Brief highlight on a settings card that was jumped to (avatar → Alarms). */

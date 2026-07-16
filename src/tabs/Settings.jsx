@@ -2,38 +2,16 @@ import { useEffect, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS, TWEAK_DEFAULTS, WORDMARK_FONTS } from "../theme/useTweaks.js";
-import { DARK_PALETTES, LIGHT_PALETTES } from "../theme/palettes.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
-import { WALLPAPERS, SOUNDS } from "../lib/wallpaper.js";
+import { SOUNDS } from "../lib/wallpaper.js";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import BlockerPanel from "../components/BlockerPanel.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
+import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
 import pkg from "../../package.json";
-
-/* Built-in one-click appearance presets */
-const BUILT_IN_PRESETS = [
-  {
-    id: "calm",
-    name: "Calm",
-    desc: "Light · low glow · sage",
-    tweaks: { theme: "light", accent: 165, ambient: 25, radius: 16, density: "comfy" },
-  },
-  {
-    id: "focus",
-    name: "Focus",
-    desc: "Dark · minimal glow · blue",
-    tweaks: { theme: "dark", accent: 245, ambient: 15, radius: 8, density: "compact" },
-  },
-  {
-    id: "cozy",
-    name: "Cozy",
-    desc: "Light · warm glow · amber",
-    tweaks: { theme: "light", accent: 70, ambient: 65, radius: 18, density: "comfy" },
-  },
-];
 
 /* Settings - the full preferences screen.
    Mirrors the floating Tweaks (appearance), plus Pomodoro timings,
@@ -85,7 +63,10 @@ export default function Settings({
   requestNotifyPermission,
   notifyPermission = "default",
   customWallpapers = [],
-  setCustomWallpapers,
+  onWallpaperChange,
+  onUploadCustomWallpaper,
+  onRemoveCustomWallpaper,
+  onResetWallpaperPresets,
   hasRecoveryGoal = false,
   isGuest = false,
   alarms = [],
@@ -98,84 +79,6 @@ export default function Settings({
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
   const pomo = { ...POMO_DEFAULTS, ...pomoStored };
   const patchPomo = (patch) => setPomo((p) => ({ ...p, ...patch }));
-
-  // User presets - stored separately so they survive a Settings reset.
-  const [userPresets, setUserPresets] = useLocalStorage("ligand.userPresets", []);
-  const [savingPresetName, setSavingPresetName] = useState("");
-  const [showSavePreset, setShowSavePreset] = useState(false);
-
-  const saveUserPreset = () => {
-    const name = savingPresetName.trim();
-    if (!name) return;
-    const preset = { id: `user-${Date.now()}`, name, tweaks: { ...tweaks } };
-    setUserPresets((prev) => [...prev, preset]);
-    setSavingPresetName("");
-    setShowSavePreset(false);
-  };
-  const deleteUserPreset = (id) =>
-    setUserPresets((prev) => prev.filter((p) => p.id !== id));
-
-  // --- Custom wallpaper gallery -------------------------------------------
-  // Up to 5 photos; capped at ~4 MB combined because this data syncs to the
-  // cloud. Each photo also gets the existing ~1.5 MB per-image soft warning.
-  const MAX_CUSTOM_WALLPAPERS = 5;
-  const TOTAL_WALLPAPER_CAP = 4 * 1024 * 1024;
-  const byteSize = (str) => {
-    try {
-      return new Blob([str]).size;
-    } catch {
-      return (str || "").length;
-    }
-  };
-  const wallpaperTotalBytes = customWallpapers.reduce(
-    (sum, w) => sum + byteSize(w.url),
-    0
-  );
-
-  const addCustomWallpaper = (file) => {
-    if (!file) return;
-    if (customWallpapers.length >= MAX_CUSTOM_WALLPAPERS) {
-      alert(
-        `You can keep up to ${MAX_CUSTOM_WALLPAPERS} custom wallpapers. ` +
-          "Remove one to add another."
-      );
-      return;
-    }
-    if (file.size > 1.5 * 1024 * 1024) {
-      // Soft warning (kept from before) - large files may not sync reliably.
-      alert(
-        `That image is ${(file.size / (1024 * 1024)).toFixed(1)} MB. ` +
-          "For best results use an image under 1.5 MB. Large files may not " +
-          "sync reliably. Try resizing or compressing it first."
-      );
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target.result;
-      // Hard cap on combined storage, since wallpapers sync to the database.
-      if (wallpaperTotalBytes + byteSize(url) > TOTAL_WALLPAPER_CAP) {
-        alert(
-          "Adding this image would put your custom wallpapers over ~4 MB " +
-            `combined (currently ${(wallpaperTotalBytes / (1024 * 1024)).toFixed(1)} MB). ` +
-            "Since wallpapers sync to your account, remove one first or use a " +
-            "smaller image."
-        );
-        return;
-      }
-      const id =
-        "cw-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      setCustomWallpapers?.((prev) => [...(prev || []), { id, url }]);
-      setSection("wallpaper", { id: "custom", customId: id });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeCustomWallpaper = (id) => {
-    setCustomWallpapers?.((prev) => (prev || []).filter((w) => w.id !== id));
-    if (wallpaper.id === "custom" && wallpaper.customId === id) {
-      setSection("wallpaper", { id: "none" });
-    }
-  };
 
   const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {}, desktop = {}, sleep = {} } = settings;
   const aiLocked = isGuest;
@@ -220,38 +123,32 @@ export default function Settings({
               ]}
             />
           </Row>
-          <Row name="Light look" hint="Palette used whenever light mode shows">
-            <div className="palette-row">
-              {LIGHT_PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  className={"palette-pick" + (tweaks.lightPalette === p.id ? " active" : "")}
-                  onClick={() => setTweak({ lightPalette: p.id })}
-                  title={p.desc}
-                  aria-pressed={tweaks.lightPalette === p.id}
-                >
-                  <span className="palette-dot" style={{ background: p.swatch }} />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </Row>
-          <Row name="Dark look" hint="Palette used whenever dark mode shows">
-            <div className="palette-row">
-              {DARK_PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  className={"palette-pick" + (tweaks.darkPalette === p.id ? " active" : "")}
-                  onClick={() => setTweak({ darkPalette: p.id })}
-                  title={p.desc}
-                  aria-pressed={tweaks.darkPalette === p.id}
-                >
-                  <span className="palette-dot" style={{ background: p.swatch }} />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </Row>
+          <div className="appearance-preset-grid">
+            <AppearanceModePreset
+              mode="light"
+              paletteId={tweaks.lightPalette}
+              onPaletteChange={(lightPalette) => setTweak({ lightPalette })}
+              wallpaper={wallpaper}
+              customWallpapers={customWallpapers}
+              onWallpaperChange={(selection) =>
+                onWallpaperChange?.("light", selection)
+              }
+              onUploadCustom={onUploadCustomWallpaper}
+              onRemoveCustom={onRemoveCustomWallpaper}
+            />
+            <AppearanceModePreset
+              mode="dark"
+              paletteId={tweaks.darkPalette}
+              onPaletteChange={(darkPalette) => setTweak({ darkPalette })}
+              wallpaper={wallpaper}
+              customWallpapers={customWallpapers}
+              onWallpaperChange={(selection) =>
+                onWallpaperChange?.("dark", selection)
+              }
+              onUploadCustom={onUploadCustomWallpaper}
+              onRemoveCustom={onRemoveCustomWallpaper}
+            />
+          </div>
           <Row name="Wordmark" hint="The Ligand logo type in the top bar">
             <div className="wordmark-row">
               {WORDMARK_FONTS.map((f) => (
@@ -342,107 +239,18 @@ export default function Settings({
             />
           </Row>
 
-          {/* ── Presets ──────────────────────────────────────── */}
-          <div style={{ marginTop: 10 }}>
-            <div className="name" style={{ marginBottom: 8 }}>
-              Presets
-              <span style={{ fontSize: 11, color: "var(--ink-4)", marginLeft: 6 }}>
-                One click to apply a curated look
-              </span>
-            </div>
-            <div className="preset-row">
-              {BUILT_IN_PRESETS.map((p) => (
-                <button
-                  key={p.id}
-                  className="preset-tile"
-                  onClick={() => setTweak(p.tweaks)}
-                  title={p.desc}
-                >
-                  <span className="preset-swatch" style={{
-                    background: p.id === "focus"
-                      ? "linear-gradient(135deg,#1b1d2a,#3a3d52)"
-                      : p.id === "calm"
-                        ? "linear-gradient(135deg,#e8f5ec,#c5e4cd)"
-                        : "linear-gradient(135deg,#fff3e0,#ffe0a3)",
-                  }} />
-                  <span className="preset-name">{p.name}</span>
-                  <span className="preset-desc">{p.desc}</span>
-                </button>
-              ))}
-              {userPresets.map((p) => (
-                <div key={p.id} className="preset-tile preset-user">
-                  <button
-                    style={{ flex: 1, background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: 0 }}
-                    onClick={() => setTweak(p.tweaks)}
-                  >
-                    <span
-                      className="preset-swatch"
-                      style={{
-                        // A real preview of the saved look: its base tone
-                        // blended into its accent hue (was a flat panel color
-                        // that read as a black hole in dark mode).
-                        background: `linear-gradient(135deg, ${
-                          p.tweaks?.theme === "dark" ? "#1b1d24" : "#faf6f0"
-                        } 40%, oklch(${p.tweaks?.theme === "dark" ? 0.72 : 0.68} 0.12 ${
-                          p.tweaks?.accent ?? 245
-                        }))`,
-                      }}
-                    />
-                    <span className="preset-name">{p.name}</span>
-                    <span className="preset-desc">Your preset</span>
-                  </button>
-                  <button
-                    className="btn ghost sm"
-                    style={{ position: "absolute", top: 4, right: 4, padding: "2px 4px", minWidth: 0 }}
-                    onClick={() => deleteUserPreset(p.id)}
-                    title="Delete preset"
-                  >×</button>
-                </div>
-              ))}
-            </div>
-
-            {/* Save current as preset */}
-            {showSavePreset ? (
-              <div className="row" style={{ gap: 6, marginTop: 8 }}>
-                <input
-                  className="input"
-                  placeholder="Preset name…"
-                  value={savingPresetName}
-                  onChange={(e) => setSavingPresetName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveUserPreset(); if (e.key === "Escape") setShowSavePreset(false); }}
-                  autoFocus
-                  style={{ flex: 1, maxWidth: 180 }}
-                />
-                <button className="btn sm" onClick={saveUserPreset} disabled={!savingPresetName.trim()}>
-                  Save
-                </button>
-                <button className="btn ghost sm" onClick={() => setShowSavePreset(false)}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                className="btn ghost sm"
-                style={{ marginTop: 8 }}
-                onClick={() => setShowSavePreset(true)}
-              >
-                + Save current as preset
-              </button>
-            )}
-
-            {/* Reset tweaks to defaults */}
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-              <button
-                className="btn ghost sm"
-                onClick={() => {
-                  if (window.confirm("Reset appearance to defaults?")) {
-                    setTweak(TWEAK_DEFAULTS);
-                  }
-                }}
-              >
-                <Icon.Reset width={13} height={13} /> Reset to defaults
-              </button>
-            </div>
+          <div className="appearance-reset-row">
+            <button
+              className="btn ghost sm"
+              onClick={() => {
+                if (window.confirm("Reset appearance to defaults?")) {
+                  setTweak(TWEAK_DEFAULTS);
+                  onResetWallpaperPresets?.();
+                }
+              }}
+            >
+              <Icon.Reset width={13} height={13} /> Reset appearance
+            </button>
           </div>
         </Section>
 
@@ -690,90 +498,12 @@ export default function Settings({
           </p>
         </Section>
 
-        {/* Wallpaper &amp; sound */}
+        {/* Pomodoro ambience */}
         <Section
           icon={<Icon.Sun />}
-          title="Wallpaper & sound"
-          sub="Set the backdrop behind everything. Each wallpaper brings its own light or dark mood so text stays easy to read."
+          title="Focus ambience"
+          sub="Choose the sound used during Pomodoro focus. Light and Dark wallpapers now live in their matching presets above."
         >
-          <div style={{ marginBottom: 6 }}>
-            <div className="name" style={{ marginBottom: 6 }}>Wallpaper</div>
-            <div className="wp-gallery">
-              {/* Built-in gradients */}
-              {WALLPAPERS.map((w) => (
-                <button
-                  key={w.id}
-                  className={"wp-tile " + (wallpaper.id === w.id ? "active" : "")}
-                  style={{ background: w.bg }}
-                  onClick={() => setSection("wallpaper", { id: w.id })}
-                  title={w.name}
-                >
-                  <span className="wp-name">{w.name}</span>
-                </button>
-              ))}
-
-              {/* Custom photos */}
-              {customWallpapers.map((cw, i) => {
-                const active =
-                  wallpaper.id === "custom" && wallpaper.customId === cw.id;
-                return (
-                  <div
-                    key={cw.id}
-                    className={"wp-tile wp-custom " + (active ? "active" : "")}
-                    style={{
-                      backgroundImage: `url(${cw.url})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    title="Custom photo"
-                    onClick={() => setSection("wallpaper", { id: "custom", customId: cw.id })}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setSection("wallpaper", { id: "custom", customId: cw.id });
-                      }
-                    }}
-                  >
-                    <span className="wp-name">Photo {i + 1}</span>
-                    <button
-                      className="wp-remove"
-                      title="Remove this wallpaper"
-                      aria-label="Remove this wallpaper"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeCustomWallpaper(cw.id);
-                      }}
-                    >
-                      <Icon.Close />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {/* Upload tile (hidden once the gallery is full) */}
-              {customWallpapers.length < MAX_CUSTOM_WALLPAPERS && (
-                <label className="wp-tile wp-add" title="Upload a photo">
-                  <Icon.Plus />
-                  <span className="wp-name">Upload</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={(e) => {
-                      addCustomWallpaper(e.target.files?.[0]);
-                      e.target.value = ""; // allow re-picking the same file
-                    }}
-                  />
-                </label>
-              )}
-            </div>
-            <p className="set-note">
-              Up to {MAX_CUSTOM_WALLPAPERS} custom photos, ~4 MB combined (they
-              sync to your account). Each looks best under 1.5 MB.
-            </p>
-          </div>
           <Row name="Ambient sound" hint="Override the scene's default sound during Pomodoro focus">
             <select
               className="input"

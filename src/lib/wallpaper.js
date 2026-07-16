@@ -70,6 +70,75 @@ export function wallpaperById(id) {
   return WALLPAPERS.find((w) => w.id === id) || WALLPAPERS[0];
 }
 
+function normalizedSelection(selection = {}) {
+  return {
+    id: selection.id || "none",
+    customId: selection.id === "custom" ? selection.customId || null : null,
+  };
+}
+
+/* Resolve one mode's wallpaper while preserving the old single-wallpaper
+   setting. Once either preset is edited, wallpaperSettingsForMode clears the
+   legacy fields and writes both explicit mode selections. */
+export function wallpaperSelectionForMode(settings = {}, mode = "light") {
+  const prefix = mode === "dark" ? "dark" : "light";
+  const scoped = normalizedSelection({
+    id: settings[`${prefix}Id`],
+    customId: settings[`${prefix}CustomId`],
+  });
+  if (scoped.id !== "none") return scoped;
+
+  const otherPrefix = prefix === "light" ? "dark" : "light";
+  const hasExplicitPreset =
+    settings[`${prefix}Id`] !== undefined ||
+    settings[`${otherPrefix}Id`] !== undefined;
+  const legacy = normalizedSelection(settings);
+  if (hasExplicitPreset || legacy.id === "none") return scoped;
+  if (legacy.id === "custom") return legacy;
+
+  const legacyWallpaper = wallpaperById(legacy.id);
+  return legacyWallpaper.tone === prefix ? legacy : scoped;
+}
+
+export function wallpaperSettingsForMode(settings = {}, mode, selection) {
+  const light =
+    mode === "light"
+      ? normalizedSelection(selection)
+      : wallpaperSelectionForMode(settings, "light");
+  const dark =
+    mode === "dark"
+      ? normalizedSelection(selection)
+      : wallpaperSelectionForMode(settings, "dark");
+
+  return {
+    ...settings,
+    id: "none",
+    customId: null,
+    lightId: light.id,
+    lightCustomId: light.customId,
+    darkId: dark.id,
+    darkCustomId: dark.customId,
+  };
+}
+
+export function withoutCustomWallpaper(settings = {}, customId) {
+  const light = wallpaperSelectionForMode(settings, "light");
+  const dark = wallpaperSelectionForMode(settings, "dark");
+  const nextLight =
+    light.id === "custom" && light.customId === customId
+      ? { id: "none" }
+      : light;
+  const nextDark =
+    dark.id === "custom" && dark.customId === customId
+      ? { id: "none" }
+      : dark;
+  return wallpaperSettingsForMode(
+    wallpaperSettingsForMode(settings, "light", nextLight),
+    "dark",
+    nextDark
+  );
+}
+
 // Ambient sound override options for the Settings panel.
 // When set to something other than "none", the Pomodoro timer uses
 // this sound instead of the scene-default sound.

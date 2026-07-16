@@ -2,20 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS } from "../theme/useTweaks.js";
-import { DARK_PALETTES, LIGHT_PALETTES } from "../theme/palettes.js";
+import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { downloadBackup } from "../lib/backup.js";
 import pkg from "../../package.json";
 
 /* MobileSettings - a simplified, phone-focused settings list shown instead of
    the full desktop Settings when the viewport is <768px. Only surfaces the
-   controls that make sense on a phone; the desktop-only bits (Pomodoro
-   timings, wallpaper gallery, AI config, density, radius, ambient glow, etc.)
-   stay on the desktop Settings page.
+   controls that make sense on a phone; desktop-only window and focus-engine
+   controls stay on the desktop Settings page.
 
-   All preferences shown here use phone/iPad-local storage. Account content
-   still syncs, but appearance, notifications, habits and sound cannot rewrite
-   the PC's settings. */
+   These preferences use the phone-only account record, shared by iPhone
+   Safari and the Home Screen app without rewriting PC/iPad settings. */
 
 function Section({ icon, title, children }) {
   return (
@@ -51,6 +49,10 @@ export default function MobileSettings({
   setTweak,
   settings,
   setSection,
+  customWallpapers = [],
+  onWallpaperChange,
+  onUploadCustomWallpaper,
+  onRemoveCustomWallpaper,
   requestNotifyPermission,
   notifyPermission = "default",
   accountEmail = null,
@@ -64,7 +66,13 @@ export default function MobileSettings({
   focusSection = null, // e.g. "alarms" — scroll that card into view on open
   onFocusHandled,
 }) {
-  const { notifications, habits, uiSounds = {}, sleep = {} } = settings;
+  const {
+    notifications,
+    habits,
+    wallpaper,
+    uiSounds = {},
+    sleep = {},
+  } = settings;
   const [signingOut, setSigningOut] = useState(false);
   const loggedIn = Boolean(accountEmail);
   const alarmsRef = useRef(null);
@@ -108,38 +116,32 @@ export default function MobileSettings({
               ]}
             />
           </Row>
-          <Row name="Light look" hint="The palette used whenever light mode shows">
-            <div className="palette-row">
-              {LIGHT_PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  className={"palette-pick" + (tweaks.lightPalette === p.id ? " active" : "")}
-                  onClick={() => setTweak?.({ lightPalette: p.id })}
-                  title={p.desc}
-                  aria-pressed={tweaks.lightPalette === p.id}
-                >
-                  <span className="palette-dot" style={{ background: p.swatch }} />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </Row>
-          <Row name="Dark look" hint="The palette used whenever dark mode shows">
-            <div className="palette-row">
-              {DARK_PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  className={"palette-pick" + (tweaks.darkPalette === p.id ? " active" : "")}
-                  onClick={() => setTweak?.({ darkPalette: p.id })}
-                  title={p.desc}
-                  aria-pressed={tweaks.darkPalette === p.id}
-                >
-                  <span className="palette-dot" style={{ background: p.swatch }} />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </Row>
+          <div className="appearance-preset-grid appearance-preset-grid-mobile">
+            <AppearanceModePreset
+              mode="light"
+              paletteId={tweaks.lightPalette}
+              onPaletteChange={(lightPalette) => setTweak?.({ lightPalette })}
+              wallpaper={wallpaper}
+              customWallpapers={customWallpapers}
+              onWallpaperChange={(selection) =>
+                onWallpaperChange?.("light", selection)
+              }
+              onUploadCustom={onUploadCustomWallpaper}
+              onRemoveCustom={onRemoveCustomWallpaper}
+            />
+            <AppearanceModePreset
+              mode="dark"
+              paletteId={tweaks.darkPalette}
+              onPaletteChange={(darkPalette) => setTweak?.({ darkPalette })}
+              wallpaper={wallpaper}
+              customWallpapers={customWallpapers}
+              onWallpaperChange={(selection) =>
+                onWallpaperChange?.("dark", selection)
+              }
+              onUploadCustom={onUploadCustomWallpaper}
+              onRemoveCustom={onRemoveCustomWallpaper}
+            />
+          </div>
           <Row name="Accent">
             <div className="row" style={{ gap: 6 }}>
               {ACCENTS.map((a) => (
