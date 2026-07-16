@@ -82,22 +82,11 @@ function withDefaults(stored) {
   return out;
 }
 
-function mobileInitialSettings() {
-  if (typeof window === "undefined") return SETTINGS_DEFAULTS;
-  try {
-    return JSON.parse(
-      window.localStorage.getItem(DESKTOP_STORAGE_KEY) || "null"
-    ) || SETTINGS_DEFAULTS;
-  } catch {
-    return SETTINGS_DEFAULTS;
-  }
-}
-
 export function useSettings(scope = "desktop") {
   const isMobileScope = scope === "mobile";
   const [stored, setStored] = useLocalStorage(
     isMobileScope ? MOBILE_STORAGE_KEY : DESKTOP_STORAGE_KEY,
-    isMobileScope ? mobileInitialSettings : SETTINGS_DEFAULTS
+    SETTINGS_DEFAULTS
   );
   const settings = withDefaults(stored);
 

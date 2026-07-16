@@ -984,6 +984,18 @@ export default function App() {
     // duration; it's restored the moment hyperfocus ends.
     if (hyperfocus) delete root.dataset.palette;
     else root.dataset.palette = paletteFor(effectiveMode, tweaks);
+
+    // Keep iOS Safari/Home Screen chrome in step with the page. A fixed dark
+    // root background made Safari's bottom toolbar black even in Ligand's
+    // light theme, while theme-color alone did not follow palette changes.
+    root.style.colorScheme = effectiveMode;
+    const browserColor =
+      window.getComputedStyle(root).getPropertyValue("--bg").trim() ||
+      (effectiveMode === "dark" ? "#15161a" : "#faf6f0");
+    root.style.backgroundColor = browserColor;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", browserColor);
   }, [settings.wallpaper.id, settings.wallpaper.customId, resolvedTheme, activeCustom, tweaks, hyperfocus]);
 
   // Cmd/Ctrl+K opens search from anywhere.

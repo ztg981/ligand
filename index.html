@@ -30,16 +30,22 @@
       media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#558cb9" />
+    <meta name="theme-color" content="#faf6f0" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Ligand" />
     <meta name="description" content="Focus, habits, and goals - designed for ADHD" />
     <title>Ligand</title>
-    <!-- Dark base color painted before React (and CSS) load, so returning to
-         the app or launching it from the home screen never flashes white. -->
-    <style>html { background-color: #15161a; }</style>
+    <!-- Match the system while React loads; the app replaces this with the
+         user's active Ligand theme and palette as soon as preferences load. -->
+    <style>
+      html { background-color: #faf6f0; }
+      @media (prefers-color-scheme: dark) {
+        html { background-color: #15161a; }
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

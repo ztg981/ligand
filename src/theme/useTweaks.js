@@ -54,15 +54,11 @@ export const ACCENTS = [
 function mobileInitialTweaks() {
   if (typeof window === "undefined") return TWEAK_DEFAULTS;
   try {
-    const desktop = JSON.parse(
-      window.localStorage.getItem(DESKTOP_STORAGE_KEY) || "null"
-    );
     const legacyMobileTheme = JSON.parse(
       window.localStorage.getItem("ligand.mobileTheme") || "null"
     );
     return {
       ...TWEAK_DEFAULTS,
-      ...(desktop || {}),
       ...(legacyMobileTheme ? { theme: legacyMobileTheme } : {}),
     };
   } catch {

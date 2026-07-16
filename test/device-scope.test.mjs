@@ -7,9 +7,27 @@ test("iPhone and Android use mobile preferences", () => {
   assert.equal(usesMobilePreferenceScope({ userAgent: "Mozilla/5.0 (Linux; Android 16)" }), true);
 });
 
+test("iPhone Home Screen apps keep mobile preferences with a desktop-style user agent", () => {
+  assert.equal(
+    usesMobilePreferenceScope(
+      {
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        platform: "MacIntel",
+        maxTouchPoints: 5,
+        standalone: true,
+      },
+      { width: 393, height: 852 }
+    ),
+    true
+  );
+});
+
 test("iPad shares desktop preferences even with its desktop user agent", () => {
   assert.equal(
-    usesMobilePreferenceScope({ userAgent: "Mozilla/5.0 (Macintosh)", platform: "MacIntel", maxTouchPoints: 5 }),
+    usesMobilePreferenceScope(
+      { userAgent: "Mozilla/5.0 (Macintosh)", platform: "MacIntel", maxTouchPoints: 5 },
+      { width: 820, height: 1180 }
+    ),
     false
   );
   assert.equal(usesMobilePreferenceScope({ userAgent: "Mozilla/5.0 (iPad)" }), false);
