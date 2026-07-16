@@ -217,7 +217,9 @@ export default function App() {
       settings.behavior?.reduceMotion ||
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (was === hyperfocus || reduce) return undefined;
-    const variants = ["wipe", "slats", "aurora", "stripes"];
+    // Aurora (the blurred curtains) was voted off the island; the pool is
+    // now the ink wipe plus the slide family the user actually likes.
+    const variants = ["wipe", "slats", "stripes", "livery"];
     const pick = hyperfocus
       ? variants[Math.floor(Math.random() * variants.length)]
       : "dawn";
@@ -1468,6 +1470,14 @@ export default function App() {
               <span className="hf-stripe p3" />
               <span className="hf-stripe p4" />
               <span className="hf-stripe p5" />
+            </>
+          )}
+          {hfIntro === "livery" && (
+            <>
+              <span className="hf-band-veil" />
+              <span className="hf-band b1" />
+              <span className="hf-band b2" />
+              <span className="hf-band b3" />
             </>
           )}
           {hfIntro === "dawn" && (
