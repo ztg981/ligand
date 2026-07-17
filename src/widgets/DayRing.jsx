@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey } from "../lib/model.js";
 import { categoryById } from "../lib/dayPlanner.js";
+import { categoryOf, hhmmToMin } from "../lib/activities.js";
 
 /* DayRing — a small "time visibility" dial for Home.
 
@@ -54,6 +55,7 @@ export default function DayRing({
   focusLog = [],
   scheduledWorkouts = [],
   dayBlocks = [],
+  activities = [],
   onOpenWorkout,
   onOpenAlarms,
 }) {
@@ -78,6 +80,32 @@ export default function DayRing({
         return { id: w.id, from: Math.max(0, endH - durH), to: endH };
       });
   }, [workouts, today]);
+
+  // Logged activities with a real end time + duration paint the main ring in
+  // their category color — the same "this actually happened" treatment as
+  // workouts. Sport logs mirrored into a workout are skipped (the trained
+  // arc already shows them).
+  const activityArcs = useMemo(() => {
+    return activities
+      .filter(
+        (a) =>
+          a.date === today &&
+          a.durationMin > 0 &&
+          hhmmToMin(a.endTime) != null &&
+          !(a.linkType === "workout" && a.linkId)
+      )
+      .map((a) => {
+        const endH = hhmmToMin(a.endTime) / 60;
+        const durH = Math.max(a.durationMin / 60, 0.25); // ≥15min visible
+        return {
+          id: a.id,
+          from: Math.max(0, endH - durH),
+          to: endH,
+          color: categoryOf(a.category).color,
+          title: a.title,
+        };
+      });
+  }, [activities, today]);
 
   const todaysAlarms = useMemo(() => {
     const weekday = (now.getDay() + 6) % 7;
@@ -167,6 +195,20 @@ export default function DayRing({
               strokeLinecap="round"
               opacity={b.done ? 0.35 : 0.9}
             />
+          ))}
+          {/* logged activity arcs (real, category colored) */}
+          {activityArcs.map((a) => (
+            <path
+              key={a.id}
+              d={arcPath(a.from, a.to)}
+              fill="none"
+              stroke={a.color}
+              strokeWidth={STROKE}
+              strokeLinecap="round"
+              opacity={0.85}
+            >
+              <title>{a.title}</title>
+            </path>
           ))}
           {/* trained arcs (real completed workouts) */}
           {trainedArcs.map((a) => (

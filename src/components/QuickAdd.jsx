@@ -17,6 +17,7 @@ import { parseQuickAdd } from "../lib/quickParse.js";
 
 const TYPES = [
   { id: "task", label: "Task", icon: <Icon.Check width={13} height={13} /> },
+  { id: "activity", label: "Activity", icon: <Icon.Spark width={13} height={13} /> },
   { id: "note", label: "Note", icon: <Icon.Pencil width={13} height={13} /> },
   { id: "workout", label: "Workout", icon: <Icon.Dumbbell width={13} height={13} /> },
   { id: "alarm", label: "Alarm", icon: <Icon.Bell width={13} height={13} /> },
@@ -39,6 +40,7 @@ export default function QuickAdd({
   addAlarm,
   onWorkoutPlan, // (plan) => void — open the workout review with parsed exercises
   onStartFocus, // () => void — jump to the Pomodoro tab
+  onLogActivity, // () => void — open the full activity logger
 }) {
   // Fresh state every open: the parent remounts this component per open via a
   // key, so plain initial values ARE the reset (no state-sync effect needed).
@@ -106,6 +108,13 @@ export default function QuickAdd({
     if (type === "focus") {
       onStartFocus?.();
       onClose();
+      return;
+    }
+    if (type === "activity") {
+      // The activity logger is its own five-second flow (category chips,
+      // duration, feel); hand off rather than cram it in here.
+      onClose();
+      onLogActivity?.();
       return;
     }
     if (type === "alarm") {
@@ -209,6 +218,11 @@ export default function QuickAdd({
           Jump to the Pomodoro timer and start a session. Tip: pick something
           small and just start for five minutes.
         </p>
+      ) : type === "activity" ? (
+        <p className="qa-note">
+          Log the last thing you did — tennis, a game, a scroll, a chore.
+          Anything that took time counts.
+        </p>
       ) : (
         <>
           {type === "alarm" && (
@@ -304,11 +318,20 @@ export default function QuickAdd({
         type="button"
         className="btn primary quick-note-save"
         onClick={save}
-        disabled={type !== "focus" && type !== "alarm" && !text.trim()}
-        style={{ opacity: type === "focus" || type === "alarm" || text.trim() ? 1 : 0.5 }}
+        disabled={
+          type !== "focus" && type !== "alarm" && type !== "activity" && !text.trim()
+        }
+        style={{
+          opacity:
+            type === "focus" || type === "alarm" || type === "activity" || text.trim()
+              ? 1
+              : 0.5,
+        }}
       >
         {type === "focus" ? (
           <><Icon.Timer width={14} height={14} /> Open focus timer</>
+        ) : type === "activity" ? (
+          <><Icon.Spark width={14} height={14} /> Open activity log</>
         ) : type === "workout" ? (
           <><Icon.Dumbbell width={14} height={14} /> Review workout</>
         ) : (

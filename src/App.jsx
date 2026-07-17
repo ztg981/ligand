@@ -30,7 +30,7 @@ import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak } from "./lib/model.js";
+import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak, createWorkout, createWorkoutExercise, createSet } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import {
   wallpaperById,
@@ -56,6 +56,8 @@ import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import QuickAdd from "./components/QuickAdd.jsx";
+import ActivityLogSheet from "./components/ActivityLogSheet.jsx";
+import { SPORTS } from "./lib/exercises.js";
 import AlarmOverlay from "./components/AlarmOverlay.jsx";
 import StandaloneSyncBanner from "./components/StandaloneSyncBanner.jsx";
 import { useAlarms } from "./hooks/useAlarms.js";
@@ -1165,6 +1167,7 @@ export default function App() {
   const go = (t) => () => setTab(t);
   const paletteActions = [
     { id: "qa", label: "Quick add…", sub: "Task, note, workout, alarm, or focus", keywords: "new create capture add task note", icon: <Icon.Plus />, run: () => setQuickAddOpen(true) },
+    { id: "log-activity", label: "Log an activity", sub: "Tennis, gaming, scrolling — what did you just do?", keywords: "activity log sport tennis game scroll screen chore rest", icon: <Icon.Spark />, run: () => setActivitySheet({}) },
     { id: "focus", label: "Start a focus session", sub: "Open the Pomodoro timer", keywords: "pomodoro timer focus deep work", icon: <Icon.Timer />, run: go("pomodoro") },
     { id: "new-goal", label: "New goal", sub: "Create a goal", keywords: "add create goal target", icon: <Icon.Target />, run: () => setShowGoalModal(true) },
     { id: "go-home", label: "Go to Home", sub: "Dashboard", keywords: "dashboard overview", icon: <Icon.Home />, run: go("home") },
@@ -1215,6 +1218,47 @@ export default function App() {
   // Notes can be auto-opened by id after cross-tab jumps.
   const [quickCaptureNoteId, setQuickCaptureNoteId] = useState(null);
 
+  // The universal activity logger ("what did you just do?"), openable from
+  // Home, the Day tab (any date), Journal, Quick add, and the Workout tab.
+  // null | { category?: string, date?: string }
+  const [activitySheet, setActivitySheet] = useState(null);
+
+  // Save an activity; a sport marked "count as a workout" also writes a
+  // cardio workout session (so it feeds the training week/streak) and links
+  // the two records so nothing ever renders twice.
+  const handleSaveActivity = (fields, { asWorkout = false } = {}) => {
+    let linkedWorkoutId = null;
+    if (asWorkout) {
+      const lib = SPORTS.find(
+        (s) => s.name.toLowerCase() === (fields.title || "").trim().toLowerCase()
+      );
+      const durationSec = (fields.durationMin || 30) * 60;
+      const saved = store.addWorkout(
+        createWorkout({
+          date: fields.date,
+          type: "cardio",
+          durationSec,
+          notes: fields.note || "",
+          exercises: [
+            createWorkoutExercise({
+              exerciseId: lib?.id || null,
+              name: fields.title || "Sport",
+              muscleGroup: "sport",
+              type: "cardio",
+              sets: [createSet({ durationSec, done: true })],
+            }),
+          ],
+        })
+      );
+      linkedWorkoutId = saved?.id || null;
+    }
+    store.addActivity({
+      ...fields,
+      linkType: linkedWorkoutId ? "workout" : null,
+      linkId: linkedWorkoutId,
+    });
+  };
+
   const screen = (() => {
     switch (tab) {
       case "home":
@@ -1264,6 +1308,9 @@ export default function App() {
             sleepLog={sleepLog}
             onLogSleep={() => setSleepGateManual(true)}
             onOpenSleep={() => setTab("sleep")}
+            activities={store.activities}
+            addActivity={store.addActivity}
+            onLogActivity={() => setActivitySheet({})}
           />
         );
       case "day":
@@ -1279,6 +1326,15 @@ export default function App() {
             scheduledWorkouts={store.scheduledWorkouts}
             alarms={store.alarms}
             onOpenWorkout={() => setTab("workout")}
+            activities={store.activities}
+            workouts={store.workouts}
+            focusLog={store.focusLog}
+            journal={store.journal}
+            meals={store.meals}
+            sleepLog={sleepLog}
+            removeActivity={store.removeActivity}
+            onLogActivity={(date) => setActivitySheet({ date })}
+            confirmBeforeDelete={confirmBeforeDelete}
           />
         );
       case "habits":
@@ -1418,6 +1474,12 @@ export default function App() {
             addSong={store.addSong}
             updateSong={store.updateSong}
             deleteSong={store.deleteSong}
+            activities={store.activities}
+            workouts={store.workouts}
+            focusLog={store.focusLog}
+            meals={store.meals}
+            sleepLog={sleepLog}
+            onLogActivity={() => setActivitySheet({})}
             confirmBeforeDelete={confirmBeforeDelete}
             scrollTo={scrollTarget?.tab === "journal" ? scrollTarget : null}
           />
@@ -1455,6 +1517,7 @@ export default function App() {
             addMeal={store.addMeal}
             removeMeal={store.removeMeal}
             addWater={store.addWater}
+            onLogSport={() => setActivitySheet({ category: "sport" })}
           />
         );
       case "settings":
@@ -1810,6 +1873,17 @@ export default function App() {
           setTab("workout");
         }}
         onStartFocus={() => setTab("pomodoro")}
+        onLogActivity={() => setActivitySheet({})}
+      />
+
+      <ActivityLogSheet
+        key={activitySheet ? "act-open" : "act-closed"}
+        open={Boolean(activitySheet)}
+        onClose={() => setActivitySheet(null)}
+        isMobile={isMobile}
+        initialCategory={activitySheet?.category || null}
+        dateKey={activitySheet?.date || null}
+        onSave={handleSaveActivity}
       />
 
       {(firingAlarm || testAlarm) && (

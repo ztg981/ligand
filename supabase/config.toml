@@ -1,4 +1,26 @@
 project_id = "ligand"
 
+[auth]
+enabled = true
+site_url = "https://ligand-tigergchar-9004-ztg-s-projects.vercel.app"
+additional_redirect_urls = [
+  "https://ligand-eta.vercel.app",
+  "http://localhost:3000",
+  "https://ligand-tigergchar-9004-ztg-s-projects.vercel.app",
+  "http://127.0.0.1:3000",
+]
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+max_frequency = "1m0s"
+otp_length = 8
+
 [functions.gemini-insights]
 verify_jwt = true
+
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/ligand_custom_access_token_hook"

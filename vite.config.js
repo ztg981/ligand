@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
-  // Relative asset paths so the same build works both when served from the web
-  // root (Vercel / PWA) and when loaded over file:// inside the Electron shell
-  // (electron/main.js loads dist/index.html directly in the packaged app).
-  base: './',
+export default defineConfig(({ mode }) => ({
+  // Web routes need root-relative assets so nested SPA URLs such as
+  // /oauth/consent load the same bundle. Electron still loads dist/index.html
+  // over file://, so its dedicated build keeps relative asset paths.
+  base: mode === 'electron' ? './' : '/',
   build: {
     // Leave CSS unminified (JS is still minified). esbuild's CSS minifier
     // collapses paired `backdrop-filter` + `-webkit-backdrop-filter` rules to
@@ -106,4 +106,4 @@ export default defineConfig({
       },
     }),
   ],
-})
+}))

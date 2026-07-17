@@ -7,6 +7,11 @@ import {
   fetchUserData,
   pushUserData,
 } from "../lib/syncManager.js";
+import {
+  prepareTaskRecordSyncForUser,
+  reconcileTaskRecords,
+  resetTaskRecordSyncState,
+} from "../lib/taskRecordSync.js";
 
 /* ============================================================
    useSupabaseSync — keeps localStorage and the cloud in step.
@@ -45,28 +50,46 @@ export function useSupabaseSync(session) {
   const lastPushedRef = useRef(null); // JSON string last sent to the cloud
   const activeRef = useRef(false); // pushes allowed only after hydrate/migrate
   const debounceRef = useRef(null);
+  const taskSyncRef = useRef(Promise.resolve());
+
+  // Serialize record reconciliation so a focus event and a debounced local
+  // write cannot apply the same expected version concurrently.
+  const reconcileTasksNow = useCallback(() => {
+    const run = taskSyncRef.current
+      .catch(() => undefined)
+      .then(() => reconcileTaskRecords({ client: supabase }));
+    taskSyncRef.current = run;
+    return run;
+  }, []);
 
   // Push the current local blob (debounced caller). Shared by the writer
   // effect and migration. Returns nothing; updates status.
   const pushNow = useCallback(async () => {
     if (!userId || !supabase || !activeRef.current) return;
+    const taskResult = await reconcileTasksNow();
     const blob = collectLocalBlob();
     const json = JSON.stringify(blob);
-    if (json === lastPushedRef.current) return; // nothing changed
+    if (json === lastPushedRef.current) {
+      if (!taskResult.ok) setStatus("offline");
+      return; // nothing changed
+    }
     setStatus("syncing");
     const res = await pushUserData(userId, blob);
     if (res.ok) {
       lastPushedRef.current = json;
-      setStatus("synced");
+      setStatus(taskResult.ok ? "synced" : "offline");
     } else {
       setStatus("offline");
     }
-  }, [userId]);
+  }, [userId, reconcileTasksNow]);
 
   // --- 1. Initial fetch + hydrate whenever the logged-in user changes ---
   useEffect(() => {
     // Reset transient flags on any auth transition.
     activeRef.current = false;
+    // This effect is the auth-transition state machine; these resets must land
+    // before its asynchronous hydration branch can report a later state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNeedsMigration(false);
     clearTimeout(debounceRef.current);
 
@@ -78,6 +101,7 @@ export function useSupabaseSync(session) {
     }
 
     let cancelled = false;
+    prepareTaskRecordSyncForUser(userId);
     setHydrating(true);
     setStatus("loading");
 
@@ -98,10 +122,13 @@ export function useSupabaseSync(session) {
       if (res.row && res.row.data && Object.keys(res.row.data).length > 0) {
         // Cloud wins: overwrite local with the fetched blob.
         applyBlobToLocal(res.row.data);
+        const taskResult = await reconcileTasksNow();
+        if (cancelled) return;
         lastPushedRef.current = JSON.stringify(res.row.data);
         activeRef.current = true;
         setHydrating(false);
-        setStatus("synced");
+        setStatus(taskResult.ok ? "synced" : "offline");
+        if (taskResult.changed) void pushNow();
         // If local had extra keys the cloud didn't, the resulting localwrite
         // will differ from lastPushed and get merged up on the next debounce.
       } else {
@@ -156,13 +183,17 @@ export function useSupabaseSync(session) {
     const json = JSON.stringify(res.row.data);
     if (json === lastPushedRef.current) return; // already in step
     applyBlobToLocal(res.row.data);
+    const taskResult = await reconcileTasksNow();
     lastPushedRef.current = json;
-    setStatus("synced");
-  }, [userId]);
+    setStatus(taskResult.ok ? "synced" : "offline");
+    if (taskResult.changed) void pushNow();
+  }, [userId, pushNow, reconcileTasksNow]);
 
   // --- 3. Reconcile when connectivity returns / app is foregrounded ------
-  // Push first (no-op when nothing changed locally), then pull anything a
-  // second device wrote while this one was asleep.
+  // With no pending local edit, pull first so a confirmed ChatGPT change or a
+  // second device update cannot be overwritten by task-record reconciliation.
+  // A genuinely pending local edit still pushes first and keeps the existing
+  // local-wins behavior.
   useEffect(() => {
     if (!userId || !supabase) return undefined;
     const reconcile = () => {
@@ -173,7 +204,11 @@ export function useSupabaseSync(session) {
         pushNow();
         return;
       }
-      Promise.resolve(pushNow()).then(pullNow);
+      if (debounceRef.current) {
+        Promise.resolve(pushNow()).then(pullNow);
+      } else {
+        Promise.resolve(pullNow()).then(pushNow);
+      }
     };
     window.addEventListener("online", reconcile);
     document.addEventListener("visibilitychange", reconcile);
@@ -193,24 +228,28 @@ export function useSupabaseSync(session) {
       if (!userId || !supabase) return { ok: false };
       let blob;
       if (importExisting) {
-        blob = collectLocalBlob();
+        prepareTaskRecordSyncForUser(userId);
       } else {
         clearLocalBlob(); // reset local to defaults
-        blob = {};
+        resetTaskRecordSyncState(undefined, userId);
       }
       activeRef.current = true;
       setStatus("syncing");
+      const taskResult = importExisting
+        ? await reconcileTasksNow()
+        : { ok: true };
+      blob = importExisting ? collectLocalBlob() : {};
       const res = await pushUserData(userId, blob);
       if (res.ok) {
         lastPushedRef.current = JSON.stringify(blob);
-        setStatus("synced");
+        setStatus(taskResult.ok ? "synced" : "offline");
       } else {
         setStatus("offline");
       }
       setNeedsMigration(false);
       return res;
     },
-    [userId]
+    [userId, reconcileTasksNow]
   );
 
   return { status, hydrating, needsMigration, runMigration };

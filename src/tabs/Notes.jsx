@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { searchItunesSongs } from "../lib/itunesSearch.js";
+import { cryptoAvailable, encryptJSON, decryptJSON } from "../lib/noteCrypto.js";
+import * as noteVault from "../lib/noteVault.js";
 
 // Attachments are stored as data URLs inside the note (they ride the normal
 // sync blob), so keep them small: reject anything over ~1.4MB encoded.
 const MAX_ATTACH_BYTES = 1.4 * 1024 * 1024;
 const MAX_ATTACH_COUNT = 6;
+const MIN_PASSPHRASE = 6;
 
 /* Notes - the calmest tab in the app.
    A frictionless plain-text scratchpad, like iPhone Notes. No goal links,
@@ -13,7 +16,14 @@ const MAX_ATTACH_COUNT = 6;
    500ms). The first line is the title; the rest is preview text.
 
    Layout: a list on the left, an inline editor on the right. On phones the
-   panes swap (list ↔ editor) via a back button so each gets the full width. */
+   panes swap (list ↔ editor) via a back button so each gets the full width.
+
+   Locked notes: any note can be encrypted with a passphrase. When locked, the
+   note stores only ciphertext (in `cipher`); its plaintext `text`/`attachments`
+   are cleared, so what lands in localStorage and the sync blob is unreadable
+   without the passphrase. The derived key lives in memory only (see noteVault),
+   so you unlock once per session. Decrypted content is held in the `decrypted`
+   map below and never persisted in the clear. */
 
 // Relative timestamp: "just now", "5 minutes ago", "2 hours ago",
 // "yesterday", else a short date like "Jun 14".
@@ -85,16 +95,59 @@ export default function Notes({
   const [songResults, setSongResults] = useState([]);
   const fileInputRef = useRef(null);
 
+  // -- encryption / vault state ----------------------------------
+  // Decrypted content for locked notes, kept in memory only:
+  //   { [noteId]: { text, attachments } }. Populated on unlock; never written
+  //   to storage in the clear. A ref mirror lets async callbacks read the
+  //   latest map without re-subscribing.
+  const [decrypted, setDecrypted] = useState({});
+  const decryptedRef = useRef(decrypted);
+  useEffect(() => {
+    decryptedRef.current = decrypted;
+  }, [decrypted]);
+
+  // hasVault: a passphrase has been set at some point. vaultReady: the key is
+  // held in memory for this session (unlocked). Seeded from the module so a
+  // tab switch (which unmounts this component) doesn't re-lock you.
+  const [hasVault, setHasVault] = useState(() => noteVault.vaultExists());
+  const [vaultReady, setVaultReady] = useState(() => noteVault.isUnlocked());
+
+  // Passphrase modal: null | { mode: "create" | "unlock", error }.
+  const [passModal, setPassModal] = useState(null);
+  const [passVal, setPassVal] = useState("");
+  const [passConfirm, setPassConfirm] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  // If the user asked to lock a note but had to enter a passphrase first, we
+  // remember which note here and lock it once the vault is ready.
+  const pendingLockId = useRef(null);
+
+  // Effective (readable) content for a note: decrypted content for locked
+  // notes when available, otherwise the plaintext fields. Reads `decrypted`
+  // state so the list/editor re-render as notes unlock.
+  const contentOf = (n) => {
+    if (!n) return { text: "", attachments: [] };
+    if (n.locked) {
+      const d = decrypted[n.id];
+      return d
+        ? { text: d.text || "", attachments: d.attachments || [] }
+        : { text: "", attachments: [] };
+    }
+    return { text: n.text || "", attachments: n.attachments || [] };
+  };
+
   // Fast capture: opening the tab lands you IN the newest note with the
   // cursor ready (iPhone-Notes style) — paste immediately, no clicks. If
-  // there are no notes yet, start a fresh one.
+  // there are no notes yet, start a fresh one. Skip a locked newest note
+  // (we can't drop the cursor into something that needs unlocking).
   const bootedRef = useRef(false);
   useEffect(() => {
     if (bootedRef.current || autoOpenNoteId) return;
     bootedRef.current = true;
-    const newest = [...notesRef.current].sort((a, b) =>
-      String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || ""))
-    )[0];
+    const newest = [...notesRef.current]
+      .filter((n) => !n.locked)
+      .sort((a, b) =>
+        String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || ""))
+      )[0];
     const id = newest ? newest.id : addNote().id;
     setSelectedId(id);
     setMobileView("editor");
@@ -117,11 +170,36 @@ export default function Notes({
     return () => clearTimeout(t);
   }, [songQ, songOpen]);
 
+  // -- persistence helper ----------------------------------------
+  // Save a note, transparently encrypting when it's locked. `patch` may carry
+  // { text } and/or { attachments }; anything omitted keeps its current value.
+  // For locked notes we re-encrypt the merged content and store only ciphertext.
+  const persistNote = async (id, patch) => {
+    const note = notesRef.current.find((n) => n.id === id);
+    if (!note) return;
+    if (note.locked) {
+      const key = noteVault.getKey();
+      if (!key) return; // vault re-locked mid-edit; editor is hidden anyway
+      const cur = decryptedRef.current[id] || { text: "", attachments: [] };
+      const content = {
+        text: patch.text !== undefined ? patch.text : cur.text || "",
+        attachments:
+          patch.attachments !== undefined ? patch.attachments : cur.attachments || [],
+      };
+      setDecrypted((prev) => ({ ...prev, [id]: content }));
+      const cipher = await encryptJSON(key, content);
+      updateNote(id, { locked: true, cipher, text: "", attachments: [] });
+    } else {
+      updateNote(id, patch);
+    }
+  };
+
   const attachFiles = (files) => {
     const id = selectedIdRef.current;
     if (!id) return;
     const note = notesRef.current.find((n) => n.id === id);
-    const existing = note?.attachments || [];
+    const existing =
+      (note?.locked ? decryptedRef.current[id]?.attachments : note?.attachments) || [];
     for (const file of files) {
       if (!file.type.startsWith("image/")) {
         setAttachMsg("Only images for now (PNG, JPG, screenshots).");
@@ -139,13 +217,20 @@ export default function Notes({
           return;
         }
         setAttachMsg("");
-        const cur = notesRef.current.find((n) => n.id === id);
-        updateNote(id, {
+        const curNote = notesRef.current.find((n) => n.id === id);
+        const curAtt =
+          (curNote?.locked
+            ? decryptedRef.current[id]?.attachments
+            : curNote?.attachments) || [];
+        const next = {
           attachments: [
-            ...(cur?.attachments || []),
+            ...curAtt,
             { id: `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, dataUrl },
           ],
-        });
+        };
+        // Preserve any unsaved typing on the open note when we re-encrypt.
+        if (id === selectedIdRef.current) next.text = draftRef.current;
+        persistNote(id, next);
       };
       reader.readAsDataURL(file);
     }
@@ -153,8 +238,12 @@ export default function Notes({
 
   const removeAttachment = (attId) => {
     const id = selectedIdRef.current;
-    const cur = notesRef.current.find((n) => n.id === id);
-    updateNote(id, { attachments: (cur?.attachments || []).filter((a) => a.id !== attId) });
+    const curNote = notesRef.current.find((n) => n.id === id);
+    const curAtt =
+      (curNote?.locked ? decryptedRef.current[id]?.attachments : curNote?.attachments) || [];
+    const next = { attachments: curAtt.filter((a) => a.id !== attId) };
+    if (id === selectedIdRef.current) next.text = draftRef.current;
+    persistNote(id, next);
   };
 
   const insertSong = (s) => {
@@ -177,12 +266,20 @@ export default function Notes({
 
   // Leaving a note: persist its text, or discard it entirely if it's blank
   // (so an opened-but-untouched note never clutters the list - iPhone-style).
-  // A note that holds only an image is NOT blank.
+  // A note that holds only an image is NOT blank. Locked notes always have
+  // content (ciphertext), so they're never auto-discarded.
   const leaveCurrent = () => {
     const id = selectedIdRef.current;
     if (!id) return;
+    const note = notesRef.current.find((n) => n.id === id);
+    if (!note) return;
+    if (note.locked) {
+      if (editingRef.current) persistNote(id, { text: draftRef.current });
+      editingRef.current = false;
+      return;
+    }
     const text = draftRef.current;
-    const hasAttachments = (notesRef.current.find((n) => n.id === id)?.attachments || []).length > 0;
+    const hasAttachments = (note.attachments || []).length > 0;
     if (text.trim() === "" && !hasAttachments) {
       removeNote(id);
     } else if (editingRef.current) {
@@ -191,23 +288,67 @@ export default function Notes({
     editingRef.current = false;
   };
 
-  // Load a note's text into the draft when the selection changes.
+  // On unlock, decrypt every locked note into the in-memory map so the list
+  // shows real titles/previews and search can reach them. Skips notes already
+  // decrypted (avoids clobbering live edits and redundant work).
+  useEffect(() => {
+    if (!vaultReady) return;
+    const key = noteVault.getKey();
+    if (!key) return;
+    let cancelled = false;
+    (async () => {
+      const out = {};
+      for (const n of notes) {
+        if (n.locked && n.cipher && !decryptedRef.current[n.id]) {
+          try {
+            out[n.id] = await decryptJSON(key, n.cipher);
+          } catch {
+            /* leave undecryptable notes locked in the UI */
+          }
+        }
+      }
+      if (!cancelled && Object.keys(out).length) {
+        setDecrypted((prev) => ({ ...prev, ...out }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [vaultReady, notes]);
+
+  // Is the selected note ready to edit? Normal notes always are; locked notes
+  // only once decrypted. Drives the draft-load effect below.
+  const selectedNoteObj = notes.find((n) => n.id === selectedId) || null;
+  const selectedReady = selectedNoteObj
+    ? selectedNoteObj.locked
+      ? Boolean(decrypted[selectedNoteObj.id])
+      : true
+    : false;
+
+  // Load a note's text into the draft when the selection changes (or when a
+  // locked note becomes unlocked while open).
   useEffect(() => {
     const note = notes.find((n) => n.id === selectedId);
-    setDraft(note ? note.text : "");
+    if (!note || (note.locked && !decrypted[note.id])) {
+      setDraft("");
+      editingRef.current = false;
+      return;
+    }
+    setDraft(contentOf(note).text);
     editingRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+  }, [selectedId, selectedReady]);
 
   // Debounced auto-save (500ms after the last keystroke). Only writes when the
   // change came from the user typing, so loading a note never echoes a save.
   useEffect(() => {
     if (!selectedId || !editingRef.current) return;
     const t = setTimeout(() => {
-      updateNote(selectedId, { text: draft });
+      persistNote(selectedId, { text: draft });
     }, 500);
     return () => clearTimeout(t);
-  }, [draft, selectedId, updateNote]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, selectedId]);
 
   // Flush / clean up the open note when the tab unmounts.
   useEffect(() => {
@@ -234,8 +375,11 @@ export default function Notes({
     );
     const q = query.trim().toLowerCase();
     if (!q) return arr;
-    return arr.filter((n) => (n.text || "").toLowerCase().includes(q));
-  }, [notes, query]);
+    // Locked notes only match once unlocked (contentOf returns "" otherwise),
+    // so a locked note stays out of search results until you can read it.
+    return arr.filter((n) => contentOf(n).text.toLowerCase().includes(q));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, query, decrypted]);
 
   const selectNote = (id) => {
     if (id === selectedId) {
@@ -275,7 +419,121 @@ export default function Notes({
     setMobileView("list");
   };
 
-  const selectedNote = notes.find((n) => n.id === selectedId) || null;
+  // -- lock / unlock actions -------------------------------------
+  const openPass = (mode) => {
+    setPassVal("");
+    setPassConfirm("");
+    setShowPass(false);
+    setPassModal({ mode, error: "" });
+  };
+
+  // Encrypt a note right now (vault must already be unlocked).
+  const lockNoteNow = async (id) => {
+    const key = noteVault.getKey();
+    if (!key) return;
+    const note = notesRef.current.find((n) => n.id === id);
+    if (!note || note.locked) return;
+    const content = {
+      text: id === selectedIdRef.current ? draftRef.current : note.text || "",
+      attachments: note.attachments || [],
+    };
+    setDecrypted((prev) => ({ ...prev, [id]: content }));
+    const cipher = await encryptJSON(key, content);
+    updateNote(id, { locked: true, cipher, text: "", attachments: [] });
+  };
+
+  // "Lock this note" button. Routes through the passphrase modal if a
+  // passphrase hasn't been set or the vault isn't unlocked this session.
+  const requestLock = (id) => {
+    if (!cryptoAvailable()) {
+      setAttachMsg("This browser can't encrypt notes (Web Crypto unavailable).");
+      return;
+    }
+    if (!noteVault.vaultExists()) {
+      pendingLockId.current = id;
+      openPass("create");
+    } else if (!noteVault.isUnlocked()) {
+      pendingLockId.current = id;
+      openPass("unlock");
+    } else {
+      lockNoteNow(id);
+    }
+  };
+
+  // Unlock the vault to read a locked note (no note pending to lock).
+  const requestUnlock = () => {
+    pendingLockId.current = null;
+    openPass("unlock");
+  };
+
+  // Permanently decrypt a note back to a normal one (needs it unlocked first).
+  const removeLock = (id) => {
+    const content = decryptedRef.current[id];
+    if (!content) return;
+    updateNote(id, {
+      locked: false,
+      cipher: null,
+      text: content.text || "",
+      attachments: content.attachments || [],
+    });
+    setDecrypted((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  // Re-lock the session: drop the in-memory key and forget decrypted content.
+  const relockVault = () => {
+    noteVault.lockVault();
+    setVaultReady(false);
+    setDecrypted({});
+  };
+
+  const submitPass = async () => {
+    if (!passModal) return;
+    const mode = passModal.mode;
+    try {
+      if (mode === "create") {
+        if (passVal.length < MIN_PASSPHRASE) {
+          setPassModal((m) => ({ ...m, error: `Use at least ${MIN_PASSPHRASE} characters.` }));
+          return;
+        }
+        if (passVal !== passConfirm) {
+          setPassModal((m) => ({ ...m, error: "The two passphrases don't match." }));
+          return;
+        }
+        await noteVault.createVault(passVal);
+      } else {
+        const ok = await noteVault.unlockVault(passVal);
+        if (!ok) {
+          setPassModal((m) => ({ ...m, error: "That passphrase didn't work." }));
+          return;
+        }
+      }
+    } catch {
+      setPassModal((m) => ({ ...m, error: "Something went wrong. Please try again." }));
+      return;
+    }
+    setHasVault(true);
+    setVaultReady(true);
+    setPassModal(null);
+    const pend = pendingLockId.current;
+    pendingLockId.current = null;
+    if (pend) lockNoteNow(pend);
+  };
+
+  const closePass = () => {
+    pendingLockId.current = null;
+    setPassModal(null);
+  };
+
+  const selectedNote = selectedNoteObj;
+  const selectedLocked = selectedNote?.locked;
+  const selectedDecrypted = selectedNote ? decrypted[selectedNote.id] : null;
+  // A locked note we can't read yet: show the unlock screen instead of the editor.
+  const showLockedScreen = selectedLocked && !selectedDecrypted;
+  const editorAttachments = selectedNote ? contentOf(selectedNote).attachments : [];
 
   return (
     <>
@@ -323,6 +581,17 @@ export default function Notes({
             )}
           </div>
 
+          {hasVault && vaultReady && (
+            <button
+              type="button"
+              className="btn ghost sm notes-relock"
+              onClick={relockVault}
+              title="Lock your encrypted notes now (you'll re-enter the passphrase to read them)"
+            >
+              <Icon.Lock width={13} height={13} /> Lock notes now
+            </button>
+          )}
+
           {sortedNotes.length === 0 ? (
             <div className="notes-empty">
               {notes.length === 0 ? (
@@ -346,7 +615,9 @@ export default function Notes({
           ) : (
             <div className="notes-list">
               {sortedNotes.map((n) => {
-                const preview = notePreview(n.text);
+                const lockedHidden = n.locked && !decrypted[n.id];
+                const c = contentOf(n);
+                const preview = notePreview(c.text);
                 return (
                   <button
                     type="button"
@@ -357,9 +628,24 @@ export default function Notes({
                     onClick={() => selectNote(n.id)}
                   >
                     <div className="note-item-main">
-                      <div className="note-item-title">{noteTitle(n.text)}</div>
+                      <div className="note-item-title">
+                        {n.locked && (
+                          <Icon.Lock
+                            width={12}
+                            height={12}
+                            style={{ marginRight: 5, verticalAlign: "-1px", opacity: 0.7 }}
+                          />
+                        )}
+                        {lockedHidden ? "Locked note" : noteTitle(c.text)}
+                      </div>
                       <div className="note-item-preview">
-                        {preview || (
+                        {lockedHidden ? (
+                          <span style={{ color: "var(--ink-4)" }}>
+                            Locked — unlock to read
+                          </span>
+                        ) : preview ? (
+                          preview
+                        ) : (
                           <span style={{ color: "var(--ink-4)" }}>
                             No additional text
                           </span>
@@ -396,7 +682,43 @@ export default function Notes({
 
         {/* Editor pane */}
         <div className="notes-editor-pane">
-          {selectedNote ? (
+          {!selectedNote ? (
+            <div className="notes-editor-placeholder">
+              <span className="notes-empty-ic">
+                <Icon.Pencil />
+              </span>
+              <div className="notes-empty-title">Pick a note, or start a new one</div>
+              <div className="notes-empty-sub">
+                Your thoughts save automatically as you type.
+              </div>
+            </div>
+          ) : showLockedScreen ? (
+            <div className="notes-editor card notes-locked-screen">
+              <button
+                type="button"
+                className="btn ghost sm notes-back-btn"
+                onClick={backToList}
+                title="Back to notes"
+              >
+                <Icon.Arrow
+                  width={14}
+                  height={14}
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                Notes
+              </button>
+              <span className="notes-locked-ic">
+                <Icon.Lock width={26} height={26} />
+              </span>
+              <div className="notes-empty-title">This note is locked</div>
+              <div className="notes-empty-sub">
+                Enter your passphrase to read and edit it.
+              </div>
+              <button type="button" className="btn primary" onClick={requestUnlock}>
+                Unlock
+              </button>
+            </div>
+          ) : (
             <div className="notes-editor card">
               <div className="notes-editor-head">
                 <button
@@ -433,6 +755,27 @@ export default function Notes({
                 >
                   <Icon.Plus width={15} height={15} />
                 </button>
+                {selectedLocked ? (
+                  <button
+                    type="button"
+                    className="iconbtn"
+                    title="Remove lock (decrypt this note back to normal)"
+                    onClick={() => removeLock(selectedNote.id)}
+                    style={{ color: "var(--accent-ink, var(--accent))" }}
+                  >
+                    <Icon.Lock width={15} height={15} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="iconbtn"
+                    title="Lock this note (encrypt with your passphrase)"
+                    onClick={() => requestLock(selectedNote.id)}
+                    style={{ color: "var(--ink-3)" }}
+                  >
+                    <Icon.Lock width={15} height={15} />
+                  </button>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -454,6 +797,13 @@ export default function Notes({
                   <Icon.Trash width={15} height={15} />
                 </button>
               </div>
+
+              {selectedLocked && (
+                <div className="notes-locked-banner">
+                  <Icon.Lock width={12} height={12} /> Encrypted — readable only with
+                  your passphrase.
+                </div>
+              )}
 
               {songOpen && (
                 <div className="notes-song">
@@ -500,9 +850,9 @@ export default function Notes({
               />
 
               {attachMsg && <p className="notes-attach-msg" role="alert">{attachMsg}</p>}
-              {(selectedNote.attachments || []).length > 0 && (
+              {editorAttachments.length > 0 && (
                 <div className="notes-attach-strip">
-                  {(selectedNote.attachments || []).map((a) => (
+                  {editorAttachments.map((a) => (
                     <span key={a.id} className="notes-attach">
                       <img src={a.dataUrl} alt="attachment" onClick={() => setViewImg(a.dataUrl)} />
                       <button
@@ -517,16 +867,6 @@ export default function Notes({
                 </div>
               )}
             </div>
-          ) : (
-            <div className="notes-editor-placeholder">
-              <span className="notes-empty-ic">
-                <Icon.Pencil />
-              </span>
-              <div className="notes-empty-title">Pick a note, or start a new one</div>
-              <div className="notes-empty-sub">
-                Your thoughts save automatically as you type.
-              </div>
-            </div>
           )}
         </div>
       </div>
@@ -534,6 +874,74 @@ export default function Notes({
       {viewImg && (
         <div className="notes-lightbox" role="presentation" onClick={() => setViewImg(null)}>
           <img src={viewImg} alt="attachment enlarged" />
+        </div>
+      )}
+
+      {passModal && (
+        <div className="notes-lightbox" role="presentation" onClick={closePass}>
+          <div
+            className="notes-pass card"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="notes-pass-title">
+              {passModal.mode === "create" ? "Set a notes passphrase" : "Unlock your notes"}
+            </div>
+            <p className="notes-pass-sub">
+              {passModal.mode === "create"
+                ? "This passphrase encrypts the note so only you can read it. If you forget it, the note can't be recovered — there is no reset."
+                : "Enter your passphrase to unlock your locked notes for this session."}
+            </p>
+
+            <div className="notes-pass-field">
+              <input
+                type={showPass ? "text" : "password"}
+                className="input"
+                autoFocus
+                placeholder="Passphrase"
+                value={passVal}
+                onChange={(e) => setPassVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && passModal.mode !== "create") submitPass();
+                }}
+              />
+              <button
+                type="button"
+                className="iconbtn"
+                title={showPass ? "Hide passphrase" : "Show passphrase"}
+                onClick={() => setShowPass((s) => !s)}
+              >
+                {showPass ? <Icon.EyeOff /> : <Icon.Eye />}
+              </button>
+            </div>
+
+            {passModal.mode === "create" && (
+              <input
+                type={showPass ? "text" : "password"}
+                className="input notes-pass-confirm"
+                placeholder="Confirm passphrase"
+                value={passConfirm}
+                onChange={(e) => setPassConfirm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitPass();
+                }}
+              />
+            )}
+
+            {passModal.error && (
+              <p className="notes-attach-msg" role="alert">{passModal.error}</p>
+            )}
+
+            <div className="notes-pass-actions">
+              <button type="button" className="btn ghost" onClick={closePass}>
+                Cancel
+              </button>
+              <button type="button" className="btn primary" onClick={submitPass}>
+                {passModal.mode === "create" ? "Set & lock" : "Unlock"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -21,6 +21,8 @@ import NextBadge from "../widgets/NextBadge.jsx";
 import GoalLoad from "../widgets/GoalLoad.jsx";
 import ResumeThread from "../widgets/ResumeThread.jsx";
 import SleepCard from "../widgets/SleepCard.jsx";
+import LastActivityCard from "../widgets/LastActivityCard.jsx";
+import ScreenTimeCard from "../widgets/ScreenTimeCard.jsx";
 import { Icon } from "../components/Icons.jsx";
 
 // Rotating late-night greetings for the 12am–4:59am crowd. Kept gentle and
@@ -58,6 +60,8 @@ function prettyDate() {
 // wall, and walls get avoided — the exact overwhelm this app exists to
 // reduce. Everything stays one Customize-tap away; nothing is deleted.
 const HOME_WIDGETS = [
+  { id: "lastactivity", label: "Just did something?" },
+  { id: "screentime", label: "Screen check-ins" },
   { id: "sleep", label: "Sleep" },
   { id: "showupweek", label: "Your week" },
   { id: "winddown", label: "Evening wind-down" },
@@ -112,6 +116,9 @@ export default function Home({
   sleepLog = [],
   onLogSleep,
   onOpenSleep,
+  activities = [],
+  addActivity,
+  onLogActivity,
 }) {
   const [reviewDates, setReviewDates] = useState({});
 
@@ -447,6 +454,8 @@ export default function Home({
             focusLog={focusLog}
             workouts={workouts}
             journal={journal}
+            activities={activities}
+            sleepLog={sleepLog}
             addJournalEntry={addJournalEntry}
           />
         )}
@@ -459,6 +468,14 @@ export default function Home({
           habitsSummaryOnMobile
           onOpenHabits={onGoToHabits}
         />
+
+        {show("lastactivity") && (
+          <LastActivityCard
+            activities={activities}
+            onLogActivity={onLogActivity}
+            onOpenDay={onOpenDay}
+          />
+        )}
 
         {show("upnext") && (
           <UpNext
@@ -494,6 +511,9 @@ export default function Home({
         {show("sleep") && (
           <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
         )}
+        {show("screentime") && (
+          <ScreenTimeCard activities={activities} addActivity={addActivity} />
+        )}
         {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
         {show("nextbadge") && (
           <NextBadge
@@ -509,6 +529,7 @@ export default function Home({
             focusLog={focusLog}
             scheduledWorkouts={scheduledWorkouts}
             dayBlocks={dayBlocks}
+            activities={activities}
             onOpenWorkout={onOpenWorkout}
             onOpenAlarms={onOpenAlarms}
           />
@@ -546,6 +567,13 @@ export default function Home({
 
         {/* Right column - secondary info */}
         <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          {show("lastactivity") && (
+            <LastActivityCard
+              activities={activities}
+              onLogActivity={onLogActivity}
+              onOpenDay={onOpenDay}
+            />
+          )}
           {show("winddown") && (
             <WindDown
               tasks={tasks}
@@ -553,6 +581,8 @@ export default function Home({
               focusLog={focusLog}
               workouts={workouts}
               journal={journal}
+              activities={activities}
+              sleepLog={sleepLog}
               addJournalEntry={addJournalEntry}
             />
           )}
@@ -568,6 +598,9 @@ export default function Home({
           {show("sleep") && (
             <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
           )}
+          {show("screentime") && (
+            <ScreenTimeCard activities={activities} addActivity={addActivity} />
+          )}
           {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
           {show("nextbadge") && (
             <NextBadge
@@ -582,6 +615,7 @@ export default function Home({
               alarms={alarms}
               focusLog={focusLog}
               scheduledWorkouts={scheduledWorkouts}
+              activities={activities}
               onOpenWorkout={onOpenWorkout}
               onOpenAlarms={onOpenAlarms}
             />

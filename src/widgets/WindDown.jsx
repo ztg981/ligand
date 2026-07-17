@@ -3,12 +3,15 @@ import { Icon } from "../components/Icons.jsx";
 import { todayKey, shiftDay } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { collectDayWins, winLines } from "../lib/dayWins.js";
+import DayStory from "../components/DayStory.jsx";
 
 /* WindDown — the evening "end your day feeling successful" card (the best
    idea in Sunsama, rebuilt in Ligand's voice).
 
    From 5pm the card lists what you ACTUALLY did today — cleared tasks, habit
-   check-ins, focus minutes, workouts, journal — each with a spring-in check.
+   check-ins, focus minutes, workouts, journal — each with a spring-in check —
+   and replays the day's logged story (activities, workouts, meals) as chips,
+   so the reflection line has the whole day in front of it.
    One button closes the day: an optional one-line reflection saved to the
    journal, then the card settles into a quiet "day closed" state until
    tomorrow. Quiet days get gentle wording, never a guilt trip. */
@@ -21,6 +24,8 @@ export default function WindDown({
   focusLog = [],
   workouts = [],
   journal = [],
+  activities = [],
+  sleepLog = [],
   addJournalEntry,
   now = new Date(),
 }) {
@@ -108,6 +113,18 @@ export default function WindDown({
           A quiet day. Those count too — showing up tomorrow is what matters.
         </p>
       )}
+
+      {/* The day in review: everything logged today, replayed as chips.
+         Reading the shape of the day back is often all the reflection
+         prompt below needs. */}
+      <DayStory
+        compact
+        activities={activities}
+        workouts={workouts}
+        focusLog={focusLog}
+        sleepLog={sleepLog}
+        date={today}
+      />
 
       {reflecting ? (
         <div className="winddown-reflect">

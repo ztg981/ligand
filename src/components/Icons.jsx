@@ -70,6 +70,12 @@ export const Icon = {
     </>
   ),
   Moon: make(<path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z" />),
+  Phone: make(
+    <>
+      <rect x="4.5" y="1.5" width="7" height="13" rx="1.5" />
+      <path d="M7 12.5h2" />
+    </>
+  ),
   Play: make(<path d="M5 3.5v9l7-4.5-7-4.5z" fill="currentColor" />),
   Pause: make(
     <>

@@ -113,6 +113,7 @@ export default function WorkoutTab({
   addMeal,
   removeMeal,
   addWater,
+  onLogSport = null, // open the global activity sheet preset to sports
 }) {
   const isMobile = useIsMobile(768);
   const [view, setView] = useState("hub"); // hub | progress | browse
@@ -567,6 +568,7 @@ export default function WorkoutTab({
           onStart={onStartWorkout}
           onGenerate={onGenerate}
           onLogFree={startFree}
+          onLogSport={onLogSport}
           weekCount={weekCount}
           target={target}
           streak={streak}
@@ -635,6 +637,21 @@ export default function WorkoutTab({
                     <span className="fit-start-opt-desc">Add exercises as you go.</span>
                   </span>
                 </button>
+                {onLogSport && (
+                  <button
+                    className="fit-start-opt"
+                    onClick={() => {
+                      setChoosing(false);
+                      onLogSport();
+                    }}
+                  >
+                    <span className="fit-start-opt-ic"><Icon.Spark /></span>
+                    <span className="fit-start-opt-text">
+                      <span className="fit-start-opt-name">Log a sport</span>
+                      <span className="fit-start-opt-desc">Tennis, basketball, a hike — it all counts.</span>
+                    </span>
+                  </button>
+                )}
                 {templates.length > 0 && <div className="fit-start-sep">From a template</div>}
                 {templates.map((t) => (
                   <button key={t.id} className="fit-start-opt" onClick={() => startFromTemplate(t)}>

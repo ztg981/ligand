@@ -1,0 +1,328 @@
+.chatgpt-access-card {
+  display: block;
+}
+
+.assistant-center-head {
+  align-items: flex-start;
+}
+
+.assistant-center-head p {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.chatgpt-access-status {
+  color: var(--ink-3);
+  flex: none;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.chatgpt-access-status.connected {
+  color: var(--success, #287a54);
+}
+
+.assistant-center-tabs {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 9px 0 12px;
+  padding: 3px;
+}
+
+.assistant-center-tabs button {
+  background: transparent;
+  border: 0;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 11px;
+  min-height: 30px;
+}
+
+.assistant-center-tabs button.active {
+  background: var(--panel);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink-1) 10%, transparent);
+  color: var(--ink-1);
+  font-weight: 700;
+}
+
+.assistant-center-panel,
+.assistant-draft-list,
+.assistant-review-list,
+.assistant-activity-list {
+  display: grid;
+  gap: 8px;
+}
+
+.assistant-center-panel h3 {
+  font-size: 11px;
+  margin: 3px 0 0;
+  text-transform: uppercase;
+}
+
+.assistant-plan-row,
+.assistant-privacy-boundary {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.assistant-plan-row > div,
+.assistant-privacy-boundary > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assistant-plan-row strong,
+.assistant-privacy-boundary strong {
+  font-size: 12px;
+}
+
+.assistant-plan-row span,
+.assistant-privacy-boundary span {
+  color: var(--ink-3);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.assistant-privacy-boundary {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.assistant-privacy-boundary > svg {
+  flex: none;
+  height: 16px;
+  margin-top: 1px;
+  width: 16px;
+}
+
+.assistant-privacy-boundary.compact {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+.assistant-empty {
+  align-items: center;
+  color: var(--ink-3);
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  padding: 15px 8px;
+  text-align: center;
+}
+
+.assistant-empty svg {
+  height: 18px;
+  width: 18px;
+}
+
+.assistant-empty strong {
+  color: var(--ink-1);
+  font-size: 12px;
+}
+
+.assistant-empty span {
+  font-size: 10.5px;
+}
+
+.assistant-draft {
+  border: 1px solid var(--border);
+  padding: 10px;
+}
+
+.assistant-draft-head,
+.assistant-draft-actions,
+.chatgpt-access-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.assistant-draft-head {
+  justify-content: space-between;
+}
+
+.assistant-draft-head > div {
+  display: grid;
+  gap: 1px;
+}
+
+.assistant-draft-head strong {
+  font-size: 12px;
+}
+
+.assistant-draft-head span,
+.assistant-draft-status {
+  color: var(--ink-3);
+  font-size: 10px;
+}
+
+.assistant-draft-status {
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  text-transform: capitalize;
+}
+
+.assistant-draft-status.pending {
+  color: var(--accent-ink, var(--accent));
+}
+
+.assistant-draft-status.applied {
+  color: var(--success, #287a54);
+}
+
+.assistant-draft ol {
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.assistant-draft-actions {
+  justify-content: flex-end;
+}
+
+.assistant-review-section {
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 7px;
+  margin-top: 3px;
+  padding-top: 9px;
+}
+
+.assistant-review-row,
+.assistant-activity-list > div {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 9px;
+  justify-content: space-between;
+  padding-top: 8px;
+}
+
+.assistant-review-row:first-child,
+.assistant-activity-list > div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.assistant-review-row > div,
+.assistant-activity-list > div > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assistant-review-row strong,
+.assistant-activity-list strong {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.assistant-review-row span,
+.assistant-activity-list span {
+  color: var(--ink-3);
+  font-size: 10.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.assistant-activity-list > div {
+  justify-content: flex-start;
+}
+
+.assistant-activity-dot {
+  background: var(--ink-4);
+  border-radius: 50%;
+  flex: none;
+  height: 7px;
+  width: 7px;
+}
+
+.assistant-activity-dot.write {
+  background: var(--accent);
+}
+
+.chatgpt-access-goals {
+  border: 0;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.chatgpt-access-goals legend {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 650;
+  margin-bottom: 7px;
+}
+
+.chatgpt-access-goals label {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-height: 31px;
+}
+
+.chatgpt-access-goals input {
+  flex: 0 0 auto;
+}
+
+.chatgpt-access-unassigned {
+  border-top: 1px solid var(--border);
+  margin-top: 5px;
+  padding-top: 5px;
+}
+
+.chatgpt-access-capabilities {
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+  padding-top: 9px;
+}
+
+.chatgpt-access-actions {
+  margin-top: 10px;
+}
+
+.chatgpt-access-note,
+.chatgpt-access-message,
+.chatgpt-access-error {
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.chatgpt-access-note {
+  color: var(--ink-3);
+}
+
+.chatgpt-access-message {
+  color: var(--success, #287a54);
+}
+
+.chatgpt-access-error {
+  color: var(--danger, #b4234f);
+}
+
+@media (max-width: 520px) {
+  .assistant-plan-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assistant-plan-row .btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

@@ -5,6 +5,7 @@ import { ACCENTS } from "../theme/useTweaks.js";
 import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { downloadBackup } from "../lib/backup.js";
+import ChatGPTAccessPanel from "../components/ChatGPTAccessPanel.jsx";
 import pkg from "../../package.json";
 
 /* MobileSettings - a simplified, phone-focused settings list shown instead of
@@ -56,6 +57,7 @@ export default function MobileSettings({
   requestNotifyPermission,
   notifyPermission = "default",
   accountEmail = null,
+  goals = [],
   onSignOut,
   onRequestAuth,
   alarms = [],
@@ -304,6 +306,8 @@ export default function MobileSettings({
             onTest={onTestAlarm}
           />
         </div>
+
+        <ChatGPTAccessPanel goals={goals} />
 
         {/* Account */}
         <Section icon={<Icon.Cloud />} title="Account">

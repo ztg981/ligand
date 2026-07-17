@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import GoalDropdown from "../components/GoalDropdown.jsx";
+import PopoverPortal from "../components/PopoverPortal.jsx";
 import { useDropdown } from "../hooks/useDropdown.js";
 import {
   DndContext,
@@ -108,6 +109,7 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear, onOpen
       </button>
 
       {open && (
+        <PopoverPortal anchorRef={triggerRef}>
         <div className="notif-pop" ref={menuRef} role="menu">
           <div className="notif-pop-head">
             <span>Notifications</span>
@@ -163,6 +165,7 @@ function NotificationBell({ items = [], unreadCount = 0, onOpen, onClear, onOpen
             </button>
           )}
         </div>
+        </PopoverPortal>
       )}
     </div>
   );
@@ -194,6 +197,7 @@ function ThemeMenu({ theme, themeChoice, setThemeChoice }) {
         {themeChoice === "auto" && <span className="theme-auto-dot" aria-hidden="true" />}
       </button>
       {open && (
+        <PopoverPortal anchorRef={triggerRef}>
         <div className="notif-pop theme-pop" ref={menuRef} role="menu">
           {OPTIONS.map((o) => (
             <button
@@ -212,6 +216,7 @@ function ThemeMenu({ theme, themeChoice, setThemeChoice }) {
             </button>
           ))}
         </div>
+        </PopoverPortal>
       )}
     </div>
   );
@@ -228,7 +233,6 @@ function AvatarMenu({
   onOpenSettings,
   onOpenDay,
   onOpenPomodoro,
-  onOpenJournal,
   onOpenSleep,
   onOpenAlarms,
   onOpenBadges,
@@ -270,6 +274,7 @@ function AvatarMenu({
       </button>
 
       {open && (
+        <PopoverPortal anchorRef={triggerRef}>
         <div className="avatar-pop" ref={menuRef} role="menu">
             <div className="avatar-pop-head">
               <span className="avatar-pop-ic" style={{ background: AVATAR_BG }}>
@@ -314,18 +319,6 @@ function AvatarMenu({
               }}
             >
               <Icon.Timer /> Pomodoro
-            </button>
-
-            {/* Journal moved off the phone bottom bar to make room for Workout;
-               it lives here on mobile (hidden on desktop, where it's a top tab). */}
-            <button
-              className="avatar-menu-item avatar-menu-mobile-only"
-              onClick={() => {
-                onOpenJournal?.();
-                close();
-              }}
-            >
-              <Icon.Book /> Journal
             </button>
 
             {/* Sleep is a top tab on desktop; on the phone (where the diary is
@@ -446,6 +439,7 @@ function AvatarMenu({
               </div>
             )}
         </div>
+        </PopoverPortal>
       )}
     </div>
   );
@@ -509,13 +503,13 @@ const TOOLS = [
   { id: "settings", label: "Settings", icon: <Icon.Gear /> },
 ];
 
-// The phone bottom tab bar only has room for ~5 comfortable targets, so it
-// shows the tabs people actually reach for one-handed: capturing a task or
-// note, checking in on a habit, reviewing goals. Pomodoro (a sit-down focus
-// session) and Settings (infrequent) move to the avatar overflow menu
-// instead of crowding the bar - both still one tap away, just not in the
-// thumb zone.
-const BOTTOM_NAV_IDS = ["home", "habits", "tasks", "workout", "notes"];
+// The phone bottom tab bar: the tabs people actually reach for one-handed.
+// Six is the ceiling — labels stay legible at 375px because they're 10px and
+// the items flex evenly. Journal is back in the bar (it kept getting lost in
+// the avatar menu, and the activity log made it a daily surface again).
+// Pomodoro (a sit-down focus session) and Settings (infrequent) stay in the
+// avatar overflow menu - one tap away, just not in the thumb zone.
+const BOTTOM_NAV_IDS = ["home", "habits", "tasks", "workout", "journal", "notes"];
 
 /* A pill group whose active highlight SLIDES between items (iOS / Claude-app
    style). We measure the active button's box and translate a single indicator
@@ -800,7 +794,6 @@ export default function TopNav({
             onOpenSettings={onOpenSettings}
             onOpenDay={() => setTab("day")}
             onOpenPomodoro={() => setTab("pomodoro")}
-            onOpenJournal={() => setTab("journal")}
             onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}
             onOpenBadges={onOpenBadges}

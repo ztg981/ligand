@@ -45,14 +45,20 @@ create policy "user_data_select_own"
   on public.user_data
   for select
   to authenticated
-  using ((select auth.uid()) = user_id);
+  using (
+    (select auth.uid()) = user_id
+    and (select auth.jwt() ->> 'client_id') is null
+  );
 
 -- INSERT: you may only insert a row that belongs to you.
 create policy "user_data_insert_own"
   on public.user_data
   for insert
   to authenticated
-  with check ((select auth.uid()) = user_id);
+  with check (
+    (select auth.uid()) = user_id
+    and (select auth.jwt() ->> 'client_id') is null
+  );
 
 -- UPDATE: you may only update your own row, and may not reassign it
 -- to someone else (both USING and WITH CHECK pin user_id to auth.uid()).
@@ -60,15 +66,24 @@ create policy "user_data_update_own"
   on public.user_data
   for update
   to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
+  using (
+    (select auth.uid()) = user_id
+    and (select auth.jwt() ->> 'client_id') is null
+  )
+  with check (
+    (select auth.uid()) = user_id
+    and (select auth.jwt() ->> 'client_id') is null
+  );
 
 -- DELETE: only your own row.
 create policy "user_data_delete_own"
   on public.user_data
   for delete
   to authenticated
-  using ((select auth.uid()) = user_id);
+  using (
+    (select auth.uid()) = user_id
+    and (select auth.jwt() ->> 'client_id') is null
+  );
 
 -- Optional but recommended: keep updated_at fresh on every write.
 -- (The app also sets updated_at explicitly, so this is belt-and-suspenders.)

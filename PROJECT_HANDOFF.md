@@ -135,6 +135,48 @@ a property test asserts triage copy contains no shame words.
 - Anti-orthosomnia rule: no scores, no verdicts, short nights described
   never judged (property test in test/sleep.test.mjs).
 
+### Activity log — the universal "what did I just do?" system (added 2026-07-16)
+
+Built for "replace the doomscroll with the app": every phone pickup can
+become a 5-second log instead of a feed. All local-first, synced via the
+ligand.data blob.
+
+- **Data**: `activities` in ligand.data (`createActivity` in model.js):
+  { title, category, date, endTime "HH:MM", durationMin, feel, note,
+  linkType/linkId }. Categories + FEELS + pure helpers in
+  `src/lib/activities.js` (tested, incl. a no-shame property test —
+  `feel` describes what the time did FOR you, never a verdict).
+- **ActivityLogSheet** (`components/ActivityLogSheet.jsx`): the quick
+  logger — category chips w/ one-tap quick picks (Tennis, Scrolling…),
+  duration presets, "ended at", feel chips, optional note. Mobile bottom
+  sheet / desktop modal. Opened from: Home card, Day tab (any date),
+  Journal, Quick Add's Activity chip, Workout tab, ⌘K palette.
+- **Sports count as workouts**: sport logs default to "count as a
+  workout" — App's handleSaveActivity writes a linked cardio workout
+  (feeds week count/streak; shows in Workout Recent). Deleting the
+  activity deletes the mirrored workout (useStore.removeActivity).
+  Sports also live in the exercise library (muscleGroup `"sport"`,
+  deliberately NOT in MUSCLE_GROUPS so the gym generator never suggests
+  "Tennis 3×8"); `SPORTS` export + a Sports filter in ExerciseBrowser.
+- **Day story** (`components/DayStory.jsx`): the Day tab's reality track —
+  merges activities + workouts + focus + journal + meals + wake time into
+  one chronological timeline per date (buildDayStory, dedupes mirrored
+  workouts) with a summary strip (Xm moving / focused / resting /
+  scrolling). Works with the existing ‹ › date nav = "what did I do
+  yesterday?". Compact chips variant used in Journal (compose memory-jog
+  + per-entry "that day I…" chips).
+- **Home**: LastActivityCard ("Just did something?" — last log + big log
+  button, the phone-check landing pad) and ScreenTimeCard (self-noticed
+  scroll time: +15m/+30m/+1h check-ins, 7-day bars, sleep-diary-style
+  no-judgment copy). Both in the Customize list. DayRing paints logged
+  activities as category-colored arcs (real data only).
+- **Day in review**: WindDown (the 5pm+ card) replays the day's story as
+  compact chips above the "Close the day" one-line reflection, so the
+  reflection has the whole day in front of it.
+- **Phone nav**: Journal is BACK in the bottom tab bar (6 tabs: home,
+  habits, tasks, workout, journal, notes — active-pill padding tightened
+  to fit 375px). Its avatar-menu entry was removed as redundant.
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

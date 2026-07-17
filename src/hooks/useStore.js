@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
 import { taskDone, habitDone } from "../lib/uiSounds.js";
+import { queueTaskDelete, queueTaskUpsert } from "../lib/taskRecordSync.js";
 import {
   seedData,
   createGoal,
@@ -16,6 +17,7 @@ import {
   createFitnessProfile,
   createMeal,
   createDayBlock,
+  createActivity,
   createSong,
   shiftDay,
   todayKey,
@@ -41,20 +43,24 @@ export function useStore() {
   // The updater returns the same object when nothing changed, so this is inert
   // (no re-render, no sync echo) on the common path.
   useEffect(() => {
-    const runReset = () =>
-      setData((d) => {
-        if (!d.tasks || !d.tasks.some((t) => recurringResetDue(t))) return d;
-        return {
-          ...d,
-          tasks: d.tasks.map((t) =>
-            recurringResetDue(t) ? { ...t, done: false, completedOn: null } : t
-          ),
-        };
-      });
+    const runReset = () => {
+      const due = (data.tasks || []).filter((task) => recurringResetDue(task));
+      if (!due.length) return;
+      due.forEach((task) => queueTaskUpsert(task.id, task.version));
+      const updatedAt = new Date().toISOString();
+      setData((d) => ({
+        ...d,
+        tasks: d.tasks.map((t) =>
+          recurringResetDue(t)
+            ? { ...t, done: false, completedOn: null, updatedAt }
+            : t
+        ),
+      }));
+    };
     runReset();
     window.addEventListener("focus", runReset);
     return () => window.removeEventListener("focus", runReset);
-  }, [setData]);
+  }, [data.tasks, setData]);
 
   // -- goals -----------------------------------------------------
   const addGoal = useCallback(
@@ -142,19 +148,24 @@ export function useStore() {
   // Permanent delete (used from the archive). Also drops the goal's tasks;
   // its habits live inside the goal object, so they go with it.
   const removeGoal = useCallback(
-    (id) =>
+    (id) => {
+      data.tasks
+        .filter((task) => task.goalId === id)
+        .forEach((task) => queueTaskDelete(task.id, task.version));
       setData((d) => ({
         ...d,
         goals: d.goals.filter((g) => g.id !== id),
         tasks: d.tasks.filter((t) => t.goalId !== id),
-      })),
-    [setData]
+      }));
+    },
+    [data.tasks, setData]
   );
 
   // -- tasks -----------------------------------------------------
   const addTask = useCallback(
     (opts) => {
       const task = createTask(opts);
+      queueTaskUpsert(task.id, task.version);
       setData((d) => ({ ...d, tasks: [...d.tasks, task] }));
       return task;
     },
@@ -162,12 +173,17 @@ export function useStore() {
   );
 
   const updateTask = useCallback(
-    (id, patch) =>
+    (id, patch) => {
+      const task = data.tasks.find((candidate) => candidate.id === id);
+      if (task) queueTaskUpsert(id, task.version);
       setData((d) => ({
         ...d,
-        tasks: d.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-      })),
-    [setData]
+        tasks: d.tasks.map((t) =>
+          t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t
+        ),
+      }));
+    },
+    [data.tasks, setData]
   );
 
   const toggleTask = useCallback(
@@ -177,6 +193,9 @@ export function useStore() {
       // stay pure (StrictMode invokes them twice, which double-fired the sound).
       const wasUndone = data.tasks.some((t) => t.id === id && !t.done);
       if (wasUndone) taskDone();
+      const task = data.tasks.find((candidate) => candidate.id === id);
+      if (task) queueTaskUpsert(id, task.version);
+      const updatedAt = new Date().toISOString();
       setData((d) => ({
         ...d,
         tasks: d.tasks.map((t) =>
@@ -187,6 +206,7 @@ export function useStore() {
                 // Record when a recurring task was completed so it can reset on
                 // its next occurrence; clear it when un-completing.
                 completedOn: !t.done ? todayKey() : null,
+                updatedAt,
               }
             : t
         ),
@@ -196,9 +216,12 @@ export function useStore() {
   );
 
   const removeTask = useCallback(
-    (id) =>
-      setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) })),
-    [setData]
+    (id) => {
+      const task = data.tasks.find((candidate) => candidate.id === id);
+      if (task) queueTaskDelete(id, task.version);
+      setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) }));
+    },
+    [data.tasks, setData]
   );
 
   // -- habits (live inside a goal) -------------------------------
@@ -559,7 +582,14 @@ export function useStore() {
       setData((d) => ({
         ...d,
         dayBlocks: (d.dayBlocks || []).map((b) =>
-          b.id === id ? { ...b, ...patch, updatedAt: new Date().toISOString() } : b
+          b.id === id
+            ? {
+                ...b,
+                ...patch,
+                version: Math.max(1, Number(b.version) || 1) + 1,
+                updatedAt: new Date().toISOString(),
+              }
+            : b
         ),
       })),
     [setData]
@@ -571,6 +601,47 @@ export function useStore() {
         ...d,
         dayBlocks: (d.dayBlocks || []).filter((b) => b.id !== id),
       })),
+    [setData]
+  );
+
+  // -- activities (universal "what did I just do?" log) -----------
+  const addActivity = useCallback(
+    (opts) => {
+      const activity = opts && opts.id ? opts : createActivity(opts);
+      setData((d) => ({ ...d, activities: [activity, ...(d.activities || [])] }));
+      return activity;
+    },
+    [setData]
+  );
+
+  const updateActivity = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        activities: (d.activities || []).map((a) =>
+          a.id === id ? { ...a, ...patch } : a
+        ),
+      })),
+    [setData]
+  );
+
+  // Deleting an activity also deletes the workout it mirrors (a sport logged
+  // "as a workout") — that record only exists as the activity's shadow, and
+  // leaving it behind would resurface the same session in day views.
+  const removeActivity = useCallback(
+    (id) =>
+      setData((d) => {
+        const target = (d.activities || []).find((a) => a.id === id);
+        const linkedWorkoutId =
+          target?.linkType === "workout" ? target.linkId : null;
+        return {
+          ...d,
+          activities: (d.activities || []).filter((a) => a.id !== id),
+          workouts: linkedWorkoutId
+            ? (d.workouts || []).filter((w) => w.id !== linkedWorkoutId)
+            : d.workouts,
+        };
+      }),
     [setData]
   );
 
@@ -624,7 +695,10 @@ export function useStore() {
   );
 
   // -- escape hatch / reset --------------------------------------
-  const resetData = useCallback(() => setData(seedData()), [setData]);
+  const resetData = useCallback(() => {
+    data.tasks.forEach((task) => queueTaskDelete(task.id, task.version));
+    setData(seedData());
+  }, [data.tasks, setData]);
 
   // -- goal order (display only, does not affect goal IDs/data) ---
   // goalOrder is an array of goal IDs in the desired display order.
@@ -698,6 +772,9 @@ export function useStore() {
       addDayBlock,
       updateDayBlock,
       deleteDayBlock,
+      addActivity,
+      updateActivity,
+      removeActivity,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -750,6 +827,9 @@ export function useStore() {
       addDayBlock,
       updateDayBlock,
       deleteDayBlock,
+      addActivity,
+      updateActivity,
+      removeActivity,
       updateFitnessProfile,
       addSong,
       updateSong,
@@ -776,6 +856,7 @@ export function useStore() {
     meals: data.meals || [],
     waterLog: data.waterLog || {},
     dayBlocks: data.dayBlocks || [],
+    activities: data.activities || [],
     songLog: data.songLog || [],
     ...actions,
   };

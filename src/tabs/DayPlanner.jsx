@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "../components/Icons.jsx";
 import DayDial from "../components/DayDial.jsx";
+import DayStory from "../components/DayStory.jsx";
+import AssistantReviewPanel from "../components/AssistantReviewPanel.jsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { todayKey, shiftDay } from "../lib/model.js";
@@ -30,15 +33,15 @@ const DEFAULT_PREFS = {
   showAlarms: true,
 };
 
-function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew }) {
+function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobile = false }) {
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const valid =
     draft.title.trim() &&
     hhmmToMinutes(draft.startHH) != null &&
     hhmmToMinutes(draft.endHH) != null &&
     hhmmToMinutes(draft.endHH) > hhmmToMinutes(draft.startHH);
-  return (
-    <div className="card dp-editor">
+  const body = (
+    <>
       <div className="card-head">
         <div className="card-title">
           <Icon.Pencil /> {isNew ? "New block" : "Edit block"}
@@ -110,8 +113,38 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew }) {
           <Icon.Check width={13} height={13} /> {isNew ? "Add block" : "Save"}
         </button>
       </div>
-    </div>
+    </>
   );
+
+  // Phone: the editor rises as a bottom sheet (the platform-native "edit this
+  // thing" gesture), instead of rendering somewhere below the fold — the old
+  // behavior made tapping a dial block look like it did nothing.
+  if (isMobile) {
+    return createPortal(
+      <div
+        className="sheet-scrim quick-note-scrim"
+        role="presentation"
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div
+          className="bottom-sheet quick-note-sheet dp-editor-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label={isNew ? "New block" : "Edit block"}
+        >
+          <div className="sheet-drag-area">
+            <span className="sheet-handle" />
+          </div>
+          <div className="sheet-body dp-editor">{body}</div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  return <div className="card dp-editor">{body}</div>;
 }
 
 export default function DayPlanner({
@@ -125,6 +158,15 @@ export default function DayPlanner({
   scheduledWorkouts = [],
   alarms = [],
   onOpenWorkout,
+  activities = [],
+  workouts = [],
+  focusLog = [],
+  journal = [],
+  meals = [],
+  sleepLog = [],
+  removeActivity,
+  onLogActivity, // (dateKey) => void — open the activity sheet for this date
+  confirmBeforeDelete = true,
 }) {
   const isMobile = useIsMobile(768);
   const [date, setDate] = useState(todayKey);
@@ -249,8 +291,26 @@ export default function DayPlanner({
     [goals]
   );
 
+  // The reality track: what actually happened on this date, next to the plan.
+  // The ‹ › date nav above already answers "what did I do yesterday?".
+  const storyCard = (
+    <DayStory
+      date={date}
+      activities={activities}
+      workouts={workouts}
+      focusLog={focusLog}
+      journal={journal}
+      meals={meals}
+      sleepLog={sleepLog}
+      onLogActivity={onLogActivity ? () => onLogActivity(date) : null}
+      onRemoveActivity={removeActivity}
+      confirmBeforeDelete={confirmBeforeDelete}
+    />
+  );
+
   const sidePanel = (
     <div className="dp-side">
+      <AssistantReviewPanel />
       {draft && (
         <BlockEditor
           draft={draft}
@@ -262,6 +322,7 @@ export default function DayPlanner({
             setSelectedId(null);
           }}
           isNew={!draft.id}
+          isMobile={isMobile}
         />
       )}
 
@@ -311,6 +372,9 @@ export default function DayPlanner({
           </div>
         )}
       </div>
+
+      {/* What actually happened — the plan's reality mirror. */}
+      {storyCard}
 
       {/* Waiting to be placed */}
       {(unscheduledTasks.length > 0 || todaysWorkouts.length > 0 || habitChips.length > 0) && (
@@ -441,8 +505,9 @@ export default function DayPlanner({
           <div className="eyebrow">Planner</div>
           <h1 className="page-title">Your day, as a shape</h1>
           <p className="page-sub">
-            Drag empty ring to carve out time; drag a block to move it; click
-            to edit. Protected hours stay put.
+            {isMobile
+              ? "The plan up top, the real story below. Tap any block to edit it."
+              : "Drag empty ring to carve out time; drag a block to move it; click to edit. Protected hours stay put."}
           </p>
         </div>
         <div className="dp-nav">
@@ -462,7 +527,10 @@ export default function DayPlanner({
 
       {isMobile ? (
         <>
-          <div className="dp-mobile-dial">
+          {/* The dial as a compact, deliberate card — a glanceable clock face,
+             not a shrunken desktop editor. Editing happens in the list + sheet
+             below; tapping a block on the dial opens the same sheet. */}
+          <div className="card dp-mobile-dial">
             <DayDial
               date={date}
               isToday={isToday}
@@ -476,11 +544,20 @@ export default function DayPlanner({
               onSelect={openExisting}
               readOnly
             />
+            <div className="dp-mobile-dial-foot">
+              <span className="dp-mobile-dial-sum">
+                {blocks.length
+                  ? `${blocks.length} block${blocks.length === 1 ? "" : "s"} planned`
+                  : "Nothing planned yet"}
+              </span>
+              <button
+                className="btn primary sm"
+                onClick={() => openNew(placeFrom, placeFrom + 60)}
+              >
+                <Icon.Plus width={13} height={13} /> Add block
+              </button>
+            </div>
           </div>
-          <p className="dp-mobile-note">
-            Tap a block to edit it, or Add below. Editing on a bigger screen
-            lets you drag blocks right on the dial.
-          </p>
           {sidePanel}
         </>
       ) : (

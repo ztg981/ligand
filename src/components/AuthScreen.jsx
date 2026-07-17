@@ -226,21 +226,25 @@ export default function AuthScreen({ onContinueAsGuest }) {
           )}
         </div>
 
-        <div className="auth-divider">
-          <span>or</span>
-        </div>
+        {onContinueAsGuest && (
+          <>
+            <div className="auth-divider">
+              <span>or</span>
+            </div>
 
-        <button
-          type="button"
-          className="btn auth-guest"
-          onClick={onContinueAsGuest}
-        >
-          Continue without an account
-        </button>
-        <p className="auth-guest-note">
-          Everything stays on this device. You can create an account later from
-          the profile menu.
-        </p>
+            <button
+              type="button"
+              className="btn auth-guest"
+              onClick={onContinueAsGuest}
+            >
+              Continue without an account
+            </button>
+            <p className="auth-guest-note">
+              Everything stays on this device. You can create an account later from
+              the profile menu.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

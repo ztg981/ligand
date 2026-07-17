@@ -217,43 +217,41 @@
     0 18px 40px -20px rgba(0, 0, 0, 0.6);
 }
 
-/* Glass remains luminous on phones, but floating menus need a much denser
-   surface because iOS composites the page text through them more visibly. */
+/* Liquid-glass menus, done the way iOS materials actually work: a MID-opacity
+   layer over a HEAVY blur + saturation boost. The blur is what buys the
+   readability — and it only renders now because the topbar menus moved out of
+   the topbar's backdrop root (see components/PopoverPortal.jsx; a
+   backdrop-filter nested inside the frosted topbar sampled nothing, which is
+   why the old "glass" menus showed crisp page text straight through).
+   The near-opaque 0.98 fallback that patched that bug is gone with it. */
+[data-palette="glass"] .notif-pop,
+[data-palette="glass"] .avatar-pop,
+[data-palette="glass"] .goal-dd-panel {
+  background: rgba(255, 255, 255, 0.68);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+}
+[data-palette="glassdark"] .notif-pop,
+[data-palette="glassdark"] .avatar-pop,
+[data-palette="glassdark"] .goal-dd-panel {
+  background: rgba(32, 36, 47, 0.72);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+}
+/* Slightly darker secondary ink on glass phones — thin translucent panels
+   need the extra contrast to stay WCAG-comfortable over busy backdrops. */
 @media (max-width: 767px) {
   [data-theme="light"][data-palette="glass"] {
-    --panel: rgba(255, 255, 255, 0.9);
-    --panel-2: rgba(255, 255, 255, 0.78);
+    --panel: rgba(255, 255, 255, 0.78);
+    --panel-2: rgba(255, 255, 255, 0.62);
     --ink-3: #626773;
     --ink-4: #858b98;
   }
-  [data-palette="glass"] .notif-pop,
-  [data-palette="glass"] .avatar-pop,
-  [data-palette="glass"] .goal-dd-panel {
-    background: rgba(250, 251, 254, 0.98);
-    -webkit-backdrop-filter: blur(24px) saturate(125%);
-    backdrop-filter: blur(24px) saturate(125%);
-  }
   [data-theme="dark"][data-palette="glassdark"] {
-    --panel: rgba(34, 38, 50, 0.9);
-    --panel-2: rgba(42, 47, 61, 0.8);
+    --panel: rgba(36, 40, 52, 0.78);
+    --panel-2: rgba(44, 49, 64, 0.66);
     --ink-3: #a2a8b8;
     --ink-4: #747c90;
-  }
-  [data-palette="glassdark"] .notif-pop,
-  [data-palette="glassdark"] .avatar-pop,
-  [data-palette="glassdark"] .goal-dd-panel {
-    background: rgba(28, 31, 41, 0.98);
-    -webkit-backdrop-filter: blur(24px) saturate(125%);
-    backdrop-filter: blur(24px) saturate(125%);
-  }
-
-  .notif-bell + .notif-pop {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 58px);
-    right: auto;
-    left: max(10px, env(safe-area-inset-left, 0px));
-    width: min(300px, calc(100vw - 20px));
-    max-width: none;
   }
 }
 
@@ -3646,9 +3644,12 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .bottom-nav-pill {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 3px;
-  padding: 5px 14px;
+  /* 10px wings (was 14px): six tabs share the bar now that Journal is back,
+     so the active capsule can't afford the wider padding. */
+  padding: 5px 10px;
   border-radius: 12px;
   transition: background 0.18s var(--ease);
+  max-width: 100%;
 }
 .bottom-nav-item.active .bottom-nav-pill {
   background: color-mix(in oklab, var(--accent) 15%, transparent);
@@ -8224,3 +8225,190 @@ html[data-electron="true"] .electron-drag-strip {
 [data-reduce-motion="true"] .iconbtn:active:not(:disabled),
 [data-reduce-motion="true"] .bottom-nav-item:active,
 [data-reduce-motion="true"] .tasks-add-mobile-btn:active { transform: none; }
+
+/* ============================================================
+   Activity log — the universal "what did I just do?" system.
+   Sheet (ActivityLogSheet), day story (DayStory), Home cards
+   (LastActivityCard, ScreenTimeCard), workout sport row.
+   ============================================================ */
+
+/* ---- logging sheet ---- */
+.actlog-modal { width: min(480px, 92vw); }
+.actlog-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.actlog-cat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; min-height: 30px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+}
+.actlog-cat.on { border-color: var(--cat); color: var(--ink); background: color-mix(in oklab, var(--cat) 14%, var(--panel)); }
+.actlog-cat-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--cat); flex: none; }
+.actlog-title { width: 100%; height: 46px; font-size: 15px; }
+.actlog-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.actlog-pick {
+  padding: 4px 10px; min-height: 28px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-2);
+}
+.actlog-pick.on {
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  border-color: var(--accent); color: var(--accent-ink, var(--accent));
+}
+.actlog-row-label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; color: var(--ink-4);
+  margin: 12px 0 6px;
+}
+.actlog-row-label span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.actlog-durs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.actlog-dur {
+  padding: 4px 10px; min-height: 30px; min-width: 44px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.actlog-dur.on {
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  border-color: var(--accent); color: var(--accent-ink, var(--accent));
+}
+.actlog-dur-custom { width: 72px; height: 32px; font-size: 12.5px; }
+.actlog-when { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.actlog-time { width: 120px; height: 38px; font-size: 14px; }
+.actlog-feels { display: flex; flex-wrap: wrap; gap: 6px; }
+.actlog-feel {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; min-height: 30px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-2);
+}
+.actlog-feel.on {
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel));
+  border-color: var(--accent); color: var(--accent-ink, var(--accent));
+}
+.actlog-asworkout { margin-top: 12px; }
+.actlog-addnote {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 12px; padding: 0;
+  border: none; background: none; cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+}
+.actlog-addnote:hover { color: var(--ink); }
+.actlog-sheet .quick-note-body { padding-bottom: 18px; }
+
+/* ---- day story (timeline of what actually happened) ---- */
+.dstory-summary {
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+  margin-bottom: 10px;
+}
+.dstory-list { display: flex; flex-direction: column; }
+.dstory-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+.dstory-row:first-child { border-top: none; }
+.dstory-time {
+  flex: none; width: 64px; font-size: 11px; color: var(--ink-4);
+  padding-top: 2px; text-align: right;
+}
+.dstory-ic {
+  flex: none; width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--cat) 16%, var(--panel));
+  color: var(--cat);
+}
+.dstory-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.dstory-title { font-size: 13px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.dstory-meta { font-size: 11.5px; color: var(--ink-3); }
+.dstory-note { font-size: 11.5px; color: var(--ink-4); font-style: italic; }
+.dstory-del { color: var(--ink-4); margin-top: 2px; }
+
+/* Compact chips variant (journal compose + past entries). */
+.dstory-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dstory-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; min-height: 24px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 11.5px; font-weight: 550; color: var(--ink-2);
+}
+.dstory-chip-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--cat); flex: none; }
+.dstory-chip.more { color: var(--ink-4); }
+
+/* ---- Home: "Just did something?" card ---- */
+.lastact-last { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 12px; }
+.lastact-dot { flex: none; width: 10px; height: 10px; border-radius: 999px; margin-top: 4px; }
+.lastact-line { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.lastact-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+.lastact-empty { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; margin: 0 0 12px; }
+.lastact-btn { width: 100%; }
+
+/* ---- Home: screen check-ins card ---- */
+.sst-today { font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.sst-bars {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 56px; margin: 4px 0 8px;
+}
+.sst-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; }
+.sst-bar {
+  width: 100%; max-width: 26px; border-radius: 4px 4px 2px 2px;
+  background: var(--line-strong); min-height: 2px;
+}
+.sst-bar.today { background: var(--accent); }
+.sst-day { font-size: 9.5px; color: var(--ink-4); }
+.sst-line { font-size: 12px; color: var(--ink-3); line-height: 1.5; margin: 0 0 10px; }
+.sst-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sst-actions-label { font-size: 11.5px; font-weight: 550; color: var(--ink-3); margin-right: 2px; }
+
+/* ---- Workout: "played a sport?" row ---- */
+.mwh-sport {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; margin-top: 10px; padding: 9px 12px;
+  border: 1px dashed var(--line-strong); border-radius: var(--r-md);
+  background: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 550; color: var(--ink-2);
+  text-align: left;
+}
+.mwh-sport:hover { border-color: var(--accent); color: var(--ink); }
+.mwh-sport-lbl { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+
+/* ============================================================
+   Popover portal layer + mobile Day-tab refinements (2026-07-16)
+   ============================================================ */
+
+/* Popovers hoisted to document.body (PopoverPortal): the wrapper owns the
+   fixed positioning, so the menu itself goes static and just sizes itself. */
+.pop-layer .notif-pop,
+.pop-layer .avatar-pop {
+  position: static;
+  top: auto;
+  right: auto;
+  max-width: calc(100vw - 16px);
+}
+/* Baseline frost for the floating menus in EVERY palette: whenever --panel
+   is translucent, blur is what keeps the text on top readable. Opaque
+   palettes are unaffected. */
+.notif-pop,
+.avatar-pop {
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+}
+
+/* Mobile Day tab: the dial is a compact glanceable card, not a shrunken
+   desktop editor. Editing happens in the bottom-sheet editor + lists. */
+.dp-mobile-dial { padding: 12px 12px 10px; }
+.dp-mobile-dial .dial--ro { max-width: 272px; }
+.dp-mobile-dial-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.dp-mobile-dial-sum { font-size: 12px; font-weight: 550; color: var(--ink-3); }
+/* The editor inside a bottom sheet: sheet chrome replaces the card chrome. */
+.dp-editor-sheet .dp-editor { padding-top: 2px; }

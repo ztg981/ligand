@@ -1,0 +1,57 @@
+.assistant-review-card {
+  display: block;
+}
+
+.assistant-review-count {
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 999px;
+  color: var(--accent-ink, var(--accent));
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  height: 22px;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 6px;
+}
+
+.assistant-review-list {
+  display: grid;
+}
+
+.assistant-review-row {
+  align-items: center;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 10px 0;
+}
+
+.assistant-review-row:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.assistant-review-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.assistant-review-copy strong,
+.assistant-review-copy span {
+  overflow-wrap: anywhere;
+}
+
+.assistant-review-copy strong {
+  font-size: 12px;
+}
+
+.assistant-review-copy span {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.4;
+}

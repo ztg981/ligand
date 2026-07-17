@@ -9,6 +9,8 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { searchItunesSongs } from "../lib/itunesSearch.js";
 import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js";
 import MoodTrend from "../widgets/MoodTrend.jsx";
+import DayStory from "../components/DayStory.jsx";
+import { activitiesOn, categoryOf, fmtMinutes } from "../lib/activities.js";
 
 const SONG_SEARCH_DEBOUNCE_MS = 400;
 
@@ -248,6 +250,12 @@ export default function Journal({
   addSong,
   updateSong,
   deleteSong,
+  activities = [],
+  workouts = [],
+  focusLog = [],
+  meals = [],
+  sleepLog = [],
+  onLogActivity,
   confirmBeforeDelete = true,
   scrollTo = null,
 }) {
@@ -366,6 +374,17 @@ export default function Journal({
               {prompt}
             </div>
 
+            {/* Memory jog: what Ligand already knows about today. Chips only —
+               reading them back is often all the "what do I even write" needs. */}
+            <DayStory
+              compact
+              activities={activities}
+              workouts={workouts}
+              focusLog={focusLog}
+              meals={meals}
+              sleepLog={sleepLog}
+            />
+
             <textarea
               className="input journal-compose-textarea"
               placeholder="Write as much or as little as you like… (paste screenshots right here)"
@@ -471,13 +490,25 @@ export default function Journal({
               {songFormContext === "compose" ? (
                 <SongForm onSave={submitSong} onCancel={() => setSongFormContext(null)} />
               ) : (
-                <button
-                  type="button"
-                  className="btn ghost sm song-add-btn"
-                  onClick={() => setSongFormContext("compose")}
-                >
-                  <Icon.Music width={13} height={13} /> Add song
-                </button>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn ghost sm song-add-btn"
+                    onClick={() => setSongFormContext("compose")}
+                  >
+                    <Icon.Music width={13} height={13} /> Add song
+                  </button>
+                  {onLogActivity && (
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      onClick={onLogActivity}
+                      title="Log something you did today"
+                    >
+                      <Icon.Spark width={13} height={13} /> Log an activity
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -536,6 +567,7 @@ export default function Journal({
               <div className="stack journal-entries">
                 {orderedJournal.map((e) => {
                   const entryDate = String(e.createdAt || "").slice(0, 10);
+                  const dayActs = activitiesOn(activities, entryDate);
                   const attached = songLog.filter((s) => s.journalEntryId === e.id);
                   // No explicit attachment, but a song was logged the same
                   // day - a quiet "on this day I was listening to X" nudge.
@@ -603,6 +635,26 @@ export default function Journal({
                         <div className="journal-listening-to">
                           <Icon.Music width={11} height={11} /> Listening to: {sameDaySong.title}
                           {sameDaySong.artist ? ` - ${sameDaySong.artist}` : ""}
+                        </div>
+                      )}
+                      {/* "That day I…" — activities logged the same day, so
+                         re-reading an entry brings the day back with it. */}
+                      {dayActs.length > 0 && (
+                        <div className="dstory-chips" style={{ marginTop: 8 }}>
+                          {dayActs.slice(0, 5).map((a) => (
+                            <span
+                              key={a.id}
+                              className="dstory-chip"
+                              style={{ "--cat": categoryOf(a.category).color }}
+                            >
+                              <span className="dstory-chip-dot" />
+                              {a.title || categoryOf(a.category).name}
+                              {a.durationMin ? ` · ${fmtMinutes(a.durationMin)}` : ""}
+                            </span>
+                          ))}
+                          {dayActs.length > 5 && (
+                            <span className="dstory-chip more">+{dayActs.length - 5} more</span>
+                          )}
                         </div>
                       )}
                     </div>

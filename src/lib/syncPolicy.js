@@ -12,6 +12,9 @@ export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.goalSidebarCollapsed",
   "ligand.journalSort",
   "ligand.focusTaskId",
+  // Version snapshots and queued task mutations are account/device control
+  // state, not user content. Never mirror them into the legacy JSON blob.
+  "ligand.taskRecordSync",
 ]);
 
 export function isSyncedKey(key) {

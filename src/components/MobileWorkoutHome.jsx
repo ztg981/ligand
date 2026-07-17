@@ -19,6 +19,7 @@ export default function MobileWorkoutHome({
   onStart,
   onGenerate,
   onLogFree,
+  onLogSport = null, // open the activity sheet preset to sports
   weekCount,
   target,
   streak,
@@ -115,6 +116,17 @@ export default function MobileWorkoutHome({
             <Icon.Plus width={13} height={13} /> Log freely
           </button>
         </div>
+
+        {/* Not a gym day? Sports count too — tennis, a pickup game, a hike. */}
+        {onLogSport && (
+          <button type="button" className="mwh-sport" onClick={onLogSport}>
+            <span className="mwh-sport-lbl">
+              <Icon.Spark width={14} height={14} /> Played a sport? Tennis,
+              hoops, a hike… log it here
+            </span>
+            <Icon.Arrow width={13} height={13} />
+          </button>
+        )}
       </div>
 
       {/* Compact stats */}

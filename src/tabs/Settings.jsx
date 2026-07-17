@@ -11,6 +11,7 @@ import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
+import ChatGPTAccessPanel from "../components/ChatGPTAccessPanel.jsx";
 import pkg from "../../package.json";
 
 /* Settings - the full preferences screen.
@@ -56,6 +57,7 @@ export default function Settings({
   setSection,
   resetSettings,
   resetData,
+  goals = [],
   archivedGoals = [],
   restoreGoal,
   removeGoal,
@@ -109,6 +111,8 @@ export default function Settings({
             />
           </Row>
         </Section>
+
+        <ChatGPTAccessPanel goals={goals} />
 
         {/* Appearance (mirrors Tweaks) */}
         <Section icon={<Icon.Wand />} title="Appearance">
@@ -544,12 +548,21 @@ export default function Settings({
         </Section>
 
         {/* AI & Privacy */}
-        <Section icon={<Icon.Cloud />} title="AI & Privacy">
+        <Section icon={<Icon.Cloud />} title="Gemini & Privacy">
           <p style={{ fontSize: 11.5, color: "var(--ink-4)", margin: "0 0 12px", lineHeight: 1.5 }}>
             {aiLocked
               ? "AI features are available when you sign in. Guest mode keeps everything local on this device."
-              : "When AI features are on, summarized data is sent to Google's Gemini API to generate insights. Google does not use this data to train their models (paid API tier). Your data is never sold."}
+              : "Gemini is separate from the ChatGPT connection above. It receives only the sanitized fields needed for the feature you use. Journal text and recovery context stay off by default."}
           </p>
+          {!aiLocked && (
+            <div className="assistant-privacy-boundary compact" style={{ marginBottom: 8 }}>
+              <Icon.Lock />
+              <div>
+                <strong>Private by default</strong>
+                <span>Notes are never sent. Journal text requires the separate opt-in below. ChatGPT sharing choices do not enable Gemini access.</span>
+              </div>
+            </div>
+          )}
           <Row
             name="AI goal insights"
             hint={aiLocked ? aiLockedHint : "Goal summary and 'At a glance' suggestions"}
@@ -574,7 +587,7 @@ export default function Settings({
           </Row>
           <Row
             name="Include journal text in AI context"
-            hint={aiLocked ? aiLockedHint : "Your journal text stays on your device when this is off. AI only sees aggregate stats (tasks done, check-in counts, streaks)."}
+            hint={aiLocked ? aiLockedHint : "Off by default. When off, Gemini sees only bounded aggregate stats such as task and check-in counts."}
             className={aiLocked ? "setting-row-locked" : ""}
           >
             <Switch

@@ -99,7 +99,10 @@ export function createTask({
   goalId = null,
   term = TASK_TERMS.SHORT,
   repeat = null, // null | { type: "daily" } | { type: "weekly", weekday: 0-6 }
+  scheduledFor = null,
+  assistantPrivate = false,
 } = {}) {
+  const now = new Date().toISOString();
   return {
     id: uid("task"),
     text: text || "",
@@ -107,9 +110,13 @@ export function createTask({
     goalId,
     term,
     repeat,
+    scheduledFor,
+    assistantPrivate: Boolean(assistantPrivate),
     done: false,
     completedOn: null, // YYYY-MM-DD a recurring task was last completed
+    version: 0, // assigned by the authoritative task-record RPC after sync
     createdAt: todayKey(),
+    updatedAt: now,
   };
 }
 
@@ -398,8 +405,44 @@ export function createDayBlock({
     linkType,
     linkId,
     notes,
+    version: 1,
     createdAt: now,
     updatedAt: now,
+  };
+}
+
+// A logged activity — the universal "what did I just do?" record. Covers
+// everything the dedicated logs don't: sports, games, scrolling, chores,
+// people time, rest. `feel` describes what the time did FOR YOU (energized /
+// drained), never a moral judgment; there is no "wasted time" state anywhere
+// in this model. Duration + endTime are both optional — "I played tennis"
+// with no numbers is a perfectly good log.
+export function createActivity({
+  title = "",
+  category = "other", // see ACTIVITY_CATEGORIES in lib/activities.js
+  date = todayKey(),
+  endTime = null, // "HH:MM" — defaults to now at the call site
+  durationMin = null,
+  feel = null, // see FEELS in lib/activities.js
+  note = "",
+  linkType = null, // null | "workout" (the record this activity mirrors)
+  linkId = null,
+} = {}) {
+  const now = new Date();
+  return {
+    id: uid("act"),
+    title,
+    category,
+    date,
+    endTime:
+      endTime ||
+      `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    durationMin: durationMin != null && durationMin > 0 ? Math.round(durationMin) : null,
+    feel,
+    note,
+    linkType,
+    linkId,
+    createdAt: now.toISOString(),
   };
 }
 
@@ -731,7 +774,7 @@ export function seedData() {
     meals: [], // gentle nutrition log (see createMeal)
     waterLog: {}, // date -> glasses count
     dayBlocks: [], // timed day-dial blocks (see createDayBlock)
-
+    activities: [], // universal "what did I just do?" log (see createActivity)
     songLog: [], // lightweight "what I was listening to" log (see Journal tab)
   };
 }

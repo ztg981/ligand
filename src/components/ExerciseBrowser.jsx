@@ -17,6 +17,7 @@ const FILTERS = [
   { id: "legs", label: "Legs" },
   { id: "core", label: "Core" },
   { id: "cardio", label: "Cardio" },
+  { id: "sport", label: "Sports" },
 ];
 
 // Short equipment glyphs for the card chips.

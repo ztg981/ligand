@@ -131,7 +131,34 @@ export const EXERCISES = [
   { id: "swimming", name: "Swimming", muscleGroup: "cardio", equipment: ["cardio"], type: C },
   { id: "hiit", name: "HIIT", muscleGroup: "cardio", equipment: ["bodyweight", "cardio"], type: C },
   { id: "burpee", name: "Burpee", muscleGroup: "cardio", equipment: ["bodyweight"], type: C },
+
+  // ---- Sports (logged as duration) ----------------------------
+  // muscleGroup "sport" is deliberately NOT in MUSCLE_GROUPS: the gym
+  // generator iterates those groups (and picks cardio finishers), and
+  // "Tennis 3×8" is not a workout it should ever suggest. Sports exist for
+  // logging what you actually played — browser, logger, and history only.
+  { id: "tennis", name: "Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "basketball", name: "Basketball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "soccer", name: "Soccer", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "volleyball", name: "Volleyball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "badminton", name: "Badminton", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "pickleball", name: "Pickleball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "table-tennis", name: "Table Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "golf", name: "Golf", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "hiking", name: "Hiking", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "walking", name: "Walking", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "skating", name: "Skating", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "skiing", name: "Skiing / Snowboarding", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "martial-arts", name: "Martial Arts / Boxing", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "climbing", name: "Climbing", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "dance", name: "Dance", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "yoga", name: "Yoga / Stretching", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "baseball", name: "Baseball / Softball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  { id: "football", name: "Football", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
 ];
+
+// Sports subset, for the quick "log a sport" chips on the Workout tab.
+export const SPORTS = EXERCISES.filter((e) => e.muscleGroup === "sport");
 
 // Fast lookup by id.
 const BY_ID = new Map(EXERCISES.map((e) => [e.id, e]));
@@ -149,6 +176,7 @@ export const MUSCLE_LABEL = {
   legs: "Legs",
   core: "Core",
   cardio: "Cardio",
+  sport: "Sports",
 };
 
 // All exercises in a muscle group.

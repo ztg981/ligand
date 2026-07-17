@@ -44,7 +44,17 @@ function TermChip({ term }) {
 
 // The label/goal + short/long + repeat fields, shared by the desktop inline
 // bar and the mobile bottom sheet so the two never drift apart.
-function TaskFormFields({ pick, setPick, term, setTerm, repeat, setRepeat, goals }) {
+function TaskFormFields({
+  pick,
+  setPick,
+  term,
+  setTerm,
+  repeat,
+  setRepeat,
+  assistantPrivate,
+  setAssistantPrivate,
+  goals,
+}) {
   return (
     <>
       <select
@@ -97,6 +107,20 @@ function TaskFormFields({ pick, setPick, term, setTerm, repeat, setRepeat, goals
           </option>
         ))}
       </select>
+      <button
+        type="button"
+        className={"task-private-toggle" + (assistantPrivate ? " active" : "")}
+        onClick={() => setAssistantPrivate(!assistantPrivate)}
+        aria-pressed={assistantPrivate}
+        title={
+          assistantPrivate
+            ? "Private from ChatGPT and other assistants"
+            : "Allow assistants when this task's goal is shared"
+        }
+      >
+        {assistantPrivate ? <Icon.Lock /> : <Icon.Eye />}
+        <span>{assistantPrivate ? "Private" : "Assistant visible"}</span>
+      </button>
     </>
   );
 }
@@ -118,6 +142,7 @@ export default function Tasks({
   const [pick, setPick] = useState("label:General"); // encodes label or goal
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
   const [repeat, setRepeat] = useState("none"); // none | daily | weekly:0..6
+  const [assistantPrivate, setAssistantPrivate] = useState(false);
 
   // --- mobile add sheet ---
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -161,9 +186,12 @@ export default function Tasks({
   // guaranteed visible, then scroll to and flash it.
   useEffect(() => {
     if (!scrollTo?.id) return;
-    setStatus("all");
-    setFilter("all");
-    flashElement("task-" + scrollTo.id);
+    const timer = window.setTimeout(() => {
+      setStatus("all");
+      setFilter("all");
+      flashElement("task-" + scrollTo.id);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [scrollTo?.nonce, scrollTo?.id]);
 
   // --- inline edit state ---
@@ -203,11 +231,25 @@ export default function Tasks({
     if (pick.startsWith("goal:")) {
       const id = pick.slice(5);
       const goal = goals.find((g) => g.id === id);
-      addTask({ text: t, label: goal ? goal.name : "General", goalId: id, term, repeat: rep });
+      addTask({
+        text: t,
+        label: goal ? goal.name : "General",
+        goalId: id,
+        term,
+        repeat: rep,
+        assistantPrivate,
+      });
     } else {
-      addTask({ text: t, label: pick.slice(6), term, repeat: rep });
+      addTask({
+        text: t,
+        label: pick.slice(6),
+        term,
+        repeat: rep,
+        assistantPrivate,
+      });
     }
     setText("");
+    setAssistantPrivate(false);
   };
 
   const submitFromSheet = () => {
@@ -364,6 +406,8 @@ export default function Tasks({
             setTerm={setTerm}
             repeat={repeat}
             setRepeat={setRepeat}
+            assistantPrivate={assistantPrivate}
+            setAssistantPrivate={setAssistantPrivate}
             goals={goals}
           />
           <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
@@ -410,6 +454,8 @@ export default function Tasks({
                     setTerm={setTerm}
                     repeat={repeat}
                     setRepeat={setRepeat}
+                    assistantPrivate={assistantPrivate}
+                    setAssistantPrivate={setAssistantPrivate}
                     goals={goals}
                   />
                 </div>
@@ -539,11 +585,39 @@ export default function Tasks({
                         : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][task.repeat.weekday]}
                     </span>
                   )}
+                  {task.assistantPrivate && (
+                    <span className="chip task-private-chip" title="Private from assistants">
+                      <Icon.Lock width={11} height={11} />
+                      Private
+                    </span>
+                  )}
                   <LabelChip task={task} goals={goals} />
                   <TermChip term={taskTerm(task)} />
                 </span>
 
                 <span className="taskrow-actions">
+                  <button
+                    className={"taskrow-icon-btn" + (task.assistantPrivate ? " active" : "")}
+                    onClick={() =>
+                      updateTask(task.id, { assistantPrivate: !task.assistantPrivate })
+                    }
+                    title={
+                      task.assistantPrivate
+                        ? "Allow assistants to see this task"
+                        : "Keep this task private from assistants"
+                    }
+                    aria-label={
+                      task.assistantPrivate
+                        ? `Allow assistants to see ${task.text}`
+                        : `Keep ${task.text} private from assistants`
+                    }
+                  >
+                    {task.assistantPrivate ? (
+                      <Icon.Lock width={14} height={14} />
+                    ) : (
+                      <Icon.Eye width={14} height={14} />
+                    )}
+                  </button>
                   <button
                     className="taskrow-icon-btn"
                     onClick={() => startEdit(task)}
