@@ -239,7 +239,7 @@ export default function MobileSettings({
 
         {/* Sleep */}
         <Section icon={<Icon.Moon />} title="Sleep">
-          <Row name="Morning check-in" hint="One quiet question — how did you sleep? — before anything else">
+          <Row name="Morning check-in" hint="One quiet question (how did you sleep?) before anything else">
             <Switch
               checked={sleep.morningCheckIn ?? true}
               onChange={(v) => setSection("sleep", { morningCheckIn: v })}

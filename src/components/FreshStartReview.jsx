@@ -122,7 +122,7 @@ function GoalStep({ item, today, decision, onDecide }) {
         <li className="fsr-fact">
           {signals.tasksDone > 0
             ? `${signals.tasksDone} step${signals.tasksDone === 1 ? "" : "s"} done so far`
-            : "No steps recorded yet — so there's nothing to lose by reshaping it"}
+            : "No steps recorded yet, so there's nothing to lose by reshaping it"}
         </li>
       </ul>
 
@@ -332,7 +332,7 @@ export default function FreshStartReview({
             <div className="fsr-intro">
               <p className="fsr-intro-lead">{reviewIntroLine(items.length, daysAway)}</p>
               <p className="fsr-intro-sub">
-                You'll see one goal at a time with four easy moves — shrink it,
+                You'll see one goal at a time with four easy moves: shrink it,
                 move its date, shelve it, or keep it. Nothing changes until you
                 finish, and shelved goals are never deleted.
               </p>
@@ -386,7 +386,7 @@ export default function FreshStartReview({
                         : d.action === ACTIONS.MOVE
                         ? `new target date ${d.newDate}`
                         : d.action === ACTIONS.SHELVE
-                        ? "shelved — restore anytime from Settings"
+                        ? "shelved (restore anytime from Settings)"
                         : "kept as-is · nudges quiet for 2 weeks";
                     return (
                       <li key={it.goal.id}>

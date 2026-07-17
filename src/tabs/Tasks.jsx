@@ -54,6 +54,8 @@ function TaskFormFields({
   assistantPrivate,
   setAssistantPrivate,
   goals,
+  sched,
+  setSched,
 }) {
   return (
     <>
@@ -107,6 +109,37 @@ function TaskFormFields({
           </option>
         ))}
       </select>
+      {/* Optional schedule: a date puts it on the calendar; adding times
+         carves a real block on that day's plan (dial/agenda included). */}
+      <div className="task-sched" title="Schedule this task onto a day">
+        <Icon.Calendar width={13} height={13} />
+        <input
+          className="input"
+          type="date"
+          value={sched.date}
+          onChange={(e) => setSched({ ...sched, date: e.target.value })}
+          aria-label="Scheduled day (optional)"
+        />
+        {sched.date && (
+          <>
+            <input
+              className="input"
+              type="time"
+              value={sched.start}
+              onChange={(e) => setSched({ ...sched, start: e.target.value })}
+              aria-label="Start time (optional)"
+            />
+            <span className="task-sched-dash">–</span>
+            <input
+              className="input"
+              type="time"
+              value={sched.end}
+              onChange={(e) => setSched({ ...sched, end: e.target.value })}
+              aria-label="End time (optional)"
+            />
+          </>
+        )}
+      </div>
       <button
         type="button"
         className={"task-private-toggle" + (assistantPrivate ? " active" : "")}
@@ -132,6 +165,7 @@ export default function Tasks({
   updateTask,
   toggleTask,
   removeTask,
+  addDayBlock,
   confirmBeforeDelete = true,
   scrollTo = null,
 }) {
@@ -143,6 +177,9 @@ export default function Tasks({
   const [term, setTerm] = useState(TASK_TERMS.SHORT);
   const [repeat, setRepeat] = useState("none"); // none | daily | weekly:0..6
   const [assistantPrivate, setAssistantPrivate] = useState(false);
+  // Optional schedule: date alone shows on the calendar; date + times also
+  // carves a linked block into that day's plan.
+  const [sched, setSched] = useState({ date: "", start: "", end: "" });
 
   // --- mobile add sheet ---
   const [showAddSheet, setShowAddSheet] = useState(false);
@@ -228,28 +265,39 @@ export default function Tasks({
     const t = text.trim();
     if (!t) return;
     const rep = parseRepeat(repeat);
+    const scheduledFor = sched.date || null;
+    const base = { text: t, term, repeat: rep, assistantPrivate, scheduledFor };
+    let saved;
     if (pick.startsWith("goal:")) {
       const id = pick.slice(5);
       const goal = goals.find((g) => g.id === id);
-      addTask({
-        text: t,
-        label: goal ? goal.name : "General",
-        goalId: id,
-        term,
-        repeat: rep,
-        assistantPrivate,
-      });
+      saved = addTask({ ...base, label: goal ? goal.name : "General", goalId: id });
     } else {
-      addTask({
-        text: t,
-        label: pick.slice(6),
-        term,
-        repeat: rep,
-        assistantPrivate,
+      saved = addTask({ ...base, label: pick.slice(6) });
+    }
+    // Date + times = a real block on that day's plan, linked to the task so
+    // checking the block off completes the task too.
+    const toMin = (hhmm) => {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || "");
+      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    };
+    const startMin = toMin(sched.start);
+    let endMin = toMin(sched.end);
+    if (scheduledFor && startMin != null && addDayBlock && saved?.id) {
+      if (endMin == null || endMin <= startMin) endMin = Math.min(24 * 60, startMin + 60);
+      addDayBlock({
+        date: scheduledFor,
+        start: startMin,
+        end: endMin,
+        title: t.slice(0, 60),
+        category: "focus",
+        linkType: "task",
+        linkId: saved.id,
       });
     }
     setText("");
     setAssistantPrivate(false);
+    setSched({ date: "", start: "", end: "" });
   };
 
   const submitFromSheet = () => {
@@ -409,6 +457,8 @@ export default function Tasks({
             assistantPrivate={assistantPrivate}
             setAssistantPrivate={setAssistantPrivate}
             goals={goals}
+            sched={sched}
+            setSched={setSched}
           />
           <button className="btn primary" onClick={submit} style={{ flex: "none" }}>
             <Icon.Plus />
@@ -457,6 +507,8 @@ export default function Tasks({
                     assistantPrivate={assistantPrivate}
                     setAssistantPrivate={setAssistantPrivate}
                     goals={goals}
+                    sched={sched}
+                    setSched={setSched}
                   />
                 </div>
                 <button className="btn primary sheet-submit" onClick={submitFromSheet}>

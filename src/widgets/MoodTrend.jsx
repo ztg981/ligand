@@ -1,18 +1,27 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
-import { moodSeries, moodDirection, moodLabel } from "../lib/mood.js";
+import {
+  MOOD_RANGES,
+  moodDirection,
+  moodLabel,
+  moodSeries,
+  moodTimeline,
+} from "../lib/mood.js";
 
-/* MoodTrend — a gentle sparkline of your logged moods over time.
+/* MoodTrend v2 — a real graph of your logged moods, with a zoom.
 
-   Journal entries already carry an optional mood; this turns that quiet
-   history into a shape you can feel, without ever showing a "score". The
-   line runs oldest → newest (left → right = now), the last point is
-   emphasized, and a soft direction word ("trending up") sits under it.
-   Honest empty state before you've logged any moods. */
+   Fixes over v1: the SVG kept its aspect (v1 stretched, so dots became
+   smears), points sit on a TRUE time axis, and a soft dot-grid + five
+   mood guide lines give the line something to live on. The range control
+   zooms out with a small animation: two weeks (every entry), a month
+   (daily averages), a year, or everything (weekly averages). Still no
+   scores anywhere — the scale is words at the edges. */
 
-const W = 240;
-const H = 56;
-const PAD = 8;
+const W = 560;
+const H = 168;
+const PAD_X = 16;
+const PAD_TOP = 18;
+const PAD_BOT = 24;
 
 const DIRECTION_COPY = {
   up: "Trending gently up",
@@ -20,90 +29,194 @@ const DIRECTION_COPY = {
   steady: "Holding steady",
 };
 
-export default function MoodTrend({ journal = [], onOpenJournal }) {
-  const series = useMemo(() => moodSeries(journal, 14), [journal]);
+function fmtTick(ts, range) {
+  const d = new Date(ts);
+  if (range === "2w" || range === "1m") {
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+}
 
-  // Need at least two points to draw a line.
-  if (series.length < 2) {
+export default function MoodTrend({ journal = [], onOpenJournal }) {
+  const [range, setRange] = useState("2w");
+  // Which way the last range change zoomed, for the animation direction.
+  const [zoomDir, setZoomDir] = useState("out");
+  const prevIdx = useRef(0);
+
+  const { points } = useMemo(() => moodTimeline(journal, range), [journal, range]);
+  const recent = useMemo(() => moodSeries(journal, 14), [journal]);
+
+  const pickRange = (id) => {
+    const from = prevIdx.current;
+    const to = MOOD_RANGES.findIndex((r) => r.id === id);
+    setZoomDir(to >= from ? "out" : "in");
+    prevIdx.current = to;
+    setRange(id);
+  };
+
+  const latest = recent.at(-1) || null;
+  const dir = moodDirection(recent);
+
+  const seg = (
+    <div className="seg moodtrend-seg" role="tablist" aria-label="Time range">
+      {MOOD_RANGES.map((r) => (
+        <button
+          key={r.id}
+          role="tab"
+          aria-selected={range === r.id}
+          className={range === r.id ? "active" : ""}
+          onClick={() => pickRange(r.id)}
+        >
+          {r.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (points.length < 2) {
     return (
       <div className="card moodtrend-card">
         <div className="card-head">
           <div className="card-title"><Icon.Heart /> Mood trend</div>
-          {onOpenJournal && (
-            <button className="btn ghost sm" onClick={onOpenJournal} title="Open the journal">
-              Journal <Icon.Arrow width={13} height={13} />
-            </button>
-          )}
+          {seg}
         </div>
         <p className="moodtrend-empty">
-          Log a mood with a journal entry or two and your trend appears here.
+          {journal.some((e) => e.mood)
+            ? "Not enough moods in this window yet. Zoom out, or keep logging."
+            : "Log a mood with a journal entry or two and your trend appears here."}
         </p>
+        {onOpenJournal && (
+          <button className="btn ghost sm" onClick={onOpenJournal}>
+            Open the journal <Icon.Arrow width={13} height={13} />
+          </button>
+        )}
       </div>
     );
   }
 
-  const n = series.length;
-  const stepX = (W - PAD * 2) / (n - 1);
-  const y = (score) => {
-    // score 1..5 → bottom..top, within padding
-    const t = (score - 1) / 4;
-    return H - PAD - t * (H - PAD * 2);
-  };
-  const pts = series.map((p, i) => ({ x: PAD + i * stepX, y: y(p.score), ...p }));
-  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  // Area fill under the line for a softer look.
-  const areaPath =
-    `${linePath} L${pts[n - 1].x.toFixed(1)},${(H - PAD).toFixed(1)} L${pts[0].x.toFixed(1)},${(H - PAD).toFixed(1)} Z`;
+  const t0 = points[0].t;
+  const t1 = points.at(-1).t;
+  const span = Math.max(1, t1 - t0);
+  const x = (t) => PAD_X + ((t - t0) / span) * (W - PAD_X * 2);
+  const y = (score) =>
+    H - PAD_BOT - ((score - 1) / 4) * (H - PAD_TOP - PAD_BOT);
 
-  const last = series[n - 1];
-  const dir = moodDirection(series);
+  const pts = points.map((p) => ({ ...p, x: x(p.t), y: y(p.score) }));
+  const linePath = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
+  const areaPath = `${linePath} L${pts.at(-1).x.toFixed(1)},${(H - PAD_BOT).toFixed(1)} L${pts[0].x.toFixed(1)},${(H - PAD_BOT).toFixed(1)} Z`;
+
+  // Three time ticks: start, middle, end.
+  const ticks = [t0, t0 + span / 2, t1];
 
   return (
     <div className="card moodtrend-card">
       <div className="card-head">
         <div className="card-title"><Icon.Heart /> Mood trend</div>
-        {onOpenJournal && (
-          <button className="btn ghost sm" onClick={onOpenJournal} title="Open the journal">
-            Journal <Icon.Arrow width={13} height={13} />
-          </button>
-        )}
+        <div className="row" style={{ gap: 8, alignItems: "center" }}>
+          {seg}
+          {onOpenJournal && (
+            <button className="btn ghost sm" onClick={onOpenJournal} title="Open the journal">
+              <Icon.Book width={13} height={13} />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="moodtrend-stat">
-        <span className="moodtrend-latest">{moodLabel(last.value)}</span>
-        <span className="moodtrend-sub">latest · {n} recent {n === 1 ? "entry" : "entries"}</span>
-      </div>
+      {latest && (
+        <div className="moodtrend-stat">
+          <span className="moodtrend-latest">{moodLabel(latest.value)}</span>
+          <span className="moodtrend-sub">
+            latest · {points.length} {range === "2w" ? "entries" : "points"} shown
+          </span>
+        </div>
+      )}
 
-      <svg
-        className="moodtrend-svg"
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label={`Mood over the last ${n} logged entries. Most recent: ${moodLabel(last.value)}.`}
-        preserveAspectRatio="none"
-      >
-        <path className="moodtrend-area" d={areaPath} />
-        <path className="moodtrend-line" d={linePath} />
-        {pts.map((p, i) => (
-          <circle
-            key={i}
-            className={"moodtrend-dot" + (i === n - 1 ? " last" : "")}
-            cx={p.x}
-            cy={p.y}
-            r={i === n - 1 ? 3.4 : 2.2}
-          >
-            <title>{`${p.day}: ${moodLabel(p.value)}`}</title>
-          </circle>
-        ))}
-      </svg>
+      {/* key=range remounts the plot so the zoom animation plays each switch */}
+      <div key={range} className={"moodtrend-plot zoom-" + zoomDir}>
+        <svg
+          className="moodtrend-svg"
+          viewBox={`0 0 ${W} ${H}`}
+          role="img"
+          aria-label={`Mood over this range. Most recent: ${latest ? moodLabel(latest.value) : "none"}.`}
+        >
+          <defs>
+            <pattern id="mood-dots" width="14" height="14" patternUnits="userSpaceOnUse">
+              <circle cx="1.2" cy="1.2" r="1.2" fill="var(--line)" />
+            </pattern>
+          </defs>
+          <rect
+            x={PAD_X / 2}
+            y={PAD_TOP / 2}
+            width={W - PAD_X}
+            height={H - PAD_TOP / 2 - PAD_BOT / 2}
+            fill="url(#mood-dots)"
+            opacity="0.6"
+          />
+          {/* five mood guide lines */}
+          {[1, 2, 3, 4, 5].map((s) => (
+            <line
+              key={s}
+              x1={PAD_X}
+              x2={W - PAD_X}
+              y1={y(s)}
+              y2={y(s)}
+              stroke="var(--line)"
+              strokeWidth="1"
+              strokeDasharray={s === 3 ? "none" : "3 5"}
+              opacity={s === 3 ? 0.8 : 0.5}
+            />
+          ))}
+          <text x={PAD_X} y={y(5) - 5} className="moodtrend-guide">Great</text>
+          <text x={PAD_X} y={y(1) + 12} className="moodtrend-guide">Rough</text>
+
+          <path className="moodtrend-area" d={areaPath} />
+          <path className="moodtrend-line" d={linePath} />
+          {pts.map((p, i) => (
+            <circle
+              key={p.t}
+              className={"moodtrend-dot" + (i === pts.length - 1 ? " last" : "")}
+              cx={p.x}
+              cy={p.y}
+              r={i === pts.length - 1 ? 4 : pts.length > 40 ? 1.6 : 2.6}
+            >
+              <title>
+                {`${new Date(p.t).toLocaleDateString()} · ${
+                  p.count > 1 ? `${p.count} entries` : moodLabel(recentValueAt(p, recent)) || "logged"
+                }`}
+              </title>
+            </circle>
+          ))}
+          {ticks.map((t, i) => (
+            <text
+              key={i}
+              x={x(t)}
+              y={H - 6}
+              textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
+              className="moodtrend-tick"
+            >
+              {fmtTick(t, range)}
+            </text>
+          ))}
+        </svg>
+      </div>
 
       {dir && <p className="moodtrend-foot">{DIRECTION_COPY[dir]}</p>}
 
-      {/* Screen-reader mirror — never rely on the line alone. */}
       <ul className="visually-hidden">
-        {series.map((p, i) => (
-          <li key={i}>{p.day}: {moodLabel(p.value)}</li>
+        {pts.map((p) => (
+          <li key={p.t}>
+            {new Date(p.t).toLocaleDateString()}: mood level {p.score.toFixed(1)} of 5
+          </li>
         ))}
       </ul>
     </div>
   );
+}
+
+// Best-effort label for single-entry points (exact value known only there).
+function recentValueAt(point, recent) {
+  const day = new Date(point.t).toISOString().slice(0, 10);
+  return recent.find((r) => r.day === day)?.value || null;
 }

@@ -113,10 +113,10 @@ export function reentryMessage(daysAway = 0, now = new Date()) {
   const isMonday = now.getDay() === 1;
   const isMonthStart = now.getDate() === 1;
   if (isMonthStart) {
-    return "You're back on the first of the month — a natural fresh start. Everything you built is still here. Pick one small thing to begin with.";
+    return "You're back on the first of the month, a natural fresh start. Everything you built is still here. Pick one small thing to begin with.";
   }
   if (isMonday) {
-    return "Back on a Monday — a brand-new week, clean slate included. Your streaks paused, they didn't reset. One tiny step starts it.";
+    return "Back on a Monday, a brand-new week with a clean slate. Your streaks paused, they didn't reset. One tiny step starts it.";
   }
   if (daysAway >= 14) {
     return "It's been a little while, and that's completely fine. Nothing's broken, your streaks are paused, not lost. Want to pick one small thing?";

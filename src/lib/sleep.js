@@ -177,9 +177,9 @@ export function minutesOfDay(hhmm) {
 /** Kind wording for wake-time consistency (the CBT-I anchor). */
 export function wakeConsistencyLine(wake) {
   if (!wake) return null;
-  if (wake.spreadMin <= 45) return "Your wake time is steady — that's the anchor that matters most.";
+  if (wake.spreadMin <= 45) return "Your wake time is steady. That's the anchor that matters most.";
   if (wake.spreadMin <= 90) return "Your wake time drifts a little. Even a roughly-steady anchor helps.";
-  return "Your wake times vary a lot right now. No judgment — one steady-ish anchor is a fine first aim.";
+  return "Your wake times vary a lot right now. No judgment. A roughly steady anchor is a fine first aim.";
 }
 
 /** One gentle line about last night. Never scolds a short night. */
@@ -190,5 +190,5 @@ export function nightLine(entry) {
   const q = entry.quality || 3;
   if (q >= 4) return `${dur}, and it felt ${QUALITY_LABELS[q].toLowerCase()}. Carry that with you.`;
   if (q <= 2) return `${dur}, and it felt ${QUALITY_LABELS[q].toLowerCase()}. Be a little gentler with yourself today.`;
-  return `${dur} last night. Logged — that's the whole job.`;
+  return `${dur} last night. You logged it, and that's the whole job.`;
 }

@@ -471,7 +471,7 @@ export default function Settings({
           )}
           <Row
             name="Daily reminder"
-            hint="Fires at the set time whenever Ligand is running — including hidden in the tray on desktop"
+            hint="Fires at the set time whenever Ligand is running, even hidden in the tray on desktop"
           >
             <Switch
               checked={notifications.dailyReminder}
@@ -518,7 +518,7 @@ export default function Settings({
               </Row>
               <Row
                 name="Start with your computer"
-                hint="Ligand starts quietly in the tray when you log in — reminders work without you having to remember to open it"
+                hint="Ligand starts quietly in the tray when you log in, so reminders work without you having to remember to open it"
               >
                 <Switch
                   checked={desktop.launchAtLogin ?? false}
@@ -533,11 +533,11 @@ export default function Settings({
         <Section
           icon={<Icon.Moon />}
           title="Sleep"
-          sub="A gentle daily sleep diary. Logging is the whole practice — no scores, no judgments, just your own picture over time."
+          sub="A gentle daily sleep diary. No scores, no judgments, just your own picture over time."
         >
           <Row
             name="Morning check-in"
-            hint="On your first open of the morning, ask one quiet question — how did you sleep? — before showing anything else"
+            hint="On your first open of the morning, ask one quiet question (how did you sleep?) before showing anything else"
           >
             <Switch
               checked={sleep.morningCheckIn ?? true}
@@ -920,9 +920,9 @@ function AboutSection() {
     switch (status.state) {
       case "checking": return "Checking…";
       case "none": return "You're up to date.";
-      case "available": return `Update available${status.version ? ` (v${status.version})` : ""} — downloading…`;
+      case "available": return `Update available${status.version ? ` (v${status.version})` : ""}, downloading…`;
       case "progress": return `Downloading… ${status.percent ?? 0}%`;
-      case "downloaded": return `v${status.version || ""} downloaded — restart to install.`;
+      case "downloaded": return `v${status.version || ""} downloaded. Restart to install.`;
       case "error": return `Update check failed: ${status.message}`;
       default: return null;
     }

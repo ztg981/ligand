@@ -250,6 +250,34 @@ ligand.data blob.
   a specular top sheen (background-image only — never add blend modes or
   filters there, iOS blur dies).
 
+### Sweep batch (2026-07-17, later)
+
+- **Phone Day view is an agenda timeline** (MobileDayTimeline): block
+  cards in time order, tappable free gaps, a warm now-line, done
+  checkboxes. The dial no longer renders under 768px (it stays for
+  iPad/desktop); the sidePanel Blocks card is desktop-only now.
+- **Tasks can be scheduled**: add-bar gains date + optional time range;
+  date sets task.scheduledFor (calendar views), date+times ALSO create a
+  linked day block (linkType "task") so it lands on the dial/agenda and
+  completes the task when checked.
+- **Focus-category activity logs also write focusLog** (dated), so
+  studying without the timer still counts as focus time.
+- **MoodTrend v2**: true time axis, per-range aggregation (2w entries,
+  1m daily, 1y/all weekly via moodTimeline in lib/mood.js, tested),
+  dot-grid + Great/Rough guides, animated 2w/1m/1y/All zoom. The v1
+  stretch bug was preserveAspectRatio="none".
+- **Journal photos compress to fit** (imageAttach.js): downscale/quality
+  ladder to ≤1.4MB instead of rejecting; only unreadable files error.
+- **Layout**: WebKit time/date inputs normalized (appearance:none — the
+  iPad "floating 9:00 AM box"); .scrim scrolls + .modal margin:auto so
+  tall modals never clip; FreshStart modal got padding/line-height.
+- **Copy**: em dashes and robotic phrasing swept from Sleep, Settings,
+  FreshStart/goalTriage, ai.js re-entry lines. Journal per-entry activity
+  chips now read morning→night.
+- **Data longevity**: everything (activities, blocks, journal, sleep,
+  focus, pauses) is per-date in ligand.data with NO pruning — any past
+  day remains browsable via Day nav / Month view / Day story.
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

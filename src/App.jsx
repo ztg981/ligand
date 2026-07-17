@@ -1262,6 +1262,15 @@ export default function App() {
       linkType: linkedWorkoutId ? "workout" : null,
       linkId: linkedWorkoutId,
     });
+    // Logged work/study time IS focus time — someone who studied for an hour
+    // without the Pomodoro timer still earns their focus trends and ring.
+    if (fields.category === "focus" && fields.durationMin > 0) {
+      store.logFocusSession({
+        minutes: fields.durationMin,
+        goalId: null,
+        date: fields.date,
+      });
+    }
   };
 
   const screen = (() => {
@@ -1442,6 +1451,7 @@ export default function App() {
             updateTask={store.updateTask}
             toggleTask={store.toggleTask}
             removeTask={store.removeTask}
+            addDayBlock={store.addDayBlock}
             confirmBeforeDelete={confirmBeforeDelete}
             scrollTo={scrollTarget?.tab === "tasks" ? scrollTarget : null}
           />

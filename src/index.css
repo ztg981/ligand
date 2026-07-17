@@ -8122,7 +8122,7 @@ html[data-electron="true"] .electron-drag-strip {
 .moodtrend-stat { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
 .moodtrend-latest { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); line-height: 1; }
 .moodtrend-sub { font-size: 11.5px; color: var(--ink-4); }
-.moodtrend-svg { width: 100%; height: 56px; display: block; overflow: visible; }
+.moodtrend-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .moodtrend-area { fill: color-mix(in oklab, var(--accent) 14%, transparent); stroke: none; }
 .moodtrend-line {
   fill: none; stroke: var(--accent); stroke-width: 2;
@@ -8931,3 +8931,124 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
     rgba(255, 255, 255, 0) 55%
   );
 }
+
+/* ============================================================
+   WebKit date/time input normalization.
+   iPadOS/iOS render date & time controls with their own baseline
+   and intrinsic sizing, which made "9:00 AM" boxes float above
+   their rows and clip (Settings reminder time, Sleep targets).
+   Normalize the control to a plain flex box the row grid can
+   align like any other input.
+   ============================================================ */
+input[type="time"].input,
+input[type="date"].input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 32px;
+  line-height: normal;
+  vertical-align: middle;
+}
+/* The value pseudo-element is what iOS misaligns; pin it. */
+input[type="time"].input::-webkit-date-and-time-value,
+input[type="date"].input::-webkit-date-and-time-value {
+  text-align: right;
+  margin: 0;
+}
+.setting-row > .input,
+.setting-row input[type="time"],
+.setting-row input[type="date"] {
+  justify-self: end;
+}
+
+/* Modal safety: an over-tall modal used to be clipped on BOTH edges
+   (flex-centering + overflow hidden). Let the scrim scroll and center via
+   auto margins so nothing is ever cut off. */
+.scrim { overflow-y: auto; }
+.scrim > .modal { margin: auto; }
+
+/* Fresh-start review: breathing room (the modal had no internal padding, so
+   the eyebrow and copy sat flush against the edges). */
+.fsr-modal { padding: 18px 20px; }
+.fsr-intro-sub, .fsr-intro-why { line-height: 1.55; }
+.fsr-reasons { line-height: 1.5; display: flex; flex-direction: column; gap: 4px; margin: 10px 0 12px; }
+
+/* Mobile day agenda (replaces the dial on phones) */
+.dp-mobile-agenda { padding: 14px; margin-bottom: 12px; }
+.mdt { display: flex; flex-direction: column; gap: 6px; }
+.mdt-block {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--cat) 14%, var(--panel));
+  border-left: 3px solid var(--cat);
+}
+.mdt-block.current { box-shadow: 0 0 0 1.5px var(--cat); }
+.mdt-block.past { opacity: 0.62; }
+.mdt-block.done { opacity: 0.5; }
+.mdt-block.done .mdt-block-title { text-decoration: line-through; }
+.mdt-check {
+  flex: none; width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; border: 1.5px solid var(--line-strong);
+  background: var(--panel); color: #fff; cursor: pointer;
+}
+.mdt-check.on { background: var(--cat); border-color: var(--cat); }
+.mdt-block-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  border: none; background: none; padding: 0; cursor: pointer; text-align: left;
+}
+.mdt-block-title { font-size: 14px; font-weight: 650; color: var(--ink); overflow-wrap: anywhere; }
+.mdt-block-repeat { margin-left: 5px; color: var(--ink-4); }
+.mdt-block-time { font-size: 11px; color: var(--ink-3); }
+.mdt-gap {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 12px;
+  border: 1px dashed var(--line); border-radius: var(--r-md);
+  background: none; cursor: pointer; color: var(--ink-4);
+}
+.mdt-gap:active { background: var(--panel-2); }
+.mdt-gap-time { font-size: 10.5px; }
+.mdt-gap-lbl { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; }
+.mdt-now { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+.mdt-now-time { font-size: 10px; font-weight: 700; color: oklch(0.62 0.19 25); flex: none; }
+.mdt-now-line { flex: 1; height: 2px; border-radius: 2px; background: oklch(0.62 0.19 25); }
+.mdt-empty { padding: 4px 0; }
+
+/* Task schedule fields (optional date + time range in the add bar/sheet) */
+.task-sched {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--ink-3);
+  flex: none;
+}
+.task-sched .input { width: auto; }
+.task-sched input[type="date"] { width: 138px; }
+.task-sched input[type="time"] { width: 96px; min-width: 96px; }
+.task-sched-dash { color: var(--ink-4); }
+@media (max-width: 640px) {
+  .task-sched { flex-wrap: wrap; }
+}
+
+/* MoodTrend v2: intrinsic aspect (no more stretch), zoom animation, ticks */
+.moodtrend-plot { will-change: transform, opacity; }
+.moodtrend-plot.zoom-out { animation: moodZoomOut 0.36s var(--ease); }
+.moodtrend-plot.zoom-in { animation: moodZoomIn 0.36s var(--ease); }
+@keyframes moodZoomOut {
+  from { transform: scale(1.12); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes moodZoomIn {
+  from { transform: scale(0.9); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+.moodtrend-seg button { font-size: 11px; padding: 4px 9px; }
+.moodtrend-guide { font-size: 9.5px; fill: var(--ink-4); font-weight: 600; letter-spacing: 0.04em; }
+.moodtrend-tick { font-size: 9.5px; fill: var(--ink-4); font-family: var(--font-mono); }
+@media (prefers-reduced-motion: reduce) {
+  .moodtrend-plot.zoom-out, .moodtrend-plot.zoom-in { animation: none; }
+}
+[data-reduce-motion="true"] .moodtrend-plot.zoom-out,
+[data-reduce-motion="true"] .moodtrend-plot.zoom-in { animation: none; }

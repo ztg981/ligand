@@ -5,6 +5,7 @@ import DayDial from "../components/DayDial.jsx";
 import DayStory from "../components/DayStory.jsx";
 import AssistantReviewPanel from "../components/AssistantReviewPanel.jsx";
 import ScheduleImportSheet from "../components/ScheduleImportSheet.jsx";
+import MobileDayTimeline from "../components/MobileDayTimeline.jsx";
 import { MonthView, NaturalAddBar, WeekView } from "../components/CalendarViews.jsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -573,7 +574,9 @@ export default function DayPlanner({
         />
       )}
 
-      {/* Chronological list — the accessible mirror of the dial. */}
+      {/* Chronological list — the accessible mirror of the dial. Phones skip
+         it: the agenda timeline above IS the list. */}
+      {!isMobile && (
       <div className="card">
         <div className="card-head">
           <div className="card-title"><Icon.Calendar /> Blocks</div>
@@ -619,6 +622,7 @@ export default function DayPlanner({
           </div>
         )}
       </div>
+      )}
 
       {/* What actually happened — the plan's reality mirror. */}
       {storyCard}
@@ -863,29 +867,15 @@ export default function DayPlanner({
 
       {view === "day" && (isMobile ? (
         <>
-          {/* The dial as a compact, deliberate card — a glanceable clock face,
-             not a shrunken desktop editor. Editing happens in the list + sheet
-             below; tapping a block on the dial opens the same sheet. */}
-          <div className="card dp-mobile-dial">
-            <DayDial
-              date={date}
-              isToday={isToday}
-              blocks={blocks}
-              alarms={dialAlarms}
-              selectedId={selectedId}
-              textures={pref.textures}
-              sleepStart={pref.sleepStart}
-              sleepEnd={pref.sleepEnd}
-              showSleepBand={pref.showSleepBand}
-              onSelect={openExisting}
-              readOnly
-              compact
-            />
-            <div className="dp-mobile-dial-foot">
+          {/* Phones get a vertical agenda instead of the dial: block cards
+             in time order, tappable free gaps, and a warm now-line. The dial
+             stays the instrument for pointer-and-tablet screens. */}
+          <div className="card dp-mobile-agenda">
+            <div className="dp-mobile-dial-foot" style={{ border: "none", padding: 0, marginBottom: 10 }}>
               <span className="dp-mobile-dial-sum">
                 {blocks.length
                   ? `${blocks.length} block${blocks.length === 1 ? "" : "s"} planned`
-                  : "Nothing planned yet"}
+                  : "A clear day"}
               </span>
               <button
                 className="btn primary sm"
@@ -894,6 +884,13 @@ export default function DayPlanner({
                 <Icon.Plus width={13} height={13} /> Add block
               </button>
             </div>
+            <MobileDayTimeline
+              blocks={blocks}
+              isToday={isToday}
+              onEdit={openExisting}
+              onAddRange={(s, e) => openNew(s, e)}
+              onToggleDone={toggleDone}
+            />
           </div>
           {sidePanel}
         </>

@@ -158,7 +158,7 @@ const REASON_LINES = {
   [REASONS.DATE_PASSED]: (s) =>
     `Its target date (${s.target}) is behind us now`,
   [REASONS.NEVER_STARTED]: (s) =>
-    `Set ${describeAge(s.ageDays)} ago — still waiting for its first step`,
+    `Set ${describeAge(s.ageDays)} ago and still waiting for its first step`,
   [REASONS.GONE_QUIET]: (s) =>
     `Nothing new in ${s.quietDays} days — it may just need a smaller shape`,
   [REASONS.WINDOW_TIGHT]: () =>
@@ -182,7 +182,7 @@ export function reviewIntroLine(count, daysAway = 0) {
   if (daysAway >= 4) {
     return count === 1
       ? "While you were away, one goal drifted out of date. Two minutes puts it right."
-      : `While you were away, ${count} goals drifted out of date. Plans age — that's information, not a verdict. A few taps reshapes them.`;
+      : `While you were away, ${count} goals drifted out of date. That's normal, plans age. A few taps reshapes them.`;
   }
   return count === 1
     ? "One goal looks out of step with your life right now. Want to reshape it?"

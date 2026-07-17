@@ -567,7 +567,11 @@ export default function Journal({
               <div className="stack journal-entries">
                 {orderedJournal.map((e) => {
                   const entryDate = String(e.createdAt || "").slice(0, 10);
-                  const dayActs = activitiesOn(activities, entryDate);
+                  // Morning first: the chips retell the day in the order it
+                  // actually happened (the store keeps newest-first).
+                  const dayActs = [...activitiesOn(activities, entryDate)].sort(
+                    (a, b) => String(a.endTime || "").localeCompare(String(b.endTime || ""))
+                  );
                   const attached = songLog.filter((s) => s.journalEntryId === e.id);
                   // No explicit attachment, but a song was logged the same
                   // day - a quiet "on this day I was listening to X" nudge.

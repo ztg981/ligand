@@ -738,13 +738,13 @@ export function useStore() {
   // Each entry: { date: "YYYY-MM-DD", minutes, goalId|null }. Sessions not
   // linked to a goal are still logged (goalId null) but count toward no goal.
   const logFocusSession = useCallback(
-    ({ minutes, goalId = null }) => {
+    ({ minutes, goalId = null, date = null }) => {
       if (!minutes || minutes <= 0) return;
       setData((d) => ({
         ...d,
         focusLog: [
           ...(d.focusLog || []),
-          { date: todayKey(), minutes, goalId },
+          { date: date || todayKey(), minutes, goalId },
         ],
       }));
     },

@@ -241,8 +241,8 @@ export default function Sleep({
     delta.deltaMin == null
       ? null
       : delta.deltaMin >= 0
-      ? `This week you're averaging ${durationLabel(delta.thisAvg)} — ${durationLabel(delta.deltaMin)} more than last week.`
-      : `This week you're averaging ${durationLabel(delta.thisAvg)} — a little less than last week. Information, not a verdict.`;
+      ? `This week you're averaging ${durationLabel(delta.thisAvg)}, which is ${durationLabel(delta.deltaMin)} more than last week.`
+      : `This week you're averaging ${durationLabel(delta.thisAvg)}, a little less than last week. Just information, not a verdict.`;
 
   return (
     <>
