@@ -309,8 +309,8 @@ function AvatarMenu({
               <Icon.Calendar /> Day planner
             </button>
 
-            {/* Calendar is a desktop top tab; the phone reaches it here (and
-               from the calendar button on the Day tab itself). */}
+            {/* Calendar lives inside the Day tab now (Day / Week / Month);
+               this shortcut opens it straight in Month view. */}
             <button
               className="avatar-menu-item avatar-menu-mobile-only"
               onClick={() => {
@@ -506,7 +506,6 @@ function SyncPill({ status }) {
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
   { id: "day", label: "Day", icon: <Icon.Timer /> },
-  { id: "calendar", label: "Calendar", icon: <Icon.Calendar /> },
   { id: "habits", label: "Habits", icon: <Icon.CheckCircle /> },
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
@@ -807,7 +806,10 @@ export default function TopNav({
             userName={userName}
             onOpenSettings={onOpenSettings}
             onOpenDay={() => setTab("day")}
-            onOpenCalendar={() => setTab("calendar")}
+            onOpenCalendar={() => {
+              window.localStorage.setItem("ligand.dayView", JSON.stringify("month"));
+              setTab("day");
+            }}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}

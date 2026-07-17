@@ -391,6 +391,8 @@ export function createDayBlock({
   linkType = null, // null | "task" | "habit" | "workout"
   linkId = null,
   notes = "",
+  seriesId = null, // shared by every materialized occurrence of a repeat
+  repeat = null, // the rule that created the series (for display/editing)
 } = {}) {
   const now = new Date().toISOString();
   return {
@@ -405,6 +407,8 @@ export function createDayBlock({
     linkType,
     linkId,
     notes,
+    seriesId,
+    repeat,
     version: 1,
     createdAt: now,
     updatedAt: now,

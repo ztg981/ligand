@@ -155,6 +155,128 @@ export function normalizeAiEvents(raw, refKey = todayKey()) {
     .slice(0, 60);
 }
 
+/* ---- natural-language event lines ---------------------------------
+   "Meeting with James every Sunday 7/19 to end of August at 7pm" →
+   { title, date, start, end, repeat }. This is the OFFLINE parser; the
+   Gemini action handles messier phrasing when signed in. Both feed the
+   same prefilled editor, and nothing saves without the user confirming. */
+
+const MONTHS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+function lastDayOfMonth(year, monthIdx) {
+  const d = new Date(year, monthIdx + 1, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function monthFromWord(word) {
+  const w = (word || "").toLowerCase().replace(/[.,]/g, "");
+  const i = MONTHS.findIndex((m) => m === w || m.slice(0, 3) === w);
+  return i >= 0 ? i : null;
+}
+
+export function parseNaturalEvent(line, refKey = todayKey()) {
+  let rest = (line || "").replace(/\s+/g, " ").trim();
+  if (!rest || rest.length > 220) return null;
+  const refYear = Number(refKey.slice(0, 4));
+  const repeat = { freq: null, weekdays: [], until: null };
+
+  // "until/to/through end of august" | "... 8/31" | "... august 31"
+  const untilMatch =
+    /\b(?:until|till|to|through|thru)\s+(end of\s+([a-z]+)|(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)|([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?)\b/i.exec(rest);
+  if (untilMatch) {
+    if (untilMatch[2] != null) {
+      const mi = monthFromWord(untilMatch[2]);
+      if (mi != null) {
+        const y = mi < Number(refKey.slice(5, 7)) - 1 ? refYear + 1 : refYear;
+        repeat.until = lastDayOfMonth(y, mi);
+      }
+    } else if (untilMatch[3]) {
+      repeat.until = parseSlashDate(untilMatch[3], refKey);
+    } else if (untilMatch[4] && untilMatch[5]) {
+      const mi = monthFromWord(untilMatch[4]);
+      if (mi != null) {
+        repeat.until = `${refYear}-${String(mi + 1).padStart(2, "0")}-${String(Number(untilMatch[5])).padStart(2, "0")}`;
+      }
+    }
+    if (repeat.until) rest = rest.replace(untilMatch[0], " ");
+  }
+
+  // "every sunday (and monday)" | "every day" | "every 2 weeks" | "weekly"
+  const everyMatch = /\bevery\s+(other\s+)?([a-z]+)((?:\s*(?:,|and)\s*[a-z]+)*)\b/i.exec(rest);
+  if (everyMatch) {
+    const first = everyMatch[2].toLowerCase();
+    if (first === "day" || first === "morning" || first === "night") {
+      repeat.freq = "daily";
+    } else if (first === "week") {
+      repeat.freq = "weekly";
+    } else if (first === "month") {
+      repeat.freq = "monthly";
+    } else {
+      const wd = weekdayFromWord(first);
+      if (wd != null) {
+        repeat.freq = "weekly";
+        repeat.weekdays = [wd];
+        (everyMatch[3] || "")
+          .split(/,|and/i)
+          .map((s) => weekdayFromWord(s.trim()))
+          .forEach((d) => {
+            if (d != null && !repeat.weekdays.includes(d)) repeat.weekdays.push(d);
+          });
+        repeat.weekdays.sort();
+      }
+    }
+    if (repeat.freq) {
+      repeat.interval = everyMatch[1] ? 2 : 1;
+      rest = rest.replace(everyMatch[0], " ");
+    }
+  } else if (/\bdaily\b/i.test(rest)) {
+    repeat.freq = "daily";
+    repeat.interval = 1;
+    rest = rest.replace(/\bdaily\b/i, " ");
+  } else if (/\bweekly\b/i.test(rest)) {
+    repeat.freq = "weekly";
+    repeat.interval = 1;
+    rest = rest.replace(/\bweekly\b/i, " ");
+  }
+
+  // Reuse the line parser for start date, times, and the remaining title.
+  const base = parseScheduleLine(rest, refKey);
+  if (!base) return null;
+
+  // Starting date for a weekly rule with weekdays: the first matching
+  // weekday on/after the explicit date (or today).
+  let date = base.date;
+  if (repeat.freq === "weekly" && repeat.weekdays.length) {
+    const wds = repeat.weekdays;
+    for (let i = 0; i < 7; i += 1) {
+      const cand = shiftDay(date, i);
+      const wd = (new Date(cand + "T00:00:00").getDay() + 6) % 7;
+      if (wds.includes(wd)) {
+        date = cand;
+        break;
+      }
+    }
+  }
+
+  return {
+    title: base.title,
+    date,
+    start: base.start,
+    end: base.end,
+    repeat: repeat.freq
+      ? {
+          freq: repeat.freq,
+          interval: repeat.interval || 1,
+          weekdays: repeat.weekdays,
+          until: repeat.until,
+        }
+      : null,
+  };
+}
+
 /** Minutes from midnight for "HH:MM", or null. */
 export function clockToMin(hhmm) {
   const m = /^(\d{2}):(\d{2})$/.exec(hhmm || "");

@@ -5,6 +5,7 @@ export const ACTIONS = Object.freeze([
   "weekly_review",
   "import_workout",
   "import_schedule",
+  "parse_event",
   "recovery_insight",
 ]);
 
@@ -50,6 +51,7 @@ export const RATE_LIMITS = Object.freeze({
   weekly_review: { maxRequests: 20, windowSeconds: 60 * 60 },
   import_workout: { maxRequests: 15, windowSeconds: 60 * 60 },
   import_schedule: { maxRequests: 10, windowSeconds: 60 * 60 },
+  parse_event: { maxRequests: 40, windowSeconds: 60 * 60 },
   recovery_insight: { maxRequests: 40, windowSeconds: 60 * 60 },
 });
 
@@ -212,6 +214,12 @@ export function sanitizeContext(action, context) {
     return { ok: true, context: { notes } };
   }
 
+  if (action === "parse_event") {
+    const text = cleanText(context.text, 240);
+    if (!text) return { ok: false, error: "Nothing to parse." };
+    return { ok: true, context: { text, refDate: cleanDate(context.refDate) } };
+  }
+
   if (action === "import_schedule") {
     const image = context.image;
     const mimeType = typeof image?.mimeType === "string" ? image.mimeType : "";
@@ -317,6 +325,54 @@ export function sanitizeScheduleOutput(text) {
     return { ok: false, error: "No readable events were found in that image." };
   }
   return { ok: true, text: JSON.stringify({ events }) };
+}
+
+// A single parsed event from natural language. Same clamps as the schedule
+// reader plus the repeat rule shape; the client re-validates and PREFILLS an
+// editor — the user always confirms before anything saves.
+export function sanitizeEventOutput(text) {
+  if (typeof text !== "string" || text.length > 4_000) {
+    return { ok: false, error: "Event response was empty or too large." };
+  }
+  const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return { ok: false, error: "Event response did not contain JSON." };
+  let parsed;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return { ok: false, error: "Event response JSON was malformed." };
+  }
+  const title = cleanText(parsed.title, 80);
+  if (!title) return { ok: false, error: "No event title found." };
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  const clock = (v) =>
+    typeof v === "string" && /^\d{1,2}:\d{2}$/.test(v.trim()) ? v.trim() : null;
+  const repeatRaw = parsed.repeat;
+  const repeat =
+    repeatRaw && ["daily", "weekly", "monthly"].includes(repeatRaw.freq)
+      ? {
+          freq: repeatRaw.freq,
+          interval: clampInt(repeatRaw.interval, 1, 12, 1),
+          weekdays: list(repeatRaw.weekdays, 7).filter(
+            (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+          ),
+          until:
+            typeof repeatRaw.until === "string" && dateRe.test(repeatRaw.until)
+              ? repeatRaw.until
+              : null,
+        }
+      : null;
+  return {
+    ok: true,
+    text: JSON.stringify({
+      title,
+      date: typeof parsed.date === "string" && dateRe.test(parsed.date) ? parsed.date : null,
+      start: clock(parsed.start),
+      end: clock(parsed.end),
+      repeat,
+    }),
+  };
 }
 
 export function sanitizeWorkoutOutput(text) {

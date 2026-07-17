@@ -380,6 +380,41 @@ export async function compressImageForImport(file, maxEdge = 1280) {
 }
 
 /**
+ * One natural-language line -> one event draft via Gemini ("meeting with
+ * James every sunday until end of august"). Local parsing runs FIRST in the
+ * UI; this only fires for phrasings it couldn't read, and the result always
+ * lands in a prefilled editor for the user to confirm.
+ */
+export async function parseEventNL(text, refDate) {
+  if (aiGuestMode || !isSupabaseConfigured || !supabase) {
+    return { ok: false, kind: "signed-out" };
+  }
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) return { ok: false, kind: "signed-out" };
+    const res = await supabase.functions.invoke("gemini-insights", {
+      body: { action: "parse_event", context: { text, refDate } },
+    });
+    if (res.error || !res.data?.ok) return { ok: false, kind: "upstream" };
+    const parsed = JSON.parse(res.data.text || "{}");
+    if (!parsed.title) return { ok: false, kind: "empty" };
+    return {
+      ok: true,
+      event: {
+        title: parsed.title,
+        date: parsed.date || refDate,
+        start: parsed.start || null,
+        end: parsed.end || null,
+        repeat: parsed.repeat || null,
+      },
+    };
+  } catch (err) {
+    debugLog("parseEventNL failed:", err?.message);
+    return { ok: false, kind: "network" };
+  }
+}
+
+/**
  * Read a schedule screenshot into event drafts via Gemini. Returns
  * { ok: true, events: [{title, date|null, weekday|null, start|null, end|null}] }
  * or { ok: false, kind, error } with the same error taxonomy as importWorkout.

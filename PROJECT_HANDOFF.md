@@ -223,6 +223,33 @@ ligand.data blob.
   drift = stale desktop build, not a code bug (rebuild via electron:build
   to update).
 
+### Calendar-in-Day, recurrence, NL add (2026-07-17)
+
+- **Day tab = Day / Week / Month** (`ligand.dayView`, seg in the header).
+  The separate Calendar tab is gone (`tabs/Calendar.jsx` deleted); avatar
+  menu + ⌘K "Calendar" set the view to month and open Day. Month cells
+  show real event chips on wide screens, dots + count on phones; the
+  selected day's panel lists everything and edits blocks in an overlay
+  editor. Week is a 7-column agenda (stacked on phones).
+- **Recurrence** (`lib/recurrence.js`, tested): daily/weekly/monthly,
+  interval, weekday picks, until-date. Series MATERIALIZE into real
+  blocks sharing a `seriesId` (capped ~6 months / 240 occurrences) so
+  every surface works unchanged. Editor has the repeat UI (new blocks);
+  existing series occurrences offer "This one" / "Whole series" delete
+  (series delete keeps past occurrences).
+- **Type-to-add**: NaturalAddBar ("meeting with James every sunday 7/19
+  to end of august") → `parseNaturalEvent` (offline, tested) with a
+  Gemini `parse_event` action for messier phrasing when signed in — both
+  only PREFILL the editor; the user always confirms.
+- **Pomodoro**: FocusPicker replaces the native select (styled popover:
+  nothing / custom / goals / tasks). ALL completed focus blocks now log
+  to focusLog (goal-less ones with goalId null); pauses log to a new
+  `pauseLog` slice ({date, seconds}, ≥5s) via `logPause`, shown as
+  "stopped Xm today" in the session row.
+- **My looks** chips carry a 4-color swatch snapshot; glass palettes got
+  a specular top sheen (background-image only — never add blend modes or
+  filters there, iOS blur dies).
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

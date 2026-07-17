@@ -105,6 +105,7 @@ export function itemsForDate(
         timeLabel: `${minutesToLabel(b.start)} – ${minutesToLabel(b.end)}`,
         color: categoryById(b.category).color,
         done: Boolean(b.done),
+        repeat: b.repeat || null,
       })
     );
 

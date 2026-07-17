@@ -8745,3 +8745,189 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 .pomo-pause-slider-lbl { font-size: 12px; color: var(--ink-3); flex: none; }
 .pomo-pause-slider > div, .pomo-pause-slider .slider { flex: 1; }
 .pomo-pause-note { font-size: 11.5px; color: var(--ink-4); margin: 8px 0 0; }
+
+/* ============================================================
+   Day tab zoom levels: Week + Month views, NL add bar, repeat UI
+   ============================================================ */
+.dp-view-seg { flex: none; }
+
+/* Natural-language add bar */
+.calv-nl { margin-bottom: 12px; }
+.calv-nl-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  color: var(--ink-3);
+}
+.calv-nl-input { flex: 1; min-width: 0; height: 38px; border: none; background: none; font-size: 13px; }
+.calv-nl-input:focus { outline: none; }
+
+/* Month grid, wide cells with event chips */
+.cal-grid-wide .cal-cell { min-height: 74px; align-items: stretch; }
+.cal-grid-wide .cal-cell-num { align-self: flex-start; }
+.cal-cell-chips { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
+.cal-cell-chip {
+  font-size: 9.5px; font-weight: 600; line-height: 1.25;
+  color: var(--ink);
+  background: color-mix(in oklab, var(--cat, var(--accent)) 22%, var(--panel));
+  border-left: 2px solid var(--cat, var(--accent));
+  border-radius: 4px;
+  padding: 1px 4px;
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-cell-chip.more { background: none; border-left: none; color: var(--ink-4); }
+.cal-item.tap { border: none; background: none; width: 100%; cursor: pointer; text-align: left; }
+.cal-item.tap:hover .cal-item-title { color: var(--accent-ink, var(--accent)); }
+.cal-item-repeat { margin-left: 5px; color: var(--ink-4); }
+
+/* Week view */
+.calv-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.calv-week.stack-days { grid-template-columns: 1fr; }
+.calv-week-day {
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--panel-2);
+  padding: 6px;
+  min-height: 90px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.calv-week.stack-days .calv-week-day { min-height: 0; }
+.calv-week-day.today { border-color: var(--accent); }
+.calv-week-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  border: none; background: none; padding: 2px 2px 0; cursor: pointer;
+}
+.calv-week-dow { font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.calv-week-day.today .calv-week-dow { color: var(--accent-ink, var(--accent)); }
+.calv-week-count {
+  font-size: 9.5px; font-weight: 700; color: var(--ink-3);
+  background: var(--panel-3); border-radius: 999px; padding: 1px 6px;
+}
+.calv-week-items { display: flex; flex-direction: column; gap: 3px; }
+.calv-week-item {
+  display: flex; align-items: baseline; gap: 5px;
+  font-size: 10.5px; font-weight: 600; color: var(--ink);
+  background: color-mix(in oklab, var(--cat, var(--accent)) 20%, var(--panel));
+  border-left: 2px solid var(--cat, var(--accent));
+  border-radius: 4px; padding: 2px 5px;
+  min-width: 0; text-align: left;
+}
+.calv-week-item.tap { border-top: none; border-right: none; border-bottom: none; cursor: pointer; }
+.calv-week-item.done { opacity: 0.5; text-decoration: line-through; }
+.calv-week-time { font-size: 9px; color: var(--ink-3); flex: none; }
+.calv-week-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calv-week-empty {
+  border: 1px dashed var(--line); border-radius: 6px;
+  background: none; color: var(--ink-4);
+  font-size: 13px; cursor: pointer; padding: 4px 0;
+}
+.calv-week-empty:hover { color: var(--ink-2); border-color: var(--line-strong); }
+
+/* Repeat controls in the block editor */
+.dp-repeat { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; }
+.dp-repeat-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dp-repeat-lbl { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-4); }
+.dp-repeat-seg button { font-size: 12px; }
+.dp-repeat-days { display: flex; gap: 4px; margin-top: 8px; }
+.dp-repeat-day {
+  width: 30px; height: 30px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel-2);
+  font-size: 11px; font-weight: 700; color: var(--ink-3); cursor: pointer;
+}
+.dp-repeat-day.on {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.dp-repeat-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+.dp-repeat-every, .dp-repeat-until {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ink-3);
+}
+.dp-repeat-every .input { width: 54px; height: 32px; font-size: 12.5px; }
+.dp-repeat-until .input { height: 32px; font-size: 12px; width: 136px; }
+.dp-repeat-desc {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--accent-ink, var(--accent));
+  margin: 8px 0 0;
+}
+.dp-editor-modal { width: min(480px, 92vw); max-height: 86vh; overflow-y: auto; }
+
+/* Focus picker (Pomodoro) — the styled replacement for the native select */
+.focuspick { position: relative; }
+.focuspick-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  max-width: min(320px, 76vw);
+  padding: 8px 12px; min-height: 38px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+}
+.focuspick-btn:hover { border-color: var(--line-strong); color: var(--ink); }
+.focuspick-btn-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.focuspick-pop {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  z-index: 95;
+  width: min(300px, 84vw);
+  max-height: 320px; overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 6px;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  animation: notifPop 0.16s var(--ease);
+}
+.focuspick-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  border: none; border-radius: var(--r-md);
+  background: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 550; color: var(--ink-2);
+  text-align: left;
+}
+.focuspick-item:hover { background: var(--panel-2); }
+.focuspick-item.on { color: var(--accent-ink, var(--accent)); font-weight: 650; }
+.focuspick-item-main { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.focuspick-item-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.focuspick-goalhint { color: var(--ink-4); font-weight: 500; }
+.focuspick-sec {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-4);
+  padding: 8px 10px 3px;
+}
+.focuspick-custom { width: calc(100% - 12px); margin: 4px 6px 6px; height: 34px; font-size: 12.5px; }
+
+/* My-looks chip swatch: four slivers of the saved look's actual colors */
+.mylooks-swatch {
+  display: inline-flex; margin-right: 7px;
+  width: 26px; height: 14px; border-radius: 4px; overflow: hidden;
+  border: 1px solid var(--line);
+  vertical-align: -2px;
+}
+.mylooks-swatch span { flex: 1; }
+.mylooks-apply { display: inline-flex; align-items: center; }
+
+/* Glass, one notch closer to the real material: a specular top sheen on the
+   frosted surfaces (the light catching the curve of the pane). Gradient
+   backgrounds are paint-only, so this can't disturb iOS backdrop blurs. */
+[data-palette="glass"] .card,
+[data-palette="glass"] .notif-pop,
+[data-palette="glass"] .avatar-pop {
+  background-image: linear-gradient(
+    172deg,
+    rgba(255, 255, 255, 0.42),
+    rgba(255, 255, 255, 0.1) 28%,
+    rgba(255, 255, 255, 0) 55%
+  );
+}
+[data-palette="glassdark"] .card,
+[data-palette="glassdark"] .notif-pop,
+[data-palette="glassdark"] .avatar-pop {
+  background-image: linear-gradient(
+    172deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.03) 30%,
+    rgba(255, 255, 255, 0) 55%
+  );
+}

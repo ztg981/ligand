@@ -604,6 +604,30 @@ export function useStore() {
     [setData]
   );
 
+  // A repeating event materializes as one block per occurrence, all sharing
+  // a seriesId — added atomically so a long series can't half-save.
+  const addDayBlockSeries = useCallback(
+    (blocks) => {
+      setData((d) => ({ ...d, dayBlocks: [...(d.dayBlocks || []), ...blocks] }));
+      return blocks;
+    },
+    [setData]
+  );
+
+  // "Delete all in the series." fromDate limits it to this-and-future so
+  // past occurrences (already lived) stay in the record.
+  const deleteDayBlockSeries = useCallback(
+    (seriesId, fromDate = null) =>
+      setData((d) => ({
+        ...d,
+        dayBlocks: (d.dayBlocks || []).filter(
+          (b) =>
+            b.seriesId !== seriesId || (fromDate != null && b.date < fromDate)
+        ),
+      })),
+    [setData]
+  );
+
   // -- activities (universal "what did I just do?" log) -----------
   const addActivity = useCallback(
     (opts) => {
@@ -727,6 +751,19 @@ export function useStore() {
     [setData]
   );
 
+  // Pomodoro pause tracking: how long the timer sat stopped, per day.
+  // Separate from focusLog so focus totals stay honest.
+  const logPause = useCallback(
+    ({ seconds }) => {
+      if (!seconds || seconds < 5) return; // ignore sub-5s fumbles
+      setData((d) => ({
+        ...d,
+        pauseLog: [...(d.pauseLog || []), { date: todayKey(), seconds: Math.round(seconds) }],
+      }));
+    },
+    [setData]
+  );
+
   const actions = useMemo(
     () => ({
       addGoal,
@@ -772,6 +809,8 @@ export function useStore() {
       addDayBlock,
       updateDayBlock,
       deleteDayBlock,
+      addDayBlockSeries,
+      deleteDayBlockSeries,
       addActivity,
       updateActivity,
       removeActivity,
@@ -782,6 +821,7 @@ export function useStore() {
       resetData,
       setGoalOrder,
       logFocusSession,
+      logPause,
     }),
     [
       addGoal,
@@ -827,6 +867,8 @@ export function useStore() {
       addDayBlock,
       updateDayBlock,
       deleteDayBlock,
+      addDayBlockSeries,
+      deleteDayBlockSeries,
       addActivity,
       updateActivity,
       removeActivity,
@@ -837,6 +879,7 @@ export function useStore() {
       resetData,
       setGoalOrder,
       logFocusSession,
+      logPause,
     ]
   );
 
@@ -856,6 +899,7 @@ export function useStore() {
     meals: data.meals || [],
     waterLog: data.waterLog || {},
     dayBlocks: data.dayBlocks || [],
+    pauseLog: data.pauseLog || [],
     activities: data.activities || [],
     songLog: data.songLog || [],
     ...actions,

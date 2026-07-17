@@ -4,9 +4,11 @@ import { Icon } from "../components/Icons.jsx";
 import DayDial from "../components/DayDial.jsx";
 import DayStory from "../components/DayStory.jsx";
 import AssistantReviewPanel from "../components/AssistantReviewPanel.jsx";
+import ScheduleImportSheet from "../components/ScheduleImportSheet.jsx";
+import { MonthView, NaturalAddBar, WeekView } from "../components/CalendarViews.jsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
-import { todayKey, shiftDay } from "../lib/model.js";
+import { createDayBlock, todayKey, shiftDay } from "../lib/model.js";
 import {
   BLOCK_CATEGORIES,
   categoryById,
@@ -15,6 +17,7 @@ import {
   minutesToLabel,
   nextFreeSlot,
 } from "../lib/dayPlanner.js";
+import { describeRepeat, expandRepeat } from "../lib/recurrence.js";
 
 /* DayPlanner — the Day tab: plan the day as a shape, not a list.
 
@@ -33,13 +36,53 @@ const DEFAULT_PREFS = {
   showAlarms: true,
 };
 
-function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobile = false }) {
+const WEEKDAY_CHIPS = ["M", "T", "W", "T", "F", "S", "S"]; // Mon=0..Sun=6
+
+function BlockEditor({
+  draft,
+  setDraft,
+  onSave,
+  onDelete,
+  onDeleteSeries,
+  onClose,
+  isNew,
+  isMobile = false,
+  overlay = false, // week/month views: float the editor instead of inlining it
+}) {
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const valid =
     draft.title.trim() &&
     hhmmToMinutes(draft.startHH) != null &&
     hhmmToMinutes(draft.endHH) != null &&
     hhmmToMinutes(draft.endHH) > hhmmToMinutes(draft.startHH);
+
+  const repeat = draft.repeat; // null | {freq, interval, weekdays, until}
+  const setRepeatFreq = (freq) =>
+    set({
+      repeat:
+        freq === "none"
+          ? null
+          : {
+              freq,
+              interval: repeat?.interval || 1,
+              weekdays:
+                freq === "weekly"
+                  ? repeat?.weekdays?.length
+                    ? repeat.weekdays
+                    : [(new Date(draft.date + "T00:00:00").getDay() + 6) % 7]
+                  : [],
+              until: repeat?.until || null,
+            },
+    });
+  const toggleWeekday = (wd) => {
+    if (!repeat) return;
+    const has = repeat.weekdays.includes(wd);
+    const next = has
+      ? repeat.weekdays.filter((d) => d !== wd)
+      : [...repeat.weekdays, wd].sort();
+    if (!next.length) return; // a weekly repeat needs at least one day
+    set({ repeat: { ...repeat, weekdays: next } });
+  };
   const body = (
     <>
       <div className="card-head">
@@ -57,6 +100,17 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobi
         autoFocus={isNew}
         onChange={(e) => set({ title: e.target.value.slice(0, 60) })}
       />
+      <div className="dp-editor-times">
+        <label className="dp-time" style={{ flex: "1 1 100%" }}>
+          <span>Day</span>
+          <input
+            className="input"
+            type="date"
+            value={draft.date}
+            onChange={(e) => set({ date: e.target.value || draft.date })}
+          />
+        </label>
+      </div>
       <div className="dp-editor-times">
         <label className="dp-time">
           <span>From</span>
@@ -98,12 +152,113 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobi
         />
         Protected: this hour doesn't move when plans change
       </label>
+
+      {/* Repeat, Apple-Calendar style. New blocks only: an existing block is
+         one occurrence, and its edits stay its own. */}
+      {isNew && (
+        <div className="dp-repeat">
+          <div className="dp-repeat-head">
+            <span className="dp-repeat-lbl">Repeat</span>
+            <div className="seg dp-repeat-seg">
+              {[
+                { id: "none", label: "Off" },
+                { id: "daily", label: "Daily" },
+                { id: "weekly", label: "Weekly" },
+                { id: "monthly", label: "Monthly" },
+              ].map((o) => (
+                <button
+                  key={o.id}
+                  className={(repeat?.freq || "none") === o.id ? "active" : ""}
+                  onClick={() => setRepeatFreq(o.id)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {repeat?.freq === "weekly" && (
+            <div className="dp-repeat-days" role="group" aria-label="On these days">
+              {WEEKDAY_CHIPS.map((d, wd) => (
+                <button
+                  key={wd}
+                  type="button"
+                  className={"dp-repeat-day" + (repeat.weekdays.includes(wd) ? " on" : "")}
+                  aria-pressed={repeat.weekdays.includes(wd)}
+                  onClick={() => toggleWeekday(wd)}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          )}
+          {repeat && (
+            <div className="dp-repeat-row">
+              <label className="dp-repeat-every">
+                every
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={repeat.interval}
+                  onChange={(e) =>
+                    set({
+                      repeat: {
+                        ...repeat,
+                        interval: Math.min(12, Math.max(1, Number(e.target.value) || 1)),
+                      },
+                    })
+                  }
+                />
+                {{ daily: "day(s)", weekly: "week(s)", monthly: "month(s)" }[repeat.freq]}
+              </label>
+              <label className="dp-repeat-until">
+                until
+                <input
+                  className="input"
+                  type="date"
+                  value={repeat.until || ""}
+                  min={draft.date}
+                  onChange={(e) => set({ repeat: { ...repeat, until: e.target.value || null } })}
+                />
+              </label>
+            </div>
+          )}
+          {repeat && (
+            <p className="dp-repeat-desc">
+              {describeRepeat(repeat)}
+              {!repeat.until && " (adds about 6 months ahead)"}
+            </p>
+          )}
+        </div>
+      )}
+
+      {!isNew && draft.repeat && (
+        <p className="dp-repeat-desc">
+          <Icon.Reset width={11} height={11} /> Part of a series: {describeRepeat(draft.repeat)}
+        </p>
+      )}
+
       <div className="dp-editor-actions">
-        {!isNew && (
-          <button className="btn ghost sm dp-danger" onClick={onDelete}>
-            <Icon.Trash width={13} height={13} /> Remove
-          </button>
-        )}
+        {!isNew &&
+          (draft.seriesId ? (
+            <>
+              <button className="btn ghost sm dp-danger" onClick={onDelete}>
+                <Icon.Trash width={13} height={13} /> This one
+              </button>
+              <button
+                className="btn ghost sm dp-danger"
+                onClick={onDeleteSeries}
+                title="Remove this and every future occurrence"
+              >
+                <Icon.Trash width={13} height={13} /> Whole series
+              </button>
+            </>
+          ) : (
+            <button className="btn ghost sm dp-danger" onClick={onDelete}>
+              <Icon.Trash width={13} height={13} /> Remove
+            </button>
+          ))}
         <button
           className="btn primary sm"
           onClick={onSave}
@@ -144,17 +299,40 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobi
     );
   }
 
+  if (overlay) {
+    return createPortal(
+      <div
+        className="scrim"
+        role="presentation"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div
+          className="modal qa-modal dp-editor-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={isNew ? "New event" : "Edit event"}
+        >
+          <div className="qa-modal-body dp-editor">{body}</div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   return <div className="card dp-editor">{body}</div>;
 }
 
 export default function DayPlanner({
   date: dateProp,
   onDateChange,
-  onOpenCalendar,
   dayBlocks = [],
   addDayBlock,
   updateDayBlock,
   deleteDayBlock,
+  addDayBlockSeries,
+  deleteDayBlockSeries,
   tasks = [],
   toggleTask,
   goals = [],
@@ -170,8 +348,12 @@ export default function DayPlanner({
   removeActivity,
   onLogActivity, // (dateKey) => void — open the activity sheet for this date
   confirmBeforeDelete = true,
+  signedIn = false,
 }) {
   const isMobile = useIsMobile(768);
+  // Zoom level: Day (the dial), Week (agenda strip), Month (the wide grid).
+  const [view, setView] = useLocalStorage("ligand.dayView", "day");
+  const [importOpen, setImportOpen] = useState(false);
   // The viewed date is App-owned when provided (so the Calendar can hand a
   // day over); the local state is the standalone fallback.
   const [localDate, setLocalDate] = useState(todayKey);
@@ -207,21 +389,25 @@ export default function DayPlanner({
   const openNew = (start, end, extra = {}) =>
     setDraft({
       id: null,
+      date: extra.date || date,
       title: extra.title || "",
-      startHH: minutesToHHMM(start),
-      endHH: minutesToHHMM(end),
+      startHH: extra.startHH || minutesToHHMM(start),
+      endHH: extra.endHH || minutesToHHMM(end),
       category: extra.category || "focus",
       protected: false,
       linkType: extra.linkType || null,
       linkId: extra.linkId || null,
+      repeat: extra.repeat || null,
+      seriesId: null,
     });
 
-  const openExisting = (id) => {
-    const b = blocks.find((x) => x.id === id);
+  const openExisting = (id, source = null) => {
+    const b = (source || dayBlocks).find((x) => x.id === id);
     if (!b) return;
     setSelectedId(id);
     setDraft({
       id,
+      date: b.date,
       title: b.title,
       startHH: minutesToHHMM(b.start),
       endHH: minutesToHHMM(b.end),
@@ -229,6 +415,8 @@ export default function DayPlanner({
       protected: b.protected,
       linkType: b.linkType,
       linkId: b.linkId,
+      repeat: b.repeat || null,
+      seriesId: b.seriesId || null,
     });
   };
 
@@ -244,10 +432,58 @@ export default function DayPlanner({
       linkType: draft.linkType,
       linkId: draft.linkId,
     };
-    if (draft.id) updateDayBlock?.(draft.id, fields);
-    else addDayBlock?.({ ...fields, date });
+    if (draft.id) {
+      updateDayBlock?.(draft.id, { ...fields, date: draft.date });
+    } else if (draft.repeat) {
+      // Materialize the whole series as real blocks sharing a seriesId, so
+      // every surface (dial, ring, story, sync) sees them with zero magic.
+      const seriesId = `ser_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+      const dates = expandRepeat(draft.date, draft.repeat);
+      addDayBlockSeries?.(
+        dates.map((d) =>
+          createDayBlock({ ...fields, date: d, seriesId, repeat: draft.repeat })
+        )
+      );
+    } else {
+      addDayBlock?.({ ...fields, date: draft.date });
+    }
     setDraft(null);
     setSelectedId(null);
+  };
+
+  // "Whole series" removes this and every future occurrence; days already
+  // lived stay in the record.
+  const removeSeries = () => {
+    if (draft?.seriesId) deleteDayBlockSeries?.(draft.seriesId, draft.date);
+    setDraft(null);
+    setSelectedId(null);
+  };
+
+  // Everything the calendar lenses merge per day.
+  const calStores = useMemo(
+    () => ({ dayBlocks, scheduledWorkouts, tasks, alarms, goals }),
+    [dayBlocks, scheduledWorkouts, tasks, alarms, goals]
+  );
+
+  // A parsed natural-language line lands here as a PREFILLED editor draft.
+  const draftFromParsed = (ev) => {
+    const startHH = ev.start || "09:00";
+    const endHH =
+      ev.end ||
+      minutesToHHMM(Math.min(24 * 60, (hhmmToMinutes(startHH) ?? 540) + 60));
+    setDraft({
+      id: null,
+      date: ev.date || date,
+      title: ev.title,
+      startHH,
+      endHH,
+      category: "work",
+      protected: false,
+      linkType: null,
+      linkId: null,
+      repeat: ev.repeat || null,
+      seriesId: null,
+    });
   };
 
   const removeDraft = () => {
@@ -327,6 +563,7 @@ export default function DayPlanner({
           setDraft={setDraft}
           onSave={saveDraft}
           onDelete={removeDraft}
+          onDeleteSeries={removeSeries}
           onClose={() => {
             setDraft(null);
             setSelectedId(null);
@@ -508,39 +745,123 @@ export default function DayPlanner({
     </div>
   );
 
+  const viewSeg = (
+    <div className="seg dp-view-seg" role="tablist" aria-label="Zoom level">
+      {[
+        { id: "day", label: "Day" },
+        { id: "week", label: "Week" },
+        { id: "month", label: "Month" },
+      ].map((v) => (
+        <button
+          key={v.id}
+          role="tab"
+          aria-selected={view === v.id}
+          className={view === v.id ? "active" : ""}
+          onClick={() => setView(v.id)}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="dp-wrap">
       <div className="page-head dp-head">
         <div>
           <div className="eyebrow">Planner</div>
-          <h1 className="page-title">Your day, as a shape</h1>
+          <h1 className="page-title">
+            {view === "day" ? "Your day, as a shape" : view === "week" ? "Your week" : "Your month"}
+          </h1>
           <p className="page-sub">
-            {isMobile
-              ? "The plan up top, the real story below. Tap any block to edit it."
-              : "Drag empty ring to carve out time; drag a block to move it; click to edit. Protected hours stay put."}
+            {view === "month"
+              ? "The wide view. Pick a day, add events (they can repeat), or zoom into the dial."
+              : view === "week"
+                ? "Seven days at a glance. Tap a day's header to zoom in."
+                : isMobile
+                  ? "The plan up top, the real story below. Tap any block to edit it."
+                  : "Drag empty ring to carve out time; drag a block to move it; click to edit. Protected hours stay put."}
           </p>
         </div>
         <div className="dp-nav">
-          {onOpenCalendar && (
-            <button className="iconbtn" title="Open the calendar" onClick={onOpenCalendar}>
-              <Icon.Calendar width={15} height={15} />
-            </button>
+          {viewSeg}
+          {view === "day" && (
+            <>
+              <button className="iconbtn" title="Previous day" onClick={() => setDate(shiftDay(date, -1))}>
+                ‹
+              </button>
+              {!isToday && (
+                <button className="btn ghost sm" onClick={() => setDate(todayKey())}>
+                  Today
+                </button>
+              )}
+              <button className="iconbtn" title="Next day" onClick={() => setDate(shiftDay(date, 1))}>
+                ›
+              </button>
+            </>
           )}
-          <button className="iconbtn" title="Previous day" onClick={() => setDate(shiftDay(date, -1))}>
-            ‹
-          </button>
-          {!isToday && (
-            <button className="btn ghost sm" onClick={() => setDate(todayKey())}>
-              Today
-            </button>
-          )}
-          <button className="iconbtn" title="Next day" onClick={() => setDate(shiftDay(date, 1))}>
-            ›
-          </button>
         </div>
       </div>
 
-      {isMobile ? (
+      {view !== "day" && (
+        <>
+          <NaturalAddBar refDate={date} onDraft={draftFromParsed} signedIn={signedIn} />
+          {view === "week" ? (
+            <WeekView
+              stores={calStores}
+              date={date}
+              isMobile={isMobile}
+              onShiftWeek={(d) => setDate(d == null ? todayKey() : shiftDay(date, d))}
+              onOpenDay={(k) => {
+                setDate(k);
+                setView("day");
+              }}
+              onNewEvent={(k) => openNew(9 * 60, 10 * 60, { date: k })}
+              onEditBlock={(id) => openExisting(id)}
+            />
+          ) : (
+            <MonthView
+              stores={calStores}
+              selected={date}
+              isMobile={isMobile}
+              onSelect={setDate}
+              onOpenDay={(k) => {
+                setDate(k);
+                setView("day");
+              }}
+              onNewEvent={(k) => openNew(9 * 60, 10 * 60, { date: k })}
+              onEditBlock={(id) => openExisting(id)}
+              onImport={() => setImportOpen(true)}
+            />
+          )}
+          {draft && (
+            <BlockEditor
+              draft={draft}
+              setDraft={setDraft}
+              onSave={saveDraft}
+              onDelete={removeDraft}
+              onDeleteSeries={removeSeries}
+              onClose={() => {
+                setDraft(null);
+                setSelectedId(null);
+              }}
+              isNew={!draft.id}
+              isMobile={isMobile}
+              overlay
+            />
+          )}
+          <ScheduleImportSheet
+            key={importOpen ? "schimp-open" : "schimp-closed"}
+            open={importOpen}
+            onClose={() => setImportOpen(false)}
+            isMobile={isMobile}
+            addDayBlock={addDayBlock}
+            defaultDate={date}
+          />
+        </>
+      )}
+
+      {view === "day" && (isMobile ? (
         <>
           {/* The dial as a compact, deliberate card — a glanceable clock face,
              not a shrunken desktop editor. Editing happens in the list + sheet
@@ -605,7 +926,7 @@ export default function DayPlanner({
           </div>
           {sidePanel}
         </div>
-      )}
+      ))}
     </div>
   );
 }

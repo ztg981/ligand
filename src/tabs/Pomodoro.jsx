@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
+import { todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import FocusPicker from "../components/FocusPicker.jsx";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
@@ -515,6 +517,8 @@ export default function Pomodoro({
   goals = [],
   hyperfocus = false,
   logFocusSession,
+  logPause,
+  pauseLog = [],
 }) {
   // What the user is focusing on this session (persisted so it survives
   // reloads). Value is "" (nothing), a task id, "goal:<goalId>" (a goal
@@ -558,19 +562,18 @@ export default function Pomodoro({
           phaseChange();
         }
       }
-      // Log a completed focus block: a task logs to its goal, "goal:<id>"
-      // logs to that goal directly, custom text logs with no goal. Only
-      // "nothing in particular" logs nothing at all.
+      // EVERY completed focus block is logged (the trends and the day ring
+      // should never miss real focus time). A task attributes it to the
+      // task's goal, "goal:<id>" to that goal directly; custom text and
+      // "nothing in particular" log with no goal.
       if (endedPhase === PHASES.WORK && focusEndRef.current) {
         const { taskId, work, tasks: ts } = focusEndRef.current;
-        if (taskId && logFocusSession) {
+        if (logFocusSession) {
           let goalId = null;
-          if (taskId.startsWith("goal:")) {
+          if (taskId?.startsWith("goal:")) {
             goalId = taskId.slice(5);
-          } else if (taskId !== "custom") {
-            const task = ts.find((t) => t.id === taskId);
-            if (!task) goalId = null;
-            else goalId = task.goalId || null;
+          } else if (taskId && taskId !== "custom") {
+            goalId = ts.find((t) => t.id === taskId)?.goalId || null;
           }
           logFocusSession({ minutes: work, goalId });
         }
@@ -628,11 +631,23 @@ export default function Pomodoro({
     );
     return () => clearInterval(t);
   }, [pausedAt]);
-  // Resuming (or resetting/skipping into a fresh block) clears the stopwatch.
+  // Resuming (or resetting/skipping into a fresh block) clears the stopwatch
+  // and records how long the stop lasted — stopped time is data too.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot clear on resume; guarded so it can't cascade
-    if (pomo.running && pausedAt) setPausedAt(null);
-  }, [pomo.running, pausedAt]);
+    if (pomo.running && pausedAt) {
+      logPause?.({ seconds: (Date.now() - pausedAt) / 1000 });
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot clear on resume; guarded so it can't cascade
+      setPausedAt(null);
+    }
+  }, [pomo.running, pausedAt, logPause]);
+  const pausedTodayMin = useMemo(() => {
+    const today = todayKey();
+    return Math.round(
+      pauseLog
+        .filter((p) => p.date === today)
+        .reduce((n, p) => n + (p.seconds || 0), 0) / 60
+    );
+  }, [pauseLog]);
   const handlePause = () => {
     pomo.pause();
     setPauseElapsedSec(0);
@@ -903,57 +918,24 @@ export default function Pomodoro({
             </span>
             <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
               {pomo.completed} done
+              {pausedTodayMin > 0 ? ` · stopped ${pausedTodayMin}m today` : ""}
             </span>
           </div>
         </div>
 
         {/* Focusing on - a task (logs to its goal), a goal directly, or your
-           own words. "Nothing in particular" logs nothing. */}
+           own words. "Nothing in particular" still logs the block, just with
+           no goal attached. */}
         <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 12, color: "var(--ink-3)" }}>Focusing on</span>
-          <select
-            className="input"
+          <FocusPicker
             value={focusTaskId}
-            onChange={(e) => setFocusTaskId(e.target.value)}
-            style={{ width: "auto", maxWidth: 280, flex: "none" }}
-          >
-            <option value="">Nothing in particular</option>
-            <option value="custom">Something else… (type it)</option>
-            {goals.length > 0 && (
-              <optgroup label="Your goals">
-                {goals.map((g) => (
-                  <option key={g.id} value={"goal:" + g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {tasks.filter((t) => !t.done).length > 0 && (
-              <optgroup label="Your tasks">
-                {tasks
-                  .filter((t) => !t.done)
-                  .map((t) => {
-                    const g = t.goalId ? goals.find((x) => x.id === t.goalId) : null;
-                    return (
-                      <option key={t.id} value={t.id}>
-                        {t.text}
-                        {g ? ` · ${g.name}` : ""}
-                      </option>
-                    );
-                  })}
-              </optgroup>
-            )}
-          </select>
-          {focusTaskId === "custom" && (
-            <input
-              className="input"
-              placeholder="What are you working on?"
-              value={focusCustom}
-              maxLength={60}
-              onChange={(e) => setFocusCustom(e.target.value)}
-              style={{ width: 200, flex: "none" }}
-            />
-          )}
+            customText={focusCustom}
+            onChange={setFocusTaskId}
+            onCustomText={setFocusCustom}
+            tasks={tasks}
+            goals={goals}
+          />
         </div>
       </div>
 

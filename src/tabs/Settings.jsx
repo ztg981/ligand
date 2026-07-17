@@ -92,9 +92,23 @@ export default function Settings({
   const saveLook = () => {
     const name = lookName.trim();
     if (!name) return;
+    // Snapshot the LIVE colors for the chip's mini preview, so the swatch
+    // shows exactly what the look looked like when it was saved.
+    let swatch = null;
+    try {
+      const cs = getComputedStyle(document.documentElement);
+      swatch = [
+        cs.getPropertyValue("--bg").trim(),
+        cs.getPropertyValue("--panel").trim(),
+        cs.getPropertyValue("--accent").trim(),
+        cs.getPropertyValue("--ink").trim(),
+      ];
+    } catch {
+      swatch = null;
+    }
     setUserPresets((prev) => [
       ...prev.filter((p) => p.name !== name),
-      { id: `user-${Date.now()}`, name, tweaks: { ...tweaks } },
+      { id: `user-${Date.now()}`, name, tweaks: { ...tweaks }, swatch },
     ]);
     setLookName("");
     setSavingLook(false);
@@ -223,6 +237,21 @@ export default function Settings({
                       title="Apply this look"
                       onClick={() => applyLook(p)}
                     >
+                      <span className="mylooks-swatch" aria-hidden="true">
+                        {(p.swatch && p.swatch.length
+                          ? p.swatch
+                          : [
+                              // Looks saved before previews existed: a stand-in
+                              // built from the saved accent hue.
+                              "#f2f2f5",
+                              "#ffffff",
+                              `oklch(0.62 0.11 ${p.tweaks?.accent ?? 245})`,
+                              "#26272c",
+                            ]
+                        ).map((c, i) => (
+                          <span key={i} style={{ background: c }} />
+                        ))}
+                      </span>
                       {p.name}
                     </button>
                     <ConfirmButton

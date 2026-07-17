@@ -94,3 +94,36 @@ test("draftToBlock: timed, untimed placeholder, and end<=start repair", () => {
   assert.ok(repaired.end > repaired.start);
   assert.equal(clockToMin("07:30"), 450);
 });
+
+test("parseNaturalEvent: the user's exact sentence", async () => {
+  const { parseNaturalEvent } = await import("../src/lib/scheduleParse.js");
+  const e = parseNaturalEvent("meeting with James every sunday 7/19 to end of august", REF);
+  assert.equal(e.title, "meeting with James");
+  assert.equal(e.date, "2026-07-19"); // that 7/19 IS a Sunday
+  assert.deepEqual(e.repeat, { freq: "weekly", interval: 1, weekdays: [6], until: "2026-08-31" });
+});
+
+test("parseNaturalEvent: every day with time until slash date", async () => {
+  const { parseNaturalEvent } = await import("../src/lib/scheduleParse.js");
+  const e = parseNaturalEvent("Gym every day 6:30am until 8/15", REF);
+  assert.equal(e.title, "Gym");
+  assert.equal(e.start, "06:30");
+  assert.deepEqual(e.repeat, { freq: "daily", interval: 1, weekdays: [], until: "2026-08-15" });
+});
+
+test("parseNaturalEvent: every other week, multi weekday", async () => {
+  const { parseNaturalEvent } = await import("../src/lib/scheduleParse.js");
+  const e = parseNaturalEvent("Standup every monday and thursday 9am", REF);
+  assert.equal(e.repeat.freq, "weekly");
+  assert.deepEqual(e.repeat.weekdays, [0, 3]);
+  assert.equal(e.date, REF); // REF is a Thursday, first match
+  const o = parseNaturalEvent("Cleaning every other saturday", REF);
+  assert.equal(o.repeat.interval, 2);
+});
+
+test("parseNaturalEvent: plain one-off still parses (no repeat)", async () => {
+  const { parseNaturalEvent } = await import("../src/lib/scheduleParse.js");
+  const e = parseNaturalEvent("Dentist tue 2pm", REF);
+  assert.equal(e.repeat, null);
+  assert.equal(e.date, "2026-07-21");
+});
