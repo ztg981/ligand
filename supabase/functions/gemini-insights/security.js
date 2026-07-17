@@ -4,15 +4,23 @@ export const ACTIONS = Object.freeze([
   "journal-prompt",
   "weekly_review",
   "import_workout",
+  "import_schedule",
   "recovery_insight",
 ]);
 
 export const ACTION_SET = new Set(ACTIONS);
 
 export const MAX_BODY_BYTES = 24_000;
+// import_schedule carries a base64 screenshot; the client downscales to
+// ≤1280px JPEG before sending, so ~1.4M base64 chars (~1MB binary) is ample.
+export const MAX_IMAGE_B64_CHARS = 1_400_000;
+export const MAX_IMAGE_BODY_BYTES = 1_500_000;
 export const MAX_NOTES_CHARS = 4_000;
 export const MAX_TEXT_OUTPUT_CHARS = 1_200;
 export const MAX_WORKOUT_OUTPUT_CHARS = 12_000;
+export const MAX_SCHEDULE_OUTPUT_CHARS = 16_000;
+
+const IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const DAY_NAMES = new Set(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
 const IMPORT_MUSCLE_GROUPS = new Set([
@@ -41,6 +49,7 @@ export const RATE_LIMITS = Object.freeze({
   "journal-prompt": { maxRequests: 60, windowSeconds: 60 * 60 },
   weekly_review: { maxRequests: 20, windowSeconds: 60 * 60 },
   import_workout: { maxRequests: 15, windowSeconds: 60 * 60 },
+  import_schedule: { maxRequests: 10, windowSeconds: 60 * 60 },
   recovery_insight: { maxRequests: 40, windowSeconds: 60 * 60 },
 });
 
@@ -203,6 +212,30 @@ export function sanitizeContext(action, context) {
     return { ok: true, context: { notes } };
   }
 
+  if (action === "import_schedule") {
+    const image = context.image;
+    const mimeType = typeof image?.mimeType === "string" ? image.mimeType : "";
+    const data = typeof image?.data === "string" ? image.data.replace(/\s+/g, "") : "";
+    if (!IMAGE_MIME_TYPES.has(mimeType)) {
+      return { ok: false, error: "Image must be JPEG, PNG, or WebP." };
+    }
+    if (!data) return { ok: false, error: "No image provided." };
+    if (data.length > MAX_IMAGE_B64_CHARS) {
+      return { ok: false, error: "Image too large. Use a smaller screenshot." };
+    }
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) {
+      return { ok: false, error: "Image data was not valid base64." };
+    }
+    return {
+      ok: true,
+      context: {
+        image: { mimeType, data },
+        refDate: cleanDate(context.refDate),
+        hint: cleanText(context.hint, 200),
+      },
+    };
+  }
+
   return {
     ok: true,
     context: {
@@ -245,6 +278,45 @@ function sanitizeWorkoutExercise(raw) {
     restSec: clampInt(raw.restSec, 0, 900, null),
     notes: cleanText(raw.notes, 200) || null,
   };
+}
+
+// Schedule events from the model are untrusted DATA. Clamp every field to
+// shape; the client re-validates and the user reviews before anything saves.
+export function sanitizeScheduleOutput(text) {
+  if (typeof text !== "string" || text.length > MAX_SCHEDULE_OUTPUT_CHARS) {
+    return { ok: false, error: "Schedule response was empty or too large." };
+  }
+  const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return { ok: false, error: "Schedule response did not contain JSON." };
+  let parsed;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return { ok: false, error: "Schedule response JSON was malformed." };
+  }
+  const events = list(parsed.events, 60)
+    .map((raw) => {
+      const title = cleanText(raw?.title, 80);
+      if (!title) return null;
+      const date =
+        typeof raw?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.date)
+          ? raw.date
+          : null;
+      const weekday = Number.isInteger(raw?.weekday) && raw.weekday >= 0 && raw.weekday <= 6
+        ? raw.weekday
+        : null;
+      const clock = (v) =>
+        typeof v === "string" && /^\d{1,2}:\d{2}(\s*(am|pm))?$/i.test(v.trim())
+          ? v.trim().slice(0, 8)
+          : null;
+      return { title, date, weekday, start: clock(raw?.start), end: clock(raw?.end) };
+    })
+    .filter(Boolean);
+  if (!events.length) {
+    return { ok: false, error: "No readable events were found in that image." };
+  }
+  return { ok: true, text: JSON.stringify({ events }) };
 }
 
 export function sanitizeWorkoutOutput(text) {

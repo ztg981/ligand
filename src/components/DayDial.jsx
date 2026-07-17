@@ -112,6 +112,7 @@ export default function DayDial({
   onCreateRange, // (startMin, endMin) => void
   onMove, // (id, newStart, newEnd) => void — drag an existing block
   readOnly = false, // mobile: display + tap-to-edit only (no drag create/move)
+  compact = false, // phone: crop the label gutters, upscale type, no leaders
 }) {
   const svgRef = useRef(null);
   const [drag, setDrag] = useState(null); // { from, to }
@@ -202,11 +203,20 @@ export default function DayDial({
   const sleepS = hhmmToMinutes(sleepStart) ?? 23 * 60;
   const sleepE = hhmmToMinutes(sleepEnd) ?? 7 * 60;
 
+  // Compact mode crops the viewBox to just the ring + hour numbers — the
+  // desktop layout reserves ~90px side gutters for leader-line labels, which
+  // at phone width turn into unreadable specks and make the whole dial look
+  // small and lost. The block list below the dial carries the titles instead.
+  const crop = C - (R_NUM + 26);
+  const viewBox = compact
+    ? `${crop} ${crop} ${SIZE - crop * 2} ${SIZE - crop * 2}`
+    : `0 0 ${SIZE} ${SIZE}`;
+
   return (
     <svg
       ref={svgRef}
-      className={"dial" + (readOnly ? " dial--ro" : "")}
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      className={"dial" + (readOnly ? " dial--ro" : "") + (compact ? " dial--compact" : "")}
+      viewBox={viewBox}
       role="img"
       aria-label={`${weekday} ${dateScript}: ${blocks.length} blocks, ${fmtDuration(totalMin)} scheduled`}
     >
@@ -388,8 +398,9 @@ export default function DayDial({
         );
       })}
 
-      {/* labels with dotted leaders */}
-      {labels.map(({ b, right, ax, ay, y }) => {
+      {/* labels with dotted leaders (desktop only — compact mode relies on
+         the block list below the dial) */}
+      {!compact && labels.map(({ b, right, ax, ay, y }) => {
         const lx = right ? C + R_LABEL : C - R_LABEL;
         const cat = categoryById(b.category);
         return (
@@ -428,15 +439,18 @@ export default function DayDial({
         </g>
       )}
 
-      {/* center */}
-      <text x={C} y={C - 42} textAnchor="middle" className="dial-weekday">{weekday.toUpperCase()}</text>
-      <text x={C} y={C + 8} textAnchor="middle" className="dial-date">{dateScript}</text>
-      <text x={C} y={C + 34} textAnchor="middle" className="dial-year">{dateObj.getFullYear()}</text>
-      <text x={C} y={C + 64} textAnchor="middle" className="dial-total">
+      {/* center — compact drops the year and spreads the remaining lines so
+         the middle doesn't read as cramped at phone scale */}
+      <text x={C} y={C - (compact ? 52 : 42)} textAnchor="middle" className="dial-weekday">{weekday.toUpperCase()}</text>
+      <text x={C} y={C + (compact ? 12 : 8)} textAnchor="middle" className="dial-date">{dateScript}</text>
+      {!compact && (
+        <text x={C} y={C + 34} textAnchor="middle" className="dial-year">{dateObj.getFullYear()}</text>
+      )}
+      <text x={C} y={C + (compact ? 58 : 64)} textAnchor="middle" className="dial-total">
         {totalMin > 0 ? `${fmtDuration(totalMin)} scheduled` : "nothing scheduled yet"}
       </text>
       {isToday && (
-        <text x={C} y={C + 84} textAnchor="middle" className="dial-now">
+        <text x={C} y={C + (compact ? 92 : 84)} textAnchor="middle" className="dial-now">
           now · {minutesToLabel(nowMin)}
         </text>
       )}

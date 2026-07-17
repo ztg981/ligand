@@ -355,6 +355,116 @@ export async function fetchAiInsight(goalId, action, context, forceRefresh = fal
 const MAX_IMPORT_CHARS = 4000;
 
 /**
+ * Downscale an image File/Blob for the schedule reader: longest edge ≤1280px,
+ * JPEG q0.82 — plenty for text recognition, small enough to send. Returns
+ * { mimeType, data } (base64, no data: prefix) or null on decode failure.
+ */
+export async function compressImageForImport(file, maxEdge = 1280) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+    const comma = dataUrl.indexOf(",");
+    if (comma < 0) return null;
+    return { mimeType: "image/jpeg", data: dataUrl.slice(comma + 1) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read a schedule screenshot into event drafts via Gemini. Returns
+ * { ok: true, events: [{title, date|null, weekday|null, start|null, end|null}] }
+ * or { ok: false, kind, error } with the same error taxonomy as importWorkout.
+ * The caller runs the result through normalizeAiEvents and ALWAYS shows a
+ * review step — nothing is saved from here.
+ */
+export async function importSchedule({ mimeType, data }, { refDate, hint } = {}) {
+  const signedOutMsg =
+    "Reading screenshots needs a signed-in account. You can still paste the schedule as text below.";
+  if (aiGuestMode) return { ok: false, kind: "signed-out", error: signedOutMsg };
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, kind: "signed-out", error: signedOutMsg };
+  }
+  if (!data) return { ok: false, kind: "empty", error: "Attach a screenshot first." };
+
+  let res;
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      return { ok: false, kind: "signed-out", error: signedOutMsg };
+    }
+    res = await supabase.functions.invoke("gemini-insights", {
+      body: {
+        action: "import_schedule",
+        context: { image: { mimeType, data }, refDate, hint },
+      },
+    });
+  } catch (err) {
+    debugLog("importSchedule network failure:", err?.message);
+    return {
+      ok: false,
+      kind: "network",
+      error: "Couldn't reach the AI service. Check your connection and retry.",
+    };
+  }
+  if (res.error) {
+    debugLog("importSchedule invoke error:", res.error.message);
+    return {
+      ok: false,
+      kind: "network",
+      error: "Couldn't reach the AI service. Check your connection and retry.",
+    };
+  }
+  const body = res.data;
+  if (!body || !body.ok) {
+    const errorKind = body?.errorKind || "unknown";
+    debugLog("importSchedule not ok:", { errorKind, debug: body?.debug });
+    if (errorKind === "model_overloaded" || errorKind === "rate_limited") {
+      return {
+        ok: false,
+        kind: "busy",
+        error: "The AI reader is busy right now. Try again in a minute, or paste the schedule as text.",
+      };
+    }
+    if (errorKind === "bad_request" || errorKind === "invalid_model_output") {
+      return {
+        ok: false,
+        kind: "invalid",
+        error: body?.debug?.error || "Couldn't read a schedule out of that image.",
+      };
+    }
+    return {
+      ok: false,
+      kind: "upstream",
+      error: "The AI service returned an error. Retry, or paste the schedule as text.",
+    };
+  }
+  try {
+    const parsed = JSON.parse(body.text || "{}");
+    const events = Array.isArray(parsed.events) ? parsed.events : [];
+    if (!events.length) {
+      return { ok: false, kind: "no-events", error: "No events were found in that image." };
+    }
+    return { ok: true, events };
+  } catch (err) {
+    debugLog("importSchedule parse failure:", err?.message);
+    return {
+      ok: false,
+      kind: "parse",
+      error: "The AI reply couldn't be read. Retry, or paste the schedule as text.",
+    };
+  }
+}
+
+/**
  * Parse messy free-text gym notes into a structured workout via Gemini.
  * Returns { ok: true, exercises, dropped } (schema-validated exercises) or
  * { ok: false, kind, error } where `kind` tells the UI what actually failed:

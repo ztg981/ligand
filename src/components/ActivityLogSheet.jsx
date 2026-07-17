@@ -10,17 +10,16 @@ import {
 } from "../lib/activities.js";
 import { todayKey } from "../lib/model.js";
 
-/* ActivityLogSheet — "what did you just do?" in under five seconds.
+/* ActivityLogSheet — "what did you just do?" as a two-tap flow.
 
-   The universal activity logger: sports, games, scrolling, chores, people
-   time, rest. One title field, category chips that carry one-tap quick
-   picks, duration presets, an optional "how did it leave you?" row, and an
-   optional note. Opens as a bottom sheet on the phone and a centered modal
-   on desktop (same portal pattern as QuickAdd).
+   Step 1 is a grid of big emoji tiles (pick what kind of time it was);
+   step 2 appears underneath: tappable name chips, big duration buttons,
+   emoji feels, one sticky Log button. Typing is always OPTIONAL — category
+   alone is a valid log, so the fastest path is tile → Log. The fiddly
+   details (exact end time, a note) hide behind small links.
 
-   Sports can also count as workouts — the toggle hands that decision to the
-   parent via onSave(fields, { asWorkout }), which writes the workout record
-   and links the two so nothing ever shows twice. */
+   Sports carry a "counts as a workout" toggle; the parent mirrors those
+   into a linked cardio session (see App.handleSaveActivity). */
 
 function nowHHMM() {
   const d = new Date();
@@ -35,31 +34,26 @@ export default function ActivityLogSheet({
   initialCategory = null,
   dateKey = null, // log onto a specific (possibly past) day; null = today
 }) {
-  const [category, setCategory] = useState(initialCategory || "sport");
+  const [category, setCategory] = useState(initialCategory);
   const [title, setTitle] = useState("");
-  const [durationMin, setDurationMin] = useState(null);
+  const [typing, setTyping] = useState(false);
+  const [durationMin, setDurationMin] = useState(30);
   const [customDur, setCustomDur] = useState("");
   const [endTime, setEndTime] = useState(nowHHMM);
+  const [showWhen, setShowWhen] = useState(false);
   const [feel, setFeel] = useState(null);
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
   const [asWorkout, setAsWorkout] = useState(true);
   const [saved, setSaved] = useState(false);
-  const inputRef = useRef(null);
+  const typeRef = useRef(null);
   const scrimRef = useRef(null);
   const closeTimer = useRef(null);
 
-  const cat = categoryOf(category);
+  const cat = category ? categoryOf(category) : null;
   const isToday = !dateKey || dateKey === todayKey();
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(t);
-  }, [open]);
-
-  // Keep the mobile sheet above the soft keyboard (same visual-viewport
-  // pinning QuickAdd uses).
+  // Keep the mobile sheet above the soft keyboard (visual-viewport pinning).
   useEffect(() => {
     if (!open || !isMobile) return undefined;
     const vv = window.visualViewport;
@@ -88,26 +82,27 @@ export default function ActivityLogSheet({
     : durationMin;
 
   const save = () => {
-    const t = title.trim() || cat.name;
+    if (!cat) return;
     onSave?.(
       {
-        title: t,
-        category,
+        title: title.trim() || cat.name,
+        category: cat.id,
         date: dateKey || todayKey(),
         endTime: endTime || nowHHMM(),
         durationMin: effectiveDuration,
         feel,
         note: note.trim(),
       },
-      { asWorkout: category === "sport" && asWorkout }
+      { asWorkout: cat.id === "sport" && asWorkout }
     );
     setSaved(true);
-    closeTimer.current = setTimeout(onClose, 900);
+    closeTimer.current = setTimeout(onClose, 850);
   };
 
-  const pickDuration = (min) => {
-    setCustomDur("");
-    setDurationMin((cur) => (cur === min ? null : min));
+  const pickCategory = (id) => {
+    setCategory((cur) => (cur === id ? null : id));
+    setTitle("");
+    setTyping(false);
   };
 
   const body = saved ? (
@@ -125,158 +120,179 @@ export default function ActivityLogSheet({
         </button>
       </div>
 
-      {/* Category chips */}
-      <div className="actlog-cats" role="group" aria-label="Kind of activity">
+      {/* Step 1 — big tiles. Tapping one is already a complete answer. */}
+      <div className="actlog-grid" role="group" aria-label="Kind of activity">
         {ACTIVITY_CATEGORIES.map((c) => (
           <button
             key={c.id}
             type="button"
-            className={"actlog-cat" + (category === c.id ? " on" : "")}
+            className={"actlog-tile" + (category === c.id ? " on" : "")}
             style={{ "--cat": c.color }}
             aria-pressed={category === c.id}
-            onClick={() => {
-              setCategory(c.id);
-              setTimeout(() => inputRef.current?.focus(), 40);
-            }}
+            onClick={() => pickCategory(c.id)}
           >
-            <span className="actlog-cat-dot" /> {c.name}
+            <span className="actlog-tile-emoji" aria-hidden="true">{c.emoji}</span>
+            <span className="actlog-tile-name">{c.name}</span>
           </button>
         ))}
       </div>
 
-      <input
-        ref={inputRef}
-        className="input actlog-title"
-        placeholder={
-          cat.picks.length
-            ? `e.g. ${cat.picks.slice(0, 3).join(", ").toLowerCase()}…`
-            : "What was it?"
-        }
-        value={title}
-        onChange={(e) => setTitle(e.target.value.slice(0, 80))}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            save();
-          }
-        }}
-      />
+      {/* Step 2 — details, only after a tile is chosen. */}
+      {cat && (
+        <div className="actlog-details">
+          <div className="actlog-picks">
+              {cat.picks.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={"actlog-pick" + (title === p ? " on" : "")}
+                  onClick={() => {
+                    setTitle((t) => (t === p ? "" : p));
+                    setTyping(false);
+                  }}
+                >
+                  {p}
+                </button>
+              ))}
+              {typing ? (
+                <input
+                  ref={typeRef}
+                  className="input actlog-type"
+                  placeholder="What was it?"
+                  autoFocus
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, 80))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      save();
+                    }
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="actlog-pick typeit"
+                  onClick={() => setTyping(true)}
+                >
+                  <Icon.Pencil width={11} height={11} /> type it…
+                </button>
+              )}
+            </div>
 
-      {/* One-tap quick picks for the chosen category */}
-      {cat.picks.length > 0 && (
-        <div className="actlog-picks" aria-label="Quick picks">
-          {cat.picks.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={"actlog-pick" + (title === p ? " on" : "")}
-              onClick={() => setTitle((t) => (t === p ? "" : p))}
-            >
-              {p}
-            </button>
-          ))}
+          <div className="actlog-row-label">How long?</div>
+          <div className="actlog-durs" role="group" aria-label="Duration">
+            {DURATION_PRESETS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={
+                  "actlog-dur" + (durationMin === m && !customDur.trim() ? " on" : "")
+                }
+                aria-pressed={durationMin === m && !customDur.trim()}
+                onClick={() => {
+                  setCustomDur("");
+                  setDurationMin(m);
+                }}
+              >
+                {fmtMinutes(m)}
+              </button>
+            ))}
+            <input
+              className="input actlog-dur-custom"
+              type="number"
+              min="1"
+              max="960"
+              inputMode="numeric"
+              placeholder="min"
+              value={customDur}
+              onChange={(e) => setCustomDur(e.target.value)}
+              aria-label="Custom duration in minutes"
+            />
+          </div>
+
+          <div className="actlog-row-label">How'd it leave you? <span>(optional)</span></div>
+          <div className="actlog-feels" role="group" aria-label="How it left you">
+            {FEELS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                className={"actlog-feel" + (feel === f.value ? " on" : "")}
+                aria-pressed={feel === f.value}
+                onClick={() => setFeel((cur) => (cur === f.value ? null : f.value))}
+                title={f.label}
+              >
+                <span className="actlog-feel-emoji" aria-hidden="true">{f.emoji}</span>
+                <span className="actlog-feel-lbl">{f.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {cat.id === "sport" && (
+            <label className="dp-check actlog-asworkout">
+              <input
+                type="checkbox"
+                checked={asWorkout}
+                onChange={(e) => setAsWorkout(e.target.checked)}
+              />
+              Counts as a workout
+            </label>
+          )}
+
+          {/* The fiddly bits stay behind small links. */}
+          <div className="actlog-links">
+            {showWhen ? (
+              <span className="actlog-when">
+                Ended at
+                <input
+                  className="input actlog-time"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  aria-label="When the activity ended"
+                />
+              </span>
+            ) : (
+              <button type="button" className="actlog-link" onClick={() => setShowWhen(true)}>
+                {isToday ? "Ended earlier?" : "Set a time"}
+              </button>
+            )}
+            {showNote ? null : (
+              <button type="button" className="actlog-link" onClick={() => setShowNote(true)}>
+                + note
+              </button>
+            )}
+          </div>
+          {showNote && (
+            <input
+              className="input"
+              placeholder="Anything worth remembering?"
+              value={note}
+              autoFocus
+              onChange={(e) => setNote(e.target.value.slice(0, 200))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  save();
+                }
+              }}
+              style={{ marginTop: 8 }}
+            />
+          )}
         </div>
       )}
 
-      {/* Duration presets + custom */}
-      <div className="actlog-row-label">How long? <span>(optional)</span></div>
-      <div className="actlog-durs" role="group" aria-label="Duration">
-        {DURATION_PRESETS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            className={
-              "actlog-dur" + (durationMin === m && !customDur.trim() ? " on" : "")
-            }
-            aria-pressed={durationMin === m && !customDur.trim()}
-            onClick={() => pickDuration(m)}
-          >
-            {fmtMinutes(m)}
-          </button>
-        ))}
-        <input
-          className="input actlog-dur-custom"
-          type="number"
-          min="1"
-          max="960"
-          inputMode="numeric"
-          placeholder="min"
-          value={customDur}
-          onChange={(e) => setCustomDur(e.target.value)}
-          aria-label="Custom duration in minutes"
-        />
-      </div>
-
-      {/* When it ended */}
-      <div className="actlog-when">
-        <span className="actlog-row-label" style={{ margin: 0 }}>Ended at</span>
-        <input
-          className="input actlog-time"
-          type="time"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          aria-label="When the activity ended"
-        />
-        {isToday && endTime !== nowHHMM() && (
-          <button type="button" className="btn ghost sm" onClick={() => setEndTime(nowHHMM())}>
-            Now
-          </button>
-        )}
-      </div>
-
-      {/* How it left you — information about the activity, never a grade. */}
-      <div className="actlog-row-label">How did it leave you? <span>(optional)</span></div>
-      <div className="actlog-feels" role="group" aria-label="How it left you">
-        {FEELS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            className={"actlog-feel" + (feel === f.value ? " on" : "")}
-            aria-pressed={feel === f.value}
-            onClick={() => setFeel((cur) => (cur === f.value ? null : f.value))}
-          >
-            <span aria-hidden="true">{f.emoji}</span> {f.label}
-          </button>
-        ))}
-      </div>
-
-      {category === "sport" && (
-        <label className="dp-check actlog-asworkout">
-          <input
-            type="checkbox"
-            checked={asWorkout}
-            onChange={(e) => setAsWorkout(e.target.checked)}
-          />
-          Count it as a workout (adds to your training week)
-        </label>
-      )}
-
-      {showNote ? (
-        <input
-          className="input"
-          placeholder="Anything worth remembering? (optional)"
-          value={note}
-          autoFocus
-          onChange={(e) => setNote(e.target.value.slice(0, 200))}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              save();
-            }
-          }}
-        />
-      ) : (
-        <button
-          type="button"
-          className="actlog-addnote"
-          onClick={() => setShowNote(true)}
-        >
-          <Icon.Pencil width={12} height={12} /> Add a note
-        </button>
-      )}
-
-      <button type="button" className="btn primary quick-note-save" onClick={save}>
-        <Icon.Check width={14} height={14} /> Log it
+      <button
+        type="button"
+        className="btn primary quick-note-save actlog-save"
+        onClick={save}
+        disabled={!cat}
+        style={{ opacity: cat ? 1 : 0.45 }}
+      >
+        <Icon.Check width={15} height={15} />
+        {cat
+          ? `Log ${title.trim() || cat.name}${effectiveDuration ? ` · ${fmtMinutes(effectiveDuration)}` : ""}`
+          : "Pick one above"}
       </button>
     </>
   );

@@ -1,14 +1,20 @@
 import { useMemo } from "react";
 import { Icon } from "../components/Icons.jsx";
-import { activitiesOn, categoryOf, lastActivityLine } from "../lib/activities.js";
+import {
+  ACTIVITY_CATEGORIES,
+  QUICK_CATEGORIES,
+  activitiesOn,
+  categoryOf,
+  lastActivityLine,
+} from "../lib/activities.js";
 import { todayKey } from "../lib/model.js";
 
-/* LastActivityCard — the phone-check landing pad.
+/* LastActivityCard — the phone-check landing pad, now a launcher.
 
-   The reflex this app wants to absorb: pick up phone → open Ligand → log
-   the last thing you did → see the day taking shape. This card is that
-   loop's front door on Home: the most recent log (so re-opening shows
-   progress, not emptiness) and one big "log it" button. */
+   A row of big, colorful one-tap category buttons ("I just played…",
+   "I just scrolled…") opens the logger with that answer already chosen —
+   two taps total to a saved log. The most recent log shows underneath so
+   re-opening the app shows a day in progress, not a blank. */
 
 export default function LastActivityCard({ activities = [], onLogActivity, onOpenDay }) {
   const today = todayKey();
@@ -17,13 +23,45 @@ export default function LastActivityCard({ activities = [], onLogActivity, onOpe
   const last = todays[0] || null;
   const line = lastActivityLine(last);
 
+  const quick = QUICK_CATEGORIES.map((id) => categoryOf(id));
+  const more = ACTIVITY_CATEGORIES.length > quick.length;
+
   return (
     <div className="card lastact">
       <div className="card-head">
-        <div className="card-title"><Icon.Spark /> Just did something?</div>
+        <div className="card-title"><Icon.Spark /> What did you just do?</div>
         {todays.length > 0 && onOpenDay && (
           <button className="btn ghost sm" onClick={onOpenDay}>
             Day →
+          </button>
+        )}
+      </div>
+
+      <div className="lastact-launch" role="group" aria-label="Log an activity">
+        {quick.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className="lastact-cat"
+            style={{ "--cat": c.color }}
+            onClick={() => onLogActivity?.(c.id)}
+            title={`Log ${c.name.toLowerCase()}`}
+          >
+            <span className="lastact-cat-circle" aria-hidden="true">{c.emoji}</span>
+            <span className="lastact-cat-name">{c.name}</span>
+          </button>
+        ))}
+        {more && (
+          <button
+            type="button"
+            className="lastact-cat"
+            onClick={() => onLogActivity?.(null)}
+            title="More kinds"
+          >
+            <span className="lastact-cat-circle more" aria-hidden="true">
+              <Icon.Plus width={16} height={16} />
+            </span>
+            <span className="lastact-cat-name">More</span>
           </button>
         )}
       </div>
@@ -34,25 +72,16 @@ export default function LastActivityCard({ activities = [], onLogActivity, onOpe
             className="lastact-dot"
             style={{ background: categoryOf(last.category).color }}
           />
-          <div className="lastact-text">
-            <div className="lastact-line">{line}</div>
-            <div className="lastact-sub">
-              {todays.length === 1
-                ? "First log of the day."
-                : `${todays.length} things logged today.`}
-            </div>
-          </div>
+          <span className="lastact-line">{line}</span>
+          <span className="lastact-sub">
+            {todays.length === 1 ? "· first log today" : `· ${todays.length} today`}
+          </span>
         </div>
       ) : (
         <p className="lastact-empty">
-          Tennis, a game, a chore, a scroll — whatever the last hour was,
-          give it a row. Your day builds itself from these.
+          Tap what the last hour was — that's the whole log.
         </p>
       )}
-
-      <button className="btn primary lastact-btn" onClick={onLogActivity}>
-        <Icon.Plus width={14} height={14} /> Log what I just did
-      </button>
     </div>
   );
 }

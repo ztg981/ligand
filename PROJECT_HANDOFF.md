@@ -177,6 +177,31 @@ ligand.data blob.
   habits, tasks, workout, journal, notes — active-pill padding tightened
   to fit 375px). Its avatar-menu entry was removed as redundant.
 
+### Calendar tab + logging v2 + mobile dial rework (2026-07-16, later)
+
+- **Calendar tab** (`tabs/Calendar.jsx`, lib `lib/calendar.js`, tested):
+  month grid (Mon-first, density dots colored by item kind) + day panel
+  merging dayBlocks, scheduledWorkouts, dated tasks (scheduledFor),
+  weekday alarms, and goal target dates. "Open in Day planner" hands the
+  picked date to the Day tab (planner date now lives in App). Desktop top
+  tab; phone reaches it via avatar menu or the calendar button on Day.
+- **Schedule screenshot import** (`components/ScheduleImportSheet.jsx`,
+  lib `lib/scheduleParse.js`, tested): attach/paste a screenshot → Gemini
+  reads events (new `import_schedule` action in the gemini-insights edge
+  function, multimodal inline_data, image ≤1.4M base64, 10/hr rate limit,
+  output sanitized) — or paste text for the offline deterministic parser.
+  Every path lands in an editable review table; ONE explicit confirm
+  button writes day blocks. Client downscales images to ≤1280px JPEG
+  (compressImageForImport in aiApi.js). Guests get the text path.
+- **Activity logging v2**: sheet is a 3×3 emoji tile grid (tap = complete
+  answer, 30m default, sticky "Log Gaming · 30m" button; end-time/note
+  behind links). Home card is a one-tap launcher row of colored category
+  circles (QUICK_CATEGORIES) → sheet opens preset. Two taps to a log.
+- **Mobile Day dial**: DayDial gained `compact` (cropped viewBox — the
+  desktop label gutters made the phone dial look tiny/off — no leader
+  labels, upscaled type, no year). DayRing arcs are now slim panel-cased
+  segments instead of full-width smears.
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

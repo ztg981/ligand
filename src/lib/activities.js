@@ -23,16 +23,19 @@ import { shiftDay, todayKey } from "./model.js";
    one tap fills the title, which matters when the whole point is capturing
    the last hour in under five seconds. */
 export const ACTIVITY_CATEGORIES = [
-  { id: "sport", name: "Sport", color: "oklch(0.62 0.13 150)", picks: ["Tennis", "Basketball", "Soccer", "Swimming", "Biking", "Running", "Volleyball", "Pickleball", "Skating", "Hiking"] },
-  { id: "focus", name: "Work / study", color: "oklch(0.62 0.14 245)", picks: ["Homework", "Studying", "Reading", "Side project", "Emails"] },
-  { id: "creative", name: "Creating", color: "oklch(0.66 0.13 60)", picks: ["Drawing", "Music", "Writing", "Coding for fun", "Cooking"] },
-  { id: "social", name: "People", color: "oklch(0.66 0.14 350)", picks: ["Hanging out", "Family time", "Call with a friend", "Eating out"] },
-  { id: "gaming", name: "Gaming", color: "oklch(0.55 0.12 285)", picks: ["Video games", "Board games", "Chess"] },
-  { id: "screen", name: "Scrolling / watching", color: "oklch(0.6 0.02 260)", picks: ["Scrolling", "YouTube", "TV / show", "Reddit", "Videos"] },
-  { id: "chores", name: "Chores / errands", color: "oklch(0.66 0.11 180)", picks: ["Cleaning", "Laundry", "Groceries", "Errands"] },
-  { id: "rest", name: "Rest", color: "oklch(0.55 0.10 290)", picks: ["Nap", "Chilling", "Walk", "Shower", "Music break"] },
-  { id: "other", name: "Other", color: "oklch(0.6 0.02 260)", picks: [] },
+  { id: "sport", name: "Sport", emoji: "🎾", color: "oklch(0.62 0.13 150)", picks: ["Tennis", "Basketball", "Soccer", "Swimming", "Biking", "Running", "Volleyball", "Pickleball", "Skating", "Hiking"] },
+  { id: "focus", name: "Work / study", emoji: "📚", color: "oklch(0.62 0.14 245)", picks: ["Homework", "Studying", "Reading", "Side project", "Emails"] },
+  { id: "creative", name: "Creating", emoji: "🎨", color: "oklch(0.66 0.13 60)", picks: ["Drawing", "Music", "Writing", "Coding for fun", "Cooking"] },
+  { id: "social", name: "People", emoji: "💬", color: "oklch(0.66 0.14 350)", picks: ["Hanging out", "Family time", "Call with a friend", "Eating out"] },
+  { id: "gaming", name: "Gaming", emoji: "🎮", color: "oklch(0.55 0.12 285)", picks: ["Video games", "Board games", "Chess"] },
+  { id: "screen", name: "Scrolling", emoji: "📱", color: "oklch(0.6 0.02 260)", picks: ["Scrolling", "YouTube", "TV / show", "Reddit", "Videos"] },
+  { id: "chores", name: "Chores", emoji: "🧺", color: "oklch(0.66 0.11 180)", picks: ["Cleaning", "Laundry", "Groceries", "Errands"] },
+  { id: "rest", name: "Rest", emoji: "🛋️", color: "oklch(0.55 0.10 290)", picks: ["Nap", "Chilling", "Walk", "Shower", "Music break"] },
+  { id: "other", name: "Other", emoji: "✨", color: "oklch(0.6 0.02 260)", picks: [] },
 ];
+
+/* The five most-reached-for categories, for one-tap launchers (Home card). */
+export const QUICK_CATEGORIES = ["sport", "gaming", "screen", "social", "rest"];
 
 export const categoryOf = (id) =>
   ACTIVITY_CATEGORIES.find((c) => c.id === id) ||

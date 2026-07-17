@@ -148,6 +148,9 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobi
 }
 
 export default function DayPlanner({
+  date: dateProp,
+  onDateChange,
+  onOpenCalendar,
   dayBlocks = [],
   addDayBlock,
   updateDayBlock,
@@ -169,7 +172,14 @@ export default function DayPlanner({
   confirmBeforeDelete = true,
 }) {
   const isMobile = useIsMobile(768);
-  const [date, setDate] = useState(todayKey);
+  // The viewed date is App-owned when provided (so the Calendar can hand a
+  // day over); the local state is the standalone fallback.
+  const [localDate, setLocalDate] = useState(todayKey);
+  const date = dateProp || localDate;
+  const setDate = (d) => {
+    setLocalDate(d);
+    onDateChange?.(d);
+  };
   const [prefs, setPrefs] = useLocalStorage("ligand.dayPlanner", DEFAULT_PREFS);
   const pref = { ...DEFAULT_PREFS, ...prefs };
   const [selectedId, setSelectedId] = useState(null);
@@ -511,6 +521,11 @@ export default function DayPlanner({
           </p>
         </div>
         <div className="dp-nav">
+          {onOpenCalendar && (
+            <button className="iconbtn" title="Open the calendar" onClick={onOpenCalendar}>
+              <Icon.Calendar width={15} height={15} />
+            </button>
+          )}
           <button className="iconbtn" title="Previous day" onClick={() => setDate(shiftDay(date, -1))}>
             ‹
           </button>
@@ -543,6 +558,7 @@ export default function DayPlanner({
               showSleepBand={pref.showSleepBand}
               onSelect={openExisting}
               readOnly
+              compact
             />
             <div className="dp-mobile-dial-foot">
               <span className="dp-mobile-dial-sum">

@@ -50,6 +50,7 @@ import Notes from "./tabs/Notes.jsx";
 import Habits from "./tabs/Habits.jsx";
 import WorkoutTab from "./tabs/WorkoutTab.jsx";
 import DayPlanner from "./tabs/DayPlanner.jsx";
+import Calendar from "./tabs/Calendar.jsx";
 import Settings from "./tabs/Settings.jsx";
 import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -1172,6 +1173,7 @@ export default function App() {
     { id: "new-goal", label: "New goal", sub: "Create a goal", keywords: "add create goal target", icon: <Icon.Target />, run: () => setShowGoalModal(true) },
     { id: "go-home", label: "Go to Home", sub: "Dashboard", keywords: "dashboard overview", icon: <Icon.Home />, run: go("home") },
     { id: "go-day", label: "Go to Day planner", sub: "The day dial", keywords: "day dial schedule planner ring", icon: <Icon.Timer />, run: go("day") },
+    { id: "go-calendar", label: "Go to Calendar", sub: "Month overview & schedule import", keywords: "calendar month week schedule meetings overview import", icon: <Icon.Calendar />, run: go("calendar") },
     { id: "go-habits", label: "Go to Habits", sub: "Check in on habits", keywords: "habit streak check in", icon: <Icon.CheckCircle />, run: go("habits") },
     { id: "go-tasks", label: "Go to Tasks", sub: "Your task list", keywords: "todo task list", icon: <Icon.Check />, run: go("tasks") },
     { id: "go-notes", label: "Go to Notes", sub: "Scratchpad", keywords: "note scratchpad write", icon: <Icon.Note />, run: go("notes") },
@@ -1222,6 +1224,14 @@ export default function App() {
   // Home, the Day tab (any date), Journal, Quick add, and the Workout tab.
   // null | { category?: string, date?: string }
   const [activitySheet, setActivitySheet] = useState(null);
+
+  // The Day planner's date lives here so the Calendar can hand a picked day
+  // straight to the close-up view ("open in Day planner").
+  const [plannerDate, setPlannerDate] = useState(todayKey());
+  const openDayPlannerOn = (dateKey) => {
+    setPlannerDate(dateKey || todayKey());
+    setTab("day");
+  };
 
   // Save an activity; a sport marked "count as a workout" also writes a
   // cardio workout session (so it feeds the training week/streak) and links
@@ -1310,12 +1320,31 @@ export default function App() {
             onOpenSleep={() => setTab("sleep")}
             activities={store.activities}
             addActivity={store.addActivity}
-            onLogActivity={() => setActivitySheet({})}
+            onLogActivity={(category) =>
+              // Home's launcher passes a category id; other callers pass
+              // nothing (or a click event) — only accept real strings.
+              setActivitySheet(typeof category === "string" ? { category } : {})
+            }
+          />
+        );
+      case "calendar":
+        return (
+          <Calendar
+            dayBlocks={store.dayBlocks}
+            scheduledWorkouts={store.scheduledWorkouts}
+            tasks={store.tasks}
+            alarms={store.alarms}
+            goals={activeGoals}
+            addDayBlock={store.addDayBlock}
+            onOpenDay={openDayPlannerOn}
           />
         );
       case "day":
         return (
           <DayPlanner
+            date={plannerDate}
+            onDateChange={setPlannerDate}
+            onOpenCalendar={() => setTab("calendar")}
             dayBlocks={store.dayBlocks}
             addDayBlock={store.addDayBlock}
             updateDayBlock={store.updateDayBlock}
@@ -1877,7 +1906,11 @@ export default function App() {
       />
 
       <ActivityLogSheet
-        key={activitySheet ? "act-open" : "act-closed"}
+        key={
+          activitySheet
+            ? `act-${activitySheet.category || "any"}-${activitySheet.date || "today"}`
+            : "act-closed"
+        }
         open={Boolean(activitySheet)}
         onClose={() => setActivitySheet(null)}
         isMobile={isMobile}

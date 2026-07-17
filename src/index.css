@@ -8412,3 +8412,210 @@ html[data-electron="true"] .electron-drag-strip {
 .dp-mobile-dial-sum { font-size: 12px; font-weight: 550; color: var(--ink-3); }
 /* The editor inside a bottom sheet: sheet chrome replaces the card chrome. */
 .dp-editor-sheet .dp-editor { padding-top: 2px; }
+
+/* Compact dial (phone Day tab): the cropped viewBox renders ~2.3x larger
+   per unit, so type is sized for legibility at ~300px CSS width. */
+.dial--compact .dial-hour { font-size: 20px; }
+.dial--compact .dial-weekday { font-size: 19px; letter-spacing: 0.24em; }
+.dial--compact .dial-date { font-size: 56px; }
+.dial--compact .dial-total { font-size: 19px; }
+.dial--compact .dial-now { font-size: 16px; }
+.dp-mobile-dial .dial--ro { max-width: 312px; }
+
+/* ============================================================
+   Activity logging v2 — tile grid sheet + Home launcher
+   (replaces the small-chip layout; .actlog-cats retired)
+   ============================================================ */
+.actlog-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.actlog-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  min-height: 68px;
+  padding: 8px 4px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease), transform 0.12s var(--ease);
+}
+.actlog-tile:active { transform: scale(0.96); }
+.actlog-tile.on {
+  border-color: var(--cat);
+  background: color-mix(in oklab, var(--cat) 16%, var(--panel));
+  box-shadow: inset 0 0 0 1px var(--cat);
+}
+.actlog-tile-emoji { font-size: 24px; line-height: 1; }
+.actlog-tile-name { font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.actlog-tile.on .actlog-tile-name { color: var(--ink); }
+
+.actlog-details { margin-top: 10px; }
+.actlog-type { height: 34px; font-size: 13px; flex: 1 1 120px; min-width: 120px; }
+.actlog-pick.typeit {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--ink-3); border-style: dashed;
+}
+.actlog-feel {
+  flex-direction: column; gap: 2px;
+  min-width: 56px; padding: 6px 8px;
+  border-radius: var(--r-md);
+}
+.actlog-feel-emoji { font-size: 19px; line-height: 1; }
+.actlog-feel-lbl { font-size: 10px; font-weight: 600; }
+.actlog-links { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.actlog-link {
+  border: none; background: none; padding: 0; cursor: pointer;
+  font-size: 12px; font-weight: 550; color: var(--ink-3);
+  text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;
+}
+.actlog-link:hover { color: var(--ink); }
+.actlog-when { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); font-weight: 550; }
+.actlog-save { min-height: 46px; font-size: 14px; }
+
+/* Home launcher card */
+.lastact-launch {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 4px; margin: 2px 0 12px;
+}
+.lastact-cat {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  flex: 1; min-width: 0;
+  border: none; background: none; padding: 0; cursor: pointer;
+}
+.lastact-cat-circle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px;
+  border-radius: 999px;
+  font-size: 21px;
+  background: color-mix(in oklab, var(--cat, var(--accent)) 18%, var(--panel));
+  border: 1.5px solid color-mix(in oklab, var(--cat, var(--accent)) 45%, var(--line));
+  transition: transform 0.12s var(--ease);
+}
+.lastact-cat:active .lastact-cat-circle { transform: scale(0.92); }
+.lastact-cat-circle.more { color: var(--ink-3); background: var(--panel-2); border-style: dashed; }
+.lastact-cat-name {
+  font-size: 10px; font-weight: 600; color: var(--ink-3);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lastact-last { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.lastact-last .lastact-dot { align-self: center; margin-top: 0; }
+.lastact-line { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.lastact-sub { font-size: 11.5px; color: var(--ink-4); margin-top: 0; }
+.lastact-empty { margin: 0; }
+
+/* ============================================================
+   Calendar tab + schedule import
+   ============================================================ */
+.cal-card { padding: 14px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.cal-month { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.cal-nav { display: flex; align-items: center; gap: 6px; }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.cal-dow {
+  text-align: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--ink-4);
+  padding-bottom: 4px;
+}
+.cal-cell {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 3px;
+  min-height: 46px;
+  padding: 5px 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-cell:hover { background: var(--panel-2); }
+.cal-cell.out .cal-cell-num { color: var(--ink-4); opacity: 0.55; }
+.cal-cell-num { font-size: 12.5px; font-weight: 600; color: var(--ink-2); line-height: 1; }
+.cal-cell.today .cal-cell-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 999px;
+  background: var(--accent); color: #fff;
+}
+.cal-cell.sel { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); }
+.cal-cell-dots { display: flex; align-items: center; gap: 2.5px; min-height: 6px; }
+.cal-dot { width: 5px; height: 5px; border-radius: 999px; }
+.cal-dot-more { font-size: 8px; line-height: 1; color: var(--ink-4); font-weight: 700; }
+
+.cal-day { margin-top: 12px; }
+@media (min-width: 768px) { .cal-day { margin-top: 0; } }
+.cal-day-count { font-size: 11.5px; color: var(--ink-3); font-weight: 550; }
+.cal-items { display: flex; flex-direction: column; }
+.cal-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+.cal-item:first-child { border-top: none; }
+.cal-item.done { opacity: 0.55; }
+.cal-item.done .cal-item-title { text-decoration: line-through; }
+.cal-item-time { flex: none; width: 84px; font-size: 11px; color: var(--ink-4); text-align: right; }
+.cal-item-ic {
+  flex: none; width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--cat) 16%, var(--panel));
+  color: var(--cat);
+}
+.cal-item-title { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.cal-day-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* Schedule import sheet */
+.schimp-modal { width: min(520px, 92vw); }
+.schimp-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px;
+  min-height: 96px;
+  padding: 14px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  color: var(--ink-3);
+  cursor: pointer;
+  text-align: center;
+}
+.schimp-drop:hover, .schimp-drop:focus-visible { border-color: var(--accent); color: var(--ink-2); }
+.schimp-drop.has { border-style: solid; }
+.schimp-drop-lbl { font-size: 12.5px; font-weight: 550; }
+.schimp-thumb {
+  max-width: 100%; max-height: 120px;
+  border-radius: 8px; border: 1px solid var(--line);
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+.schimp-rows { display: flex; flex-direction: column; gap: 8px; max-height: 44vh; overflow-y: auto; }
+.schimp-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+}
+.schimp-row.off { opacity: 0.45; }
+.schimp-check {
+  flex: none; width: 22px; height: 22px; margin-top: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--line-strong); border-radius: 6px;
+  background: var(--panel); cursor: pointer; color: #fff;
+}
+.schimp-check.on { background: var(--accent); border-color: var(--accent); }
+.schimp-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.schimp-title { height: 34px; font-size: 13px; width: 100%; }
+.schimp-when { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.schimp-when .input { height: 32px; font-size: 12px; padding: 0 6px; }
+.schimp-when input[type="date"] { width: 128px; }
+.schimp-when input[type="time"] { width: 86px; }
+.schimp-dash { color: var(--ink-4); }
+.schimp-foot { font-size: 11px; color: var(--ink-4); margin: 8px 0 0; text-align: center; }

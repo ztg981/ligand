@@ -196,30 +196,48 @@ export default function DayRing({
               opacity={b.done ? 0.35 : 0.9}
             />
           ))}
-          {/* logged activity arcs (real, category colored) */}
+          {/* logged activity arcs — slim segments CASED in the panel color so
+             they sit crisply ON the track instead of muddying into the gray
+             elapsed fill (full-width flat arcs read as smears, not marks). */}
           {activityArcs.map((a) => (
-            <path
-              key={a.id}
-              d={arcPath(a.from, a.to)}
-              fill="none"
-              stroke={a.color}
-              strokeWidth={STROKE}
-              strokeLinecap="round"
-              opacity={0.85}
-            >
-              <title>{a.title}</title>
-            </path>
+            <g key={a.id}>
+              <path
+                d={arcPath(a.from, a.to)}
+                fill="none"
+                stroke="var(--panel)"
+                strokeWidth={10}
+                strokeLinecap="round"
+              />
+              <path
+                d={arcPath(a.from, a.to)}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={6.5}
+                strokeLinecap="round"
+              >
+                <title>{a.title}</title>
+              </path>
+            </g>
           ))}
-          {/* trained arcs (real completed workouts) */}
+          {/* trained arcs (real completed workouts) — same cased treatment,
+             always green, drawn last so a workout wins any overlap */}
           {trainedArcs.map((a) => (
-            <path
-              key={a.id}
-              d={arcPath(a.from, a.to)}
-              fill="none"
-              stroke="oklch(0.65 0.14 150)"
-              strokeWidth={STROKE}
-              strokeLinecap="round"
-            />
+            <g key={a.id}>
+              <path
+                d={arcPath(a.from, a.to)}
+                fill="none"
+                stroke="var(--panel)"
+                strokeWidth={10}
+                strokeLinecap="round"
+              />
+              <path
+                d={arcPath(a.from, a.to)}
+                fill="none"
+                stroke="oklch(0.65 0.14 150)"
+                strokeWidth={6.5}
+                strokeLinecap="round"
+              />
+            </g>
           ))}
           {/* hour ticks every 6h with tiny labels */}
           {[0, 6, 12, 18].map((h) => {

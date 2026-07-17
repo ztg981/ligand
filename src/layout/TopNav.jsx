@@ -232,6 +232,7 @@ function AvatarMenu({
   userName = "You",
   onOpenSettings,
   onOpenDay,
+  onOpenCalendar,
   onOpenPomodoro,
   onOpenSleep,
   onOpenAlarms,
@@ -306,6 +307,18 @@ function AvatarMenu({
               }}
             >
               <Icon.Calendar /> Day planner
+            </button>
+
+            {/* Calendar is a desktop top tab; the phone reaches it here (and
+               from the calendar button on the Day tab itself). */}
+            <button
+              className="avatar-menu-item avatar-menu-mobile-only"
+              onClick={() => {
+                onOpenCalendar?.();
+                close();
+              }}
+            >
+              <Icon.Grid /> Calendar
             </button>
 
             {/* Pomodoro is already a top-bar tab on tablet/desktop; this
@@ -493,6 +506,7 @@ function SyncPill({ status }) {
 const TOOLS = [
   { id: "home", label: "Home", icon: <Icon.Home /> },
   { id: "day", label: "Day", icon: <Icon.Timer /> },
+  { id: "calendar", label: "Calendar", icon: <Icon.Calendar /> },
   { id: "habits", label: "Habits", icon: <Icon.CheckCircle /> },
   { id: "tasks", label: "Tasks", icon: <Icon.Check /> },
   { id: "pomodoro", label: "Pomodoro", icon: <Icon.Timer /> },
@@ -793,6 +807,7 @@ export default function TopNav({
             userName={userName}
             onOpenSettings={onOpenSettings}
             onOpenDay={() => setTab("day")}
+            onOpenCalendar={() => setTab("calendar")}
             onOpenPomodoro={() => setTab("pomodoro")}
             onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}
