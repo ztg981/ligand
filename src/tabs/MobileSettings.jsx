@@ -218,7 +218,7 @@ export default function MobileSettings({
                 className="input"
                 value={notifications.reminderTime}
                 onChange={(e) => setSection("notifications", { reminderTime: e.target.value })}
-                style={{ maxWidth: 120 }}
+                style={{ width: 132, minWidth: 132 }}
               />
             </Row>
           )}
@@ -258,7 +258,7 @@ export default function MobileSettings({
                 className="input"
                 value={sleep.bedtime ?? "23:00"}
                 onChange={(e) => setSection("sleep", { bedtime: e.target.value })}
-                style={{ maxWidth: 120 }}
+                style={{ width: 132, minWidth: 132 }}
               />
             </Row>
           )}

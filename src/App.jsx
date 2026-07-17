@@ -279,9 +279,10 @@ export default function App() {
       settings.behavior?.reduceMotion ||
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (was === hyperfocus || reduce) return undefined;
-    // Aurora (the blurred curtains) was voted off the island; the pool is
-    // now the ink wipe plus the slide family the user actually likes.
-    const variants = ["wipe", "slats", "stripes", "livery"];
+    // Aurora (the blurred curtains) was voted off the island. "sweep" is the
+    // original quiet look brought back by request: the same five blades as
+    // stripes, but in one muted color instead of the bold tricolor cores.
+    const variants = ["wipe", "slats", "stripes", "livery", "sweep"];
     const pick = hyperfocus
       ? variants[Math.floor(Math.random() * variants.length)]
       : "dawn";
@@ -1703,6 +1704,15 @@ export default function App() {
               <span className="hf-stripe p3" />
               <span className="hf-stripe p4" />
               <span className="hf-stripe p5" />
+            </>
+          )}
+          {hfIntro === "sweep" && (
+            <>
+              <span className="hf-sweep s1" />
+              <span className="hf-sweep s2" />
+              <span className="hf-sweep s3" />
+              <span className="hf-sweep s4" />
+              <span className="hf-sweep s5" />
             </>
           )}
           {hfIntro === "livery" && (

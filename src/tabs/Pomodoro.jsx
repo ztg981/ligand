@@ -516,8 +516,11 @@ export default function Pomodoro({
   hyperfocus = false,
   logFocusSession,
 }) {
-  // What the user is focusing on this session (persisted so it survives reloads).
+  // What the user is focusing on this session (persisted so it survives
+  // reloads). Value is "" (nothing), a task id, "goal:<goalId>" (a goal
+  // directly), or "custom" (free text held in ligand.focusCustom).
   const [focusTaskId, setFocusTaskId] = useLocalStorage("ligand.focusTaskId", "");
+  const [focusCustom, setFocusCustom] = useLocalStorage("ligand.focusCustom", "");
   // Carries the latest values into the phase-end callback without stale closures.
   const focusEndRef = useRef(null);
   // When "ring until dismissed" is on, a finished focus block starts an
@@ -555,12 +558,21 @@ export default function Pomodoro({
           phaseChange();
         }
       }
-      // Log a completed focus block against its linked task's goal (if any).
+      // Log a completed focus block: a task logs to its goal, "goal:<id>"
+      // logs to that goal directly, custom text logs with no goal. Only
+      // "nothing in particular" logs nothing at all.
       if (endedPhase === PHASES.WORK && focusEndRef.current) {
         const { taskId, work, tasks: ts } = focusEndRef.current;
-        const task = ts.find((t) => t.id === taskId);
-        if (task && logFocusSession) {
-          logFocusSession({ minutes: work, goalId: task.goalId || null });
+        if (taskId && logFocusSession) {
+          let goalId = null;
+          if (taskId.startsWith("goal:")) {
+            goalId = taskId.slice(5);
+          } else if (taskId !== "custom") {
+            const task = ts.find((t) => t.id === taskId);
+            if (!task) goalId = null;
+            else goalId = task.goalId || null;
+          }
+          logFocusSession({ minutes: work, goalId });
         }
       }
       onPhaseComplete?.({ endedPhase });
@@ -600,6 +612,38 @@ export default function Pomodoro({
   // Only toggleable from within; exits cleanly on either the button or when
   // the timer is paused/stopped.
   const [focusMode, setFocusMode] = useState(false);
+
+  // Pause stopwatch: pausing mid-block starts a count-UP of how long you've
+  // been stopped, next to a slider for how long you MEANT to stop. Interrupts
+  // stop being open-ended ("I'll just check my phone") and become a measured
+  // break with a visible edge. Never shaming: overshooting just says so.
+  const [pausedAt, setPausedAt] = useState(null); // epoch ms | null
+  const [pauseElapsedSec, setPauseElapsedSec] = useState(0);
+  const [pausePlanMin, setPausePlanMin] = useLocalStorage("ligand.pausePlanMin", 5);
+  useEffect(() => {
+    if (!pausedAt) return undefined;
+    const t = setInterval(
+      () => setPauseElapsedSec(Math.floor((Date.now() - pausedAt) / 1000)),
+      1000
+    );
+    return () => clearInterval(t);
+  }, [pausedAt]);
+  // Resuming (or resetting/skipping into a fresh block) clears the stopwatch.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot clear on resume; guarded so it can't cascade
+    if (pomo.running && pausedAt) setPausedAt(null);
+  }, [pomo.running, pausedAt]);
+  const handlePause = () => {
+    pomo.pause();
+    setPauseElapsedSec(0);
+    setPausedAt(Date.now());
+  };
+  const handleReset = () => {
+    setPausedAt(null);
+    pomo.reset();
+  };
+  const pausePlanSec = pausePlanMin * 60;
+  const pauseOver = pausedAt && pauseElapsedSec > pausePlanSec;
 
   // Auto-exit focus mode if the timer stops.
   useEffect(() => {
@@ -698,7 +742,7 @@ export default function Pomodoro({
               {/* Minimal transport controls */}
               <div className="pomo-focus-controls">
                 {pomo.running ? (
-                  <button className="btn" onClick={pomo.pause}>
+                  <button className="btn" onClick={handlePause}>
                     <Icon.Pause /> Pause
                   </button>
                 ) : (
@@ -706,7 +750,7 @@ export default function Pomodoro({
                     <Icon.Play /> Start
                   </button>
                 )}
-                <button className="btn ghost" onClick={pomo.reset} title="Reset">
+                <button className="btn ghost" onClick={handleReset} title="Reset">
                   <Icon.Reset />
                 </button>
                 <button className="btn ghost" onClick={pomo.skip} title="Skip">
@@ -790,21 +834,55 @@ export default function Pomodoro({
         {/* Transport controls */}
         <div className="row" style={{ gap: 10 }}>
           {pomo.running ? (
-            <button className="btn" onClick={pomo.pause}>
+            <button className="btn" onClick={handlePause}>
               <Icon.Pause /> Pause
             </button>
           ) : (
             <button className="btn primary" onClick={pomo.start}>
-              <Icon.Play /> Start
+              <Icon.Play /> {pausedAt ? "Resume" : "Start"}
             </button>
           )}
-          <button className="btn ghost" onClick={pomo.reset} title="Reset this block">
+          <button className="btn ghost" onClick={handleReset} title="Reset this block">
             <Icon.Reset /> Reset
           </button>
           <button className="btn ghost" onClick={pomo.skip} title="Skip to next phase">
             <Icon.Arrow /> Skip
           </button>
         </div>
+
+        {/* The pause stopwatch: how long you've been stopped vs. how long
+           you meant to stop. */}
+        {pausedAt && (
+          <div className={"card pomo-pause" + (pauseOver ? " over" : "")}>
+            <div className="pomo-pause-head">
+              <span className="pomo-pause-lbl">Stopped for</span>
+              <span className="pomo-pause-clock mono">{mmss(pauseElapsedSec)}</span>
+              <span className="pomo-pause-plan">of {pausePlanMin}m planned</span>
+            </div>
+            <div className="pomo-pause-bar" aria-hidden="true">
+              <span
+                className="pomo-pause-fill"
+                style={{ width: `${Math.min(100, (pauseElapsedSec / pausePlanSec) * 100)}%` }}
+              />
+            </div>
+            <div className="pomo-pause-slider">
+              <span className="pomo-pause-slider-lbl">I'm stopping for</span>
+              <Slider
+                value={pausePlanMin}
+                min={1}
+                max={30}
+                step={1}
+                onChange={(v) => setPausePlanMin(v)}
+                format={(v) => v + "m"}
+              />
+            </div>
+            <p className="pomo-pause-note" role="status">
+              {pauseOver
+                ? "Past what you planned. No drama, the timer held your place. Resume when ready."
+                : "The timer is holding your place. Resume whenever."}
+            </p>
+          </div>
+        )}
 
         {/* Phase segmented control + session dots */}
         <div className="row" style={{ gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
@@ -829,8 +907,8 @@ export default function Pomodoro({
           </div>
         </div>
 
-        {/* Focusing on - links a completed focus block to a task's goal so
-           time is tracked per goal. "Nothing in particular" logs nothing. */}
+        {/* Focusing on - a task (logs to its goal), a goal directly, or your
+           own words. "Nothing in particular" logs nothing. */}
         <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 12, color: "var(--ink-3)" }}>Focusing on</span>
           <select
@@ -840,18 +918,42 @@ export default function Pomodoro({
             style={{ width: "auto", maxWidth: 280, flex: "none" }}
           >
             <option value="">Nothing in particular</option>
-            {tasks
-              .filter((t) => !t.done)
-              .map((t) => {
-                const g = t.goalId ? goals.find((x) => x.id === t.goalId) : null;
-                return (
-                  <option key={t.id} value={t.id}>
-                    {t.text}
-                    {g ? ` · ${g.name}` : ""}
+            <option value="custom">Something else… (type it)</option>
+            {goals.length > 0 && (
+              <optgroup label="Your goals">
+                {goals.map((g) => (
+                  <option key={g.id} value={"goal:" + g.id}>
+                    {g.name}
                   </option>
-                );
-              })}
+                ))}
+              </optgroup>
+            )}
+            {tasks.filter((t) => !t.done).length > 0 && (
+              <optgroup label="Your tasks">
+                {tasks
+                  .filter((t) => !t.done)
+                  .map((t) => {
+                    const g = t.goalId ? goals.find((x) => x.id === t.goalId) : null;
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {t.text}
+                        {g ? ` · ${g.name}` : ""}
+                      </option>
+                    );
+                  })}
+              </optgroup>
+            )}
           </select>
+          {focusTaskId === "custom" && (
+            <input
+              className="input"
+              placeholder="What are you working on?"
+              value={focusCustom}
+              maxLength={60}
+              onChange={(e) => setFocusCustom(e.target.value)}
+              style={{ width: 200, flex: "none" }}
+            />
+          )}
         </div>
       </div>
 

@@ -93,7 +93,7 @@ export default function DayStory({
       {events.length === 0 ? (
         <p className="dp-empty">
           {isToday
-            ? "Nothing logged yet. When you finish something — tennis, a game, a chore — log it here and watch the day take shape."
+            ? "Nothing logged yet. When you finish something (tennis, a game, a chore), log it here and watch the day take shape."
             : "Nothing was logged this day. Days without data are just quiet, not blank."}
         </p>
       ) : (

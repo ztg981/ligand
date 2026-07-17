@@ -8619,3 +8619,129 @@ html[data-electron="true"] .electron-drag-strip {
 .schimp-when input[type="time"] { width: 86px; }
 .schimp-dash { color: var(--ink-4); }
 .schimp-foot { font-size: 11px; color: var(--ink-4); margin: 8px 0 0; text-align: center; }
+
+/* Time inputs: iOS renders "9:00 AM" wider than desktop and clips it inside
+   narrow boxes (the cut-off reminder-time bug). Give every bare time input
+   room and keep the digits steady. */
+input[type="time"].input {
+  min-width: 108px;
+  font-variant-numeric: tabular-nums;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Intro variant "sweep" — the ORIGINAL single-color slide, restored by
+   request. Five dark blades sweep across in the staggered wave, each with
+   only a muted breath of the hyperfocus color at its center. The exact
+   pre-tricolor stripes look, generalized to the chosen focus color. */
+.hf-sweep {
+  position: absolute; top: 0; bottom: 0; width: 22vw;
+  background: linear-gradient(180deg,
+    rgba(12, 12, 14, 0.97),
+    rgba(var(--hf-rgb, 139, 0, 0), 0.34) 50%,
+    rgba(9, 9, 11, 0.97));
+  box-shadow: 10px 0 34px rgba(var(--hf-rgb, 139, 0, 0), 0.45);
+  transform: translateX(-125vw) skewX(-14deg);
+  animation: hfSweep 1.25s cubic-bezier(0.65, 0, 0.25, 1) forwards;
+}
+.hf-sweep.s1 { left: 0;    animation-delay: 0s; }
+.hf-sweep.s2 { left: 20vw; animation-delay: 0.07s; }
+.hf-sweep.s3 { left: 40vw; animation-delay: 0.14s; }
+.hf-sweep.s4 { left: 60vw; animation-delay: 0.21s; }
+.hf-sweep.s5 { left: 80vw; animation-delay: 0.28s; }
+@keyframes hfSweep {
+  0%   { transform: translateX(-125vw) skewX(-14deg); opacity: 1; }
+  45%  { transform: translateX(0) skewX(-14deg); opacity: 1; }
+  60%  { transform: translateX(0) skewX(-14deg); opacity: 1; }
+  100% { transform: translateX(135vw) skewX(-14deg); opacity: 0.9; }
+}
+
+/* Hyperfocus "Mono" — pure black and white, no color at all. Ink-on-black
+   HUD: white glow lines, gray text ramp, near-white accent. */
+html[data-hyperfocus="true"][data-hf-theme="mono"] {
+  --hf-rgb: 232, 232, 238; --hf-line-rgb: 150, 150, 158;
+  --hf-accent: #a9a9b2; --hf-ink: #f2f2f5; --hf-tab: #ffffff;
+  --hf-grad-a: #1a1a1e; --hf-grad-b: #0e0e11; --hf-hue: 260;
+}
+
+/* ============================================================
+   Liquid glass on phones, for real this time.
+   The blobs were hidden on mobile because their blend modes disable
+   EVERY backdrop-filter in iOS Safari. But without them the glass
+   palettes had nothing behind the panels to frost, so "glass" read
+   as flat tinted cards. Resolution: for the two glass palettes only,
+   bring the blobs back in NORMAL blending (blend modes stay off, so
+   the blur keeps working) and let the panels hover over real color.
+   ============================================================ */
+@media (max-width: 767px) {
+  [data-palette="glass"] .ambient,
+  [data-palette="glassdark"] .ambient { display: block; }
+  [data-palette="glass"] .ambient .blob,
+  [data-palette="glassdark"] .ambient .blob {
+    mix-blend-mode: normal; /* never reintroduce blending here (iOS) */
+    opacity: calc(var(--ambient-opacity, 0.55) * 0.55);
+    filter: blur(64px);
+  }
+  [data-palette="glassdark"] .ambient .blob {
+    opacity: calc(var(--ambient-opacity, 0.55) * 0.38);
+  }
+  /* With real structure behind them, the panels can afford to be thinner
+     and frostier - this is where the material finally shows. */
+  [data-theme="light"][data-palette="glass"] {
+    --panel: rgba(255, 255, 255, 0.66);
+    --panel-2: rgba(255, 255, 255, 0.5);
+  }
+  [data-theme="dark"][data-palette="glassdark"] {
+    --panel: rgba(36, 40, 52, 0.66);
+    --panel-2: rgba(44, 49, 64, 0.52);
+  }
+  [data-palette="glass"] .card,
+  [data-palette="glassdark"] .card {
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+  }
+}
+
+/* My looks (saved appearance snapshots) */
+.mylooks { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mylooks-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mylooks-title { font-size: 13px; font-weight: 500; }
+.mylooks-save { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.mylooks-save .input { flex: 1; height: 36px; font-size: 13px; min-width: 0; }
+.mylooks-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mylooks-chip {
+  display: inline-flex; align-items: center; gap: 2px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2);
+  padding: 2px 4px 2px 0;
+}
+.mylooks-apply {
+  border: none; background: none; cursor: pointer;
+  padding: 4px 4px 4px 12px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+}
+.mylooks-apply:hover { color: var(--ink); }
+.mylooks-del { color: var(--ink-4); }
+.mylooks-empty { font-size: 11.5px; color: var(--ink-4); margin: 6px 0 0; }
+
+/* Pomodoro pause stopwatch */
+.pomo-pause { max-width: 420px; width: 100%; margin: 0 auto; }
+.pomo-pause-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pomo-pause-lbl { font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.pomo-pause-clock { font-size: 26px; font-weight: 700; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.pomo-pause-plan { font-size: 12px; color: var(--ink-4); }
+.pomo-pause-bar {
+  height: 6px; border-radius: 999px; background: var(--panel-3);
+  overflow: hidden; margin: 8px 0 10px;
+}
+.pomo-pause-fill {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+.pomo-pause.over .pomo-pause-fill { background: oklch(0.66 0.13 60); }
+.pomo-pause.over .pomo-pause-clock { color: oklch(0.6 0.13 60); }
+.pomo-pause-slider { display: flex; align-items: center; gap: 10px; }
+.pomo-pause-slider-lbl { font-size: 12px; color: var(--ink-3); flex: none; }
+.pomo-pause-slider > div, .pomo-pause-slider .slider { flex: 1; }
+.pomo-pause-note { font-size: 11.5px; color: var(--ink-4); margin: 8px 0 0; }

@@ -202,6 +202,27 @@ ligand.data blob.
   labels, upscaled type, no year). DayRing arcs are now slim panel-cased
   segments instead of full-width smears.
 
+### Polish batch (2026-07-16, night)
+
+- **My looks**: save-your-theme restored in Settings → Appearance (same
+  `ligand.userPresets` key as pre-rework, so old saves revive). Snapshot
+  of the whole tweaks record; apply/delete chips.
+- **Hyperfocus**: "sweep" intro restored (the original quiet single-color
+  blades, pre-tricolor) in the entry pool; new "Mono" theme (pure black &
+  white) in the color picker.
+- **Mobile liquid glass, actually**: blobs were display:none on phones
+  (their blend modes kill ALL iOS backdrop-filters). Glass palettes now
+  show the blobs in NORMAL blending + thinner frostier panels. Never put
+  mix-blend-mode back in the mobile backdrop.
+- **Pomodoro**: "Focusing on" now offers goals directly (`goal:<id>`) and
+  a custom text option (`ligand.focusCustom`); completed blocks log
+  accordingly. Pause shows a stopwatch counting the stop + a planned-stop
+  slider (`ligand.pausePlanMin`), no-shame overtime copy.
+- **Fixes**: time inputs widened (iOS clipped "9:00 AM"), sleep-window
+  copy humanized, em dashes stripped from new UI strings. Electron font
+  drift = stale desktop build, not a code bug (rebuild via electron:build
+  to update).
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

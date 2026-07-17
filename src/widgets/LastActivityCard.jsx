@@ -79,7 +79,7 @@ export default function LastActivityCard({ activities = [], onLogActivity, onOpe
         </div>
       ) : (
         <p className="lastact-empty">
-          Tap what the last hour was — that's the whole log.
+          Tap what the last hour was. That's the whole log.
         </p>
       )}
     </div>

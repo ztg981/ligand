@@ -269,10 +269,10 @@ export function screenSeries(activities = [], days = 7, refKey = todayKey()) {
 export function screenLine(todayMin, weekSeries = []) {
   const daysNoticed = weekSeries.filter((d) => d.minutes > 0).length;
   if (!todayMin && daysNoticed === 0) {
-    return "Nothing logged yet. When you catch yourself scrolling, log it — noticing is the whole skill.";
+    return "Nothing logged yet. When you catch yourself scrolling, log it. Noticing is the whole skill.";
   }
   if (!todayMin) {
-    return "Nothing noticed today yet. That could mean a quiet day — nice.";
+    return "Nothing noticed today yet. That could mean a quiet day. Nice.";
   }
   if (todayMin <= 30) {
     return `You noticed ${fmtMinutes(todayMin)} of scrolling today. Catching it this early is the skill.`;
@@ -280,7 +280,7 @@ export function screenLine(todayMin, weekSeries = []) {
   if (todayMin <= 90) {
     return `${fmtMinutes(todayMin)} noticed today. Every log is a moment you surfaced on purpose.`;
   }
-  return `${fmtMinutes(todayMin)} noticed today. That's real information about the day — you saw it, and that's the hard part.`;
+  return `${fmtMinutes(todayMin)} noticed today. That's real information, and you're the one who caught it.`;
 }
 
 /* One-line reflection of the most recent activity, for the Home card.

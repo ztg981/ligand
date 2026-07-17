@@ -82,6 +82,26 @@ export default function Settings({
   const pomo = { ...POMO_DEFAULTS, ...pomoStored };
   const patchPomo = (patch) => setPomo((p) => ({ ...p, ...patch }));
 
+  // "My looks" - user-saved appearance snapshots. Same storage key the old
+  // save-your-theme flow used, so looks saved before the light/dark preset
+  // rework come right back. A snapshot is the whole tweaks record; applying
+  // one routes through setTweak, which normalizes any legacy fields.
+  const [userPresets, setUserPresets] = useLocalStorage("ligand.userPresets", []);
+  const [savingLook, setSavingLook] = useState(false);
+  const [lookName, setLookName] = useState("");
+  const saveLook = () => {
+    const name = lookName.trim();
+    if (!name) return;
+    setUserPresets((prev) => [
+      ...prev.filter((p) => p.name !== name),
+      { id: `user-${Date.now()}`, name, tweaks: { ...tweaks } },
+    ]);
+    setLookName("");
+    setSavingLook(false);
+  };
+  const applyLook = (p) => setTweak({ ...p.tweaks });
+  const deleteLook = (id) => setUserPresets((prev) => prev.filter((p) => p.id !== id));
+
   const { notifications, habits, assistant, wallpaper, behavior, profile, uiSounds = {}, bgMusic = {}, ai = {}, desktop = {}, sleep = {} } = settings;
   const aiLocked = isGuest;
   const aiLockedHint = "Sign in to use AI features.";
@@ -153,6 +173,78 @@ export default function Settings({
               onRemoveCustom={onRemoveCustomWallpaper}
             />
           </div>
+
+          {/* My looks - save the current combination (palettes, accent,
+             radius, density, all of it) under a name and switch back any
+             time. Restores the save-your-theme flow the preset rework lost. */}
+          <div className="mylooks">
+            <div className="mylooks-head">
+              <span className="mylooks-title">My looks</span>
+              {!savingLook && (
+                <button className="btn ghost sm" onClick={() => setSavingLook(true)}>
+                  <Icon.Star width={13} height={13} /> Save this look
+                </button>
+              )}
+            </div>
+            {savingLook && (
+              <div className="mylooks-save">
+                <input
+                  className="input"
+                  autoFocus
+                  placeholder="Name it (e.g. Night glass)"
+                  value={lookName}
+                  maxLength={30}
+                  onChange={(e) => setLookName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveLook();
+                    if (e.key === "Escape") setSavingLook(false);
+                  }}
+                />
+                <button className="btn ghost sm" onClick={() => setSavingLook(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn primary sm"
+                  onClick={saveLook}
+                  disabled={!lookName.trim()}
+                  style={{ opacity: lookName.trim() ? 1 : 0.5 }}
+                >
+                  Save
+                </button>
+              </div>
+            )}
+            {userPresets.length > 0 ? (
+              <div className="mylooks-row">
+                {userPresets.map((p) => (
+                  <span key={p.id} className="mylooks-chip">
+                    <button
+                      type="button"
+                      className="mylooks-apply"
+                      title="Apply this look"
+                      onClick={() => applyLook(p)}
+                    >
+                      {p.name}
+                    </button>
+                    <ConfirmButton
+                      className="iconbtn sm mylooks-del"
+                      title="Delete this look"
+                      onConfirm={() => deleteLook(p.id)}
+                      requireConfirmation={confirmBeforeDelete}
+                      icon={<Icon.Close width={10} height={10} />}
+                    />
+                  </span>
+                ))}
+              </div>
+            ) : (
+              !savingLook && (
+                <p className="mylooks-empty">
+                  Dial in a look you like, then save it here to switch back
+                  any time.
+                </p>
+              )
+            )}
+          </div>
+
           <Row name="Wordmark" hint="The Ligand logo type in the top bar">
             <div className="wordmark-row">
               {WORDMARK_FONTS.map((f) => (
@@ -178,6 +270,7 @@ export default function Settings({
                 { id: "violet", name: "Violet", swatch: "#8b5cf6" },
                 { id: "ember", name: "Ember", swatch: "#e85f00" },
                 { id: "ice", name: "Ice", swatch: "#2fb5e0" },
+                { id: "mono", name: "Mono", swatch: "#e8e8ee" },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -363,7 +456,7 @@ export default function Settings({
                 className="input"
                 value={notifications.reminderTime}
                 onChange={(e) => setSection("notifications", { reminderTime: e.target.value })}
-                style={{ maxWidth: 120 }}
+                style={{ width: 132, minWidth: 132 }}
               />
             </Row>
           )}
@@ -438,7 +531,7 @@ export default function Settings({
                 className="input"
                 value={sleep.bedtime ?? "23:00"}
                 onChange={(e) => setSection("sleep", { bedtime: e.target.value })}
-                style={{ maxWidth: 120 }}
+                style={{ width: 132, minWidth: 132 }}
               />
             </Row>
           )}

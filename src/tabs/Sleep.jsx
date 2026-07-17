@@ -363,7 +363,8 @@ export default function Sleep({
           <p className="sltab-window-line">
             <strong>{bedtime}</strong> → <strong>{wakeTarget}</strong>
             {targetMin != null && <> · {durationLabel(targetMin)} in bed</>}.
-            A steady window — especially the wake side — is the single highest-leverage sleep anchor.
+            Try to keep roughly this window every night. Waking up around the
+            same time matters more than anything else you can tweak.
           </p>
           <div className="setting-row">
             <div>
@@ -374,7 +375,7 @@ export default function Sleep({
               className="input"
               value={bedtime}
               onChange={(e) => setSection?.("sleep", { bedtime: e.target.value })}
-              style={{ maxWidth: 120 }}
+              style={{ width: 132, minWidth: 132 }}
             />
           </div>
           <div className="setting-row">
@@ -386,7 +387,7 @@ export default function Sleep({
               className="input"
               value={wakeTarget}
               onChange={(e) => setSection?.("sleep", { wakeTarget: e.target.value })}
-              style={{ maxWidth: 120 }}
+              style={{ width: 132, minWidth: 132 }}
             />
           </div>
           <div className="setting-row">

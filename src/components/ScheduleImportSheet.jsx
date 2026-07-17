@@ -208,7 +208,7 @@ export default function ScheduleImportSheet({
           </button>
         </div>
         <p className="qa-note" style={{ margin: "4px 0 10px" }}>
-          Screenshot of a timetable, calendar, or roster — Ligand reads out
+          Screenshot of a timetable, calendar, or roster. Ligand reads out
           the events and you approve them before anything is added.
         </p>
 
@@ -241,7 +241,7 @@ export default function ScheduleImportSheet({
             <>
               <Icon.Image width={20} height={20} />
               <span className="schimp-drop-lbl">
-                Tap to attach a screenshot{isMobile ? "" : " — or paste one right here"}
+                Tap to attach a screenshot{isMobile ? "" : ", or paste one right here"}
               </span>
             </>
           )}

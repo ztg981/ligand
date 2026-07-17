@@ -138,8 +138,8 @@ export default function Calendar({
 
       {dayItems.length === 0 ? (
         <p className="dp-empty">
-          Nothing scheduled. A clear day is a fine plan too — or open it in
-          the planner to shape it.
+          Nothing scheduled. A clear day is a fine plan too, or open it in
+          the planner and shape it.
         </p>
       ) : (
         <div className="cal-items">

@@ -96,7 +96,7 @@ function BlockEditor({ draft, setDraft, onSave, onDelete, onClose, isNew, isMobi
           checked={draft.protected}
           onChange={(e) => set({ protected: e.target.checked })}
         />
-        Protected — this hour doesn't move when plans change
+        Protected: this hour doesn't move when plans change
       </label>
       <div className="dp-editor-actions">
         {!isNew && (
@@ -269,7 +269,7 @@ export default function DayPlanner({
   const place = (durMin, extra) => {
     const slot = nextFreeSlot(blocks, placeFrom, durMin);
     if (!slot) {
-      setPlaceMsg("No free slot left today — move or shrink something first.");
+      setPlaceMsg("No free slot left today. Move or shrink something first.");
       return;
     }
     setPlaceMsg("");
