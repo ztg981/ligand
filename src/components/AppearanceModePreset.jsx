@@ -1,5 +1,7 @@
 import { Icon } from "./Icons.jsx";
+import { Slider } from "./Controls.jsx";
 import { DARK_PALETTES, LIGHT_PALETTES } from "../theme/palettes.js";
+import { ACCENTS } from "../theme/useTweaks.js";
 import {
   WALLPAPERS,
   wallpaperSelectionForMode,
@@ -9,6 +11,10 @@ export default function AppearanceModePreset({
   mode,
   paletteId,
   onPaletteChange,
+  accent,
+  onAccentChange,
+  ambient,
+  onAmbientChange,
   wallpaper,
   customWallpapers = [],
   onWallpaperChange,
@@ -50,6 +56,44 @@ export default function AppearanceModePreset({
           </button>
         ))}
       </div>
+
+      {onAccentChange && (
+        <>
+          <div className="appearance-preset-label">Accent</div>
+          <div className="row" style={{ gap: 4 }}>
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={"swatch-pick " + (accent === a.id ? "active" : "")}
+                style={{ background: a.color, width: 22, height: 22 }}
+                onClick={() => onAccentChange(a.id)}
+                title={`Hue ${a.id}`}
+                aria-pressed={accent === a.id}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {onAmbientChange && (
+        <>
+          <div className="appearance-preset-label row between">
+            <span>Ambient glow</span>
+            <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+              {ambient}%
+            </span>
+          </div>
+          <Slider
+            value={ambient}
+            min={0}
+            max={100}
+            step={5}
+            onChange={onAmbientChange}
+            format={(v) => v + "%"}
+          />
+        </>
+      )}
 
       <div className="appearance-preset-label">Wallpaper</div>
       <div className="wp-gallery appearance-wallpaper-grid">

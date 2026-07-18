@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../components/Icons.jsx";
+import Select from "../components/Select.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 import { TASK_TERMS, repeatLabel } from "../lib/model.js";
 import { flashElement } from "../lib/scrollFlash.js";
@@ -59,27 +60,15 @@ function TaskFormFields({
 }) {
   return (
     <>
-      <select
-        className="input"
+      <Select
+        ariaLabel="Label or goal"
         value={pick}
-        onChange={(e) => setPick(e.target.value)}
-        style={{ width: "auto", flex: "none" }}
-      >
-        {BASE_LABELS.map((l) => (
-          <option key={l} value={`label:${l}`}>
-            {l}
-          </option>
-        ))}
-        {goals.length > 0 && (
-          <optgroup label="Goals">
-            {goals.map((g) => (
-              <option key={g.id} value={`goal:${g.id}`}>
-                {g.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
+        onChange={setPick}
+        options={[
+          ...BASE_LABELS.map((l) => ({ value: `label:${l}`, label: l })),
+          ...goals.map((g) => ({ value: `goal:${g.id}`, label: g.name, sub: "Goal" })),
+        ]}
+      />
       <div className="seg" style={{ flex: "none" }}>
         <button
           className={term === TASK_TERMS.SHORT ? "active" : ""}
@@ -94,21 +83,19 @@ function TaskFormFields({
           Long
         </button>
       </div>
-      <select
-        className="input"
+      <Select
+        ariaLabel="Repeat this task"
         value={repeat}
-        onChange={(e) => setRepeat(e.target.value)}
-        title="Repeat this task"
-        style={{ width: "auto", flex: "none" }}
-      >
-        <option value="none">No repeat</option>
-        <option value="daily">Every day</option>
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-          <option key={d} value={`weekly:${i}`}>
-            Every {d}
-          </option>
-        ))}
-      </select>
+        onChange={setRepeat}
+        options={[
+          { value: "none", label: "No repeat" },
+          { value: "daily", label: "Every day" },
+          ...["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => ({
+            value: `weekly:${i}`,
+            label: `Every ${d}`,
+          })),
+        ]}
+      />
       {/* Optional schedule: a date puts it on the calendar; adding times
          carves a real block on that day's plan (dial/agenda included). */}
       <div className="task-sched" title="Schedule this task onto a day">

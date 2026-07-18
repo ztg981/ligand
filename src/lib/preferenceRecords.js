@@ -60,11 +60,27 @@ export const SETTINGS_DEFAULTS = {
     volume: 30,
   },
   hyperfocus: {
-    theme: "crimson",
+    theme: "ice",
   },
 };
 
+// Desktop + iPad defaults. New PC/iPad users (and guest mode) start here.
 export const TWEAK_DEFAULTS = {
+  theme: "light",
+  accent: 245,
+  ambient: 95,
+  radius: 10,
+  density: "compact",
+  lightPalette: "glass",
+  darkPalette: "glassdark",
+  wordmarkFont: "plain",
+};
+
+// Phone (mobile scope) defaults, frozen at the pre-2026-07-18 values so that
+// changing the desktop/iPad defaults above never shifts what new iPhone users
+// get. Kept deliberately separate — see useTweaks(scope) and the mobile
+// branches of normalizeTweaksRecord / shouldSyncPhonePreference below.
+export const MOBILE_TWEAK_DEFAULTS = {
   theme: "light",
   accent: 245,
   ambient: 60,
@@ -128,8 +144,8 @@ export function normalizeMobileSettingsRecord(stored) {
   return out;
 }
 
-export function normalizeTweaksRecord(stored) {
-  return { ...TWEAK_DEFAULTS, ...(stored || {}) };
+export function normalizeTweaksRecord(stored, defaults = TWEAK_DEFAULTS) {
+  return { ...defaults, ...(stored || {}) };
 }
 
 export function readLegacyProfile(storage = globalThis.localStorage) {
@@ -152,8 +168,10 @@ export function shouldSyncPhonePreference(key, value) {
 
   if (key === MOBILE_TWEAKS_KEY) {
     if (value?._updatedAt) return true;
-    const normalized = stripSyncMetadata(normalizeTweaksRecord(value));
-    return JSON.stringify(normalized) !== JSON.stringify(TWEAK_DEFAULTS);
+    const normalized = stripSyncMetadata(
+      normalizeTweaksRecord(value, MOBILE_TWEAK_DEFAULTS)
+    );
+    return JSON.stringify(normalized) !== JSON.stringify(MOBILE_TWEAK_DEFAULTS);
   }
 
   return true;
@@ -161,7 +179,8 @@ export function shouldSyncPhonePreference(key, value) {
 
 export function phonePreferenceSyncValue(key, value) {
   if (key === MOBILE_SETTINGS_KEY) return normalizeMobileSettingsRecord(value);
-  if (key === MOBILE_TWEAKS_KEY) return normalizeTweaksRecord(value);
+  if (key === MOBILE_TWEAKS_KEY)
+    return normalizeTweaksRecord(value, MOBILE_TWEAK_DEFAULTS);
   return value;
 }
 

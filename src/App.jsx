@@ -18,7 +18,7 @@ import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
 import { useTweaks } from "./theme/useTweaks.js";
-import { paletteFor } from "./theme/palettes.js";
+import { accentFor, ambientFor, paletteFor } from "./theme/palettes.js";
 import { goalHealth } from "./lib/goalHealth.js";
 import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
 import { summarizeWeek, DEFAULT_TARGET } from "./lib/showingUp.js";
@@ -50,6 +50,7 @@ import Notes from "./tabs/Notes.jsx";
 import Habits from "./tabs/Habits.jsx";
 import WorkoutTab from "./tabs/WorkoutTab.jsx";
 import DayPlanner from "./tabs/DayPlanner.jsx";
+import Stats from "./tabs/Stats.jsx";
 import Settings from "./tabs/Settings.jsx";
 import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
@@ -1130,6 +1131,16 @@ export default function App() {
     if (hyperfocus) delete root.dataset.palette;
     else root.dataset.palette = paletteFor(effectiveMode, tweaks);
 
+    // Accent + ambient glow are saved PER preset (light vs dark), so they
+    // follow whichever mode is actually showing — same as the palette above.
+    // Applied here (not in useTweaks) because this is where the auto/wallpaper-
+    // resolved mode is known.
+    root.style.setProperty("--accent-h", accentFor(effectiveMode, tweaks));
+    root.style.setProperty(
+      "--ambient-opacity",
+      ambientFor(effectiveMode, tweaks) / 100
+    );
+
     // Keep iOS Safari/Home Screen chrome in step with the page. A fixed dark
     // root background made Safari's bottom toolbar black even in Ligand's
     // light theme, while theme-color alone did not follow palette changes.
@@ -1349,6 +1360,14 @@ export default function App() {
               // nothing (or a click event) — only accept real strings.
               setActivitySheet(typeof category === "string" ? { category } : {})
             }
+          />
+        );
+      case "stats":
+        return (
+          <Stats
+            data={store.data}
+            sleepLog={sleepLog}
+            onOpenPomodoro={() => setTab("pomodoro")}
           />
         );
       case "day":

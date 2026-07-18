@@ -231,6 +231,7 @@ const AVATAR_BG =
 function AvatarMenu({
   userName = "You",
   onOpenSettings,
+  onOpenStats,
   onOpenDay,
   onOpenCalendar,
   onOpenPomodoro,
@@ -356,6 +357,16 @@ function AvatarMenu({
               }}
             >
               <Icon.Bell /> Alarms
+            </button>
+
+            <button
+              className="avatar-menu-item"
+              onClick={() => {
+                onOpenStats?.();
+                close();
+              }}
+            >
+              <Icon.Grid /> Stats
             </button>
 
             <button
@@ -805,6 +816,7 @@ export default function TopNav({
           <AvatarMenu
             userName={userName}
             onOpenSettings={onOpenSettings}
+            onOpenStats={() => setTab("stats")}
             onOpenDay={() => setTab("day")}
             onOpenCalendar={() => {
               window.localStorage.setItem("ligand.dayView", JSON.stringify("month"));

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Icon } from "./Icons.jsx";
+import Select from "./Select.jsx";
 import {
   workoutVolume,
   todayKey,
@@ -246,15 +247,13 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
         <div className="card fit-empty">Once you log weighted exercises, pick one here to see your trend.</div>
       ) : (
         <div className="card fp-exercise">
-          <select
-            className="input fp-ex-select"
+          <Select
+            className="fp-ex-select"
+            ariaLabel="Exercise to chart"
             value={selectedEx || exerciseOptions[0]?.id}
-            onChange={(e) => setSelectedEx(e.target.value)}
-          >
-            {exerciseOptions.map((o) => (
-              <option key={o.id} value={o.id}>{o.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedEx}
+            options={exerciseOptions.map((o) => ({ value: o.id, label: o.name }))}
+          />
           <div className="fp-ex-charts">
             <div className="fp-ex-chart">
               <div className="fp-ex-chart-head">

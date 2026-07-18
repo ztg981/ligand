@@ -147,22 +147,28 @@
    wallpapers: a soft pearlescent gradient behind genuinely frosted panels. */
 [data-theme="light"][data-palette="glass"] {
   --nav-rgb: 250, 250, 252;
-  --bg: #f4f5f8;
-  --bg-2: #edeff4;
-  --panel: rgba(255, 255, 255, 0.62);
-  --panel-2: rgba(255, 255, 255, 0.48);
-  --panel-3: rgba(238, 241, 247, 0.7);
-  --line: rgba(80, 90, 120, 0.13);
-  --line-strong: rgba(80, 90, 120, 0.22);
-  --ink: #17181d;
-  --ink-2: #43464f;
-  --ink-3: #7b7f8b;
-  --ink-4: #aeb2bf;
+  --bg: #eef1f7;
+  --bg-2: #e7ebf3;
+  /* Deliberately MORE transparent than a normal light theme: the whole point
+     of glass is that the colourful backdrop refracts through the pane. Heavy
+     blur (below) keeps text calm and readable over it. */
+  --panel: rgba(255, 255, 255, 0.46);
+  --panel-2: rgba(255, 255, 255, 0.34);
+  --panel-3: rgba(236, 240, 248, 0.62);
+  --line: rgba(70, 85, 130, 0.16);
+  --line-strong: rgba(70, 85, 130, 0.26);
+  --ink: #14161c;
+  --ink-2: #3e424d;
+  --ink-3: #6b7080;
+  --ink-4: #9aa0b2;
+  /* A vivid iridescent wash so there's real colour for the panes to bend —
+     the pale pastels before had almost nothing to refract. */
   --app-bg:
-    radial-gradient(90rem 60rem at 85% -10%, rgba(255, 214, 224, 0.5), transparent 55%),
-    radial-gradient(70rem 50rem at -10% 30%, rgba(196, 220, 255, 0.55), transparent 55%),
-    radial-gradient(60rem 60rem at 60% 110%, rgba(255, 240, 214, 0.5), transparent 60%),
-    linear-gradient(135deg, #fdfdfc 0%, #eef0f5 45%, #f4efe9 100%);
+    radial-gradient(75rem 55rem at 82% -12%, rgba(255, 150, 190, 0.55), transparent 58%),
+    radial-gradient(70rem 55rem at -12% 20%, rgba(120, 175, 255, 0.6), transparent 58%),
+    radial-gradient(65rem 60rem at 55% 118%, rgba(255, 205, 120, 0.5), transparent 60%),
+    radial-gradient(50rem 45rem at 110% 80%, rgba(170, 140, 255, 0.42), transparent 60%),
+    linear-gradient(135deg, #f2f4fb 0%, #e9edf6 50%, #f3eef0 100%);
 }
 [data-palette="glass"] .card,
 [data-palette="glass"] .modal,
@@ -170,13 +176,17 @@
 [data-palette="glass"] .notif-pop,
 [data-palette="glass"] .avatar-pop,
 [data-palette="glass"] .goal-dd-panel {
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  border-color: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(30px) saturate(185%) brightness(1.06);
+  backdrop-filter: blur(30px) saturate(185%) brightness(1.06);
+  /* The pane edge: a bright rim that catches light, a crisp inset top
+     highlight, and a faint inner bottom shadow so it reads as a solid sheet
+     of glass rather than a flat translucent card. */
+  border-color: rgba(255, 255, 255, 0.85);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 1px rgba(90, 100, 140, 0.08),
     0 1px 2px rgba(60, 70, 100, 0.06),
-    0 14px 34px -18px rgba(60, 70, 100, 0.3);
+    0 18px 40px -20px rgba(50, 60, 95, 0.34);
 }
 
 /* Liquid Glass — DARK: smoked frosted chrome with an iridescent aurora. */
@@ -4349,11 +4359,11 @@ html[data-hyperfocus="true"][data-hf-theme="ice"] {
 }
 
 /* Per-theme TRICOLOR palettes for the multi-color intro animations
-   (stripes + livery + beams). Each theme gets three harmonizing colors so a
-   purple session sweeps in purples, a green one in greens, etc. — instead of
-   the BMW-M blue+red livery painted over everything. Crimson keeps the M
-   colors on purpose: red is an M color and the user liked it there. Scoped to
-   an active hyperfocus so the vars never leak into the normal app. */
+   (stripes + livery). Each theme gets three harmonizing colors so a purple
+   session sweeps in purples, a green one in greens, etc. — instead of the
+   BMW-M blue+red livery painted over everything. Crimson keeps the M colors
+   on purpose: red is an M color and the user liked it there. Scoped to an
+   active hyperfocus so the vars never leak into the normal app. */
 html[data-hyperfocus="true"] { /* crimson default — the M livery */
   --hf-tri-1: 231, 34, 46;   /* M red */
   --hf-tri-2: 0, 102, 177;   /* M dark blue */
@@ -8209,7 +8219,10 @@ html[data-electron="true"] .electron-drag-strip {
 .moodtrend-line {
   fill: none; stroke: var(--accent); stroke-width: 2;
   stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 400; stroke-dashoffset: 400;
+  /* pathLength="1" on the <path> normalizes the length, so the draw-in works
+     for ANY data/width. (The old fixed dasharray:400 was shorter than the
+     wider v2 chart's real path, leaving the line cut off before the edge.) */
+  stroke-dasharray: 1; stroke-dashoffset: 1;
   animation: moodDraw 0.9s var(--ease) forwards;
 }
 @keyframes moodDraw { to { stroke-dashoffset: 0; } }
@@ -8357,6 +8370,24 @@ html[data-electron="true"] .electron-drag-strip {
   margin: 12px 0 6px;
 }
 .actlog-row-label span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.actlog-howlong { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.actlog-mode {
+  display: inline-flex; gap: 2px; padding: 2px;
+  border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+  text-transform: none; letter-spacing: 0;
+}
+.actlog-mode button {
+  border: none; background: none; cursor: pointer;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: var(--ink-3);
+}
+.actlog-mode button.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow-pop); }
+.actlog-range { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.actlog-range-field { display: flex; flex-direction: column; gap: 3px; }
+.actlog-range-field span { font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-4); }
+.actlog-range-field .input { height: 38px; width: 118px; font-size: 14px; }
+.actlog-range-dash { color: var(--ink-4); padding-bottom: 9px; }
+.actlog-range-dur { padding-bottom: 9px; font-size: 12.5px; font-weight: 650; color: var(--accent-ink, var(--accent)); }
 .actlog-durs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .actlog-dur {
   padding: 4px 10px; min-height: 30px; min-width: 44px;
@@ -9009,12 +9040,12 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 [data-palette="glass"] .card,
 [data-palette="glass"] .notif-pop,
 [data-palette="glass"] .avatar-pop {
-  background-image: linear-gradient(
-    172deg,
-    rgba(255, 255, 255, 0.42),
-    rgba(255, 255, 255, 0.1) 28%,
-    rgba(255, 255, 255, 0) 55%
-  );
+  /* Two speculars: a tight bright streak along the very top edge (the light
+     catching the lip of the pane) and a soft diagonal glare across the upper
+     corner. Kept off the body so it refracts rather than whitens. */
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 14%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 32%);
 }
 [data-palette="glassdark"] .card,
 [data-palette="glassdark"] .notif-pop,
@@ -9147,3 +9178,91 @@ input[type="date"].input::-webkit-date-and-time-value {
 }
 [data-reduce-motion="true"] .moodtrend-plot.zoom-out,
 [data-reduce-motion="true"] .moodtrend-plot.zoom-in { animation: none; }
+
+/* ============================================================
+   Select — themed dropdown replacing native <select> chrome
+   ============================================================ */
+.uisel { position: relative; display: inline-block; }
+.uisel-btn {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; min-height: 34px;
+  padding: 6px 10px 6px 12px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+}
+.uisel-btn:hover { border-color: var(--line-strong); color: var(--ink); }
+.uisel-btn-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.uisel-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 95;
+  min-width: 100%; max-width: min(320px, 84vw);
+  max-height: 300px; overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 6px;
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  animation: notifPop 0.16s var(--ease);
+}
+.uisel-pop.right { left: auto; right: 0; }
+.uisel-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  border: none; border-radius: var(--r-md);
+  background: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 550; color: var(--ink-2);
+  text-align: left; white-space: nowrap;
+}
+.uisel-opt:hover { background: var(--panel-2); }
+.uisel-opt.on { color: var(--accent-ink, var(--accent)); font-weight: 650; }
+.uisel-opt-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.uisel-opt-label { overflow: hidden; text-overflow: ellipsis; }
+.uisel-opt-sub { font-size: 11px; color: var(--ink-4); font-weight: 500; }
+
+/* ============================================================
+   Stats page
+   ============================================================ */
+.stats-window { flex: none; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+@media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat-tile {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-pop);
+}
+.stat-tile.accent { background: color-mix(in oklab, var(--accent) 10%, var(--panel)); border-color: color-mix(in oklab, var(--accent) 30%, var(--line)); }
+.stat-tile-ic { color: var(--ink-3); margin-bottom: 4px; }
+.stat-tile.accent .stat-tile-ic { color: var(--accent-ink, var(--accent)); }
+.stat-tile-val { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; color: var(--ink); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat-tile-lbl { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.stat-tile-sub { font-size: 11px; color: var(--ink-4); }
+
+.stats-bighead { font-size: 30px; font-weight: 750; letter-spacing: -0.02em; color: var(--ink); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.stats-bighead-sub { font-size: 12.5px; font-weight: 550; color: var(--ink-3); letter-spacing: 0; }
+.stat-spark { width: 100%; height: 60px; display: block; margin-top: 8px; }
+.stat-spark-area { fill: color-mix(in oklab, var(--accent) 12%, transparent); stroke: none; }
+.stat-spark-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+.stats-bars { display: flex; flex-direction: column; gap: 8px; }
+.stats-bar-row { display: grid; grid-template-columns: minmax(70px, 30%) 1fr auto; align-items: center; gap: 10px; }
+.stats-bar-name { font-size: 12.5px; font-weight: 600; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-bar-track { height: 8px; border-radius: 999px; background: var(--panel-3); overflow: hidden; }
+.stats-bar-fill { display: block; height: 100%; border-radius: 999px; }
+.stats-bar-val { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.stats-donutbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--panel-3); margin-bottom: 12px; }
+.stats-donutbar span { display: block; height: 100%; }
+.stats-legend { display: flex; flex-direction: column; gap: 7px; }
+.stats-legend-row { display: flex; align-items: center; gap: 8px; }
+.stats-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.stats-legend-name { font-size: 12.5px; color: var(--ink-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-legend-val { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) { .stats-body .col-5 { margin-top: 12px; } }

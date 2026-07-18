@@ -3,6 +3,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import {
   DESKTOP_TWEAKS_KEY,
   MOBILE_TWEAKS_KEY,
+  MOBILE_TWEAK_DEFAULTS,
   TWEAK_DEFAULTS,
   normalizeTweaksRecord,
 } from "../lib/preferenceRecords.js";
@@ -33,17 +34,17 @@ export const ACCENTS = [
 ];
 
 function mobileInitialTweaks() {
-  if (typeof window === "undefined") return TWEAK_DEFAULTS;
+  if (typeof window === "undefined") return MOBILE_TWEAK_DEFAULTS;
   try {
     const legacyMobileTheme = JSON.parse(
       window.localStorage.getItem("ligand.mobileTheme") || "null"
     );
     return {
-      ...TWEAK_DEFAULTS,
+      ...MOBILE_TWEAK_DEFAULTS,
       ...(legacyMobileTheme ? { theme: legacyMobileTheme } : {}),
     };
   } catch {
-    return TWEAK_DEFAULTS;
+    return MOBILE_TWEAK_DEFAULTS;
   }
 }
 
@@ -54,25 +55,23 @@ export function useTweaks(scope = "desktop") {
     storageKey,
     isMobileScope ? mobileInitialTweaks : TWEAK_DEFAULTS
   );
-  const tweaks = normalizeTweaksRecord(stored);
+  const tweaks = normalizeTweaksRecord(
+    stored,
+    isMobileScope ? MOBILE_TWEAK_DEFAULTS : TWEAK_DEFAULTS
+  );
 
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.density = tweaks.density;
     root.dataset.wordmark = tweaks.wordmarkFont;
-    root.style.setProperty("--accent-h", tweaks.accent);
-    root.style.setProperty("--ambient-opacity", tweaks.ambient / 100);
+    // Accent + ambient are mode-dependent (saved per light/dark preset) and are
+    // applied in App.jsx where the resolved mode is known. Radius/density/
+    // wordmark are mode-independent, so they stay here.
     root.style.setProperty("--r-md", tweaks.radius - 2 + "px");
     root.style.setProperty("--r-lg", tweaks.radius + "px");
     root.style.setProperty("--r-xl", tweaks.radius + 2 + "px");
     root.style.setProperty("--r-2xl", tweaks.radius + 4 + "px");
-  }, [
-    tweaks.density,
-    tweaks.accent,
-    tweaks.ambient,
-    tweaks.radius,
-    tweaks.wordmarkFont,
-  ]);
+  }, [tweaks.density, tweaks.radius, tweaks.wordmarkFont]);
 
   const set = (patch) =>
     setTweaks((previous) => ({

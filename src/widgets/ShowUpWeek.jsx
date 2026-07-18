@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Icon } from "../components/Icons.jsx";
+import Select from "../components/Select.jsx";
 import { todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import {
@@ -50,21 +51,16 @@ export default function ShowUpWeek({ visitDates = [] }) {
     <div className={"card showup-card" + (week.met ? " met" : "")}>
       <div className="card-head">
         <div className="card-title"><Icon.Calendar /> Your week</div>
-        <label className="showup-target">
-          <span className="visually-hidden">Days per week that make your week</span>
-          <select
-            className="showup-target-select"
-            value={target}
-            onChange={(e) =>
-              setState((prev) => ({ ...(prev || DEFAULT_STATE), target: Number(e.target.value) }))
-            }
-            title="How many days count as a full week for you"
-          >
-            {TARGET_CHOICES.map((n) => (
-              <option key={n} value={n}>{n} days/week</option>
-            ))}
-          </select>
-        </label>
+        <Select
+          className="showup-target"
+          ariaLabel="Days per week that make your week"
+          align="right"
+          value={target}
+          onChange={(v) =>
+            setState((prev) => ({ ...(prev || DEFAULT_STATE), target: Number(v) }))
+          }
+          options={TARGET_CHOICES.map((n) => ({ value: n, label: `${n} days/week` }))}
+        />
       </div>
 
       <div className="showup-stat">

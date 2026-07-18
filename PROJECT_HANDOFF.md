@@ -313,6 +313,34 @@ ligand.data blob.
   the tab is hidden (rAF is paused there — this keeps orientation correct in
   background tabs and headless previews).
 
+### Stats page, styled Select, glass + logger polish (2026-07-18)
+
+- **Stats page** (`tabs/Stats.jsx`, lib `lib/stats.js`, tested): reachable
+  from the avatar menu (tab id "stats"). Window Select (7d/30d/90d/1y) over
+  headline tiles (focused + paused, workouts, activities, tasks, active
+  days, sleep, journal, screen time), a focus sparkline, time-by-goal bars
+  (fed by the focus-goal logging), and a category breakdown bar. All reads
+  route through the per-date logs — honest history, no pruning.
+- **Reusable `Select`** (`components/Select.jsx`, `.uisel-*`): themed
+  dropdown replacing the native `<select>` chrome. Swapped in ShowUpWeek,
+  Tasks (label/goal + repeat), FitnessProgress, Settings (ambient sound).
+  Value contract matches native (value + onChange(value)).
+- **Light-mode glass** finally reads as glass: more transparent panel
+  (0.46), heavier blur+saturation+brightness, a vivid iridescent app-bg to
+  refract, a bright pane rim, and a tight top-edge specular (the old
+  body-wide white sheen just flattened it).
+- **MoodTrend**: the draw-in line was cut off because a fixed
+  `stroke-dasharray:400` was shorter than v2's wider path — now
+  `pathLength="1"` normalizes it so the line always reaches the last point;
+  the "Rough" guide moved above its line so it no longer overlaps the
+  bottom-left date tick.
+- **Activity logger**: "How long?" gains a Length ↔ Exact time toggle;
+  exact mode takes explicit start/end clocks (wraps midnight) and derives
+  duration + endTime.
+- **Electron drift**: investigated — it's a stale packaged build, not a
+  code bug (fonts load from the same CDN, no CSP block, base path only
+  affects local assets). Fix is `npm run electron:build` + reinstall.
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

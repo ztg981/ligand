@@ -26,7 +26,7 @@ const C = SIZE / 2;
 const R_OUT = 292;
 const R_IN = 224;
 const R_TICK = R_OUT + 10;
-const R_NUM = R_OUT + 30;
+const R_NUM = R_OUT + 38; // hour numbers — pushed out so they clear the ticks
 const R_LABEL = R_OUT + 56;
 const SNAP = 15;
 
@@ -466,7 +466,7 @@ export default function DayDial({
         const min = i * 15;
         const major = i % 4 === 0;
         const [x1, y1] = pt(min, R_TICK);
-        const [x2, y2] = pt(min, R_TICK + (major ? 10 : 5));
+        const [x2, y2] = pt(min, R_TICK + (major ? 7 : 4));
         return (
           <line
             key={i}

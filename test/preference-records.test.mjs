@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   MOBILE_SETTINGS_KEY,
   MOBILE_TWEAKS_KEY,
-  TWEAK_DEFAULTS,
+  MOBILE_TWEAK_DEFAULTS,
   mobileSettingsDefaults,
   normalizeMobileSettingsRecord,
   phonePreferenceSyncValue,
@@ -13,13 +13,13 @@ import {
 
 test("untouched phone defaults do not seed the account record", () => {
   assert.equal(shouldSyncPhonePreference(MOBILE_SETTINGS_KEY, mobileSettingsDefaults()), false);
-  assert.equal(shouldSyncPhonePreference(MOBILE_TWEAKS_KEY, TWEAK_DEFAULTS), false);
+  assert.equal(shouldSyncPhonePreference(MOBILE_TWEAKS_KEY, MOBILE_TWEAK_DEFAULTS), false);
 });
 
 test("existing or explicitly edited phone appearance can seed the account record", () => {
   assert.equal(
     shouldSyncPhonePreference(MOBILE_TWEAKS_KEY, {
-      ...TWEAK_DEFAULTS,
+      ...MOBILE_TWEAK_DEFAULTS,
       accent: 165,
       lightPalette: "porcelain",
     }),
@@ -27,7 +27,7 @@ test("existing or explicitly edited phone appearance can seed the account record
   );
   assert.equal(
     shouldSyncPhonePreference(MOBILE_TWEAKS_KEY, {
-      ...TWEAK_DEFAULTS,
+      ...MOBILE_TWEAK_DEFAULTS,
       _updatedAt: "2026-07-16T20:00:00.000Z",
     }),
     true

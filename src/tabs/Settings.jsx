@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { ACCENTS, TWEAK_DEFAULTS, WORDMARK_FONTS } from "../theme/useTweaks.js";
+import { TWEAK_DEFAULTS, WORDMARK_FONTS } from "../theme/useTweaks.js";
+import { accentFor, ambientFor } from "../theme/palettes.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { POMO_DEFAULTS } from "../hooks/usePomodoro.js";
 import { SOUNDS } from "../lib/wallpaper.js";
@@ -9,6 +10,7 @@ import ConfirmButton from "../components/ConfirmButton.jsx";
 import BlockerPanel from "../components/BlockerPanel.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
+import Select from "../components/Select.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
 import ChatGPTAccessPanel from "../components/ChatGPTAccessPanel.jsx";
@@ -166,6 +168,10 @@ export default function Settings({
               mode="light"
               paletteId={tweaks.lightPalette}
               onPaletteChange={(lightPalette) => setTweak({ lightPalette })}
+              accent={accentFor("light", tweaks)}
+              onAccentChange={(lightAccent) => setTweak({ lightAccent })}
+              ambient={ambientFor("light", tweaks)}
+              onAmbientChange={(lightAmbient) => setTweak({ lightAmbient })}
               wallpaper={wallpaper}
               customWallpapers={customWallpapers}
               onWallpaperChange={(selection) =>
@@ -178,6 +184,10 @@ export default function Settings({
               mode="dark"
               paletteId={tweaks.darkPalette}
               onPaletteChange={(darkPalette) => setTweak({ darkPalette })}
+              accent={accentFor("dark", tweaks)}
+              onAccentChange={(darkAccent) => setTweak({ darkAccent })}
+              ambient={ambientFor("dark", tweaks)}
+              onAmbientChange={(darkAmbient) => setTweak({ darkAmbient })}
               wallpaper={wallpaper}
               customWallpapers={customWallpapers}
               onWallpaperChange={(selection) =>
@@ -311,25 +321,6 @@ export default function Settings({
                   {t.name}
                 </button>
               ))}
-            </div>
-          </Row>
-          <Row name="Accent">
-            <div className="row" style={{ gap: 4 }}>
-              {ACCENTS.map((a) => (
-                <button
-                  key={a.id}
-                  className={"swatch-pick " + (tweaks.accent === a.id ? "active" : "")}
-                  style={{ background: a.color, width: 20, height: 20 }}
-                  onClick={() => setTweak({ accent: a.id })}
-                  title={`Hue ${a.id}`}
-                />
-              ))}
-            </div>
-          </Row>
-          <Row name="Ambient glow" hint={`${tweaks.ambient}%`}>
-            <div style={{ width: 140 }}>
-              <Slider value={tweaks.ambient} min={0} max={100} step={5}
-                onChange={(v) => setTweak({ ambient: v })} format={(v) => v + "%"} />
             </div>
           </Row>
           <Row name="Corner radius" hint={`${tweaks.radius}px`}>
@@ -631,16 +622,13 @@ export default function Settings({
           sub="Choose the sound used during Pomodoro focus. Light and Dark wallpapers now live in their matching presets above."
         >
           <Row name="Ambient sound" hint="Override the scene's default sound during Pomodoro focus">
-            <select
-              className="input"
+            <Select
+              ariaLabel="Ambient sound"
+              align="right"
               value={wallpaper.sound ?? "none"}
-              onChange={(e) => setSection("wallpaper", { sound: e.target.value })}
-              style={{ maxWidth: 160 }}
-            >
-              {SOUNDS.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+              onChange={(v) => setSection("wallpaper", { sound: v })}
+              options={SOUNDS.map((s) => ({ value: s.id, label: s.name }))}
+            />
           </Row>
         </Section>
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Segmented, Slider, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
-import { ACCENTS } from "../theme/useTweaks.js";
+import { accentFor, ambientFor } from "../theme/palettes.js";
 import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { downloadBackup } from "../lib/backup.js";
@@ -123,6 +123,10 @@ export default function MobileSettings({
               mode="light"
               paletteId={tweaks.lightPalette}
               onPaletteChange={(lightPalette) => setTweak?.({ lightPalette })}
+              accent={accentFor("light", tweaks)}
+              onAccentChange={(lightAccent) => setTweak?.({ lightAccent })}
+              ambient={ambientFor("light", tweaks)}
+              onAmbientChange={(lightAmbient) => setTweak?.({ lightAmbient })}
               wallpaper={wallpaper}
               customWallpapers={customWallpapers}
               onWallpaperChange={(selection) =>
@@ -135,6 +139,10 @@ export default function MobileSettings({
               mode="dark"
               paletteId={tweaks.darkPalette}
               onPaletteChange={(darkPalette) => setTweak?.({ darkPalette })}
+              accent={accentFor("dark", tweaks)}
+              onAccentChange={(darkAccent) => setTweak?.({ darkAccent })}
+              ambient={ambientFor("dark", tweaks)}
+              onAmbientChange={(darkAmbient) => setTweak?.({ darkAmbient })}
               wallpaper={wallpaper}
               customWallpapers={customWallpapers}
               onWallpaperChange={(selection) =>
@@ -144,19 +152,6 @@ export default function MobileSettings({
               onRemoveCustom={onRemoveCustomWallpaper}
             />
           </div>
-          <Row name="Accent">
-            <div className="row" style={{ gap: 6 }}>
-              {ACCENTS.map((a) => (
-                <button
-                  key={a.id}
-                  className={"swatch-pick " + (tweaks.accent === a.id ? "active" : "")}
-                  style={{ background: a.color, width: 24, height: 24 }}
-                  onClick={() => setTweak?.({ accent: a.id })}
-                  title={`Hue ${a.id}`}
-                />
-              ))}
-            </div>
-          </Row>
           <Row name="Corner radius" hint={`${tweaks.radius}px`}>
             <div style={{ width: 130 }}>
               <Slider

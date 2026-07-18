@@ -169,10 +169,12 @@ export default function MoodTrend({ journal = [], onOpenJournal }) {
             />
           ))}
           <text x={PAD_X} y={y(5) - 5} className="moodtrend-guide">Great</text>
-          <text x={PAD_X} y={y(1) + 12} className="moodtrend-guide">Rough</text>
+          {/* Above its line, not below, so it never collides with the
+             bottom-left date tick. */}
+          <text x={PAD_X} y={y(1) - 6} className="moodtrend-guide">Rough</text>
 
           <path className="moodtrend-area" d={areaPath} />
-          <path className="moodtrend-line" d={linePath} />
+          <path className="moodtrend-line" pathLength="1" d={linePath} />
           {pts.map((p, i) => (
             <circle
               key={p.t}

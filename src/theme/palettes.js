@@ -25,6 +25,11 @@ export const DARK_PALETTES = [
 
 export const PALETTE_DEFAULTS = { lightPalette: "paper", darkPalette: "midnight" };
 
+// Last-resort fallbacks for accent/ambient when a record carries neither a
+// per-mode value nor the legacy global one (defaults always provide the
+// global, so these only ever guard a corrupt/empty record).
+export const ACCENT_DEFAULTS = { accent: 245, ambient: 95 };
+
 const LIGHT_IDS = new Set(LIGHT_PALETTES.map((p) => p.id));
 const DARK_IDS = new Set(DARK_PALETTES.map((p) => p.id));
 
@@ -40,4 +45,25 @@ export function paletteFor(mode, tweaks = {}) {
   }
   const id = tweaks.lightPalette;
   return LIGHT_IDS.has(id) ? id : PALETTE_DEFAULTS.lightPalette;
+}
+
+/**
+ * Accent hue for a resolved mode. Per-mode value wins; otherwise the legacy
+ * global `accent` (so a user who set one accent before this became per-mode
+ * keeps it on BOTH presets until they change one). Pure — unit tested.
+ */
+export function accentFor(mode, tweaks = {}) {
+  const perMode = mode === "dark" ? tweaks.darkAccent : tweaks.lightAccent;
+  if (Number.isFinite(perMode)) return perMode;
+  return Number.isFinite(tweaks.accent) ? tweaks.accent : ACCENT_DEFAULTS.accent;
+}
+
+/**
+ * Ambient-glow percentage (0–100) for a resolved mode. Same per-mode-then-
+ * legacy-global fallback as accentFor. Pure — unit tested.
+ */
+export function ambientFor(mode, tweaks = {}) {
+  const perMode = mode === "dark" ? tweaks.darkAmbient : tweaks.lightAmbient;
+  if (Number.isFinite(perMode)) return perMode;
+  return Number.isFinite(tweaks.ambient) ? tweaks.ambient : ACCENT_DEFAULTS.ambient;
 }

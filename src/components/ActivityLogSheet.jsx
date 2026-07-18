@@ -7,8 +7,14 @@ import {
   FEELS,
   categoryOf,
   fmtMinutes,
+  hhmmToMin,
 } from "../lib/activities.js";
 import { todayKey } from "../lib/model.js";
+
+function minToHHMM(min) {
+  const m = ((Math.round(min) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
 
 /* ActivityLogSheet — "what did you just do?" as a two-tap flow.
 
@@ -42,6 +48,9 @@ export default function ActivityLogSheet({
   const [customDur, setCustomDur] = useState("");
   const [endTime, setEndTime] = useState(nowHHMM);
   const [showWhen, setShowWhen] = useState(false);
+  // "duration" = pick a length; "range" = enter the exact start–end interval.
+  const [timeMode, setTimeMode] = useState("duration");
+  const [startTime, setStartTime] = useState("");
   const [feel, setFeel] = useState(null);
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
@@ -79,9 +88,32 @@ export default function ActivityLogSheet({
 
   if (!open) return null;
 
-  const effectiveDuration = customDur.trim()
-    ? Math.max(0, Math.round(Number(customDur))) || null
-    : durationMin;
+  // In range mode the duration + end time come from the two clock inputs
+  // (a range that crosses midnight wraps to the next day).
+  const rangeStart = hhmmToMin(startTime);
+  const rangeEnd = hhmmToMin(endTime);
+  const rangeDuration =
+    rangeStart != null && rangeEnd != null
+      ? ((rangeEnd - rangeStart + 1440) % 1440) || null
+      : null;
+  const effectiveDuration =
+    timeMode === "range"
+      ? rangeDuration
+      : customDur.trim()
+        ? Math.max(0, Math.round(Number(customDur))) || null
+        : durationMin;
+
+  // Switching into range mode seeds a sensible interval (last durationMin
+  // ending now) so the user only nudges the endpoints.
+  const enterRangeMode = () => {
+    if (!startTime) {
+      const now = new Date();
+      const endMin = now.getHours() * 60 + now.getMinutes();
+      setEndTime(minToHHMM(endMin));
+      setStartTime(minToHHMM(endMin - (durationMin || 30)));
+    }
+    setTimeMode("range");
+  };
 
   const save = () => {
     if (!cat) return;
@@ -90,7 +122,7 @@ export default function ActivityLogSheet({
         title: title.trim() || cat.name,
         category: cat.id,
         date: dateKey || todayKey(),
-        endTime: endTime || nowHHMM(),
+        endTime: (timeMode === "range" ? endTime : endTime) || nowHHMM(),
         durationMin: effectiveDuration,
         feel,
         note: note.trim(),
@@ -183,36 +215,87 @@ export default function ActivityLogSheet({
               )}
             </div>
 
-          <div className="actlog-row-label">How long?</div>
-          <div className="actlog-durs" role="group" aria-label="Duration">
-            {DURATION_PRESETS.map((m) => (
+          <div className="actlog-row-label actlog-howlong">
+            How long?
+            <div className="actlog-mode" role="tablist" aria-label="How to enter the time">
               <button
-                key={m}
                 type="button"
-                className={
-                  "actlog-dur" + (durationMin === m && !customDur.trim() ? " on" : "")
-                }
-                aria-pressed={durationMin === m && !customDur.trim()}
-                onClick={() => {
-                  setCustomDur("");
-                  setDurationMin(m);
-                }}
+                role="tab"
+                aria-selected={timeMode === "duration"}
+                className={timeMode === "duration" ? "on" : ""}
+                onClick={() => setTimeMode("duration")}
               >
-                {fmtMinutes(m)}
+                Length
               </button>
-            ))}
-            <input
-              className="input actlog-dur-custom"
-              type="number"
-              min="1"
-              max="960"
-              inputMode="numeric"
-              placeholder="min"
-              value={customDur}
-              onChange={(e) => setCustomDur(e.target.value)}
-              aria-label="Custom duration in minutes"
-            />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={timeMode === "range"}
+                className={timeMode === "range" ? "on" : ""}
+                onClick={enterRangeMode}
+              >
+                Exact time
+              </button>
+            </div>
           </div>
+          {timeMode === "duration" ? (
+            <div className="actlog-durs" role="group" aria-label="Duration">
+              {DURATION_PRESETS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={
+                    "actlog-dur" + (durationMin === m && !customDur.trim() ? " on" : "")
+                  }
+                  aria-pressed={durationMin === m && !customDur.trim()}
+                  onClick={() => {
+                    setCustomDur("");
+                    setDurationMin(m);
+                  }}
+                >
+                  {fmtMinutes(m)}
+                </button>
+              ))}
+              <input
+                className="input actlog-dur-custom"
+                type="number"
+                min="1"
+                max="960"
+                inputMode="numeric"
+                placeholder="min"
+                value={customDur}
+                onChange={(e) => setCustomDur(e.target.value)}
+                aria-label="Custom duration in minutes"
+              />
+            </div>
+          ) : (
+            <div className="actlog-range">
+              <label className="actlog-range-field">
+                <span>From</span>
+                <input
+                  className="input"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  aria-label="Start time"
+                />
+              </label>
+              <span className="actlog-range-dash" aria-hidden="true">→</span>
+              <label className="actlog-range-field">
+                <span>To</span>
+                <input
+                  className="input"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  aria-label="End time"
+                />
+              </label>
+              <span className="actlog-range-dur">
+                {rangeDuration ? fmtMinutes(rangeDuration) : "—"}
+              </span>
+            </div>
+          )}
 
           <div className="actlog-row-label">How'd it leave you? <span>(optional)</span></div>
           <div className="actlog-feels" role="group" aria-label="How it left you">
@@ -267,24 +350,26 @@ export default function ActivityLogSheet({
             </>
           )}
 
-          {/* The fiddly bits stay behind small links. */}
+          {/* The fiddly bits stay behind small links. The "ended at" control is
+             only for duration mode — range mode already has both endpoints. */}
           <div className="actlog-links">
-            {showWhen ? (
-              <span className="actlog-when">
-                Ended at
-                <input
-                  className="input actlog-time"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  aria-label="When the activity ended"
-                />
-              </span>
-            ) : (
-              <button type="button" className="actlog-link" onClick={() => setShowWhen(true)}>
-                {isToday ? "Ended earlier?" : "Set a time"}
-              </button>
-            )}
+            {timeMode === "duration" &&
+              (showWhen ? (
+                <span className="actlog-when">
+                  Ended at
+                  <input
+                    className="input actlog-time"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    aria-label="When the activity ended"
+                  />
+                </span>
+              ) : (
+                <button type="button" className="actlog-link" onClick={() => setShowWhen(true)}>
+                  {isToday ? "Ended earlier?" : "Set a time"}
+                </button>
+              ))}
             {showNote ? null : (
               <button type="button" className="actlog-link" onClick={() => setShowNote(true)}>
                 + note
