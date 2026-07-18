@@ -636,6 +636,25 @@ export default function App() {
     return arr[arr.length - 1] || null;
   }, [sleepLog]);
 
+  // True once THIS device wrote today's entry, so the auto-close effect below
+  // leaves the local "Logged · Start your day" reveal alone (that reveal lives
+  // inside MorningCheckIn and is dismissed by the user's own tap).
+  const wroteSleepTodayRef = useRef(false);
+
+  // The morning gate's open-state is frozen at mount. But today's entry can
+  // arrive AFTER that — a slightly-late sync from another device, or a cloud
+  // hydration landing post-mount — and without this the stale gate keeps
+  // asking "how did you sleep?" a second time (the reported double-ask).
+  // Close it once the day is handled anywhere, except on the device mid-save.
+  useEffect(() => {
+    if (!morningGateOpen) return;
+    const today = todayKey();
+    const loggedElsewhere =
+      (sleepLog || []).some((e) => e.date === today) && !wroteSleepTodayRef.current;
+    const skippedToday = sleepSkippedOn === today;
+    if (loggedElsewhere || skippedToday) setMorningGateOpen(false);
+  }, [sleepLog, sleepSkippedOn, morningGateOpen]);
+
   const closeSleepGate = () => {
     setSleepGateManual(false);
     setMorningGateOpen(false);
@@ -1263,11 +1282,12 @@ export default function App() {
       linkId: linkedWorkoutId,
     });
     // Logged work/study time IS focus time — someone who studied for an hour
-    // without the Pomodoro timer still earns their focus trends and ring.
+    // without the Pomodoro timer still earns their focus trends and ring, and
+    // it credits the chosen goal's worked minutes when one was picked.
     if (fields.category === "focus" && fields.durationMin > 0) {
       store.logFocusSession({
         minutes: fields.durationMin,
-        goalId: null,
+        goalId: fields.goalId || null,
         date: fields.date,
       });
     }
@@ -1878,7 +1898,10 @@ export default function App() {
               ? { bedTime: lastSleepEntry.bedTime, wakeTime: lastSleepEntry.wakeTime }
               : {}
           }
-          onSave={(draft) => logSleep({ ...draft, date: todayKey() })}
+          onSave={(draft) => {
+            wroteSleepTodayRef.current = true;
+            return logSleep({ ...draft, date: todayKey() });
+          }}
           onSkip={closeSleepGate}
         />
       )}
@@ -1922,6 +1945,7 @@ export default function App() {
         isMobile={isMobile}
         initialCategory={activitySheet?.category || null}
         dateKey={activitySheet?.date || null}
+        goals={activeGoals}
         onSave={handleSaveActivity}
       />
 

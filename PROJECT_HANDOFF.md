@@ -278,6 +278,21 @@ ligand.data blob.
   focus, pauses) is per-date in ligand.data with NO pruning — any past
   day remains browsable via Day nav / Month view / Day story.
 
+### Small fixes (2026-07-18)
+
+- **Focus activity credits a goal**: the Work/study tile in the activity
+  logger shows an optional goal chooser (goals.length > 0). Saving writes
+  activity.goalId AND logFocusSession({ goalId, date }), so time logged
+  without the Pomodoro timer still counts toward that goal's worked hours.
+- **Morning sleep check-in double-ask fixed**: the gate's open-state was
+  frozen at mount, so a today-entry arriving after mount (late cross-device
+  sync, or post-hydration on the same device) left the stale gate asking
+  again. An effect now closes morningGateOpen once the day is handled
+  anywhere; a wroteSleepTodayRef guard preserves the local "Logged · Start
+  your day" reveal on the device that just saved. (ligand.sleep and
+  ligand.sleepSkipped both sync, so once a device's write propagates the
+  others honor it.)
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

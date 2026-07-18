@@ -431,6 +431,7 @@ export function createActivity({
   note = "",
   linkType = null, // null | "workout" (the record this activity mirrors)
   linkId = null,
+  goalId = null, // focus logs can credit a goal's worked time
 } = {}) {
   const now = new Date();
   return {
@@ -446,6 +447,7 @@ export function createActivity({
     note,
     linkType,
     linkId,
+    goalId,
     createdAt: now.toISOString(),
   };
 }

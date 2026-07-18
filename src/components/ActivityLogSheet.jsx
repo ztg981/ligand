@@ -33,6 +33,7 @@ export default function ActivityLogSheet({
   onSave, // (fields, { asWorkout }) => void
   initialCategory = null,
   dateKey = null, // log onto a specific (possibly past) day; null = today
+  goals = [], // for the focus-category "which goal?" chooser
 }) {
   const [category, setCategory] = useState(initialCategory);
   const [title, setTitle] = useState("");
@@ -45,6 +46,7 @@ export default function ActivityLogSheet({
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
   const [asWorkout, setAsWorkout] = useState(true);
+  const [focusGoalId, setFocusGoalId] = useState(null); // work/study → credit a goal
   const [saved, setSaved] = useState(false);
   const typeRef = useRef(null);
   const scrimRef = useRef(null);
@@ -92,6 +94,7 @@ export default function ActivityLogSheet({
         durationMin: effectiveDuration,
         feel,
         note: note.trim(),
+        goalId: cat.id === "focus" ? focusGoalId : null,
       },
       { asWorkout: cat.id === "sport" && asWorkout }
     );
@@ -237,6 +240,31 @@ export default function ActivityLogSheet({
               />
               Counts as a workout
             </label>
+          )}
+
+          {/* Work/study can credit a goal — this time counts toward the hours
+             worked on it. Fully optional; "No goal" is the default. */}
+          {cat.id === "focus" && goals.length > 0 && (
+            <>
+              <div className="actlog-row-label">Toward a goal? <span>(optional)</span></div>
+              <div className="actlog-goals" role="group" aria-label="Credit a goal">
+                {goals.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={"actlog-goal" + (focusGoalId === g.id ? " on" : "")}
+                    aria-pressed={focusGoalId === g.id}
+                    onClick={() => setFocusGoalId((cur) => (cur === g.id ? null : g.id))}
+                  >
+                    <span
+                      className="actlog-goal-dot"
+                      style={{ background: g.color || "var(--accent)" }}
+                    />
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           {/* The fiddly bits stay behind small links. */}
