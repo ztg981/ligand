@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DAY_MIN,
   categoryById,
@@ -30,22 +30,30 @@ const R_NUM = R_OUT + 30;
 const R_LABEL = R_OUT + 56;
 const SNAP = 15;
 
+// The default (linear, midnight-at-top) minute→angle map. The dial can supply
+// a warped/rotated map instead (see angleOf in the component); every geometry
+// helper takes an `angleFn` so all of them follow whichever map is active.
 const minToAngle = (min) => (min / DAY_MIN) * Math.PI * 2 - Math.PI / 2;
-const pt = (min, r) => {
-  const a = minToAngle(min);
+
+const ptBase = (min, r, angleFn = minToAngle) => {
+  const a = angleFn(min);
   return [C + r * Math.cos(a), C + r * Math.sin(a)];
 };
 
 // Annular sector between two minute marks (small angular padding keeps
-// neighbouring wedges visually separate).
-function sectorPath(startMin, endMin, rIn = R_IN, rOut = R_OUT, padMin = 2) {
+// neighbouring wedges visually separate). The large-arc flag is derived from
+// the actual angular span, so it stays correct when the map is rotated or the
+// sleep window compressed (the minute span alone would be wrong then).
+function sectorPathBase(startMin, endMin, rIn = R_IN, rOut = R_OUT, padMin = 2, angleFn = minToAngle) {
   const s = startMin + padMin;
   const e = Math.max(s + 1, endMin - padMin);
-  const large = e - s > DAY_MIN / 2 ? 1 : 0;
-  const [x1, y1] = pt(s, rOut);
-  const [x2, y2] = pt(e, rOut);
-  const [x3, y3] = pt(e, rIn);
-  const [x4, y4] = pt(s, rIn);
+  const TAU = Math.PI * 2;
+  const da = (((angleFn(e) - angleFn(s)) % TAU) + TAU) % TAU;
+  const large = da > Math.PI ? 1 : 0;
+  const [x1, y1] = ptBase(s, rOut, angleFn);
+  const [x2, y2] = ptBase(e, rOut, angleFn);
+  const [x3, y3] = ptBase(e, rIn, angleFn);
+  const [x4, y4] = ptBase(s, rIn, angleFn);
   return [
     `M ${x1} ${y1}`,
     `A ${rOut} ${rOut} 0 ${large} 1 ${x2} ${y2}`,
@@ -56,12 +64,12 @@ function sectorPath(startMin, endMin, rIn = R_IN, rOut = R_OUT, padMin = 2) {
 }
 
 // Distribute labels on each side so they never overlap (greedy push-down).
-function layoutLabels(blocks) {
+function layoutLabelsBase(blocks, angleFn = minToAngle) {
   const items = blocks.map((b) => {
     const mid = (b.start + b.end) / 2;
-    const a = minToAngle(mid);
+    const a = angleFn(mid);
     const right = Math.cos(a) >= 0;
-    const [ax, ay] = pt(mid, R_OUT + 4);
+    const [ax, ay] = ptBase(mid, R_OUT + 4, angleFn);
     return { b, mid, right, ax, ay, y: C + R_LABEL * Math.sin(a) };
   });
   for (const side of [true, false]) {
@@ -74,13 +82,13 @@ function layoutLabels(blocks) {
 }
 
 // Floating time-range tooltip pinned beside an arc (drag feedback).
-function RangeTip({ from, to }) {
+function RangeTipBase({ from, to, angleFn = minToAngle }) {
   const [s, e] = from <= to ? [from, to] : [to, from];
   if (e - s < 1) return null;
   const mid = (s + e) / 2;
-  const a = minToAngle(mid);
+  const a = angleFn(mid);
   const right = Math.cos(a) >= 0;
-  const [ax, ay] = pt(mid, R_OUT + 26);
+  const [ax, ay] = ptBase(mid, R_OUT + 26, angleFn);
   const w = 168;
   const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
@@ -95,6 +103,49 @@ function RangeTip({ from, to }) {
       </text>
     </g>
   );
+}
+
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+// Tween a scalar toward `target` on requestAnimationFrame. Rotation passes
+// forwardMod:24 so the dial always spins FORWARD to the next orientation
+// (18→0 goes 18→24, not a jarring reverse). Respects reduced-motion.
+function useTween(target, { duration = 560, forwardMod = 0 } = {}) {
+  const [val, setVal] = useState(target);
+  const rafRef = useRef(0);
+  const fromRef = useRef(target); // last animated value (updated inside the rAF)
+  useEffect(() => {
+    cancelAnimationFrame(rafRef.current);
+    const from = fromRef.current;
+    let to = target;
+    if (forwardMod) {
+      const d = (((target - from) % forwardMod) + forwardMod) % forwardMod;
+      to = from + d;
+    }
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // Skip the animation (jump straight to the value) when it can't or
+    // shouldn't run: reduced-motion, a hidden tab (rAF is paused there, which
+    // would otherwise leave the dial stuck at the old orientation), or no move.
+    const hidden = typeof document !== "undefined" && document.hidden;
+    if (reduce || hidden || Math.abs(to - from) < 1e-6) {
+      fromRef.current = to;
+      setVal(to);
+      return undefined;
+    }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const v = from + (to - from) * easeInOut(t);
+      fromRef.current = v;
+      setVal(v);
+      if (t < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration, forwardMod]);
+  return val;
 }
 
 export default function DayDial({
@@ -113,6 +164,8 @@ export default function DayDial({
   onMove, // (id, newStart, newEnd) => void — drag an existing block
   readOnly = false, // mobile: display + tap-to-edit only (no drag create/move)
   compact = false, // phone: crop the label gutters, upscale type, no leaders
+  rotateHours = 0, // hours added to the top of the dial (0 = midnight top, 12 = noon top)
+  compressSleep = false, // squeeze the sleep window so waking hours get more of the ring
 }) {
   const svgRef = useRef(null);
   const [drag, setDrag] = useState(null); // { from, to }
@@ -123,9 +176,55 @@ export default function DayDial({
     return () => clearInterval(t);
   }, []);
 
+  // ---- animated angle map (rotation + sleep compression) ----------------
+  // Both effects are driven by tweening a scalar that feeds `angleOf`, then
+  // re-rendering the whole dial each frame. That keeps the hour numbers and
+  // block labels perfectly upright throughout the motion (a CSS transform
+  // would flip them) and it's cheap for a static SVG. Everything — wedges,
+  // ticks, labels, the now-needle, and the pointer→minute inverse used for
+  // dragging — routes through this one map, so they can never disagree.
+  const animRot = useTween(rotateHours, { forwardMod: 24 });
+  const animWarp = useTween(compressSleep ? 1 : 0);
+
+  const sleepS = hhmmToMinutes(sleepStart) ?? 23 * 60;
+  const sleepE = hhmmToMinutes(sleepEnd) ?? 7 * 60;
+  const rotFrac = ((((animRot % 24) + 24) % 24)) / 24;
+  const bf = (((sleepS % DAY_MIN) + DAY_MIN) % DAY_MIN) / DAY_MIN; // bedtime fraction
+  const sd = ((((sleepE - sleepS) % DAY_MIN) + DAY_MIN) % DAY_MIN) / DAY_MIN; // sleep fraction
+  const canWarp = sd > 0.03 && sd < 0.97;
+  // Compressed sleep fraction — never larger than natural (only ever shrinks).
+  const cs = sd + (Math.min(sd, 0.11) - sd) * animWarp;
+
+  const warpFwd = (f) => {
+    if (!canWarp || animWarp <= 1e-4) return f;
+    const d = (((f - bf) % 1) + 1) % 1; // distance from bedtime, linear
+    const off = d <= sd ? (d / sd) * cs : cs + ((d - sd) / (1 - sd)) * (1 - cs);
+    return (((bf + off) % 1) + 1) % 1;
+  };
+  const warpInv = (g) => {
+    if (!canWarp || animWarp <= 1e-4) return g;
+    const e = (((g - bf) % 1) + 1) % 1; // distance from bedtime, warped
+    const d = e <= cs ? (e / cs) * sd : sd + ((e - cs) / (1 - cs)) * (1 - sd);
+    return (((bf + d) % 1) + 1) % 1;
+  };
+  const angleOf = (min) => {
+    const f = warpFwd(((((min % DAY_MIN) + DAY_MIN) % DAY_MIN)) / DAY_MIN);
+    return ((f + rotFrac) % 1) * Math.PI * 2 - Math.PI / 2;
+  };
+  // Local geometry bound to the active map — these shadow the module helpers so
+  // every call site in the render stays unchanged.
+  const pt = (min, r) => ptBase(min, r, angleOf);
+  const sectorPath = (a, b, c, d, e) => sectorPathBase(a, b, c, d, e, angleOf);
+  const layoutLabels = (bl) => layoutLabelsBase(bl, angleOf);
+  // A tiny render helper (not a component) so the tooltip follows the active
+  // angle map without declaring a component during render.
+  const rangeTip = (from, to) => <RangeTipBase from={from} to={to} angleFn={angleOf} />;
+
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
+  // Pointer → minute: invert the display map (undo rotation, then the sleep
+  // warp) so dragging lands on the right time no matter the orientation.
   const minuteFromEvent = (e) => {
     const rect = svgRef.current.getBoundingClientRect();
     const scale = SIZE / rect.width;
@@ -133,7 +232,10 @@ export default function DayDial({
     const y = (e.clientY - rect.top) * scale - C;
     let ang = Math.atan2(y, x) + Math.PI / 2; // 0 at top
     if (ang < 0) ang += Math.PI * 2;
-    return Math.round(((ang / (Math.PI * 2)) * DAY_MIN) / SNAP) * SNAP;
+    const disp = ang / (Math.PI * 2); // fraction from top, display space
+    const g = (((disp - rotFrac) % 1) + 1) % 1;
+    const f = warpInv(g);
+    return Math.round((f * DAY_MIN) / SNAP) * SNAP;
   };
 
   const onBandDown = (e) => {
@@ -193,15 +295,14 @@ export default function DayDial({
     moving && moving.id === b.id ? { ...b, start: moving.start, end: moving.end } : b
   );
 
-  const labels = useMemo(() => layoutLabels(blocks), [blocks]);
+  // Recomputed each render (cheap) so labels reposition live during the
+  // rotate / compress animations instead of snapping at the end.
+  const labels = layoutLabels(blocks);
   const totalMin = scheduledMinutes(blocks);
 
   const dateObj = new Date(date + "T00:00:00");
   const weekday = dateObj.toLocaleDateString(undefined, { weekday: "long" });
   const dateScript = dateObj.toLocaleDateString(undefined, { month: "long", day: "numeric" });
-
-  const sleepS = hhmmToMinutes(sleepStart) ?? 23 * 60;
-  const sleepE = hhmmToMinutes(sleepEnd) ?? 7 * 60;
 
   // Compact mode crops the viewBox to just the ring + hour numbers — the
   // desktop layout reserves ~90px side gutters for leader-line labels, which
@@ -293,7 +394,7 @@ export default function DayDial({
             stroke="var(--accent)"
             strokeWidth="2.5"
           />
-          <RangeTip from={drag.from} to={drag.to} />
+          {rangeTip(drag.from, drag.to)}
         </g>
       )}
 
@@ -313,7 +414,7 @@ export default function DayDial({
             strokeWidth="2.5"
             strokeDasharray="7 5"
           />
-          <RangeTip from={draftRange.start} to={draftRange.end} />
+          {rangeTip(draftRange.start, draftRange.end)}
         </g>
       )}
 
@@ -355,7 +456,7 @@ export default function DayDial({
                 <path d={sectorPath(b.start, b.end)} fill="none" stroke="var(--ink)" strokeWidth="1.5" opacity="0.6" />
               </>
             )}
-            {isMoving && <RangeTip from={b.start} to={b.end} />}
+            {isMoving && rangeTip(b.start, b.end)}
           </g>
         );
       })}

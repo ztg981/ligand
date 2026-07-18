@@ -6348,7 +6348,26 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 @media (max-width: 1080px) {
   .dp-grid { grid-template-columns: 1fr; }
 }
-.dp-dial-wrap { min-width: 0; }
+.dp-dial-wrap { min-width: 0; position: relative; }
+/* Floating dial controls (rotate / compress sleep) — top-right of the face. */
+.dp-dial-tools {
+  position: absolute; top: 4px; right: 4px; z-index: 3;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.dp-dial-tool {
+  width: 34px; height: 34px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink-2);
+  transition: transform 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.dp-dial-tool:hover { color: var(--ink); }
+.dp-dial-tool:active svg { transform: rotate(-60deg); transition: transform 0.35s var(--ease); }
+.dp-dial-tool.on {
+  background: color-mix(in oklab, var(--accent) 16%, var(--panel));
+  border-color: var(--accent); color: var(--accent-ink, var(--accent));
+}
 .dial { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; touch-action: none; }
 /* Read-only mobile dial: never traps a vertical scroll. */
 .dial--ro { touch-action: auto; max-width: 400px; }

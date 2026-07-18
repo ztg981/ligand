@@ -293,6 +293,26 @@ ligand.data blob.
   ligand.sleepSkipped both sync, so once a device's write propagates the
   others honor it.)
 
+### Desktop dial controls (2026-07-18)
+
+- **DayDial gained a warpable/rotatable angle map.** Module geometry
+  helpers (ptBase/sectorPathBase/layoutLabelsBase/RangeTipBase) now take an
+  `angleFn`; the component builds `angleOf` from two rAF-tweened scalars
+  (rotation hours + sleep-compression 0..1) and shadows the helpers with
+  bound versions, so every mark, label, tick, needle, AND the pointer→minute
+  inverse used for dragging route through one map. Labels stay upright the
+  whole animation (no CSS-transform flip). sectorPath's large-arc flag is
+  angle-derived so wedges stay correct when warped.
+- Two floating buttons on the desktop dial (`.dp-dial-tools`): **Rotate**
+  (steps the top of the dial +6h each press — two presses puts noon up) and
+  **compress sleep** (squeeze the sleep window so waking hours expand).
+  Persisted in `ligand.dayPlanner` prefs (dialTopHour, compressSleep);
+  desktop-only (phones use the agenda timeline).
+- `useTween` in DayDial: rAF ease, forwardMod:24 so rotation always spins
+  forward, and it JUMPS instead of animating when reduced-motion is set OR
+  the tab is hidden (rAF is paused there — this keeps orientation correct in
+  background tabs and headless previews).
+
 ## Current Data / Persistence Structure
 
 Persistence is local-first through `src/hooks/useLocalStorage.js`.

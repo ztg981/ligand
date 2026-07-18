@@ -35,6 +35,8 @@ const DEFAULT_PREFS = {
   sleepStart: "23:00",
   sleepEnd: "07:00",
   showAlarms: true,
+  dialTopHour: 0, // which hour sits at the top of the dial (0/6/12/18)
+  compressSleep: false, // squeeze the sleep window to expand waking hours
 };
 
 const WEEKDAY_CHIPS = ["M", "T", "W", "T", "F", "S", "S"]; // Mon=0..Sun=6
@@ -897,6 +899,47 @@ export default function DayPlanner({
       ) : (
         <div className="dp-grid">
           <div className="dp-dial-wrap">
+            {/* Dial controls: rotate the face and squeeze the sleep hours.
+               Both animate; the choices persist in the dial preferences. */}
+            <div className="dp-dial-tools">
+              {(() => {
+                // The dial is ROTATED by pref.dialTopHour hours; the hour that
+                // ends up at the top is the inverse of that rotation.
+                const topH = (24 - pref.dialTopHour) % 24;
+                const topLabel =
+                  topH === 0 ? "midnight" : topH === 12 ? "noon"
+                    : topH < 12 ? `${topH} am` : `${topH - 12} pm`;
+                return (
+                  <button
+                    type="button"
+                    className="iconbtn dp-dial-tool"
+                    title={`Rotate the dial (currently ${topLabel} at top)`}
+                    onClick={() =>
+                      setPrefs((p) => {
+                        const cur = { ...DEFAULT_PREFS, ...p };
+                        return { ...cur, dialTopHour: (cur.dialTopHour + 6) % 24 };
+                      })
+                    }
+                  >
+                    <Icon.Reset width={15} height={15} />
+                  </button>
+                );
+              })()}
+              <button
+                type="button"
+                className={"iconbtn dp-dial-tool" + (pref.compressSleep ? " on" : "")}
+                title={pref.compressSleep ? "Show sleep at full size" : "Shrink the sleep hours to expand your day"}
+                aria-pressed={pref.compressSleep}
+                onClick={() =>
+                  setPrefs((p) => {
+                    const cur = { ...DEFAULT_PREFS, ...p };
+                    return { ...cur, compressSleep: !cur.compressSleep };
+                  })
+                }
+              >
+                <Icon.Moon width={15} height={15} />
+              </button>
+            </div>
             <DayDial
               date={date}
               isToday={isToday}
@@ -912,6 +955,8 @@ export default function DayPlanner({
               sleepStart={pref.sleepStart}
               sleepEnd={pref.sleepEnd}
               showSleepBand={pref.showSleepBand}
+              rotateHours={pref.dialTopHour}
+              compressSleep={pref.compressSleep}
               onSelect={openExisting}
               onCreateRange={(s, e) => openNew(s, e)}
               onMove={(id, ns, ne) => {
