@@ -281,7 +281,7 @@ export default function App() {
     // Aurora (the blurred curtains) was voted off the island. "sweep" is the
     // original quiet look brought back by request: the same five blades as
     // stripes, but in one muted color instead of the bold tricolor cores.
-    const variants = ["wipe", "slats", "stripes", "livery", "sweep"];
+    const variants = ["wipe", "slats", "stripes", "livery", "sweep", "beams"];
     const pick = hyperfocus
       ? variants[Math.floor(Math.random() * variants.length)]
       : "dawn";
@@ -1737,6 +1737,16 @@ export default function App() {
               <span className="hf-band b1" />
               <span className="hf-band b2" />
               <span className="hf-band b3" />
+            </>
+          )}
+          {hfIntro === "beams" && (
+            <>
+              <span className="hf-beam k1" />
+              <span className="hf-beam k2" />
+              <span className="hf-beam k3" />
+              <span className="hf-beam k4" />
+              <span className="hf-beam k5" />
+              <span className="hf-beam k6" />
             </>
           )}
           {hfIntro === "dawn" && (

@@ -4347,6 +4347,36 @@ html[data-hyperfocus="true"][data-hf-theme="ice"] {
   --hf-accent: #2fb5e0; --hf-ink: #a5e6ff; --hf-tab: #d3eefc;
   --hf-grad-a: #0e2533; --hf-grad-b: #091b26; --hf-hue: 230;
 }
+
+/* Per-theme TRICOLOR palettes for the multi-color intro animations
+   (stripes + livery + beams). Each theme gets three harmonizing colors so a
+   purple session sweeps in purples, a green one in greens, etc. — instead of
+   the BMW-M blue+red livery painted over everything. Crimson keeps the M
+   colors on purpose: red is an M color and the user liked it there. Scoped to
+   an active hyperfocus so the vars never leak into the normal app. */
+html[data-hyperfocus="true"] { /* crimson default — the M livery */
+  --hf-tri-1: 231, 34, 46;   /* M red */
+  --hf-tri-2: 0, 102, 177;   /* M dark blue */
+  --hf-tri-3: 0, 160, 222;   /* M light blue */
+}
+html[data-hyperfocus="true"][data-hf-theme="violet"] {
+  --hf-tri-1: 167, 139, 250; --hf-tri-2: 139, 92, 246; --hf-tri-3: 232, 121, 249; /* violet → fuchsia */
+}
+html[data-hyperfocus="true"][data-hf-theme="monster"] {
+  --hf-tri-1: 163, 230, 53; --hf-tri-2: 34, 197, 94; --hf-tri-3: 74, 222, 128; /* lime → emerald */
+}
+html[data-hyperfocus="true"][data-hf-theme="cyber"] {
+  --hf-tri-1: 34, 211, 238; --hf-tri-2: 20, 184, 166; --hf-tri-3: 125, 252, 224; /* cyan → mint */
+}
+html[data-hyperfocus="true"][data-hf-theme="ember"] {
+  --hf-tri-1: 251, 191, 36; --hf-tri-2: 249, 115, 22; --hf-tri-3: 239, 68, 68; /* amber → red */
+}
+html[data-hyperfocus="true"][data-hf-theme="ice"] {
+  --hf-tri-1: 56, 189, 248; --hf-tri-2: 14, 165, 233; --hf-tri-3: 186, 230, 253; /* sky → pale ice */
+}
+html[data-hyperfocus="true"][data-hf-theme="mono"] {
+  --hf-tri-1: 245, 245, 248; --hf-tri-2: 150, 150, 158; --hf-tri-3: 205, 205, 212; /* white → silver */
+}
 /* Dark base, regardless of wallpaper or light/dark theme. */
 html[data-hyperfocus="true"] body {
   background-color: #0a0a0c !important;
@@ -6636,9 +6666,9 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .hf-stripe.p1, .hf-stripe.p5 { box-shadow: none; }
 .hf-stripe.p1::after, .hf-stripe.p5::after { content: none; }
 .hf-stripe.p1 { left: 0;    animation-delay: 0s; }
-.hf-stripe.p2 { left: 20vw; --stripe-rgb: 0, 160, 222;  animation-delay: 0.07s; } /* M light blue */
-.hf-stripe.p3 { left: 40vw; --stripe-rgb: 0, 102, 177;  animation-delay: 0.14s; } /* M dark blue */
-.hf-stripe.p4 { left: 60vw; --stripe-rgb: 231, 34, 46;  animation-delay: 0.21s; } /* M red */
+.hf-stripe.p2 { left: 20vw; --stripe-rgb: var(--hf-tri-1, 231, 34, 46);  animation-delay: 0.07s; }
+.hf-stripe.p3 { left: 40vw; --stripe-rgb: var(--hf-tri-2, 0, 102, 177);  animation-delay: 0.14s; }
+.hf-stripe.p4 { left: 60vw; --stripe-rgb: var(--hf-tri-3, 0, 160, 222);  animation-delay: 0.21s; }
 .hf-stripe.p5 { left: 80vw; animation-delay: 0.28s; }
 @keyframes hfStripe {
   0%   { transform: translateX(-125vw) skewX(-14deg); opacity: 1; }
@@ -6672,14 +6702,47 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   transform: rotate(-24deg) translateX(-240vmax);
   animation: hfBand 1.3s cubic-bezier(0.6, 0, 0.22, 1) forwards;
 }
-.hf-band.b1 { --band-rgb: 0, 160, 222; margin-top: -13.5vmax; animation-delay: 0s; }
-.hf-band.b2 { --band-rgb: 0, 102, 177; animation-delay: 0.09s; }
-.hf-band.b3 { --band-rgb: 231, 34, 46; margin-top: 6.5vmax; animation-delay: 0.18s; }
+.hf-band.b1 { --band-rgb: var(--hf-tri-1, 231, 34, 46); margin-top: -13.5vmax; animation-delay: 0s; }
+.hf-band.b2 { --band-rgb: var(--hf-tri-2, 0, 102, 177); animation-delay: 0.09s; }
+.hf-band.b3 { --band-rgb: var(--hf-tri-3, 0, 160, 222); margin-top: 6.5vmax; animation-delay: 0.18s; }
 @keyframes hfBand {
   0%   { transform: rotate(-24deg) translateX(-240vmax); }
   45%  { transform: rotate(-24deg) translateX(0); }
   58%  { transform: rotate(-24deg) translateX(0); }
   100% { transform: rotate(-24deg) translateX(240vmax); opacity: 0.85; }
+}
+
+/* Variant F — "beams": a rake of thin, bright, theme-colored light rays
+   sweeps diagonally across the screen like searchlights, each glowing and
+   cycling through the theme's tricolor. Distinct from the solid blades/bands
+   — this one is all light, no mass. Colors follow the active theme. */
+.hf-beam {
+  position: absolute; top: -30vh; bottom: -30vh; width: 8px;
+  left: var(--bx, 50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(var(--beam-rgb), 0.95) 26%,
+    rgba(var(--beam-rgb), 0.95) 74%,
+    transparent);
+  box-shadow:
+    0 0 22px 4px rgba(var(--beam-rgb), 0.7),
+    0 0 60px 12px rgba(var(--beam-rgb), 0.35);
+  opacity: 0;
+  transform: translateX(-70vw) rotate(20deg);
+  animation: hfBeam 1.25s cubic-bezier(0.5, 0, 0.28, 1) forwards;
+}
+.hf-beam.k1 { --bx: 8vw;  --beam-rgb: var(--hf-tri-1, 231, 34, 46);  animation-delay: 0s; }
+.hf-beam.k2 { --bx: 24vw; --beam-rgb: var(--hf-tri-2, 0, 102, 177);  animation-delay: 0.06s; }
+.hf-beam.k3 { --bx: 40vw; --beam-rgb: var(--hf-tri-3, 0, 160, 222);  animation-delay: 0.12s; }
+.hf-beam.k4 { --bx: 56vw; --beam-rgb: var(--hf-tri-1, 231, 34, 46);  animation-delay: 0.18s; }
+.hf-beam.k5 { --bx: 72vw; --beam-rgb: var(--hf-tri-2, 0, 102, 177);  animation-delay: 0.24s; }
+.hf-beam.k6 { --bx: 88vw; --beam-rgb: var(--hf-tri-3, 0, 160, 222);  animation-delay: 0.30s; }
+@keyframes hfBeam {
+  0%   { transform: translateX(-70vw) rotate(20deg); opacity: 0; }
+  30%  { opacity: 1; }
+  55%  { transform: translateX(0) rotate(20deg); opacity: 1; }
+  100% { transform: translateX(80vw) rotate(20deg); opacity: 0; }
 }
 
 /* Variant C — "aurora": three soft blurred color curtains fall from the top
