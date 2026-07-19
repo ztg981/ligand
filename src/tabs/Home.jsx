@@ -563,6 +563,24 @@ export default function Home({
           {goalLoadCard}
           <ProgressTracker goals={goals} tasks={tasks} />
           <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
+          {show("nextbadge") && (
+            <NextBadge
+              badgeStats={badgeStats}
+              unlockedIds={unlockedBadgeIds}
+              onOpenBadges={onOpenBadges}
+            />
+          )}
+          {show("dayring") && (
+            <DayRing
+              workouts={workouts}
+              alarms={alarms}
+              focusLog={focusLog}
+              scheduledWorkouts={scheduledWorkouts}
+              activities={activities}
+              onOpenWorkout={onOpenWorkout}
+              onOpenAlarms={onOpenAlarms}
+            />
+          )}
         </div>
 
         {/* Right column - secondary info */}
@@ -602,24 +620,6 @@ export default function Home({
             <ScreenTimeCard activities={activities} addActivity={addActivity} />
           )}
           {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
-          {show("nextbadge") && (
-            <NextBadge
-              badgeStats={badgeStats}
-              unlockedIds={unlockedBadgeIds}
-              onOpenBadges={onOpenBadges}
-            />
-          )}
-          {show("dayring") && (
-            <DayRing
-              workouts={workouts}
-              alarms={alarms}
-              focusLog={focusLog}
-              scheduledWorkouts={scheduledWorkouts}
-              activities={activities}
-              onOpenWorkout={onOpenWorkout}
-              onOpenAlarms={onOpenAlarms}
-            />
-          )}
           {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
           {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
           {show("consistency") && <ConsistencyDots focusLog={focusLog} />}

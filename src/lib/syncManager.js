@@ -47,15 +47,13 @@ export function collectLocalBlob() {
 /**
  * Has the user actually created something locally worth importing?
  *
- * The fresh seed is NOT empty: it ships three sample goals (the built-in
- * "Productivity" plus the "Side Hustles" and "College Planning" starters,
- * which are type "custom") and one auto count-up. So we can't just check
- * for "any custom goal" or "any count-up" — that's true on a pristine
- * install and would pop the import prompt at every first sign-in.
+ * The fresh seed is not empty: it ships a built-in "Productivity" sample
+ * goal. So we can't just check for "any goal", because that is true on a pristine
+ * install and would show the import prompt at every first sign-in.
  *
- * Instead we count only content that goes BEYOND the bare seed:
+ * Instead we count only content that goes beyond the bare seed:
  *   - any task or journal entry (the seed has none),
- *   - more than the single seeded count-up,
+ *   - any count-up,
  *   - a goal the user added (id not in the seed set), or
  *   - a seed goal they fleshed out with habits or reflections.
  * This decides whether the first-login import prompt is worth showing.

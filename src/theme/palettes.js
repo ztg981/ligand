@@ -28,7 +28,7 @@ export const PALETTE_DEFAULTS = { lightPalette: "paper", darkPalette: "midnight"
 // Last-resort fallbacks for accent/ambient when a record carries neither a
 // per-mode value nor the legacy global one (defaults always provide the
 // global, so these only ever guard a corrupt/empty record).
-export const ACCENT_DEFAULTS = { accent: 245, ambient: 95 };
+export const ACCENT_DEFAULTS = { accent: 245, ambient: 70 };
 
 const LIGHT_IDS = new Set(LIGHT_PALETTES.map((p) => p.id));
 const DARK_IDS = new Set(DARK_PALETTES.map((p) => p.id));

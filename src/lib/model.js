@@ -742,7 +742,7 @@ export function formatEntryDateTime(iso) {
 // Stable ids keep the nav goal-pills consistent across reloads.
 // Exposed so the sync layer can tell pristine sample goals apart from
 // goals the user actually created (see hasMeaningfulLocalData).
-export const SEED_GOAL_IDS = ["productivity", "side-hustles", "college"];
+export const SEED_GOAL_IDS = ["productivity"];
 export function seedData() {
   const productivity = {
     ...createGoal({
@@ -752,17 +752,10 @@ export function seedData() {
     }),
     id: "productivity",
   };
-  const side = {
-    ...createGoal({ name: "Side Hustles", color: "oklch(0.7 0.12 165)" }),
-    id: "side-hustles",
-  };
-  const college = {
-    ...createGoal({ name: "College Planning", color: "oklch(0.62 0.10 290)" }),
-    id: "college",
-  };
+
   return {
     version: 1,
-    goals: [productivity, side, college],
+    goals: [productivity],
     tasks: [],
     // No seeded count-up: "Days showing up" is now a real distinct-active-days
     // metric (ligand.activeDays), not an elapsed-days count-up. Users can still

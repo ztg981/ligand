@@ -162,6 +162,12 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
   }
 
+  mainWindow.webContents.on("found-in-page", (event, result) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("find:result", result);
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -265,6 +271,16 @@ app.whenReady().then(() => {
   ipcMain.handle("window:is-maximized", (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     return Boolean(win && !win.isDestroyed() && win.isMaximized());
+  });
+
+  // ---- Find in Page ----
+  ipcMain.on("find:in-page", (event, text, options) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.webContents.findInPage(text, options || {});
+  });
+  ipcMain.on("find:stop", (event, action) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) win.webContents.stopFindInPage(action || "clearSelection");
   });
 
   // ---- Focus-mode website blocker (Windows hosts file) ----

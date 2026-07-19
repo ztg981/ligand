@@ -70,4 +70,14 @@ contextBridge.exposeInMainWorld("electron", {
     apply: (domains) => ipcRenderer.invoke("blocker:apply", domains),
     clear: () => ipcRenderer.invoke("blocker:clear"),
   },
+
+  find: {
+    inPage: (text, options) => ipcRenderer.send("find:in-page", text, options),
+    stop: (action) => ipcRenderer.send("find:stop", action),
+    onResult: (cb) => {
+      const handler = (_e, res) => cb(res);
+      ipcRenderer.on("find:result", handler);
+      return () => ipcRenderer.removeListener("find:result", handler);
+    }
+  },
 });

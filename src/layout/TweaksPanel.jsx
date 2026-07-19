@@ -1,11 +1,23 @@
 import { Segmented, Slider } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import { ACCENTS } from "../theme/useTweaks.js";
+import { accentFor, ambientFor } from "../theme/palettes.js";
 
 /* Floating Tweaks panel - theme / accent / ambient glow / corner radius /
    density. Every control is wired to the live tweaks state, so the whole app
-   re-themes instantly. */
-export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = false }) {
+   re-themes instantly. Accent + ambient are saved PER preset, so this quick
+   panel edits whichever mode is currently showing (activeMode). */
+export default function TweaksPanel({
+  tweaks,
+  set,
+  onClose,
+  wallpaperActive = false,
+  activeMode = "light",
+}) {
+  const accentKey = activeMode === "dark" ? "darkAccent" : "lightAccent";
+  const ambientKey = activeMode === "dark" ? "darkAmbient" : "lightAmbient";
+  const accent = accentFor(activeMode, tweaks);
+  const ambient = ambientFor(activeMode, tweaks);
   return (
     <div
       style={{
@@ -73,9 +85,9 @@ export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = fa
           {ACCENTS.map((a) => (
             <button
               key={a.id}
-              className={"swatch-pick " + (tweaks.accent === a.id ? "active" : "")}
+              className={"swatch-pick " + (accent === a.id ? "active" : "")}
               style={{ background: a.color, width: 20, height: 20 }}
-              onClick={() => set({ accent: a.id })}
+              onClick={() => set({ [accentKey]: a.id })}
               title={`Hue ${a.id}`}
             />
           ))}
@@ -86,15 +98,15 @@ export default function TweaksPanel({ tweaks, set, onClose, wallpaperActive = fa
         <div className="row between" style={{ marginBottom: 4 }}>
           <span className="name">Ambient glow</span>
           <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-            {tweaks.ambient}%
+            {ambient}%
           </span>
         </div>
         <Slider
-          value={tweaks.ambient}
+          value={ambient}
           min={0}
           max={100}
           step={5}
-          onChange={(v) => set({ ambient: v })}
+          onChange={(v) => set({ [ambientKey]: v })}
           format={(v) => v + "%"}
         />
       </div>

@@ -68,7 +68,7 @@ export const SETTINGS_DEFAULTS = {
 export const TWEAK_DEFAULTS = {
   theme: "light",
   accent: 245,
-  ambient: 95,
+  ambient: 70,
   radius: 10,
   density: "compact",
   lightPalette: "glass",
@@ -83,7 +83,7 @@ export const TWEAK_DEFAULTS = {
 export const MOBILE_TWEAK_DEFAULTS = {
   theme: "light",
   accent: 245,
-  ambient: 60,
+  ambient: 70,
   radius: 16,
   density: "compact",
   lightPalette: "paper",

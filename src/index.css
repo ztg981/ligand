@@ -381,6 +381,15 @@ body {
   letter-spacing: -0.005em;
 }
 
+@-moz-document url-prefix() {
+  body {
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.012em;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+}
+
 button { font: inherit; color: inherit; }
 /* Native touch feel: kill the grey tap-flash on interactive elements, and let
    the browser skip the 300ms double-tap-zoom delay on anything tappable. */
@@ -7488,6 +7497,16 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    / PWA build, where the data-electron attribute is never set.
    ============================================================ */
 /* The floating nav becomes the window's drag handle. */
+html[data-electron="true"]::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 140px;
+  height: 16px;
+  z-index: 99999;
+  -webkit-app-region: drag;
+}
 html[data-electron="true"] .topbar {
   -webkit-app-region: drag;
 }
@@ -7577,6 +7596,92 @@ html[data-electron="true"] .electron-drag-strip {
   top: -4px;
   background: var(--panel);
 }
+
+/* Find-in-page bar */
+.find-bar {
+  position: fixed;
+  top: 74px;
+  right: 32px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: tabFadeIn 150ms var(--ease);
+}
+/* Ensure dragging doesn't happen on search bar */
+html[data-electron="true"] .find-bar {
+  -webkit-app-region: no-drag;
+}
+.find-bar-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.find-bar-search-icon {
+  color: var(--ink-3);
+  flex: none;
+}
+.find-bar-input {
+  width: 160px;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+}
+.find-bar-input:focus {
+  outline: none;
+}
+.find-bar-results {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.find-bar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+}
+.find-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.find-bar-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.find-bar-btn:hover:not(:disabled) {
+  background: var(--panel-3);
+  color: var(--ink);
+}
+.find-bar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.find-bar-btn.close:hover {
+  background: #d84a4a;
+  color: #fff;
+}
+
 
 /* ============================================================
    Micro-animations (Section 7). Small tactile touches; each one is disabled
@@ -9240,6 +9345,7 @@ input[type="date"].input::-webkit-date-and-time-value {
 }
 .stat-tile.accent { background: color-mix(in oklab, var(--accent) 10%, var(--panel)); border-color: color-mix(in oklab, var(--accent) 30%, var(--line)); }
 .stat-tile-ic { color: var(--ink-3); margin-bottom: 4px; }
+.stat-tile-ic svg { width: 18px; height: 18px; }
 .stat-tile.accent .stat-tile-ic { color: var(--accent-ink, var(--accent)); }
 .stat-tile-val { font-size: 26px; font-weight: 750; letter-spacing: -0.02em; color: var(--ink); line-height: 1.05; font-variant-numeric: tabular-nums; }
 .stat-tile-lbl { font-size: 12px; font-weight: 600; color: var(--ink-2); }

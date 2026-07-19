@@ -69,6 +69,7 @@ import {
   usesMobilePreferenceScope,
 } from "./lib/deviceScope.js";
 import { StandaloneWindowChrome } from "./components/WindowControls.jsx";
+import FindBar from "./components/FindBar.jsx";
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -126,6 +127,7 @@ export default function App() {
   // data, ask whether to import it (modal below). If there's nothing worth
   // importing, just create the empty cloud row and move on — no prompt.
   const [showMigrate, setShowMigrate] = useState(false);
+  const [showFindBar, setShowFindBar] = useState(false);
   useEffect(() => {
     if (!needsMigration) {
       setShowMigrate(false);
@@ -1166,6 +1168,19 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Cmd/Ctrl+F opens find in page (Electron only).
+  useEffect(() => {
+    if (!window.electron?.isElectron) return;
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+        e.preventDefault();
+        setShowFindBar((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Escape closes search (works even when focus has left the input).
   useEffect(() => {
     if (!showSearch) return;
@@ -1898,6 +1913,12 @@ export default function App() {
           set={set}
           onClose={() => setShowTweaks(false)}
           wallpaperActive={activeWallpaperSelection.id !== "none"}
+          activeMode={
+            activeWallpaperSelection.id !== "none" &&
+            activeWallpaperSelection.id !== "custom"
+              ? wallpaperById(activeWallpaperSelection.id).tone
+              : resolvedTheme
+          }
         />
       )}
 
@@ -1998,6 +2019,8 @@ export default function App() {
         actions={paletteActions}
         onNavigate={handleSearchNavigate}
       />
+
+      {showFindBar && <FindBar onClose={() => setShowFindBar(false)} />}
     </div>
   );
 }
