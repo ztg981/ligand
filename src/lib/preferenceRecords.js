@@ -65,14 +65,17 @@ export const SETTINGS_DEFAULTS = {
 };
 
 // Desktop + iPad defaults. New PC/iPad users (and guest mode) start here.
+// Reverted off the liquid-glass palettes back to Soft Paper / Midnight —
+// the glass look is still available in the theme picker for anyone who wants
+// it, it's just no longer the default.
 export const TWEAK_DEFAULTS = {
   theme: "light",
   accent: 245,
   ambient: 70,
   radius: 10,
   density: "compact",
-  lightPalette: "glass",
-  darkPalette: "glassdark",
+  lightPalette: "paper",
+  darkPalette: "midnight",
   wordmarkFont: "plain",
 };
 

@@ -22,14 +22,16 @@ export default function FindBar({ onClose }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (text) {
-      window.electron?.find?.inPage(text, { findNext: false });
+  const handleTextChange = (e) => {
+    const val = e.target.value;
+    setText(val);
+    if (val) {
+      window.electron?.find?.inPage(val, { findNext: false });
     } else {
       window.electron?.find?.stop("clearSelection");
       setResult({ activeMatchOrdinal: 0, matches: 0 });
     }
-  }, [text]);
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -62,7 +64,7 @@ export default function FindBar({ onClose }) {
           className="find-bar-input"
           placeholder="Find in page..."
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleTextChange}
           onKeyDown={handleKeyDown}
         />
         {text && (
