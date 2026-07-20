@@ -13,26 +13,27 @@ import {
   todayKey,
 } from "../lib/model.js";
 import { generateWorkout } from "../lib/workoutGen.js";
-import { MUSCLE_LABEL } from "../lib/exercises.js";
+import { MUSCLE_LABEL, exerciseKind } from "../lib/exercises.js";
 
 // Turn a saved template's exercise plans into fresh, empty logger exercises
 // (targetSets blank sets seeded with the planned reps/weight to beat).
 function planToLoggerExercises(template) {
-  return (template.exercises || []).map((p) =>
-    createWorkoutExercise({
+  return (template.exercises || []).map((p) => {
+    const kind = exerciseKind(p);
+    return createWorkoutExercise({
       exerciseId: p.exerciseId,
       name: p.name,
       muscleGroup: p.muscleGroup,
       type: p.type,
-      sets: Array.from({ length: Math.max(1, p.targetSets || 3) }, () =>
-        createSet(
-          p.type === "cardio"
-            ? { durationSec: (p.targetMinutes || 0) * 60 }
-            : { reps: p.targetReps ?? null, weight: p.targetWeight ?? null }
-        )
-      ),
-    })
-  );
+      kind,
+      sets:
+        kind === "strength"
+          ? Array.from({ length: Math.max(1, p.targetSets || 3) }, () =>
+              createSet({ reps: p.targetReps ?? null, weight: p.targetWeight ?? null })
+            )
+          : [createSet({ durationSec: (p.targetMinutes || 0) * 60, intensity: "moderate" })],
+    });
+  });
 }
 
 // Build a reusable template plan from a just-finished session's exercises.
@@ -48,14 +49,18 @@ function workoutToTemplatePlan(exercises) {
     const targetReps = Object.keys(repCounts).sort(
       (a, b) => repCounts[b] - repCounts[a]
     )[0];
+    const kind = exerciseKind(ex);
+    const longestSec = ex.sets.reduce((m, s) => Math.max(m, s.durationSec || 0), 0);
     return {
       exerciseId: ex.exerciseId,
       name: ex.name,
       muscleGroup: ex.muscleGroup,
       type: ex.type,
-      targetSets: ex.sets.length,
+      kind,
+      targetSets: kind === "strength" ? ex.sets.length : 1,
       targetReps: targetReps != null ? Number(targetReps) : null,
       targetWeight: maxWeight || null,
+      targetMinutes: kind !== "strength" && longestSec ? Math.round(longestSec / 60) : undefined,
     };
   });
 }

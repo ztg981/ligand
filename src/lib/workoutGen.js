@@ -83,7 +83,9 @@ function planFor(libEx, { workouts, sets, reps, unit }) {
     name: libEx.name,
     muscleGroup: libEx.muscleGroup,
     type: libEx.type,
-    targetSets: sets,
+    kind: libEx.kind || (libEx.type === "cardio" ? "cardio" : "strength"),
+    // A cardio/distance finisher is one continuous effort, not 3–5 "sets".
+    targetSets: libEx.type === "cardio" ? 1 : sets,
     targetReps: libEx.type === "cardio" ? null : reps,
   };
   if (libEx.type === "cardio") {

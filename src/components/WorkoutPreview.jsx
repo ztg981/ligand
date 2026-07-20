@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { alternativesFor } from "../lib/workoutGen.js";
 import { todayKey } from "../lib/model.js";
-import { searchExercises } from "../lib/exercises.js";
+import { searchExercises, exerciseKind } from "../lib/exercises.js";
 
 /* WorkoutPreview - the editable review/build step for a session, shown before
    you start (or when creating one from scratch). Works as both:
@@ -72,6 +72,8 @@ export default function WorkoutPreview({
   const results = useMemo(() => (adding ? searchExercises(query, 8) : []), [adding, query]);
 
   const addFromLibrary = (libEx) => {
+    const kind = exerciseKind(libEx);
+    const isCardio = libEx.type === "cardio";
     setPlan((list) => [
       ...list,
       {
@@ -79,10 +81,11 @@ export default function WorkoutPreview({
         name: libEx.name,
         muscleGroup: libEx.muscleGroup,
         type: libEx.type,
-        targetSets: 3,
-        targetReps: libEx.type === "cardio" ? null : 8,
+        kind,
+        targetSets: isCardio ? 1 : 3,
+        targetReps: isCardio ? null : 8,
         targetWeight: null,
-        targetMinutes: libEx.type === "cardio" ? 10 : null,
+        targetMinutes: isCardio ? (kind === "distance" ? 20 : 15) : null,
         restSec: null,
         notes: null,
       },
@@ -176,7 +179,10 @@ export default function WorkoutPreview({
               {onRegenerate ? "Nothing to show - try regenerating." : "No exercises yet - add one below."}
             </div>
           )}
-          {plan.map((ex, idx) => (
+          {plan.map((ex, idx) => {
+            const kind = exerciseKind(ex);
+            const isActivity = kind !== "strength";
+            return (
             <div key={idx} className="wp-ex">
               <div className="wp-ex-top">
                 <div className="wp-ex-name">
@@ -225,6 +231,21 @@ export default function WorkoutPreview({
                 </div>
               </div>
               <div className="wp-ex-fields">
+                {isActivity ? (
+                  <label className="wp-field">
+                    <span>{kind === "distance" ? "Target min" : "Minutes"}</span>
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      placeholder="—"
+                      value={ex.targetMinutes ?? ""}
+                      onChange={(e) => patch(idx, { targetMinutes: num(e.target.value) })}
+                    />
+                  </label>
+                ) : (
+                  <>
                 <label className="wp-field">
                   <span>Sets</span>
                   <input
@@ -236,20 +257,6 @@ export default function WorkoutPreview({
                     onChange={(e) => patch(idx, { targetSets: num(e.target.value) })}
                   />
                 </label>
-                {ex.type === "cardio" ? (
-                  <label className="wp-field">
-                    <span>Minutes</span>
-                    <input
-                      className="input"
-                      type="number"
-                      inputMode="numeric"
-                      min="0"
-                      value={ex.targetMinutes ?? ""}
-                      onChange={(e) => patch(idx, { targetMinutes: num(e.target.value) })}
-                    />
-                  </label>
-                ) : (
-                  <>
                     <label className="wp-field">
                       <span>Reps</span>
                       <input
@@ -305,7 +312,8 @@ export default function WorkoutPreview({
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
 
           {adding ? (
             <div className="wp-add">

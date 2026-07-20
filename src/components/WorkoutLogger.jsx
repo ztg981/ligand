@@ -14,7 +14,22 @@ import {
   platesFor,
   warmupRamp,
 } from "../lib/model.js";
-import { searchExercises, findExercise, MUSCLE_LABEL } from "../lib/exercises.js";
+import {
+  searchExercises,
+  findExercise,
+  MUSCLE_LABEL,
+  exerciseKind,
+  exerciseMET,
+} from "../lib/exercises.js";
+import {
+  INTENSITIES,
+  estimateCalories,
+  formatPace,
+  formatSpeed,
+  formatDistance,
+  distanceUnit as distUnitFor,
+  workoutCalories,
+} from "../lib/activityMetrics.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
 /* WorkoutLogger - the in-gym flow. A full-screen layer (not a centered modal)
@@ -49,6 +64,110 @@ function focusLabel(exercises) {
   if (labels.length === 1) return labels[0];
   if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
   return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+// A compact mm:ss duration editor (two steppers) shared by every activity
+// kind. Stores whole seconds; shows minutes + seconds so "42:30" is exact.
+function DurationEditor({ durationSec, onChange, size = "md" }) {
+  const total = Math.max(0, Math.round(durationSec || 0));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  const setMin = (m) => onChange(Math.max(0, m) * 60 + secs);
+  const setSec = (s) => {
+    // Wrap 60→next minute / -1→borrow a minute for natural stepping.
+    let m = mins;
+    let sec = s;
+    if (sec >= 60) { m += Math.floor(sec / 60); sec %= 60; }
+    if (sec < 0) { m = Math.max(0, m - 1); sec = 55; }
+    onChange(m * 60 + sec);
+  };
+  return (
+    <div className={"wl-dur wl-dur-" + size}>
+      <div className="wl-dur-field">
+        <button type="button" onClick={() => setMin(mins - 1)} aria-label="One less minute">−</button>
+        <input
+          className="wl-dur-input"
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={mins || ""}
+          placeholder="0"
+          onChange={(e) => setMin(Number(e.target.value) || 0)}
+        />
+        <button type="button" onClick={() => setMin(mins + 1)} aria-label="One more minute">+</button>
+        <span className="wl-dur-unit">min</span>
+      </div>
+      <div className="wl-dur-field">
+        <button type="button" onClick={() => setSec(secs - 5)} aria-label="Five fewer seconds">−</button>
+        <input
+          className="wl-dur-input"
+          type="number"
+          inputMode="numeric"
+          min="0"
+          max="59"
+          value={secs ? String(secs).padStart(2, "0") : ""}
+          placeholder="00"
+          onChange={(e) => setSec(Number(e.target.value) || 0)}
+        />
+        <button type="button" onClick={() => setSec(secs + 5)} aria-label="Five more seconds">+</button>
+        <span className="wl-dur-unit">sec</span>
+      </div>
+    </div>
+  );
+}
+
+// The "how hard did it feel?" selector — the single most useful field a sport
+// or machine session can carry, and what drives the calorie estimate.
+function IntensityChips({ value, onChange }) {
+  return (
+    <div className="wl-intensity" role="group" aria-label="Intensity">
+      {INTENSITIES.map((i) => (
+        <button
+          key={i.id}
+          type="button"
+          className={"wl-int-chip" + (value === i.id ? " on" : "")}
+          onClick={() => onChange(i.id)}
+          title={i.hint}
+        >
+          {i.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Derived-metric readout (pace/speed/calories) — the payoff that makes an
+// activity feel tracked rather than merely noted.
+function ActivityStatline({ kind, set, met, profile, speed = false }) {
+  const unit = distUnitFor(profile);
+  const stats = [];
+  if (kind === "distance") {
+    const measure = speed
+      ? formatSpeed(set.distance, set.durationSec, profile)
+      : formatPace(set.distance, set.durationSec, profile);
+    if (measure) {
+      const [v, l] = measure.split(" ");
+      stats.push({ v, l: speed ? l : `/${unit}` });
+    }
+  }
+  const kcal = estimateCalories({
+    met,
+    durationSec: set.durationSec,
+    intensity: set.intensity,
+    profile,
+  });
+  if (kcal) stats.push({ v: kcal, l: "kcal" });
+  if (!stats.length) return null;
+  return (
+    <div className="wl-act-stats">
+      {stats.map((s, i) => (
+        <div key={i} className="wl-act-stat">
+          <span className="wl-act-stat-v">{s.v}</span>
+          <span className="wl-act-stat-l">{s.l}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function WorkoutLogger({
@@ -182,6 +301,14 @@ export default function WorkoutLogger({
   const results = useMemo(() => searchExercises(query, 40), [query]);
 
   const addExercise = (libEx) => {
+    const kind = exerciseKind(libEx);
+    // Seed each kind with the effort it actually records: strength → an empty
+    // reps×weight set; the activity kinds → a single timed effort (with a
+    // sensible moderate default so the calorie estimate is live immediately).
+    const seedSet =
+      kind === "strength"
+        ? createSet({})
+        : createSet({ durationSec: 0, intensity: "moderate" });
     setExercises((list) => [
       ...list,
       createWorkoutExercise({
@@ -189,7 +316,8 @@ export default function WorkoutLogger({
         name: libEx.name,
         muscleGroup: libEx.muscleGroup,
         type: libEx.type,
-        sets: [createSet(libEx.type === "cardio" ? { durationSec: 0 } : {})],
+        kind,
+        sets: [seedSet],
       }),
     ]);
     setShowPicker(false);
@@ -198,6 +326,62 @@ export default function WorkoutLogger({
 
   const removeExercise = (exId) =>
     setExercises((list) => list.filter((e) => e.id !== exId));
+
+  // Patch exercise-level fields (a sport's note/score, etc.).
+  const patchExercise = (exId, patch) =>
+    setExercises((list) =>
+      list.map((e) => (e.id === exId ? { ...e, ...patch } : e))
+    );
+
+  // ---- live activity stopwatch --------------------------------------------
+  // The heart of tracking a run/ride/game AS it happens: a start/pause/stop
+  // clock that writes elapsed time straight onto the effort each second, so
+  // pace and calories tick live and nothing is lost if the app is closed.
+  // Timestamp-based (base + wall time) so it stays accurate through a
+  // backgrounded tab. One activity is timed at a time.
+  const [stopwatch, setStopwatch] = useState(null); // { exId, setId, base, startedAt, paused }
+  const swElapsed = (sw, now) =>
+    sw ? Math.max(0, Math.floor(sw.base + (sw.paused ? 0 : (now - sw.startedAt) / 1000))) : 0;
+
+  useEffect(() => {
+    if (!stopwatch || stopwatch.paused) return undefined;
+    const t = setInterval(() => {
+      const elapsed = Math.floor(stopwatch.base + (Date.now() - stopwatch.startedAt) / 1000);
+      patchSet(stopwatch.exId, stopwatch.setId, { durationSec: elapsed });
+    }, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopwatch]);
+
+  const startStopwatch = (ex, set) => {
+    setRest(null); // a run isn't a rest — don't let a lingering timer overlap
+    setStopwatch({ exId: ex.id, setId: set.id, base: set.durationSec || 0, startedAt: Date.now(), paused: false });
+  };
+  const pauseStopwatch = () => {
+    if (!stopwatch) return;
+    if (stopwatch.paused) {
+      setStopwatch({ ...stopwatch, startedAt: Date.now(), paused: false });
+      return;
+    }
+    const base = swElapsed(stopwatch, Date.now());
+    patchSet(stopwatch.exId, stopwatch.setId, { durationSec: base });
+    setStopwatch({ ...stopwatch, base, paused: true });
+  };
+  // Stop the clock; `log` also marks the effort done (the "Stop & log" action).
+  const stopStopwatch = (log = true) => {
+    if (!stopwatch) return;
+    const elapsed = swElapsed(stopwatch, Date.now());
+    patchSet(
+      stopwatch.exId,
+      stopwatch.setId,
+      log ? { durationSec: elapsed, done: true } : { durationSec: elapsed }
+    );
+    setStopwatch(null);
+    if (log) {
+      try { ding(); } catch { /* best-effort */ }
+      try { navigator.vibrate?.([20, 30, 60]); } catch { /* fine */ }
+    }
+  };
 
   const addSet = (exId) =>
     setExercises((list) =>
@@ -284,8 +468,9 @@ export default function WorkoutLogger({
 
     if (!willBeDone) return; // un-completing a set: no timer, no PR
 
-    // Auto-start the rest countdown (the integrated in-gym clock).
-    startRest(exercise);
+    // Rest countdowns are a strength-training thing — you don't "rest 90s"
+    // after logging a run or a pickup game. Only ramp the clock for lifts.
+    if (exerciseKind(exercise) === "strength") startRest(exercise);
 
     // Personal record: a strength set that beats the all-time best weight for
     // this exercise, celebrated at most once per exercise per session.
@@ -360,7 +545,8 @@ export default function WorkoutLogger({
             }
       )
     );
-    startRest(cur);
+    // Rest countdown is for lifts only — not after a run or a game.
+    if (!isCardio) startRest(cur);
     if (
       !isCardio &&
       cur.exerciseId &&
@@ -383,11 +569,37 @@ export default function WorkoutLogger({
   };
 
   const finish = () => {
-    const durationSec = Math.floor((Date.now() - startRef.current) / 1000);
+    const wallClock = Math.floor((Date.now() - startRef.current) / 1000);
+    // If a stopwatch is still running when they finish, capture its time and
+    // count that effort as done rather than dropping it.
+    let source = exercises;
+    if (stopwatch) {
+      const elapsed = swElapsed(stopwatch, Date.now());
+      source = exercises.map((e) =>
+        e.id !== stopwatch.exId
+          ? e
+          : {
+              ...e,
+              sets: e.sets.map((s) =>
+                s.id === stopwatch.setId ? { ...s, durationSec: elapsed, done: true } : s
+              ),
+            }
+      );
+      setStopwatch(null);
+    }
     // Keep only exercises that had at least one completed set.
-    const kept = exercises
+    const kept = source
       .map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) }))
       .filter((e) => e.sets.length > 0);
+    // Activities are usually logged after the fact (you don't hold the app for
+    // your whole run), so the wall-clock the logger was open understates them.
+    // Take the longer of wall-clock and the time actually logged in activity
+    // efforts, so a 45-min game reads as 45 min, not the 2 min of tapping.
+    const loggedActivitySec = kept.reduce((n, e) => {
+      if (exerciseKind(e) === "strength") return n;
+      return n + e.sets.reduce((m, s) => m + (s.durationSec || 0), 0);
+    }, 0);
+    const durationSec = Math.max(wallClock, loggedActivitySec);
     const types = new Set(kept.map((e) => e.type));
     const type = types.size > 1 ? "mixed" : [...types][0] || initialType;
     const workout = createWorkout({
@@ -396,12 +608,25 @@ export default function WorkoutLogger({
       durationSec,
       goalId,
     });
+    // Activity roll-up: distance covered, calories, and whether this session was
+    // mostly lifting or mostly moving — so the summary can lead with the right
+    // numbers (a run gets pace/kcal, a lift gets volume/PRs).
+    const strengthEx = kept.filter((e) => exerciseKind(e) === "strength");
+    const activityEx = kept.filter((e) => exerciseKind(e) !== "strength");
+    let distanceTotal = 0;
+    kept.forEach((e) => {
+      if (exerciseKind(e) === "distance")
+        e.sets.forEach((s) => (distanceTotal += s.distance || 0));
+    });
     setSummary({
       workout,
       volume: workoutVolume(workout),
       sets: completedSetCount(workout),
       durationSec,
       focus: focusLabel(kept),
+      calories: workoutCalories(workout, profile),
+      distance: distanceTotal > 0 ? Math.round(distanceTotal * 100) / 100 : null,
+      activityLed: activityEx.length > 0 && strengthEx.length === 0,
     });
     try { ding(); } catch { /* best-effort */ }
     try { navigator.vibrate?.([30, 40, 120]); } catch { /* fine */ }
@@ -419,7 +644,7 @@ export default function WorkoutLogger({
       restNextLabel = `Next: set ${nextSetIdx + 1} of ${cur.sets.length}`;
     } else {
       const nextEx = exercises[currentIdx + 1];
-      restNextLabel = nextEx ? `Next: ${nextEx.name}` : "Last set — finish strong";
+      restNextLabel = nextEx ? `Next: ${nextEx.name}` : "Last set, finish strong";
     }
   }
 
@@ -503,9 +728,15 @@ export default function WorkoutLogger({
       <div className="workout-logger" role="dialog" aria-modal="true">
         <div className="wl-summary">
           <div className="wl-summary-ic wl-summary-cele"><Icon.Check /></div>
-          <h2 className="wl-summary-title">Workout complete</h2>
+          <h2 className="wl-summary-title">
+            {summary.activityLed ? "Nice work" : "Workout complete"}
+          </h2>
           <p className="wl-summary-cheer">
-            {summary.focus
+            {summary.activityLed
+              ? summary.distance
+                ? `${summary.distance} ${distUnitFor(profile)} in the bank. That counts.`
+                : "Moved your body today. That counts."
+              : summary.focus
               ? `Strong work on ${summary.focus}. That's in the bank.`
               : "Strong work. That's in the bank."}
           </p>
@@ -514,24 +745,52 @@ export default function WorkoutLogger({
               <span className="wl-sum-num">{fmtElapsed(summary.durationSec)}</span>
               <span className="wl-sum-lbl">duration</span>
             </div>
-            <div className="wl-sum-stat">
-              <span className="wl-sum-num">{summary.sets}</span>
-              <span className="wl-sum-lbl">sets done</span>
-            </div>
-            <div className="wl-sum-stat">
-              <span className="wl-sum-num">
-                {summary.volume ? summary.volume.toLocaleString() : "-"}
-              </span>
-              <span className="wl-sum-lbl">{unit} lifted</span>
-            </div>
+            {summary.activityLed ? (
+              <>
+                {summary.distance != null && (
+                  <div className="wl-sum-stat">
+                    <span className="wl-sum-num">{summary.distance}</span>
+                    <span className="wl-sum-lbl">{distUnitFor(profile)}</span>
+                  </div>
+                )}
+                <div className="wl-sum-stat">
+                  <span className="wl-sum-num">{summary.calories ?? "-"}</span>
+                  <span className="wl-sum-lbl">kcal</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="wl-sum-stat">
+                  <span className="wl-sum-num">{summary.sets}</span>
+                  <span className="wl-sum-lbl">sets done</span>
+                </div>
+                <div className="wl-sum-stat">
+                  <span className="wl-sum-num">
+                    {summary.volume ? summary.volume.toLocaleString() : "-"}
+                  </span>
+                  <span className="wl-sum-lbl">{unit} lifted</span>
+                </div>
+              </>
+            )}
           </div>
           <div className="wl-summary-exs">
-            {summary.workout.exercises.map((e) => (
-              <div key={e.id} className="wl-summary-ex">
-                <span>{e.name}</span>
-                <span className="wl-summary-ex-sets">{e.sets.length} sets</span>
-              </div>
-            ))}
+            {summary.workout.exercises.map((e) => {
+              const k = exerciseKind(e);
+              const dur = e.sets.reduce((n, s) => n + (s.durationSec || 0), 0);
+              const dist = e.sets.reduce((n, s) => n + (s.distance || 0), 0);
+              let detail = `${e.sets.length} sets`;
+              if (k === "distance")
+                detail =
+                  formatDistance(dist, profile) || `${Math.round(dur / 60)} min`;
+              else if (k === "cardio" || k === "sport")
+                detail = `${Math.round(dur / 60)} min`;
+              return (
+                <div key={e.id} className="wl-summary-ex">
+                  <span>{e.name}</span>
+                  <span className="wl-summary-ex-sets">{detail}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Save this session as a reusable template. */}
@@ -591,13 +850,24 @@ export default function WorkoutLogger({
             <div className="wl-gi-focus">Focus: {focusLabel(exercises)}</div>
           )}
           <div className="wl-gi-list">
-            {exercises.map((e, i) => (
-              <div key={e.id} className="wl-gi-ex">
-                <span className="wl-gi-ex-n">{i + 1}</span>
-                <span className="wl-gi-ex-name">{e.name}</span>
-                <span className="wl-gi-ex-sets">{e.sets.length} sets</span>
-              </div>
-            ))}
+            {exercises.map((e, i) => {
+              const k = exerciseKind(e);
+              return (
+                <div key={e.id} className="wl-gi-ex">
+                  <span className="wl-gi-ex-n">{i + 1}</span>
+                  <span className="wl-gi-ex-name">{e.name}</span>
+                  <span className="wl-gi-ex-sets">
+                    {k === "strength"
+                      ? `${e.sets.length} sets`
+                      : k === "distance"
+                      ? "Distance"
+                      : k === "sport"
+                      ? "Sport"
+                      : "Cardio"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
           <button className="btn primary wl-gi-start" onClick={() => setGuidedStarted(true)}>
             <Icon.Play width={16} height={16} /> Start workout
@@ -611,6 +881,9 @@ export default function WorkoutLogger({
   // ---- Guided mobile execution (one exercise at a time) ----
   if (guided) {
     const cur = exercises[currentIdx];
+    const curKind = exerciseKind(cur);
+    const curMet = exerciseMET(cur);
+    const isActivity = curKind !== "strength";
     const curSetIdx = cur ? cur.sets.findIndex((s) => !s.done) : -1;
     const exComplete = curSetIdx === -1;
     const isLastEx = currentIdx === exercises.length - 1;
@@ -652,49 +925,125 @@ export default function WorkoutLogger({
           {cur.notes && <div className="wl-g-exnote">“{cur.notes}”</div>}
 
           {!exComplete ? (
-            <>
-              {activeSet?.warmup ? (
-                <div className="wl-g-setlabel warmup">
-                  <Icon.Flame width={12} height={12} /> Warm-up{" "}
-                  {cur.sets.slice(0, curSetIdx + 1).filter((s) => s.warmup).length} of{" "}
-                  {cur.sets.filter((s) => s.warmup).length}
-                </div>
-              ) : (
+            isActivity ? (
+              /* ---- Activity execution (run / ride / cardio / sport) ---- */
+              <>
                 <div className="wl-g-setlabel">
-                  Set {cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length} of{" "}
-                  {cur.sets.filter((s) => !s.warmup).length}
+                  {curKind === "sport"
+                    ? "Log your session"
+                    : curKind === "distance"
+                    ? "Log your effort"
+                    : "Log this round"}
                 </div>
-              )}
 
-              {/* One-tap warm-up ramp, offered before anything is logged. */}
-              {cur.type !== "cardio" &&
-                curSetIdx === 0 &&
-                !cur.sets.some((s) => s.warmup || s.done) &&
-                warmupRamp(topW, unit).length > 0 && (
-                  <button
-                    className="wl-g-warmup-offer"
-                    onClick={() => addWarmupSets(cur.id)}
-                  >
-                    <Icon.Flame width={13} height={13} /> Add warm-up ramp (
-                    {warmupRamp(topW, unit)
-                      .map((r) => r.weight)
-                      .join(" · ")}{" "}
-                    {unit})
-                  </button>
-                )}
-
-              {cur.type === "cardio" ? (
-                <div className="wl-g-fields">
-                  <div className="wl-g-field">
-                    <div className="wl-g-field-lbl">minutes</div>
+                {curKind === "distance" && (
+                  <div className="wl-g-act-field">
+                    <div className="wl-g-field-lbl">distance ({distUnitFor(profile)})</div>
                     <div className="wl-g-stepper">
-                      <button onClick={() => adjustCur("durationSec", -60)} aria-label="Less">−</button>
-                      <div className="wl-g-val">{Math.round((activeSet.durationSec || 0) / 60)}</div>
-                      <button onClick={() => adjustCur("durationSec", 60)} aria-label="More">+</button>
+                      <button onClick={() => adjustCur("distance", -0.1)} aria-label="Less distance">−</button>
+                      <div className="wl-g-val">{Math.round((activeSet.distance || 0) * 10) / 10}</div>
+                      <button onClick={() => adjustCur("distance", 0.1)} aria-label="More distance">+</button>
                     </div>
                   </div>
+                )}
+
+                <div className="wl-g-act-field">
+                  <div className="wl-g-field-lbl">time</div>
+                  {stopwatch?.exId === cur.id && stopwatch?.setId === activeSet.id ? (
+                    <div className={"wl-sw wl-g-sw" + (stopwatch.paused ? " paused" : " live")}>
+                      <div className="wl-sw-clock mono">{fmtElapsed(activeSet.durationSec || 0)}</div>
+                      <div className="wl-sw-controls">
+                        <button className="wl-sw-btn" onClick={pauseStopwatch}>
+                          {stopwatch.paused ? (
+                            <><Icon.Play width={14} height={14} /> Resume</>
+                          ) : (
+                            <><Icon.Pause width={14} height={14} /> Pause</>
+                          )}
+                        </button>
+                        <button className="wl-sw-btn stop" onClick={() => stopStopwatch(true)}>
+                          <Icon.Check width={14} height={14} /> Stop &amp; log
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        className="wl-sw-start"
+                        onClick={() => startStopwatch(cur, activeSet)}
+                        disabled={Boolean(stopwatch)}
+                      >
+                        <Icon.Play width={16} height={16} /> Start stopwatch
+                      </button>
+                      <div className="wl-sw-or">or enter time manually</div>
+                      <DurationEditor
+                        durationSec={activeSet.durationSec}
+                        onChange={(secs) => patchSet(cur.id, activeSet.id, { durationSec: secs })}
+                        size="lg"
+                      />
+                    </>
+                  )}
                 </div>
-              ) : (
+
+                {(curKind === "cardio" || curKind === "sport") && (
+                  <div className="wl-g-act-field">
+                    <div className="wl-g-field-lbl">intensity</div>
+                    <IntensityChips
+                      value={activeSet.intensity || "moderate"}
+                      onChange={(v) => patchSet(cur.id, activeSet.id, { intensity: v })}
+                    />
+                  </div>
+                )}
+
+                <ActivityStatline
+                  kind={curKind}
+                  set={activeSet}
+                  met={curMet}
+                  profile={profile}
+                  speed={cur.exerciseId === "cycling"}
+                />
+
+                {stopwatch?.exId !== cur.id && (
+                  <button
+                    className="btn primary wl-g-log"
+                    onClick={guidedLogSet}
+                    disabled={!activeSet.durationSec && !activeSet.distance}
+                  >
+                    <Icon.Check width={16} height={16} /> Log it
+                  </button>
+                )}
+              </>
+            ) : (
+              /* ---- Strength execution (sets × reps × weight) ---- */
+              <>
+                {activeSet?.warmup ? (
+                  <div className="wl-g-setlabel warmup">
+                    <Icon.Flame width={12} height={12} /> Warm-up{" "}
+                    {cur.sets.slice(0, curSetIdx + 1).filter((s) => s.warmup).length} of{" "}
+                    {cur.sets.filter((s) => s.warmup).length}
+                  </div>
+                ) : (
+                  <div className="wl-g-setlabel">
+                    Set {cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length} of{" "}
+                    {cur.sets.filter((s) => !s.warmup).length}
+                  </div>
+                )}
+
+                {/* One-tap warm-up ramp, offered before anything is logged. */}
+                {curSetIdx === 0 &&
+                  !cur.sets.some((s) => s.warmup || s.done) &&
+                  warmupRamp(topW, unit).length > 0 && (
+                    <button
+                      className="wl-g-warmup-offer"
+                      onClick={() => addWarmupSets(cur.id)}
+                    >
+                      <Icon.Flame width={13} height={13} /> Add warm-up ramp (
+                      {warmupRamp(topW, unit)
+                        .map((r) => r.weight)
+                        .join(" · ")}{" "}
+                      {unit})
+                    </button>
+                  )}
+
                 <div className="wl-g-fields">
                   <div className="wl-g-field">
                     <div className="wl-g-field-lbl">{unit}</div>
@@ -713,27 +1062,27 @@ export default function WorkoutLogger({
                     </div>
                   </div>
                 </div>
-              )}
 
-              {plates && topW > 0 && (
-                <div className="wl-plates wl-g-plates" title="Plates per side of the bar">
-                  <span className="wl-plates-lbl">Per side</span>
-                  <span className="wl-plates-list">
-                    {plates.perSide.length
-                      ? plates.perSide.map((p, i) => <span key={i} className="wl-plate">{p}</span>)
-                      : <span className="wl-plates-bar">just the bar</span>}
-                    {plates.leftover > 0 && <span className="wl-plates-extra">+{plates.leftover}</span>}
-                  </span>
-                </div>
-              )}
+                {plates && topW > 0 && (
+                  <div className="wl-plates wl-g-plates" title="Plates per side of the bar">
+                    <span className="wl-plates-lbl">Per side</span>
+                    <span className="wl-plates-list">
+                      {plates.perSide.length
+                        ? plates.perSide.map((p, i) => <span key={i} className="wl-plate">{p}</span>)
+                        : <span className="wl-plates-bar">just the bar</span>}
+                      {plates.leftover > 0 && <span className="wl-plates-extra">+{plates.leftover}</span>}
+                    </span>
+                  </div>
+                )}
 
-              <button className="btn primary wl-g-log" onClick={guidedLogSet}>
-                <Icon.Check width={16} height={16} />{" "}
-                {activeSet?.warmup
-                  ? "Log warm-up"
-                  : `Log set ${cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length}`}
-              </button>
-            </>
+                <button className="btn primary wl-g-log" onClick={guidedLogSet}>
+                  <Icon.Check width={16} height={16} />{" "}
+                  {activeSet?.warmup
+                    ? "Log warm-up"
+                    : `Log set ${cur.sets.slice(0, curSetIdx + 1).filter((s) => !s.warmup).length}`}
+                </button>
+              </>
+            )
           ) : (
             <div className="wl-g-complete">
               <div className="wl-g-complete-ic"><Icon.Check width={22} height={22} /></div>
@@ -883,6 +1232,155 @@ export default function WorkoutLogger({
         )}
 
         {exercises.map((ex) => {
+          const kind = exerciseKind(ex);
+          // Activity kinds (run / ride / cardio / sport) get a purpose-built
+          // card — distance, time, pace, intensity, calories — never a
+          // reps×weight set grid.
+          if (kind !== "strength") {
+            const set = ex.sets[0] || createSet({ durationSec: 0 });
+            const met = exerciseMET(ex);
+            const speed = ex.exerciseId === "cycling";
+            const lp = lastPerf(ex.exerciseId);
+            const patch = (p) => patchSet(ex.id, set.id, p);
+            const timing = stopwatch?.exId === ex.id && stopwatch?.setId === set.id;
+            return (
+              <div
+                key={ex.id}
+                className={"wl-ex card wl-act" + (set.done ? " done" : "")}
+                data-kind={kind}
+              >
+                <div className="wl-ex-head">
+                  <div className="wl-ex-head-main">
+                    <div className="wl-ex-name">{ex.name}</div>
+                    <div className="wl-act-kind">
+                      {kind === "distance"
+                        ? "Distance activity"
+                        : kind === "sport"
+                        ? "Sport"
+                        : "Cardio"}
+                      {lp?.durationSec
+                        ? ` · last time ${Math.round(lp.durationSec / 60)} min`
+                        : ""}
+                    </div>
+                  </div>
+                  <button
+                    className="iconbtn sm"
+                    onClick={() => removeExercise(ex.id)}
+                    title="Remove"
+                    style={{ color: "var(--ink-4)" }}
+                  >
+                    <Icon.Trash width={13} height={13} />
+                  </button>
+                </div>
+
+                <div className="wl-act-body">
+                  {kind === "distance" && (
+                    <div className="wl-act-field">
+                      <label className="wl-act-lbl">Distance</label>
+                      <div className="wl-act-dist">
+                        <input
+                          className="input wl-act-dist-input"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.1"
+                          placeholder="0.0"
+                          value={set.distance ?? ""}
+                          onChange={(e) =>
+                            patch({ distance: e.target.value === "" ? null : Number(e.target.value) })
+                          }
+                        />
+                        <span className="wl-act-dist-unit">{distUnitFor(profile)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="wl-act-field">
+                    <label className="wl-act-lbl">Time</label>
+                    {timing ? (
+                      <div className={"wl-sw" + (stopwatch.paused ? " paused" : " live")}>
+                        <div className="wl-sw-clock mono">{fmtElapsed(set.durationSec || 0)}</div>
+                        <div className="wl-sw-controls">
+                          <button className="wl-sw-btn" onClick={pauseStopwatch}>
+                            {stopwatch.paused ? (
+                              <><Icon.Play width={14} height={14} /> Resume</>
+                            ) : (
+                              <><Icon.Pause width={14} height={14} /> Pause</>
+                            )}
+                          </button>
+                          <button className="wl-sw-btn stop" onClick={() => stopStopwatch(true)}>
+                            <Icon.Check width={14} height={14} /> Stop &amp; log
+                          </button>
+                        </div>
+                      </div>
+                    ) : set.done ? (
+                      <DurationEditor
+                        durationSec={set.durationSec}
+                        onChange={(secs) => patch({ durationSec: secs })}
+                      />
+                    ) : (
+                      <>
+                        <button
+                          className="wl-sw-start"
+                          onClick={() => startStopwatch(ex, set)}
+                          disabled={Boolean(stopwatch)}
+                          title={stopwatch ? "Another activity is being timed" : undefined}
+                        >
+                          <Icon.Play width={16} height={16} /> Start stopwatch
+                        </button>
+                        <div className="wl-sw-or">or enter time manually</div>
+                        <DurationEditor
+                          durationSec={set.durationSec}
+                          onChange={(secs) => patch({ durationSec: secs })}
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  {(kind === "cardio" || kind === "sport") && (
+                    <div className="wl-act-field">
+                      <label className="wl-act-lbl">Intensity</label>
+                      <IntensityChips
+                        value={set.intensity || "moderate"}
+                        onChange={(v) => patch({ intensity: v })}
+                      />
+                    </div>
+                  )}
+
+                  {kind === "sport" && (
+                    <div className="wl-act-field">
+                      <label className="wl-act-lbl">Notes</label>
+                      <input
+                        className="input"
+                        placeholder="Score, who you played, how it felt…"
+                        value={ex.notes || ""}
+                        onChange={(e) => patchExercise(ex.id, { notes: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  <ActivityStatline kind={kind} set={set} met={met} profile={profile} speed={speed} />
+
+                  {!timing && (
+                    <button
+                      className={"btn wl-act-log" + (set.done ? " logged" : " primary")}
+                      onClick={() => toggleSetDone(ex.id, set.id)}
+                      disabled={!set.durationSec && !set.distance}
+                    >
+                      <Icon.Check width={15} height={15} />{" "}
+                      {set.done
+                        ? "Logged — tap to edit"
+                        : kind === "sport"
+                        ? "Log activity"
+                        : kind === "distance"
+                        ? "Log this effort"
+                        : "Log it"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          }
           const lp = lastPerf(ex.exerciseId);
           const lastLine = fmtLast(lp, unit);
           // Plate math for barbell lifts: what to load per side for the

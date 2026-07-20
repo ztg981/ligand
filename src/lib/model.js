@@ -258,6 +258,7 @@ export function createFitnessProfile({
   goalType = "general", // strength | hypertrophy | endurance | general
   workoutDaysPerWeek = 3,
   weightUnit = "lbs",
+  distanceUnit = null, // "mi" | "km"; null → follow weightUnit (lbs→mi, kg→km)
 } = {}) {
   return {
     experienceLevel,
@@ -265,6 +266,7 @@ export function createFitnessProfile({
     goalType,
     workoutDaysPerWeek,
     weightUnit,
+    distanceUnit: distanceUnit || (weightUnit === "kg" ? "km" : "mi"),
     // Optional user-entered body stats over time: { date, weight, bodyFat? }.
     bodyStats: [],
     // Default rest between sets (seconds); cardio gets a shorter default.
@@ -278,12 +280,26 @@ export function createFitnessProfile({
   };
 }
 
-// A single logged set within an exercise. Strength sets carry reps + weight;
-// cardio sets carry a duration. `done` flips true when ticked mid-workout.
-export function createSet({ reps = null, weight = null, durationSec = null, done = false, warmup = false } = {}) {
+// A single logged effort within an exercise. What it carries depends on the
+// exercise's logging kind (see lib/exercises.js `exerciseKind`):
+//   strength  reps + weight
+//   distance  distance + durationSec  (pace is derived, not stored)
+//   cardio    durationSec + intensity
+//   sport     durationSec + intensity (+ the parent exercise's note/score)
+// `done` flips true when ticked mid-workout. Extra fields are null when unused,
+// so a strength set and a run set share the same shape harmlessly.
+export function createSet({
+  reps = null,
+  weight = null,
+  durationSec = null,
+  distance = null, // in the profile's distance unit (mi/km), as entered
+  intensity = null, // "light" | "moderate" | "hard" | "allout"
+  done = false,
+  warmup = false,
+} = {}) {
   // warmup sets ramp you up to the working weight; they're excluded from
   // volume, PRs and set-count stats (only working sets drive progress math).
-  return { id: uid("set"), reps, weight, durationSec, done, warmup };
+  return { id: uid("set"), reps, weight, durationSec, distance, intensity, done, warmup };
 }
 
 // One exercise inside a workout session: a snapshot of the library entry
@@ -293,9 +309,10 @@ export function createWorkoutExercise({
   name,
   muscleGroup = "other",
   type = "strength",
+  kind = null, // logging kind: strength | distance | cardio | sport (null → derive)
   sets = [],
   restSec = null, // per-exercise rest override; null = profile default
-  notes = null, // short user note ("felt heavy", "seat at 4")
+  notes = null, // short user note ("felt heavy", "seat at 4", "won 21-18")
 } = {}) {
   return {
     id: uid("wex"),
@@ -303,6 +320,7 @@ export function createWorkoutExercise({
     name: name || "Exercise",
     muscleGroup,
     type,
+    kind,
     sets: sets.length ? sets : [createSet()],
     restSec,
     notes,

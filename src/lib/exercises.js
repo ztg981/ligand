@@ -7,11 +7,22 @@
    available equipment), and progress tracking (group volume).
 
    Each exercise:
-     { id, name, muscleGroup, equipment[], type, instructions? }
+     { id, name, muscleGroup, equipment[], type, kind?, met?, instructions? }
    - muscleGroup: chest | back | shoulders | biceps | triceps |
-                  legs | core | cardio
+                  legs | core | cardio | sport
    - type: "strength" (logged as reps × weight) or
-           "cardio"   (logged as a duration)
+           "cardio"   (logged as a duration)   ← kept for all the
+           stats/generator code that branches on it.
+   - kind: how the logger CAPTURES it (the thing that makes a run feel
+           like a run, not a set of bench press):
+       "strength" reps × weight, multiple sets      (default)
+       "distance" distance + time → live pace       (run, ride, walk)
+       "cardio"   duration + intensity              (row, swim, machines)
+       "sport"    duration + intensity + score/note (basketball, tennis)
+     Absent → derived from type (cardio→"cardio", else "strength").
+   - met: metabolic-equivalent value at a moderate effort, used to
+          estimate calories from duration + bodyweight (see
+          lib/activityMetrics.js). Only carried by the activity kinds.
    - equipment tags (canonical, mapped from onboarding choices):
        barbell | dumbbell | cable | machine | bodyweight |
        cardio  | bands    | kettlebell
@@ -121,40 +132,43 @@ export const EXERCISES = [
   { id: "bicycle-crunch", name: "Bicycle Crunch", muscleGroup: "core", equipment: ["bodyweight"], type: S },
   { id: "mountain-climber", name: "Mountain Climber", muscleGroup: "core", equipment: ["bodyweight"], type: S },
 
-  // ---- Cardio (logged as duration) ---------------------------
-  { id: "running", name: "Running", muscleGroup: "cardio", equipment: ["cardio", "bodyweight"], type: C },
-  { id: "cycling", name: "Cycling", muscleGroup: "cardio", equipment: ["cardio"], type: C },
-  { id: "rowing", name: "Rowing", muscleGroup: "cardio", equipment: ["cardio"], type: C },
-  { id: "jump-rope", name: "Jump Rope", muscleGroup: "cardio", equipment: ["bodyweight"], type: C },
-  { id: "stairmaster", name: "Stairmaster", muscleGroup: "cardio", equipment: ["cardio"], type: C },
-  { id: "elliptical", name: "Elliptical", muscleGroup: "cardio", equipment: ["cardio"], type: C },
-  { id: "swimming", name: "Swimming", muscleGroup: "cardio", equipment: ["cardio"], type: C },
-  { id: "hiit", name: "HIIT", muscleGroup: "cardio", equipment: ["bodyweight", "cardio"], type: C },
-  { id: "burpee", name: "Burpee", muscleGroup: "cardio", equipment: ["bodyweight"], type: C },
+  // ---- Cardio -------------------------------------------------
+  // Distance kind: logged as distance + time, with a live pace readout —
+  // the metrics a runner/cyclist actually cares about (never "sets").
+  { id: "running", name: "Running", muscleGroup: "cardio", equipment: ["cardio", "bodyweight"], type: C, kind: "distance", met: 9.8 },
+  { id: "cycling", name: "Cycling", muscleGroup: "cardio", equipment: ["cardio"], type: C, kind: "distance", met: 7.5 },
+  { id: "walking", name: "Walking", muscleGroup: "cardio", equipment: ["bodyweight"], type: C, kind: "distance", met: 3.8 },
+  { id: "hiking", name: "Hiking", muscleGroup: "cardio", equipment: ["bodyweight"], type: C, kind: "distance", met: 6.0 },
+  // Duration kind: time + how hard it felt (intensity), plus a calorie estimate.
+  { id: "rowing", name: "Rowing", muscleGroup: "cardio", equipment: ["cardio"], type: C, kind: "cardio", met: 7.0 },
+  { id: "swimming", name: "Swimming", muscleGroup: "cardio", equipment: ["cardio"], type: C, kind: "cardio", met: 8.0 },
+  { id: "jump-rope", name: "Jump Rope", muscleGroup: "cardio", equipment: ["bodyweight"], type: C, kind: "cardio", met: 12.3 },
+  { id: "stairmaster", name: "Stairmaster", muscleGroup: "cardio", equipment: ["cardio"], type: C, kind: "cardio", met: 9.0 },
+  { id: "elliptical", name: "Elliptical", muscleGroup: "cardio", equipment: ["cardio"], type: C, kind: "cardio", met: 5.0 },
+  { id: "hiit", name: "HIIT", muscleGroup: "cardio", equipment: ["bodyweight", "cardio"], type: C, kind: "cardio", met: 8.0 },
+  { id: "burpee", name: "Burpee", muscleGroup: "cardio", equipment: ["bodyweight"], type: C, kind: "cardio", met: 8.0 },
 
-  // ---- Sports (logged as duration) ----------------------------
+  // ---- Sports -------------------------------------------------
   // muscleGroup "sport" is deliberately NOT in MUSCLE_GROUPS: the gym
   // generator iterates those groups (and picks cardio finishers), and
-  // "Tennis 3×8" is not a workout it should ever suggest. Sports exist for
-  // logging what you actually played — browser, logger, and history only.
-  { id: "tennis", name: "Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "basketball", name: "Basketball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "soccer", name: "Soccer", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "volleyball", name: "Volleyball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "badminton", name: "Badminton", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "pickleball", name: "Pickleball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "table-tennis", name: "Table Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "golf", name: "Golf", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "hiking", name: "Hiking", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "walking", name: "Walking", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "skating", name: "Skating", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "skiing", name: "Skiing / Snowboarding", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "martial-arts", name: "Martial Arts / Boxing", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "climbing", name: "Climbing", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "dance", name: "Dance", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "yoga", name: "Yoga / Stretching", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "baseball", name: "Baseball / Softball", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
-  { id: "football", name: "Football", muscleGroup: "sport", equipment: ["bodyweight"], type: C },
+  // "Tennis 3×8" is not a workout it should ever suggest. Sports log what you
+  // actually played: how long, how hard, and (if it's your thing) the score.
+  { id: "tennis", name: "Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 7.3 },
+  { id: "basketball", name: "Basketball", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 6.5 },
+  { id: "soccer", name: "Soccer", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 7.0 },
+  { id: "volleyball", name: "Volleyball", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 4.0 },
+  { id: "badminton", name: "Badminton", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 5.5 },
+  { id: "pickleball", name: "Pickleball", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 5.5 },
+  { id: "table-tennis", name: "Table Tennis", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 4.0 },
+  { id: "golf", name: "Golf", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 4.8 },
+  { id: "skating", name: "Skating", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 7.0 },
+  { id: "skiing", name: "Skiing / Snowboarding", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 7.0 },
+  { id: "martial-arts", name: "Martial Arts / Boxing", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 10.0 },
+  { id: "climbing", name: "Climbing", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 8.0 },
+  { id: "dance", name: "Dance", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 5.0 },
+  { id: "yoga", name: "Yoga / Stretching", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 3.0 },
+  { id: "baseball", name: "Baseball / Softball", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 5.0 },
+  { id: "football", name: "Football", muscleGroup: "sport", equipment: ["bodyweight"], type: C, kind: "sport", met: 8.0 },
 ];
 
 // Sports subset, for the quick "log a sport" chips on the Workout tab.
@@ -164,6 +178,31 @@ export const SPORTS = EXERCISES.filter((e) => e.muscleGroup === "sport");
 const BY_ID = new Map(EXERCISES.map((e) => [e.id, e]));
 export function findExercise(id) {
   return BY_ID.get(id) || null;
+}
+
+// The logging KIND for an exercise — how the logger should capture it.
+// Accepts either a library entry or a logged workout-exercise (which may carry
+// its own resolved `kind`, or just a `type`). Falls back gracefully so old
+// history (no kind) and custom exercises still render sensibly.
+export function exerciseKind(ex) {
+  if (!ex) return "strength";
+  if (ex.kind) return ex.kind;
+  const lib = ex.exerciseId ? BY_ID.get(ex.exerciseId) : null;
+  if (lib?.kind) return lib.kind;
+  return ex.type === "cardio" ? "cardio" : "strength";
+}
+
+// True when this exercise is logged as reps × weight sets.
+export function isStrengthKind(ex) {
+  return exerciseKind(ex) === "strength";
+}
+
+// The MET (metabolic equivalent) for an exercise, for calorie estimates.
+export function exerciseMET(ex) {
+  if (!ex) return null;
+  if (typeof ex.met === "number") return ex.met;
+  const lib = ex.exerciseId ? BY_ID.get(ex.exerciseId) : null;
+  return typeof lib?.met === "number" ? lib.met : null;
 }
 
 // Group labels for muscle groups (title-cased for headings).
