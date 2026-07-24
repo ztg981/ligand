@@ -9313,6 +9313,19 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 .cal-expand-btn[aria-pressed="true"] {
   color: var(--accent-ink); background: var(--accent-soft);
 }
+.btn.ghost.cal-month-expand-btn {
+  border: 1.5px solid color-mix(in oklab, var(--accent) 72%, var(--line-strong));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel) 76%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--accent) 10%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--panel) 68%, transparent);
+}
+.btn.ghost.cal-month-expand-btn:hover,
+.btn.ghost.cal-month-expand-btn:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 16%, transparent);
+}
 .cal-grid-wide .cal-cell-num { align-self: flex-start; }
 .cal-cell-chips { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
 .cal-cell-chip {
@@ -9331,7 +9344,13 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 .cal-item-repeat { margin-left: 5px; color: var(--ink-4); }
 
 /* Week view */
+.cal-week-card {
+  min-height: clamp(340px, calc(100dvh - 280px), 720px);
+  display: flex;
+  flex-direction: column;
+}
 .calv-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-week-card .calv-week { flex: 1; align-items: stretch; }
 .calv-week.stack-days { grid-template-columns: 1fr; }
 .calv-week-day {
   border: 1px solid var(--line); border-radius: var(--r-md);
@@ -9340,9 +9359,7 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
   min-height: 90px;
   display: flex; flex-direction: column; gap: 5px;
 }
-.calv-week.expanded .calv-week-day { min-height: clamp(180px, 38vh, 360px); }
-.calv-week.stack-days.expanded .calv-week-day { min-height: 112px; }
-.calv-week.expanded .calv-week-empty { flex: 1; min-height: 70px; }
+.cal-week-card .calv-week-day { min-height: 100%; }
 .calv-week.stack-days .calv-week-day { min-height: 0; }
 .calv-week-day.today { border-color: var(--accent); }
 .calv-week-head {
@@ -9372,10 +9389,13 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
   border: 1px dashed var(--line); border-radius: 6px;
   background: none; color: var(--ink-4);
   font-size: 13px; cursor: pointer; padding: 4px 0;
+  flex: 1;
 }
 .calv-week-empty:hover { color: var(--ink-2); border-color: var(--line-strong); }
 
 @media (max-width: 768px) {
+  .cal-week-card { min-height: 0; }
+  .cal-week-card .calv-week-day { min-height: 0; }
   .cal-month-layout.mobile { display: flex; flex-direction: column; gap: 12px; }
   .cal-month-layout.mobile .cal-grid-expanded .cal-cell { min-height: 72px; }
   .cal-month-layout.mobile .cal-grid-expanded .cal-cell-dots {

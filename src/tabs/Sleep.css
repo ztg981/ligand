@@ -24,14 +24,34 @@
   background: var(--accent-soft); color: var(--accent-ink);
   font-size: 11.5px; font-weight: 650;
 }
+.sleep-now-wrap {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+}
+.sleep-now-hint {
+  padding-right: 8px; font-size: 10px; color: var(--ink-4);
+}
 .sleep-now-pending button {
   border: 0; border-radius: 999px; padding: 4px 8px;
   background: var(--panel); color: var(--ink-3); font: inherit; cursor: pointer;
 }
+.sleep-now-pending button.wake {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent); color: #fff;
+}
 @media (max-width: 640px) {
-  .sleep-head-actions { width: 100%; justify-content: stretch; }
-  .sleep-head-actions > .btn { flex: 1 1 auto; }
-  .sleep-now-pending { width: 100%; justify-content: space-between; }
+  .sleep-head-actions {
+    width: 100%; justify-content: stretch; align-items: stretch;
+    flex-direction: column;
+  }
+  .sleep-head-actions > .btn { width: 100%; flex: none; }
+  .sleep-now-pending {
+    width: 100%; justify-content: space-between; flex-wrap: wrap;
+    border-radius: 16px; padding: 8px;
+  }
+  .sleep-now-pending > span:first-child { flex: 1 0 100%; padding: 1px 3px 3px; }
+  .sleep-now-pending button.wake { flex: 1; justify-content: center; }
+  .sleep-now-wrap { width: 100%; align-items: stretch; }
+  .sleep-now-hint { padding-right: 0; text-align: center; }
   .sleep-now-btn { min-height: 44px; }
 }
 

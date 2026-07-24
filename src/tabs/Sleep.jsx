@@ -259,15 +259,21 @@ export default function Sleep({
         </div>
         <div className="sleep-head-actions">
           {pendingSleep ? (
-            <div className="sleep-now-pending" role="status">
-              <span>
-                Sleep started at{" "}
-                {new Date(pendingSleep.startedAt).toLocaleTimeString(undefined, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </span>
-              <button type="button" onClick={onCancelSleepNow}>Cancel</button>
+            <div className="sleep-now-wrap">
+              <div className="sleep-now-pending" role="status">
+                <span>
+                  Sleep started at{" "}
+                  {new Date(pendingSleep.startedAt).toLocaleTimeString(undefined, {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <button className="wake" type="button" onClick={onLogNight}>
+                  <Icon.Sun width={12} height={12} /> I’m awake now
+                </button>
+                <button type="button" onClick={onCancelSleepNow}>Cancel</button>
+              </div>
+              <span className="sleep-now-hint">You can adjust either time before saving.</span>
             </div>
           ) : (
             <button className="btn primary sm sleep-now-btn" onClick={onSleepNow}>
@@ -275,7 +281,7 @@ export default function Sleep({
             </button>
           )}
           <button className="btn ghost sm" onClick={onLogNight}>
-            {todayEntry ? "Edit last night" : "Log a past night"}
+            {pendingSleep ? "Enter wake time" : todayEntry ? "Edit last night" : "Enter times manually"}
           </button>
         </div>
       </div>

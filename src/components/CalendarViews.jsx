@@ -172,9 +172,10 @@ export function MonthView({
             <div className="cal-nav">
               <button
                 type="button"
-                className="btn ghost sm cal-expand-btn"
+                className="btn ghost sm cal-expand-btn cal-month-expand-btn"
                 onClick={() => setExpanded((value) => !value)}
                 aria-pressed={expanded}
+                aria-label={expanded ? "Fit monthly calendar to the split view" : "Expand monthly calendar"}
               >
                 {expanded ? "Fit view" : "Expand"}
               </button>
@@ -296,7 +297,6 @@ export function WeekView({
   isMobile = false,
 }) {
   const today = todayKey();
-  const [expanded, setExpanded] = useState(false);
   const week = useMemo(() => weekOf(date), [date]);
   const byDay = useMemo(() => {
     const out = {};
@@ -307,7 +307,7 @@ export function WeekView({
   const label = `${shortDay(week[0])} – ${shortDay(week[6])}`;
 
   return (
-    <div className="card cal-card">
+    <div className="card cal-card cal-week-card">
       <div className="cal-head">
         <div className="cal-month">{label}</div>
         <div className="cal-nav">
@@ -316,14 +316,6 @@ export function WeekView({
               Today
             </button>
           )}
-          <button
-            type="button"
-            className="btn ghost sm cal-expand-btn"
-            onClick={() => setExpanded((value) => !value)}
-            aria-pressed={expanded}
-          >
-            {expanded ? "Compact" : "Expand"}
-          </button>
           <button className="iconbtn" title="Previous week" onClick={() => onShiftWeek(-7)}>
             ‹
           </button>
@@ -333,7 +325,7 @@ export function WeekView({
         </div>
       </div>
 
-      <div className={"calv-week" + (isMobile ? " stack-days" : "") + (expanded ? " expanded" : "")}>
+      <div className={"calv-week" + (isMobile ? " stack-days" : "")}>
         {week.map((key) => {
           const items = byDay[key];
           const isToday = key === today;
