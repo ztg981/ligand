@@ -63,6 +63,20 @@ function sectorPathBase(startMin, endMin, rIn = R_IN, rOut = R_OUT, padMin = 2, 
   ].join(" ");
 }
 
+// A single rounded arc for recorded reality. Planned time remains a filled
+// block; real sleep and activities read as light strokes instead of looking
+// like another draggable rectangle.
+function arcLinePathBase(startMin, endMin, radius, padMin = 3, angleFn = minToAngle) {
+  const s = startMin + padMin;
+  const e = Math.max(s + 1, endMin - padMin);
+  const TAU = Math.PI * 2;
+  const da = (((angleFn(e) - angleFn(s)) % TAU) + TAU) % TAU;
+  const large = da > Math.PI ? 1 : 0;
+  const [x1, y1] = ptBase(s, radius, angleFn);
+  const [x2, y2] = ptBase(e, radius, angleFn);
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
+}
+
 // Distribute labels on each side so they never overlap (greedy push-down).
 function layoutLabelsBase(blocks, angleFn = minToAngle) {
   const items = blocks.map((b) => {
@@ -152,6 +166,7 @@ export default function DayDial({
   date, // YYYY-MM-DD being viewed
   isToday,
   blocks = [],
+  actualSegments = [], // slim tracks for real sleep/activities/workouts
   alarms = [], // [{ id, label, minutes }]
   selectedId = null,
   draftRange = null, // { start, end } being composed in the editor — ghost wedge
@@ -215,6 +230,7 @@ export default function DayDial({
   // every call site in the render stays unchanged.
   const pt = (min, r) => ptBase(min, r, angleOf);
   const sectorPath = (a, b, c, d, e) => sectorPathBase(a, b, c, d, e, angleOf);
+  const actualArcPath = (a, b, r) => arcLinePathBase(a, b, r, 3, angleOf);
   const layoutLabels = (bl) => layoutLabelsBase(bl, angleOf);
   // A tiny render helper (not a component) so the tooltip follows the active
   // angle map without declaring a component during render.
@@ -457,6 +473,37 @@ export default function DayDial({
               </>
             )}
             {isMoving && rangeTip(b.start, b.end)}
+          </g>
+        );
+      })}
+
+      {/* Reality tracks. They are deliberately drawn after planned wedges:
+          inner = actual sleep, outer = things the user actually did. Keeping
+          separate lanes makes overlaps honest (e.g. a late-night activity
+          inside the usual sleep window) instead of one hiding the other. */}
+      {actualSegments.map((segment) => {
+        const inner = segment.kind === "sleep";
+        const radius = inner ? R_IN + 8 : R_OUT - 8;
+        return (
+          <g key={segment.id} pointerEvents="none">
+            <path
+              d={actualArcPath(segment.start, segment.end, radius)}
+              fill="none"
+              stroke="var(--panel)"
+              strokeWidth={inner ? 10 : 11}
+              strokeLinecap="round"
+              opacity="0.92"
+            />
+            <path
+              d={actualArcPath(segment.start, segment.end, radius)}
+              fill="none"
+              stroke={segment.color}
+              strokeWidth={inner ? 6 : 7}
+              strokeLinecap="round"
+              opacity="0.98"
+            >
+              <title>{`${segment.title} · ${minutesToLabel(segment.start)} – ${minutesToLabel(segment.end)}`}</title>
+            </path>
           </g>
         );
       })}

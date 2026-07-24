@@ -61,7 +61,7 @@ export default function GoalsGrid({ goals = [], tasks = [], onOpenGoal }) {
               </span>
               <span className="row" style={{ gap: 5, flex: "none" }}>
                 {g.pinned && (
-                  <span className="ov-focus-chip" title="A focus goal — picked in your last reset">
+                  <span className="ov-focus-chip" title="A focus goal, picked in your last reset">
                     <Icon.Target width={10} height={10} /> Focus
                   </span>
                 )}

@@ -215,7 +215,7 @@ function GoalStep({ item, today, decision, onDecide }) {
           <span className="fsr-choice-body">
             <span className="fsr-choice-name">Shelve it for now</span>
             <span className="fsr-choice-sub">
-              Tucked into the archive — restore it any time from Settings
+              Tucked into the archive. Restore it any time from Settings
             </span>
           </span>
         </button>
@@ -367,7 +367,7 @@ export default function FreshStartReview({
           {step === summaryStep && (
             <div className="fsr-summary">
               <p className="fsr-summary-intro">
-                Here's exactly what happens when you hit Apply — nothing has
+                Here's what happens when you hit Apply. Nothing has
                 changed yet:
               </p>
               <ul className="fsr-summary-counts">
@@ -409,8 +409,8 @@ export default function FreshStartReview({
                     <Icon.Target /> Which matter most right now?
                   </div>
                   <p className="fsr-focus-sub">
-                    Pick up to {MAX_FOCUS}. They'll sit first on your dashboard —
-                    the others stay, just quieter.
+                    Pick up to {MAX_FOCUS}. They'll sit first on your dashboard.
+                    The others stay, just quieter.
                   </p>
                   <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                     {keepers.map((it) => (
@@ -443,7 +443,7 @@ export default function FreshStartReview({
                   <button
                     className="fsr-skip"
                     onClick={() => setStep((s) => s + 1)}
-                    title="No decision — this goal stays exactly as it is"
+                    title="No change. This goal stays exactly as it is"
                   >
                     Decide later
                   </button>

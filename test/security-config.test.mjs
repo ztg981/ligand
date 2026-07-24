@@ -31,6 +31,7 @@ const mcpServer = fs.readFileSync("server/ligand-mcp/server.js", "utf8");
 const schema = fs.readFileSync("supabase/schema.sql", "utf8");
 const functionConfig = fs.readFileSync("supabase/config.toml", "utf8");
 const viteConfig = fs.readFileSync("vite.config.js", "utf8");
+const securityScan = fs.readFileSync("scripts/security-scan.mjs", "utf8");
 const packageConfig = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
 test("Supabase user_data policies are explicit owner-only authenticated policies", () => {
@@ -155,8 +156,13 @@ test("Vercel config includes an enforced CSP and SPA rewrite", () => {
 
 test("nested web routes use root assets while Electron keeps file-relative assets", () => {
   assert.match(viteConfig, /base:\s*mode === 'electron' \? '\.\/' : '\/'/);
-  assert.equal(
+  assert.match(
     packageConfig.scripts["electron:build"],
-    "vite build --mode electron && electron-builder"
+    /vite build --mode electron && electron-builder/
   );
+});
+
+test("secret scanning excludes generated Electron release artifacts", () => {
+  assert.match(securityScan, /SKIP_DIR_PREFIXES\s*=\s*\[[^\]]*"dist-electron"/);
+  assert.match(securityScan, /SKIP_FILE_PATTERNS[\s\S]*Ligand-Setup-/);
 });

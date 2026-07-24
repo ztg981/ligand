@@ -19,6 +19,8 @@ import {
   nextFreeSlot,
 } from "../lib/dayPlanner.js";
 import { describeRepeat, expandRepeat } from "../lib/recurrence.js";
+import { categoryOf, hhmmToMin } from "../lib/activities.js";
+import { minutesOfDay } from "../lib/sleep.js";
 
 /* DayPlanner — the Day tab: plan the day as a shape, not a list.
 
@@ -379,6 +381,79 @@ export default function DayPlanner({
         .sort((a, b) => a.start - b.start),
     [dayBlocks, date]
   );
+
+  // What actually happened is drawn as slim tracks on the same ring as the
+  // plan. Sleep uses the inner edge; activities/workouts use the outer edge,
+  // so an activity logged during the sleep window remains visible instead of
+  // disappearing under the shaded target band.
+  const actualSegments = useMemo(() => {
+    const out = [];
+    activities
+      .filter(
+        (activity) =>
+          activity.date === date &&
+          activity.durationMin > 0 &&
+          !(activity.linkType === "workout" && activity.linkId)
+      )
+      .forEach((activity) => {
+        const end = hhmmToMin(activity.endTime);
+        if (end == null) return;
+        out.push({
+          id: `activity-${activity.id}`,
+          kind: "actual",
+          start: Math.max(0, end - activity.durationMin),
+          end,
+          color: categoryOf(activity.category).color,
+          title: activity.title || categoryOf(activity.category).name,
+        });
+      });
+    workouts
+      .filter((workout) => workout.date === date && workout.createdAt)
+      .forEach((workout) => {
+        const ended = new Date(workout.createdAt);
+        if (Number.isNaN(ended.getTime())) return;
+        const end = ended.getHours() * 60 + ended.getMinutes();
+        const duration = Math.max(15, Math.round((workout.durationSec || 900) / 60));
+        out.push({
+          id: `workout-${workout.id}`,
+          kind: "actual",
+          start: Math.max(0, end - duration),
+          end,
+          color: "oklch(0.65 0.14 150)",
+          title: "Workout",
+        });
+      });
+
+    const entry = sleepLog.find((sleep) => sleep.date === date);
+    const nextEntry = sleepLog.find((sleep) => sleep.date === shiftDay(date, 1));
+    const addSleep = (id, start, end, title) => {
+      if (start == null || end == null || end <= start) return;
+      out.push({
+        id,
+        kind: "sleep",
+        start,
+        end,
+        color: "oklch(0.58 0.11 285)",
+        title,
+      });
+    };
+    if (entry) {
+      const bed = minutesOfDay(entry.bedTime);
+      const wake = minutesOfDay(entry.wakeTime);
+      if (bed != null && wake != null) {
+        if (bed < wake) addSleep(`sleep-${entry.id}`, bed, wake, "Actual sleep");
+        else addSleep(`sleep-${entry.id}-am`, 0, wake, "Actual sleep");
+      }
+    }
+    if (nextEntry) {
+      const bed = minutesOfDay(nextEntry.bedTime);
+      const wake = minutesOfDay(nextEntry.wakeTime);
+      if (bed != null && wake != null && bed > wake) {
+        addSleep(`sleep-${nextEntry.id}-pm`, bed, 24 * 60, "Actual sleep");
+      }
+    }
+    return out;
+  }, [activities, workouts, sleepLog, date]);
 
   const weekdayIdx = (new Date(date + "T00:00:00").getDay() + 6) % 7;
   const dialAlarms = useMemo(() => {
@@ -944,6 +1019,7 @@ export default function DayPlanner({
               date={date}
               isToday={isToday}
               blocks={blocks}
+              actualSegments={actualSegments}
               alarms={dialAlarms}
               selectedId={selectedId}
               draftRange={
@@ -965,6 +1041,12 @@ export default function DayPlanner({
                 updateDayBlock?.(id, { start: ns, end: ne });
               }}
             />
+            <div className="dp-reality-legend" aria-label="Day ring legend">
+              <span><i className="planned" /> Planned blocks</span>
+              <span><i className="actual" /> What you did</span>
+              <span><i className="actual-sleep" /> Actual sleep</span>
+              <span><i className="usual-sleep" /> Usual sleep window</span>
+            </div>
           </div>
           {sidePanel}
         </div>

@@ -76,7 +76,7 @@ function getCtx() {
     _limiter.release.value = 0.12;
     _master.connect(_tone).connect(_limiter).connect(_ctx.destination);
   }
-  if (_ctx.state === "suspended") _ctx.resume();
+  if (_ctx.state === "suspended") _ctx.resume().catch(() => {});
   return _ctx;
 }
 
@@ -394,8 +394,9 @@ if (typeof window !== "undefined" && !window.__ligandUiSoundsInit) {
   // Unlock/resume the AudioContext on the first user gesture so the very
   // first sound isn't dropped while the context is still suspended.
   const unlock = () => {
+    if (!_enabled) return;
     const c = getCtx();
-    if (c && c.state === "suspended") c.resume();
+    if (c && c.state === "suspended") c.resume().catch(() => {});
   };
   window.addEventListener("pointerdown", unlock, { passive: true });
   window.addEventListener("keydown", unlock, { passive: true });

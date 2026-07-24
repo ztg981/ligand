@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import { ding } from "../lib/uiSounds.js";
@@ -333,6 +333,21 @@ export default function WorkoutLogger({
       list.map((e) => (e.id === exId ? { ...e, ...patch } : e))
     );
 
+  const patchSet = useCallback(
+    (exId, setId, patch) =>
+      setExercises((list) =>
+        list.map((e) =>
+          e.id !== exId
+            ? e
+            : {
+                ...e,
+                sets: e.sets.map((s) => (s.id === setId ? { ...s, ...patch } : s)),
+              }
+        )
+      ),
+    []
+  );
+
   // ---- live activity stopwatch --------------------------------------------
   // The heart of tracking a run/ride/game AS it happens: a start/pause/stop
   // clock that writes elapsed time straight onto the effort each second, so
@@ -350,8 +365,7 @@ export default function WorkoutLogger({
       patchSet(stopwatch.exId, stopwatch.setId, { durationSec: elapsed });
     }, 1000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopwatch]);
+  }, [stopwatch, patchSet]);
 
   const startStopwatch = (ex, set) => {
     setRest(null); // a run isn't a rest — don't let a lingering timer overlap
@@ -429,18 +443,6 @@ export default function WorkoutLogger({
         e.id !== exId
           ? e
           : { ...e, sets: e.sets.length > 1 ? e.sets.filter((s) => s.id !== setId) : e.sets }
-      )
-    );
-
-  const patchSet = (exId, setId, patch) =>
-    setExercises((list) =>
-      list.map((e) =>
-        e.id !== exId
-          ? e
-          : {
-              ...e,
-              sets: e.sets.map((s) => (s.id === setId ? { ...s, ...patch } : s)),
-            }
       )
     );
 

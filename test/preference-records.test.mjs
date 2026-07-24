@@ -4,12 +4,25 @@ import {
   MOBILE_SETTINGS_KEY,
   MOBILE_TWEAKS_KEY,
   MOBILE_TWEAK_DEFAULTS,
+  SETTINGS_DEFAULTS,
   mobileSettingsDefaults,
   normalizeMobileSettingsRecord,
+  normalizeSettingsRecord,
   phonePreferenceSyncValue,
   readLegacyProfile,
   shouldSyncPhonePreference,
 } from "../src/lib/preferenceRecords.js";
+
+test("desktop background behavior is opt-in and explicit choices survive normalization", () => {
+  assert.equal(SETTINGS_DEFAULTS.desktop.closeToTray, false);
+  assert.equal(SETTINGS_DEFAULTS.desktop.launchAtLogin, false);
+  assert.deepEqual(
+    normalizeSettingsRecord({
+      desktop: { closeToTray: true, launchAtLogin: true },
+    }).desktop,
+    { closeToTray: true, launchAtLogin: true }
+  );
+});
 
 test("untouched phone defaults do not seed the account record", () => {
   assert.equal(shouldSyncPhonePreference(MOBILE_SETTINGS_KEY, mobileSettingsDefaults()), false);

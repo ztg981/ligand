@@ -84,7 +84,9 @@ export default function WeeklyReview({ goals = [], tasks = [], journal = [] }) {
   // Keep the latest context in a ref so the fetch uses fresh data even if it
   // arrived after this effect was set up.
   const contextRef = useRef(context);
-  contextRef.current = context;
+  useEffect(() => {
+    contextRef.current = context;
+  }, [context]);
 
   // Fetch when there's real activity to summarize. The dependency is the
   // boolean hasActivity (not the context object), so this re-runs only when
@@ -93,10 +95,12 @@ export default function WeeklyReview({ goals = [], tasks = [], journal = [] }) {
   // fetchWeeklyReview keeps repeat loads to a single AI call.
   useEffect(() => {
     if (!hasActivity) {
-      setReview({
-        text:
-          "Your week is just getting started here. Add a task or check in on a habit, and next week I'll have something to reflect back.",
-        source: "empty",
+      queueMicrotask(() => {
+        setReview({
+          text:
+            "Your week is just getting started here. Add a task or check in on a habit, and next week I'll have something to reflect back.",
+          source: "empty",
+        });
       });
       return;
     }

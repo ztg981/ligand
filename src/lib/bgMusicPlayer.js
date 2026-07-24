@@ -22,10 +22,11 @@
      The toggle in Settings is the required gesture.
    ============================================================ */
 
+const assetUrl = (file) => `${import.meta.env.BASE_URL || "/"}sounds/${file}`;
 export const BG_TRACKS = [
-  { id: "rain",   label: "Rain",   src: "/sounds/ambient-rain.ogg" },
-  { id: "stream", label: "Stream", src: "/sounds/ambient-stream.ogg" },
-  { id: "waves",  label: "Waves",  src: "/sounds/ambient-waves.ogg" },
+  { id: "rain",   label: "Rain",   src: assetUrl("ambient-rain.ogg") },
+  { id: "stream", label: "Stream", src: assetUrl("ambient-stream.ogg") },
+  { id: "waves",  label: "Waves",  src: assetUrl("ambient-waves.ogg") },
 ];
 
 const FADE_MS = 700;
@@ -78,6 +79,7 @@ export function playBgMusic(trackId, volume = 0.30) {
     if (_el) { _el.pause(); _el.src = ""; }
     const audio   = new Audio(src);
     audio.loop    = true;
+    audio.preload = "auto";
     audio.volume  = 0;
     _el           = audio;
     _currentSrc   = src;

@@ -842,7 +842,7 @@ export default function Pomodoro({
         {/* Insistent completion alarm — a dismiss banner while it rings. */}
         {alarmRinging && (
           <button className="pomo-alarm-stop" onClick={stopAlarm} data-mute-click>
-            <Icon.Bell /> Alarm ringing — tap to stop
+            <Icon.Bell /> Alarm ringing. Tap to stop
           </button>
         )}
 

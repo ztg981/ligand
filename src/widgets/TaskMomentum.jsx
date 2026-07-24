@@ -93,7 +93,7 @@ export default function TaskMomentum({ tasks = [], onOpenTasks }) {
               {pct === 100
                 ? "Everything's clear. Enjoy it."
                 : remaining === 1
-                  ? "Just one left — go finish strong."
+                  ? "Just one left. Go finish strong."
                   : `${remaining} open across your lists.`}
             </div>
           </div>

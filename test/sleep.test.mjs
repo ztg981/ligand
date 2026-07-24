@@ -44,6 +44,17 @@ test("makeSleepEntry validates and clamps", () => {
   assert.equal(makeSleepEntry({ date: TODAY, bedTime: "x", wakeTime: "06:30" }), null);
 });
 
+test("an after-midnight sleep is stored on the date the user wakes", () => {
+  const entry = makeSleepEntry({
+    date: "2026-07-24",
+    bedTime: "03:45",
+    wakeTime: "10:00",
+    quality: 3,
+  });
+  assert.equal(entry.date, "2026-07-24");
+  assert.equal(sleepDurationMin(entry.bedTime, entry.wakeTime), 375);
+});
+
 test("buildNights returns one slot per night, oldest first", () => {
   const log = [
     { date: "2026-07-14", bedTime: "23:00", wakeTime: "07:00", quality: 4 },

@@ -247,7 +247,7 @@ export default function Notes({
   };
 
   const insertSong = (s) => {
-    const line = `♪ ${s.title} — ${s.artist}`;
+    const line = `♪ ${s.title} · ${s.artist}`;
     setDraft((d) => (d.trim() ? `${d}\n${line}` : line));
     editingRef.current = true;
     setSongOpen(false);
@@ -641,7 +641,7 @@ export default function Notes({
                       <div className="note-item-preview">
                         {lockedHidden ? (
                           <span style={{ color: "var(--ink-4)" }}>
-                            Locked — unlock to read
+                            Locked. Unlock to read
                           </span>
                         ) : preview ? (
                           preview
@@ -800,7 +800,7 @@ export default function Notes({
 
               {selectedLocked && (
                 <div className="notes-locked-banner">
-                  <Icon.Lock width={12} height={12} /> Encrypted — readable only with
+                  <Icon.Lock width={12} height={12} /> Encrypted, readable only with
                   your passphrase.
                 </div>
               )}
@@ -890,7 +890,7 @@ export default function Notes({
             </div>
             <p className="notes-pass-sub">
               {passModal.mode === "create"
-                ? "This passphrase encrypts the note so only you can read it. If you forget it, the note can't be recovered — there is no reset."
+                ? "This passphrase encrypts the note so only you can read it. If you forget it, the note can't be recovered. There's no reset."
                 : "Enter your passphrase to unlock your locked notes for this session."}
             </p>
 

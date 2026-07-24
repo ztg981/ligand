@@ -81,7 +81,7 @@ export function weekLine(summary) {
   const { count, target, met, toGo, reachable } = summary;
   if (met) {
     return count > target
-      ? "Week made — everything extra is a bonus."
+      ? "Week made. Everything extra is a bonus."
       : "That's your week made. Anything more is extra credit.";
   }
   if (!reachable) {

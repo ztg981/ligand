@@ -1,6 +1,13 @@
 # Ligand + ChatGPT integration status
 
-Last updated: 2026-07-14
+Last updated: 2026-07-24
+
+> Production update: the Ligand plugin is now connected and its live MCP
+> surface exposes shared task, goal, and Day-plan reads plus gated
+> preview/apply changes for tasks, Day blocks, workout imports, and review
+> marks. The milestone notes below are preserved as the implementation record;
+> references to a read-only preview or missing deployment credentials are no
+> longer the current production state.
 
 ## Current milestone
 

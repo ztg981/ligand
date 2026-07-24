@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import OfflineBanner from "./components/OfflineBanner.jsx";
 import UpdateBanner from "./components/UpdateBanner.jsx";
@@ -9,6 +9,7 @@ import { useAuth } from "./hooks/useAuth.jsx";
 import { useSupabaseSync } from "./hooks/useSupabaseSync.js";
 import { clearLocalBlob, hasMeaningfulLocalData } from "./lib/syncManager.js";
 import AuthScreen from "./components/AuthScreen.jsx";
+import OnboardingTour from "./components/OnboardingTour.jsx";
 import MigrationModal from "./components/MigrationModal.jsx";
 import SetNewPassword from "./components/SetNewPassword.jsx";
 import BadgeCelebration from "./components/BadgeCelebration.jsx";
@@ -25,7 +26,6 @@ import { summarizeWeek, DEFAULT_TARGET } from "./lib/showingUp.js";
 import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useSleepLog } from "./hooks/useSleepLog.js";
 import MorningCheckIn from "./components/MorningCheckIn.jsx";
-import SleepTab from "./tabs/Sleep.jsx";
 import { useStore } from "./hooks/useStore.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -40,19 +40,6 @@ import {
 } from "./lib/wallpaper.js";
 import { setAiGuestMode } from "./lib/aiApi.js";
 import Home from "./tabs/Home.jsx";
-import Tasks from "./tabs/Tasks.jsx";
-import Pomodoro from "./tabs/Pomodoro.jsx";
-import GoalTab from "./tabs/GoalTab.jsx";
-import RecoveryGoalTab from "./components/RecoveryGoalTab.jsx";
-import FitnessGoalTab from "./components/FitnessGoalTab.jsx";
-import Journal from "./tabs/Journal.jsx";
-import Notes from "./tabs/Notes.jsx";
-import Habits from "./tabs/Habits.jsx";
-import WorkoutTab from "./tabs/WorkoutTab.jsx";
-import DayPlanner from "./tabs/DayPlanner.jsx";
-import Stats from "./tabs/Stats.jsx";
-import Settings from "./tabs/Settings.jsx";
-import MobileSettings from "./tabs/MobileSettings.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
 import SearchModal from "./components/SearchModal.jsx";
@@ -70,6 +57,28 @@ import {
 } from "./lib/deviceScope.js";
 import { StandaloneWindowChrome } from "./components/WindowControls.jsx";
 import FindBar from "./components/FindBar.jsx";
+
+// Home is the only eagerly loaded product surface. Every larger workspace is
+// split into its own chunk and fetched when opened, which keeps startup from
+// parsing the workout, calendar, stats, and settings systems all at once.
+const Tasks = lazy(() => import("./tabs/Tasks.jsx"));
+const Pomodoro = lazy(() => import("./tabs/Pomodoro.jsx"));
+const GoalTab = lazy(() => import("./tabs/GoalTab.jsx"));
+const RecoveryGoalTab = lazy(() => import("./components/RecoveryGoalTab.jsx"));
+const FitnessGoalTab = lazy(() => import("./components/FitnessGoalTab.jsx"));
+const Journal = lazy(() => import("./tabs/Journal.jsx"));
+const Notes = lazy(() => import("./tabs/Notes.jsx"));
+const Habits = lazy(() => import("./tabs/Habits.jsx"));
+const WorkoutTab = lazy(() => import("./tabs/WorkoutTab.jsx"));
+const DayPlanner = lazy(() => import("./tabs/DayPlanner.jsx"));
+const Stats = lazy(() => import("./tabs/Stats.jsx"));
+const Settings = lazy(() => import("./tabs/Settings.jsx"));
+const MobileSettings = lazy(() => import("./tabs/MobileSettings.jsx"));
+const SleepTab = lazy(() => import("./tabs/Sleep.jsx"));
+
+function currentHHMM(now = new Date()) {
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
 
 export default function App() {
   // Register the PWA service worker (autoUpdate mode — updates silently
@@ -165,6 +174,56 @@ export default function App() {
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
+
+  // --- first-run intro tour -------------------------------------------------
+  // Shown once to a fresh guest/account: a spotlight walkthrough plus a guided
+  // first goal + habits. Replayable anytime from the profile menu. The flag is
+  // per-device (localStorage) since it's about "have you seen this UI", not
+  // account data.
+  const [onboarded, setOnboarded] = useLocalStorage("ligand.onboarded.v1", false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const onboardDecidedRef = useRef(false);
+  const finishTour = (nav) => {
+    setTourOpen(false);
+    setOnboarded(true);
+    if (nav === "goal") setTab("goal");
+    else if (nav) setTab("home");
+  };
+
+  // Decide once, after the user is actually in the app and data has settled,
+  // whether to auto-run the tour. Only a genuinely empty start gets it — an
+  // existing user (or a signed-in account with cloud data) is quietly marked
+  // as seen so nothing pops up over their stuff.
+  useEffect(() => {
+    if (onboardDecidedRef.current || onboarded || tourOpen) return;
+    if (authLoading || syncHydrating || showAuthScreen) return;
+    onboardDecidedRef.current = true;
+    const allGoals = store.goals || [];
+    const customGoals = allGoals.filter((g) => g.type !== "built-in");
+    const builtinHabits = allGoals
+      .filter((g) => g.type === "built-in")
+      .reduce((n, g) => n + (g.habits?.length || 0), 0);
+    const fresh =
+      customGoals.length === 0 &&
+      builtinHabits === 0 &&
+      (store.tasks || []).length === 0 &&
+      (store.journal || []).length === 0 &&
+      (store.notes || []).length === 0;
+    if (fresh) setTourOpen(true);
+    else setOnboarded(true);
+  }, [
+    onboarded,
+    tourOpen,
+    authLoading,
+    syncHydrating,
+    showAuthScreen,
+    store.goals,
+    store.tasks,
+    store.journal,
+    store.notes,
+    setOnboarded,
+  ]);
+
   const [showTweaks, setShowTweaks] = useState(false);
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -614,7 +673,15 @@ export default function App() {
   // Self-contained under ligand.sleep (see useSleepLog). The gate shows on
   // the first open of a morning until today's night is logged or skipped;
   // "manual" opens come from the sleep card at any hour.
-  const { sleepLog, logSleep, removeSleep, entryFor: sleepEntryFor } = useSleepLog();
+  const {
+    sleepLog,
+    logSleep,
+    removeSleep,
+    entryFor: sleepEntryFor,
+    pendingSleep,
+    startSleepNow,
+    cancelPendingSleep,
+  } = useSleepLog();
   const [sleepSkippedOn, setSleepSkippedOn] = useLocalStorage("ligand.sleepSkipped", null);
   const [sleepGateManual, setSleepGateManual] = useState(false);
   // Decided ONCE at mount, then closed only by the user's own tap — so the
@@ -843,7 +910,7 @@ export default function App() {
   // can't read localStorage). No-op in the browser/PWA.
   useEffect(() => {
     window.electron?.desktop?.configure?.({
-      closeToTray: settings.desktop?.closeToTray ?? true,
+      closeToTray: settings.desktop?.closeToTray ?? false,
       launchAtLogin: settings.desktop?.launchAtLogin ?? false,
     });
   }, [settings.desktop?.closeToTray, settings.desktop?.launchAtLogin]);
@@ -1213,7 +1280,7 @@ export default function App() {
   const go = (t) => () => setTab(t);
   const paletteActions = [
     { id: "qa", label: "Quick add…", sub: "Task, note, workout, alarm, or focus", keywords: "new create capture add task note", icon: <Icon.Plus />, run: () => setQuickAddOpen(true) },
-    { id: "log-activity", label: "Log an activity", sub: "Tennis, gaming, scrolling — what did you just do?", keywords: "activity log sport tennis game scroll screen chore rest", icon: <Icon.Spark />, run: () => setActivitySheet({}) },
+    { id: "log-activity", label: "Log an activity", sub: "Tennis, gaming, scrolling. What did you just do?", keywords: "activity log sport tennis game scroll screen chore rest", icon: <Icon.Spark />, run: () => setActivitySheet({}) },
     { id: "focus", label: "Start a focus session", sub: "Open the Pomodoro timer", keywords: "pomodoro timer focus deep work", icon: <Icon.Timer />, run: go("pomodoro") },
     { id: "new-goal", label: "New goal", sub: "Create a goal", keywords: "add create goal target", icon: <Icon.Target />, run: () => setShowGoalModal(true) },
     { id: "go-home", label: "Go to Home", sub: "Dashboard", keywords: "dashboard overview", icon: <Icon.Home />, run: go("home") },
@@ -1542,6 +1609,9 @@ export default function App() {
             sleepSettings={settings.sleep}
             setSection={setSection}
             onLogNight={() => setSleepGateManual(true)}
+            pendingSleep={pendingSleep}
+            onSleepNow={startSleepNow}
+            onCancelSleepNow={cancelPendingSleep}
           />
         );
       case "journal":
@@ -1554,6 +1624,9 @@ export default function App() {
             addSong={store.addSong}
             updateSong={store.updateSong}
             deleteSong={store.deleteSong}
+            moodLog={store.moodLog}
+            addMoodCheckIn={store.addMoodCheckIn}
+            removeMoodCheckIn={store.removeMoodCheckIn}
             activities={store.activities}
             workouts={store.workouts}
             focusLog={store.focusLog}
@@ -1824,6 +1897,7 @@ export default function App() {
             setTab("settings");
           }}
           onOpenBadges={() => setShowBadges(true)}
+          onReplayTour={() => setTourOpen(true)}
           onOpenFreshStart={() => setShowFreshStart(true)}
           hasFreshStart={triageItems.length > 0}
           onClearData={store.resetData}
@@ -1841,7 +1915,15 @@ export default function App() {
           {/* key={tab} remounts on tab switch so the fade/slide-in plays. */}
           <div className="content">
             <div className="tab-fade" key={tab}>
-              {screen}
+              <Suspense
+                fallback={
+                  <div className="card tab-loading" role="status">
+                    Opening…
+                  </div>
+                }
+              >
+                {screen}
+              </Suspense>
             </div>
           </div>
           {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}
@@ -1886,6 +1968,7 @@ export default function App() {
           <button
             type="button"
             className="hf-fab quick-note-fab"
+            data-tour="quickadd-mobile"
             title="Quick add"
             onClick={() => setQuickAddOpen(true)}
             data-mute-click
@@ -1897,6 +1980,7 @@ export default function App() {
       ) : (
         <button
           className={"hf-fab" + (hyperfocus ? " active" : "")}
+          data-tour="focus"
           title={hyperfocus ? "Exit Hyperfocus" : "Enter Hyperfocus"}
           aria-pressed={hyperfocus}
           onClick={toggleHyperfocus}
@@ -1944,9 +2028,14 @@ export default function App() {
         <MorningCheckIn
           manual={sleepGateManual}
           defaults={
-            lastSleepEntry
-              ? { bedTime: lastSleepEntry.bedTime, wakeTime: lastSleepEntry.wakeTime }
-              : {}
+            pendingSleep
+              ? {
+                  bedTime: pendingSleep.bedTime,
+                  wakeTime: currentHHMM(),
+                }
+              : lastSleepEntry
+                ? { bedTime: lastSleepEntry.bedTime, wakeTime: lastSleepEntry.wakeTime }
+                : {}
           }
           onSave={(draft) => {
             wroteSleepTodayRef.current = true;
@@ -2021,6 +2110,24 @@ export default function App() {
       />
 
       {showFindBar && <FindBar onClose={() => setShowFindBar(false)} />}
+
+      <OnboardingTour
+        open={tourOpen}
+        isMobile={isMobile}
+        initialName={
+          ["Guest", "You", "Maya"].includes((settings.profile?.name || "").trim())
+            ? ""
+            : settings.profile?.name || ""
+        }
+        onSaveName={(name) => setSection("profile", { name })}
+        setTab={setTab}
+        onCreateGoal={({ name, starterHabits }) => {
+          const goal = addGoal({ name, starterHabits });
+          setActiveGoal(goal.id);
+          return goal;
+        }}
+        onFinish={finishTour}
+      />
     </div>
   );
 }

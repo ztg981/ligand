@@ -108,7 +108,7 @@ export default function ResumeThread({
         </button>
       </div>
       <p className="resume-sub">
-        No catching up required — here's exactly where things stand.
+        No catching up required. Here's exactly where things stand.
       </p>
       <div className="stack" style={{ gap: 8 }}>
         {threads.map((t) => (

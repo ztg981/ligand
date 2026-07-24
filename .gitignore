@@ -12,8 +12,12 @@ dist
 dist-ssr
 *.local
 
-# Electron build output (installers/binaries) — never commit
-dist-electron
+# Electron build output (installers/binaries) — publish as release assets, never commit
+dist-electron*/
+/Ligand-Setup-*.exe
+/Ligand-Setup-*.exe.blockmap
+/latest.yml
+/release-backup-*/
 
 # Environment variables (Supabase keys, etc.) — never commit
 .env

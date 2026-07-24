@@ -1,7 +1,7 @@
-// App/website blocker (Windows) — a focus-mode site blocker in the spirit of
+// App/website blocker (Windows & macOS) — a focus-mode site blocker in the spirit of
 // Cold Turkey / Freedom.
 //
-// Mechanism: rewrite the Windows hosts file so blocked domains resolve to
+// Mechanism: rewrite the system hosts file so blocked domains resolve to
 // 127.0.0.1 (a dead end). All of Ligand's entries live between two marker lines
 // so cleanup is surgical — we never touch anything else in the file:
 //
@@ -11,11 +11,10 @@
 //   # LIGAND-BLOCK-END
 //
 // Editing the hosts file needs admin rights. Reading it does not, so we compute
-// the new content unprivileged and only elevate for the write: if a direct
-// write fails with EPERM we relaunch just the copy step via PowerShell
-// `Start-Process -Verb RunAs`, which shows ONE UAC prompt. If the user is
-// already running elevated (or has been granted write access), no prompt shows
-// at all.
+// the new content unprivileged and only elevate for the write:
+// - On Windows: via PowerShell `Start-Process -Verb RunAs` (one UAC prompt).
+// - On macOS: via `osascript` administrator privileges (one native password prompt).
+// If the user is already running elevated (or has write access), no prompt shows at all.
 //
 // Safety: the block is tied to the app being open. We reconcile on startup and
 // clear on quit, and expose a "leftover block detected" signal so a crash or
@@ -30,13 +29,16 @@ const { spawn } = require("child_process");
 const START = "# LIGAND-BLOCK-START";
 const END = "# LIGAND-BLOCK-END";
 
-const HOSTS_PATH = path.join(
-  process.env.WINDIR || "C:\\Windows",
-  "System32",
-  "drivers",
-  "etc",
-  "hosts"
-);
+const HOSTS_PATH =
+  process.platform === "darwin"
+    ? "/etc/hosts"
+    : path.join(
+        process.env.WINDIR || "C:\\Windows",
+        "System32",
+        "drivers",
+        "etc",
+        "hosts"
+      );
 
 // Preset domain groups. Kept deliberately small and mainstream — the goal is
 // removing the biggest reflexive time-sinks, not an exhaustive blocklist.
@@ -57,8 +59,8 @@ const PRESETS = {
   ],
 };
 
-function isWindows() {
-  return process.platform === "win32";
+function isSupportedPlatform() {
+  return process.platform === "win32" || process.platform === "darwin";
 }
 
 function readHosts() {
@@ -131,50 +133,84 @@ function writeHosts(newContent) {
       }
     }
 
-    // 2) Elevated fallback: stage the content in temp, then copy it into place
-    //    from an elevated PowerShell (one UAC prompt).
-    const tmp = path.join(os.tmpdir(), `ligand-hosts-${Date.now()}.txt`);
-    const ps1 = path.join(os.tmpdir(), `ligand-block-${Date.now()}.ps1`);
-    try {
-      fs.writeFileSync(tmp, newContent, "utf8");
-      fs.writeFileSync(
-        ps1,
-        [
-          "$ErrorActionPreference='Stop'",
-          `Copy-Item -LiteralPath '${tmp}' -Destination '${HOSTS_PATH}' -Force`,
-          "ipconfig /flushdns | Out-Null",
-        ].join("\r\n"),
-        "utf8"
-      );
-    } catch (err) {
-      resolve({ ok: false, error: `Could not stage the update: ${err.message}` });
+    // 2) Elevated fallback:
+    if (process.platform === "darwin") {
+      const tmp = path.join(os.tmpdir(), `ligand-hosts-${Date.now()}.txt`);
+      try {
+        fs.writeFileSync(tmp, newContent, "utf8");
+      } catch (err) {
+        resolve({ ok: false, error: `Could not stage the update: ${err.message}` });
+        return;
+      }
+
+      const script = `do shell script "cp '${tmp}' '${HOSTS_PATH}' && dscacheutil -flushcache && killall -HUP mDNSResponder" with administrator privileges`;
+      const child = spawn("osascript", ["-e", script]);
+
+      let stderr = "";
+      child.stderr.on("data", (d) => { stderr += d.toString(); });
+      child.on("exit", (code) => {
+        try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+        if (code === 0) {
+          resolve({ ok: true, elevated: true });
+        } else if (stderr.includes("User canceled") || stderr.includes("canceled") || code === 1) {
+          resolve({ ok: false, cancelled: true, error: "Permission was declined." });
+        } else {
+          resolve({ ok: false, error: stderr.trim() || `Update failed (code ${code}).` });
+        }
+      });
+      child.on("error", (err) => resolve({ ok: false, error: err.message }));
       return;
     }
 
-    // Outer (non-elevated) PowerShell launches the elevated child and waits,
-    // forwarding its exit code. A cancelled UAC prompt makes Start-Process
-    // throw, which we surface as a clean "cancelled" result.
-    const outer = `try { $p = Start-Process powershell -Verb RunAs -WindowStyle Hidden -PassThru -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${ps1}'; exit $p.ExitCode } catch { exit 1223 }`;
+    if (process.platform === "win32") {
+      const tmp = path.join(os.tmpdir(), `ligand-hosts-${Date.now()}.txt`);
+      const ps1 = path.join(os.tmpdir(), `ligand-block-${Date.now()}.ps1`);
+      try {
+        fs.writeFileSync(tmp, newContent, "utf8");
+        fs.writeFileSync(
+          ps1,
+          [
+            "$ErrorActionPreference='Stop'",
+            `Copy-Item -LiteralPath '${tmp}' -Destination '${HOSTS_PATH}' -Force`,
+            "ipconfig /flushdns | Out-Null",
+          ].join("\r\n"),
+          "utf8"
+        );
+      } catch (err) {
+        resolve({ ok: false, error: `Could not stage the update: ${err.message}` });
+        return;
+      }
 
-    const child = spawn(
-      "powershell",
-      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-Command", outer],
-      { windowsHide: true }
-    );
-    child.on("exit", (code) => {
-      try { fs.unlinkSync(tmp); } catch { /* ignore */ }
-      try { fs.unlinkSync(ps1); } catch { /* ignore */ }
-      if (code === 0) resolve({ ok: true, elevated: true });
-      else if (code === 1223) resolve({ ok: false, cancelled: true, error: "Permission was declined." });
-      else resolve({ ok: false, error: `Update failed (code ${code}).` });
-    });
-    child.on("error", (err) => resolve({ ok: false, error: err.message }));
+      const outer = `try { $p = Start-Process powershell -Verb RunAs -WindowStyle Hidden -PassThru -Wait -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','${ps1}'; exit $p.ExitCode } catch { exit 1223 }`;
+
+      const child = spawn(
+        "powershell",
+        ["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-Command", outer],
+        { windowsHide: true }
+      );
+      child.on("exit", (code) => {
+        try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+        try { fs.unlinkSync(ps1); } catch { /* ignore */ }
+        if (code === 0) resolve({ ok: true, elevated: true });
+        else if (code === 1223) resolve({ ok: false, cancelled: true, error: "Permission was declined." });
+        else resolve({ ok: false, error: `Update failed (code ${code}).` });
+      });
+      child.on("error", (err) => resolve({ ok: false, error: err.message }));
+      return;
+    }
+
+    resolve({ ok: false, error: `Unsupported platform: ${process.platform}` });
   });
 }
 
 function flushDns() {
   try {
-    spawn("ipconfig", ["/flushdns"], { windowsHide: true });
+    if (process.platform === "win32") {
+      spawn("ipconfig", ["/flushdns"], { windowsHide: true });
+    } else if (process.platform === "darwin") {
+      spawn("dscacheutil", ["-flushcache"]);
+      spawn("killall", ["-HUP", "mDNSResponder"]);
+    }
   } catch { /* best-effort */ }
 }
 
@@ -182,7 +218,7 @@ function flushDns() {
 let _blockedDomains = [];
 
 async function apply(domains) {
-  if (!isWindows()) return { ok: false, error: "Blocking is Windows-only." };
+  if (!isSupportedPlatform()) return { ok: false, error: "Blocking is not supported on this OS." };
   const content = stripBlock(readHosts());
   const block = buildBlockText(domains);
   const next = block ? `${content}${block}\r\n` : content;
@@ -192,7 +228,7 @@ async function apply(domains) {
 }
 
 async function clear() {
-  if (!isWindows()) return { ok: true, blocked: [] };
+  if (!isSupportedPlatform()) return { ok: true, blocked: [] };
   if (!hasBlock()) {
     _blockedDomains = [];
     return { ok: true, blocked: [] };
@@ -205,7 +241,7 @@ async function clear() {
 
 function status() {
   return {
-    supported: isWindows(),
+    supported: isSupportedPlatform(),
     active: hasBlock(),
     blocked: _blockedDomains,
     presets: PRESETS,

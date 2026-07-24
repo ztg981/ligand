@@ -50,7 +50,7 @@ export default function SleepCard({ sleepLog = [], onLogSleep, onOpenSleep }) {
 
       {stats.count === 0 ? (
         <p className="sleep-empty">
-          No nights logged yet. One entry each morning — two taps — and this
+          No nights logged yet. One entry each morning, just two taps, and this
           fills into your own sleep picture.
         </p>
       ) : (

@@ -384,10 +384,15 @@ body {
 @-moz-document url-prefix() {
   body {
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.012em;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
+    font-synthesis: weight style;
+    text-rendering: auto;
+    /* Fixed backgrounds and continuously moving, heavily blurred layers are
+       disproportionately expensive in Firefox's compositor. The same visual
+       remains, but it is painted once instead of on every animation frame. */
+    background-attachment: scroll;
   }
+  .ambient .blob { animation: none; }
 }
 
 button { font: inherit; color: inherit; }
@@ -604,10 +609,26 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
+  border-radius: 12px;
   scrollbar-width: none; /* Firefox */
 }
 .topbar-scroll::-webkit-scrollbar { display: none; } /* WebKit */
 .topbar-scroll > * { flex-shrink: 0; } /* keep tab labels intact; scroll instead */
+/* When the tabset is clipped, soften only the clipped edge. At either true
+   end of the scroll range no mask is applied, so the tabset's own rounded end
+   remains crisp instead of looking permanently fogged. */
+.topbar-scroll.can-scroll-right:not(.can-scroll-left) {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+.topbar-scroll.can-scroll-left:not(.can-scroll-right) {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 100%);
+}
+.topbar-scroll.can-scroll-left.can-scroll-right {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+}
 
 .topbar-spacer { flex: 1; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -3465,6 +3486,33 @@ button.upcoming-row:hover { background: var(--panel-3); }
 .sync-pill.saved .sync-dot { background: oklch(0.65 0.14 150); }
 @keyframes syncPulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
 
+/* Electron has a dedicated quiet status slot below the window controls and
+   above the right-side goal rail. The web/PWA keeps the pill in the topbar. */
+.electron-sync-pop { display: none; }
+@media (min-width: 768px) {
+  html[data-electron="true"] .topbar-tools > .sync-pill { display: none; }
+  html[data-electron="true"] .electron-sync-pop {
+    position: fixed;
+    top: calc(var(--shell-py) + 72px);
+    right: 20px;
+    z-index: 19;
+    display: flex;
+    justify-content: flex-end;
+    pointer-events: none;
+    -webkit-app-region: no-drag;
+  }
+  html[data-electron="true"] .electron-sync-pop .sync-pill {
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: syncStatusIn 160ms var(--ease);
+  }
+}
+@keyframes syncStatusIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .standalone-sync-banner {
   position: relative;
   z-index: 18;
@@ -4978,6 +5026,40 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .journal-entry-text { font-size: 13px; }
 .journal-entries { gap: 10px; }
 
+.daily-mood-card { overflow: hidden; }
+.daily-mood-sub {
+  margin-top: 3px; font-size: 11.5px; line-height: 1.4; color: var(--ink-3);
+}
+.tab-loading {
+  min-height: 120px; display: grid; place-items: center;
+  color: var(--ink-3); font-size: 12px;
+}
+.daily-mood-count {
+  flex: none; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-4);
+}
+.daily-mood-options {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px;
+}
+.daily-mood-option {
+  min-width: 0; min-height: 38px; padding: 7px 5px;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--panel-2); color: var(--ink-3);
+  font-size: 12px; font-weight: 650; cursor: pointer;
+}
+.daily-mood-option:hover { color: var(--ink); border-color: var(--line-strong); }
+.daily-mood-option.active {
+  color: var(--accent-ink); border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.daily-mood-latest {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 8px; font-size: 10.5px; color: var(--ink-4);
+}
+.daily-mood-latest button {
+  flex: none; border: 0; background: transparent; color: var(--accent-ink);
+  font: inherit; cursor: pointer; padding: 2px 0;
+}
+
 /* ---- Phone: roomier compose box, tappable location/mood controls,
    more breathing room between past entries ---- */
 @media (max-width: 640px) {
@@ -5050,6 +5132,42 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   max-width: 260px;
 }
 .song-chip.static { cursor: default; }
+.song-entry-list {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px;
+}
+.song-title-disclosure { min-width: 0; max-width: 100%; }
+.song-title-disclosure.compact {
+  padding: 4px 8px; border-radius: 999px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.song-title-button {
+  display: flex; align-items: center; gap: 5px;
+  min-width: 0; max-width: 100%; padding: 0;
+  border: 0; background: transparent; color: var(--ink);
+  font-size: 13px; font-weight: 600; text-align: left; cursor: default;
+}
+.song-title-button[aria-expanded] { cursor: pointer; }
+.song-title-button > span:not(.song-note-indicator):not(.song-title-artist) {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.song-title-artist {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--ink-3); font-weight: 500;
+}
+.song-note-indicator {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 999px;
+  color: var(--accent-ink); background: var(--accent-soft);
+}
+.song-note-disclosed {
+  max-width: 100%; margin-top: 6px; padding: 8px 10px;
+  border-left: 2px solid var(--accent); border-radius: 0 8px 8px 0;
+  background: var(--panel-2); color: var(--ink-2);
+  font-size: 12px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.song-title-disclosure.compact .song-note-disclosed {
+  margin: 6px 0 2px; border-radius: 8px;
+}
 .song-chip-remove {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; border-radius: 50%;
@@ -5237,6 +5355,81 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    CSS picks one so there's no resize-listener/JS branching to keep in sync.
    ============================================================ */
 .home-mobile-only { display: none; }
+.home-desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row;
+  gap: 14px;
+  align-items: stretch;
+}
+/* The two historical columns stay as harmless grouping wrappers in the JSX,
+   but their children now participate in one shared grid. This is what prevents
+   one short column from leaving a page-sized hole under it. */
+.home-desktop-grid > .stack { display: contents; }
+.home-desktop-grid > .stack > * {
+  grid-column: span 6;
+  min-width: 0;
+  height: 100%;
+}
+.home-desktop-grid > .stack > .card,
+.home-desktop-grid > .stack > .home-goals-section {
+  align-self: stretch;
+}
+.home-desktop-grid .resume-card,
+.home-desktop-grid .fresh-start-card,
+.home-desktop-grid .needs-attention-card,
+.home-desktop-grid .goals-review-card,
+.home-desktop-grid .ov-focus-card {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid .pick-one-card,
+.home-desktop-grid .progress-card,
+.home-desktop-grid .dayring-card,
+.home-desktop-grid .lastact,
+.home-desktop-grid .home-goals-section {
+  grid-column: span 7;
+}
+.home-desktop-grid .upnext-card,
+.home-desktop-grid .upcoming-card,
+.home-desktop-grid .sleep-card,
+.home-desktop-grid .showup-card,
+.home-desktop-grid .nextbadge-card {
+  grid-column: span 5;
+}
+/* Optional partners expand when the neighboring widget is hidden or has no
+   meaningful data, so customization never reintroduces a mystery gap. */
+.home-desktop-grid:not(:has(.pick-one-card)) .upnext-card {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid:not(:has(.upnext-card)) .pick-one-card,
+.home-desktop-grid:not(:has(.sleep-card)) .dayring-card,
+.home-desktop-grid:not(:has(.dayring-card)) .sleep-card,
+.home-desktop-grid:not(:has(.showup-card)) .lastact,
+.home-desktop-grid:not(:has(.lastact)) .showup-card,
+.home-desktop-grid:not(:has(.nextbadge-card)) .home-goals-section {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid .ov-focus-card {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 5%, transparent), transparent 55%),
+    var(--panel);
+  border-color: color-mix(in oklab, var(--accent) 20%, var(--line));
+}
+.home-goals-section {
+  padding-top: 2px;
+}
+@supports (content-visibility: auto) {
+  .home-mobile-only > .card,
+  .home-desktop-grid > .stack > .card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 220px;
+  }
+}
+@media (max-width: 1100px) and (min-width: 768px) {
+  .home-desktop-grid > .stack > * {
+    grid-column: 1 / -1 !important;
+  }
+}
 @media (max-width: 767px) {
   .home-mobile-only { display: flex; flex-direction: column; gap: 12px; }
   .home-desktop-grid { display: none; }
@@ -7637,18 +7830,28 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    top-right corner (electron/main.js). Everything here is inert in the browser
    / PWA build, where the data-electron attribute is never set.
    ============================================================ */
-/* The floating nav becomes the window's drag handle. */
+/* Keep the whole empty inset above the floating nav draggable. Its height must
+   follow density: the nav begins after shell padding plus its 6px top margin.
+   Reserving that same inset as the sticky offset prevents this layer from
+   covering the nav after the page scrolls. */
 html[data-electron="true"]::before {
   content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 140px;
-  height: 16px;
+  height: calc(var(--shell-py) + 6px);
   z-index: 99999;
   -webkit-app-region: drag;
 }
+/* On the main app screen the window controls sit inside the nav, below this
+   inset, so the top edge can safely drag across its full width. Standalone
+   loading/auth screens keep the right-side gap for their fixed controls. */
+html[data-electron="true"]:has(.topbar)::before {
+  right: 0;
+}
 html[data-electron="true"] .topbar {
+  top: calc(var(--shell-py) + 6px);
   -webkit-app-region: drag;
 }
 /* ...but every interactive element inside it opts back out so clicks, the goal
@@ -7660,6 +7863,18 @@ html[data-electron="true"] .topbar select,
 html[data-electron="true"] .topbar [role="button"],
 html[data-electron="true"] .topbar .goal-dropdown {
   -webkit-app-region: no-drag;
+}
+
+/* macOS specific adjustments — native traffic light window controls live on the top-left */
+html[data-electron-platform="darwin"] .topbar {
+  padding-left: 78px;
+}
+html[data-electron-platform="darwin"]::before {
+  left: 78px;
+  right: 0;
+}
+html[data-electron-platform="darwin"] .electron-drag-strip {
+  left: 78px;
 }
 
 .window-controls {
@@ -9122,6 +9337,19 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
    Day tab zoom levels: Week + Month views, NL add bar, repeat UI
    ============================================================ */
 .dp-view-seg { flex: none; }
+.dp-reality-legend {
+  display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+  margin: -4px 0 10px; color: var(--ink-4); font-size: 10.5px;
+}
+.dp-reality-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dp-reality-legend i {
+  width: 16px; height: 5px; border-radius: 999px; background: var(--accent);
+}
+.dp-reality-legend i.actual { background: oklch(0.62 0.14 245); }
+.dp-reality-legend i.actual-sleep { background: oklch(0.58 0.11 285); }
+.dp-reality-legend i.usual-sleep {
+  height: 8px; background: var(--panel-3); border: 1px solid var(--line-strong);
+}
 
 /* Natural-language add bar */
 .calv-nl { margin-bottom: 12px; }
@@ -9138,6 +9366,34 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 
 /* Month grid, wide cells with event chips */
 .cal-grid-wide .cal-cell { min-height: 74px; align-items: stretch; }
+.cal-month-layout.expanded .cal-grid-wide .cal-cell,
+.cal-grid-expanded .cal-cell {
+  min-height: clamp(96px, 13vh, 150px);
+}
+.cal-month-layout.expanded .cal-day {
+  display: grid; grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr) auto;
+  align-items: start; column-gap: 18px;
+}
+.cal-month-layout.expanded .cal-day > .card-head { margin: 0; }
+.cal-month-layout.expanded .cal-day-actions {
+  align-self: center; justify-content: flex-end; margin-top: 0;
+}
+.cal-expand-btn[aria-pressed="true"] {
+  color: var(--accent-ink); background: var(--accent-soft);
+}
+.btn.ghost.cal-month-expand-btn {
+  border: 1.5px solid color-mix(in oklab, var(--accent) 72%, var(--line-strong));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--panel) 76%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in oklab, var(--accent) 10%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--panel) 68%, transparent);
+}
+.btn.ghost.cal-month-expand-btn:hover,
+.btn.ghost.cal-month-expand-btn:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 16%, transparent);
+}
 .cal-grid-wide .cal-cell-num { align-self: flex-start; }
 .cal-cell-chips { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
 .cal-cell-chip {
@@ -9156,7 +9412,13 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 .cal-item-repeat { margin-left: 5px; color: var(--ink-4); }
 
 /* Week view */
+.cal-week-card {
+  min-height: clamp(340px, calc(100dvh - 280px), 720px);
+  display: flex;
+  flex-direction: column;
+}
 .calv-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-week-card .calv-week { flex: 1; align-items: stretch; }
 .calv-week.stack-days { grid-template-columns: 1fr; }
 .calv-week-day {
   border: 1px solid var(--line); border-radius: var(--r-md);
@@ -9165,6 +9427,7 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
   min-height: 90px;
   display: flex; flex-direction: column; gap: 5px;
 }
+.cal-week-card .calv-week-day { min-height: 100%; }
 .calv-week.stack-days .calv-week-day { min-height: 0; }
 .calv-week-day.today { border-color: var(--accent); }
 .calv-week-head {
@@ -9194,8 +9457,23 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
   border: 1px dashed var(--line); border-radius: 6px;
   background: none; color: var(--ink-4);
   font-size: 13px; cursor: pointer; padding: 4px 0;
+  flex: 1;
 }
 .calv-week-empty:hover { color: var(--ink-2); border-color: var(--line-strong); }
+
+@media (max-width: 768px) {
+  .cal-week-card { min-height: 0; }
+  .cal-week-card .calv-week-day { min-height: 0; }
+  .cal-month-layout.mobile { display: flex; flex-direction: column; gap: 12px; }
+  .cal-month-layout.mobile .cal-grid-expanded .cal-cell { min-height: 72px; }
+  .cal-month-layout.mobile .cal-grid-expanded .cal-cell-dots {
+    transform: scale(1.08); transform-origin: center;
+  }
+  .cal-month-layout.expanded .cal-day {
+    display: block;
+  }
+  .cal-month-layout.expanded .cal-day-actions { margin-top: 10px; }
+}
 
 /* Repeat controls in the block editor */
 .dp-repeat { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 10px; }

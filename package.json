@@ -1,7 +1,7 @@
 {
   "name": "ligand",
   "private": true,
-  "version": "1.2.4",
+  "version": "1.2.10",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -14,11 +14,13 @@
     "preview": "vite preview",
     "electron": "electron electron/main.js",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron electron/main.js\"",
-    "electron:build": "vite build --mode electron && electron-builder"
+    "electron:build": "node scripts/verify-electron-env.mjs && vite build --mode electron && electron-builder --config.electronDist=node_modules/electron/dist",
+    "electron:build:mac": "node scripts/verify-electron-env.mjs && vite build --mode electron && electron-builder --mac --config.electronDist=node_modules/electron/dist"
   },
   "build": {
     "appId": "com.ligand.app",
     "productName": "Ligand",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "directories": {
       "output": "dist-electron"
     },
@@ -27,8 +29,15 @@
       "icon": "public/ligand.ico"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "public/pwa-512.png"
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "public/pwa-512.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "publish": {
       "provider": "github",
@@ -58,7 +67,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
-    "concurrently": "^10.0.3",
+    "concurrently": "^9.2.4",
     "electron": "^43.0.0",
     "electron-builder": "^26.15.3",
     "eslint": "^10.3.0",

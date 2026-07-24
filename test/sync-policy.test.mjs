@@ -12,6 +12,8 @@ test("account content remains synced", () => {
   assert.equal(isSyncedKey("ligand.profile"), true);
   assert.equal(isSyncedKey("ligand.mobileSettings"), true);
   assert.equal(isSyncedKey("ligand.mobileTweaks"), true);
+  assert.equal(isSyncedKey("ligand.sleep"), true);
+  assert.equal(isSyncedKey("ligand.sleepPending"), true);
 });
 
 test("only legacy mobile state and machine-local settings stay local", () => {

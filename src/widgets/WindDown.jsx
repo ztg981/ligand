@@ -110,7 +110,7 @@ export default function WindDown({
         </>
       ) : (
         <p className="winddown-lead quiet">
-          A quiet day. Those count too — showing up tomorrow is what matters.
+          A quiet day. Those count too. Showing up tomorrow is what matters.
         </p>
       )}
 

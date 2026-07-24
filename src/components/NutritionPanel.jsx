@@ -189,7 +189,7 @@ export default function NutritionPanel({
           ))}
         </div>
         <p className="fuel-note">
-          Meals logged and water per day. No calories, no scores — just a
+          Meals logged and water per day. No calories, no scores, just a
           gentle record. For personal dietary needs, talk to a qualified
           professional.
         </p>

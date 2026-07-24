@@ -10,9 +10,11 @@ import { makeSleepEntry } from "../lib/sleep.js";
    sync, and clearing it never touches anything else. */
 
 const STORAGE_KEY = "ligand.sleep";
+const PENDING_KEY = "ligand.sleepPending";
 
 export function useSleepLog() {
   const [log, setLog] = useLocalStorage(STORAGE_KEY, []);
+  const [pendingSleep, setPendingSleep] = useLocalStorage(PENDING_KEY, null);
 
   // Upsert by wake-date. Returns the clean entry, or null if the draft
   // didn't validate (caller keeps its form open in that case).
@@ -26,9 +28,10 @@ export function useSleepLog() {
         // Keep a year of nights; the widgets only read the recent window.
         return [...rest, entry].slice(-366);
       });
+      setPendingSleep(null);
       return entry;
     },
-    [setLog]
+    [setLog, setPendingSleep]
   );
 
   const removeSleep = useCallback(
@@ -41,7 +44,28 @@ export function useSleepLog() {
     [log]
   );
 
-  return { sleepLog: log || [], logSleep, removeSleep, entryFor };
+  const startSleepNow = useCallback(() => {
+    const now = new Date();
+    const pending = {
+      startedAt: now.toISOString(),
+      startedOn: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+      bedTime: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    };
+    setPendingSleep(pending);
+    return pending;
+  }, [setPendingSleep]);
+
+  const cancelPendingSleep = useCallback(() => setPendingSleep(null), [setPendingSleep]);
+
+  return {
+    sleepLog: log || [],
+    logSleep,
+    removeSleep,
+    entryFor,
+    pendingSleep,
+    startSleepNow,
+    cancelPendingSleep,
+  };
 }
 
 export default useSleepLog;

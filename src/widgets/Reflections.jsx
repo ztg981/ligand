@@ -37,13 +37,13 @@ export default function Reflections({
 
   const [text, setText] = useState("");
   const [location, setLocation] = useState(null);
-  const reflections = goal.reflections || [];
+  const reflections = goal?.reflections;
   const compact = widgetSize === "compact";
   const roomy = widgetSize === "tall" || widgetSize === "large";
   // Per-goal sort preference (defaults newest-first).
-  const sort = goal.reflectionSort === "oldest" ? "oldest" : "newest";
+  const sort = goal?.reflectionSort === "oldest" ? "oldest" : "newest";
   const orderedReflections = useMemo(() => {
-    const arr = [...reflections];
+    const arr = [...(reflections || [])];
     arr.sort((a, b) => {
       const cmp = String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
       return sort === "newest" ? cmp : -cmp;

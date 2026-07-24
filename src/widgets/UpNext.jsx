@@ -98,7 +98,7 @@ export default function UpNext({
 
       {rows.length === 0 ? (
         <p className="upnext-empty">
-          Nothing scheduled and no open tasks. Enjoy the open space — or plan a block.
+          Nothing scheduled and no open tasks. Enjoy the open space, or plan a block.
         </p>
       ) : (
         <div className="upnext-list">

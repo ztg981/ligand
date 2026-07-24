@@ -17,7 +17,7 @@ export const SETTINGS_DEFAULTS = {
     anchor: "",
   },
   desktop: {
-    closeToTray: true,
+    closeToTray: false,
     launchAtLogin: false,
   },
   sleep: {
