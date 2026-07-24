@@ -2,8 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const SKIP_DIRS = new Set([".git", "node_modules", "dist-electron", ".claude"]);
+const SKIP_DIRS = new Set([".git", "node_modules", ".claude"]);
 const SKIP_FILES = new Set(["package-lock.json"]);
+const SKIP_DIR_PREFIXES = ["dist-electron", "release-backup-"];
+const SKIP_FILE_PATTERNS = [/^Ligand-Setup-.*\.exe(?:\.blockmap)?$/i];
 
 const PATTERNS = [
   { name: "Supabase secret key", re: /sb_secret_[A-Za-z0-9_-]{20,}/g },
@@ -27,11 +29,22 @@ const findings = [];
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory()) {
-      if (SKIP_DIRS.has(entry.name)) continue;
+      if (
+        SKIP_DIRS.has(entry.name) ||
+        SKIP_DIR_PREFIXES.some((prefix) => entry.name.startsWith(prefix))
+      ) {
+        continue;
+      }
       walk(path.join(dir, entry.name));
       continue;
     }
-    if (!entry.isFile() || SKIP_FILES.has(entry.name)) continue;
+    if (
+      !entry.isFile() ||
+      SKIP_FILES.has(entry.name) ||
+      SKIP_FILE_PATTERNS.some((pattern) => pattern.test(entry.name))
+    ) {
+      continue;
+    }
     const file = path.join(dir, entry.name);
     const rel = path.relative(root, file);
     let text;

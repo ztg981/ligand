@@ -571,13 +571,16 @@ function Tab({ it, activeId, onSelect, onArchive, sortable }) {
     opacity: isDragging ? 0.4 : 1,
     zIndex: isDragging ? 10 : undefined,
   };
+  // dnd-kit marks a disabled sortable control with aria-disabled="true".
+  // Main navigation tabs are intentionally not sortable, but they are still
+  // fully interactive, so only expose dnd-kit attributes on real drag targets.
+  const dragProps = sortable ? { ...attributes, ...listeners } : {};
 
   return (
     <button
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...dragProps}
       className={"tab " + (isActive ? "active" : "")}
       // Only call onSelect if we are not dragging. Note: on pointer down,
       // listeners handles the drag. onClick handles the selection.
