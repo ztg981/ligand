@@ -37,14 +37,20 @@ function fmtTick(ts, range) {
   return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
 }
 
-export default function MoodTrend({ journal = [], onOpenJournal }) {
+export default function MoodTrend({ journal = [], moodLog = [], onOpenJournal }) {
   const [range, setRange] = useState("2w");
   // Which way the last range change zoomed, for the animation direction.
   const [zoomDir, setZoomDir] = useState("out");
   const prevIdx = useRef(0);
 
-  const { points } = useMemo(() => moodTimeline(journal, range), [journal, range]);
-  const recent = useMemo(() => moodSeries(journal, 14), [journal]);
+  // New check-ins live independently from journal entries. Legacy entry moods
+  // remain in the source so an upgrade never erases the user's old trend.
+  const moodEntries = useMemo(
+    () => [...moodLog, ...journal.filter((entry) => entry.mood)],
+    [moodLog, journal]
+  );
+  const { points } = useMemo(() => moodTimeline(moodEntries, range), [moodEntries, range]);
+  const recent = useMemo(() => moodSeries(moodEntries, 14), [moodEntries]);
 
   const pickRange = (id) => {
     const from = prevIdx.current;
@@ -81,9 +87,9 @@ export default function MoodTrend({ journal = [], onOpenJournal }) {
           {seg}
         </div>
         <p className="moodtrend-empty">
-          {journal.some((e) => e.mood)
+          {moodEntries.length > 0
             ? "Not enough moods in this window yet. Zoom out, or keep logging."
-            : "Log a mood with a journal entry or two and your trend appears here."}
+            : "Check in with today's mood and your trend will appear here."}
         </p>
         {onOpenJournal && (
           <button className="btn ghost sm" onClick={onOpenJournal}>

@@ -55,12 +55,12 @@ export default function BlockerPanel() {
           <div className="card-title"><Icon.Bolt /> Focus block</div>
         </div>
         <p className="blocker-note" style={{ marginTop: 0 }}>
-          Website blocking works in the <strong>Ligand Windows app</strong>,
+          Website blocking works in the <strong>Ligand desktop app</strong>,
           which can block distracting sites system-wide during focus
           sessions. Browsers don't let a web page block other sites or apps,
           so this panel is read-only here. Get the desktop app from the
           GitHub releases page, or use your platform's built-in Focus mode
-          (Screen Time on iOS, Focus assist on Windows) alongside the
+          (Screen Time on macOS/iOS, Focus assist on Windows) alongside the
           Pomodoro timer.
         </p>
       </div>

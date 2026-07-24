@@ -4,6 +4,8 @@ import { Icon } from "./Icons.jsx";
 export default function WindowControls({ standalone = false }) {
   const controls =
     typeof window !== "undefined" ? window.electron?.windowControls : null;
+  const platform =
+    typeof window !== "undefined" ? window.electron?.platform : null;
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -19,7 +21,9 @@ export default function WindowControls({ standalone = false }) {
     };
   }, [controls]);
 
-  if (!controls) return null;
+  // On macOS, native traffic light window controls live on the top-left.
+  if (!controls || platform === "darwin") return null;
+
   return (
     <div
       className={"window-controls" + (standalone ? " window-controls-standalone" : "")}
@@ -43,10 +47,12 @@ export default function WindowControls({ standalone = false }) {
 }
 
 export function StandaloneWindowChrome() {
+  const platform =
+    typeof window !== "undefined" ? window.electron?.platform : null;
   return (
     <>
       <div className="electron-drag-strip" aria-hidden="true" />
-      <WindowControls standalone />
+      {platform !== "darwin" && <WindowControls standalone />}
     </>
   );
 }

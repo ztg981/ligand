@@ -5,7 +5,7 @@
 // the built files from dist/index.html over file:// (which is why vite.config
 // uses base "./" so asset paths stay relative). The web/PWA build is
 // unchanged — this is an additional shell, not a replacement.
-const { app, BrowserWindow, Menu, Tray, shell, ipcMain } = require("electron");
+const { app, BrowserWindow, Menu, Tray, shell, ipcMain, nativeImage } = require("electron");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
 const appBlocker = require("./appBlocker");
@@ -19,9 +19,15 @@ const DEV_SERVER_URL =
 // Dark theme base so the window never flashes white before the app paints —
 // matches --bg in the app's dark theme and the PWA manifest background_color.
 const THEME_BG = "#15161a";
-const THEME_INK = "#f0eeec";
 
 app.setName("Ligand");
+
+// Close-to-tray means the first Ligand process often remains alive after its
+// window is closed. Never let a shortcut click start a second independent app
+// instance: Chromium profiles (including Supabase's persisted auth session)
+// are not safe to open from multiple processes at once.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
 
 // Windows requires an explicit AppUserModelID for renderer-fired HTML5
 // notifications (new Notification(...)) to surface as native toasts and to
@@ -55,16 +61,115 @@ function showMainWindow() {
   mainWindow.focus();
 }
 
+if (hasSingleInstanceLock) {
+  app.on("second-instance", () => {
+    // A shortcut click while Ligand is already in the tray should reveal the
+    // existing window, not create another renderer/profile owner.
+    if (app.isReady()) showMainWindow();
+  });
+}
+
+function createApplicationMenu() {
+  if (process.platform !== "darwin") {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+  const template = [
+    {
+      label: app.name,
+      submenu: [
+        { role: "about" },
+        { type: "separator" },
+        {
+          label: "Check for Updates...",
+          click: () => {
+            showMainWindow();
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send("update-checking");
+              autoUpdater.checkForUpdates().catch(() => {});
+            }
+          },
+        },
+        { type: "separator" },
+        { role: "services" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    {
+      label: "Window",
+      submenu: [
+        { role: "minimize" },
+        { role: "zoom" },
+        { type: "separator" },
+        { role: "front" },
+        { type: "separator" },
+        { role: "window" },
+      ],
+    },
+    {
+      label: "Help",
+      submenu: [
+        {
+          label: "Ligand Documentation",
+          click: () => shell.openExternal("https://ligand.app"),
+        },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 // The tray icon is what keeps Ligand alive (and reminders/alarms firing)
-// after the window closes. The .ico ships in public/ (dev) and is copied
-// into dist/ by the build (packaged).
+// after the window closes.
 function createTray() {
   if (tray) return;
+  const isMac = process.platform === "darwin";
+  const iconFileName = isMac ? "pwa-512.png" : "ligand.ico";
   const iconPath = app.isPackaged
-    ? path.join(__dirname, "..", "dist", "ligand.ico")
-    : path.join(__dirname, "..", "public", "ligand.ico");
+    ? path.join(__dirname, "..", "dist", iconFileName)
+    : path.join(__dirname, "..", "public", iconFileName);
+
+  let trayImage;
+  if (isMac) {
+    trayImage = nativeImage.createFromPath(iconPath).resize({ width: 18, height: 18 });
+    trayImage.setTemplateImage(true);
+  } else {
+    trayImage = iconPath;
+  }
+
   try {
-    tray = new Tray(iconPath);
+    tray = new Tray(trayImage);
   } catch {
     // Missing icon or unsupported environment — app still works, it just
     // quits on close like before.
@@ -89,6 +194,7 @@ function createTray() {
 }
 
 function createWindow() {
+  const isMac = process.platform === "darwin";
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -97,13 +203,14 @@ function createWindow() {
     resizable: true,
     backgroundColor: THEME_BG,
     title: "Ligand",
-    icon: path.join(__dirname, "..", "public", "pwa-512.png"),
+    icon: app.isPackaged
+      ? path.join(__dirname, "..", "dist", isMac ? "pwa-512.png" : "ligand.ico")
+      : path.join(__dirname, "..", "public", isMac ? "pwa-512.png" : "ligand.ico"),
     show: false, // reveal on ready-to-show to avoid a white flash
-    autoHideMenuBar: true,
-    // Frameless lets Ligand keep its floating rounded nav as the draggable
-    // title bar. Window controls live inside that nav instead of being pinned
-    // to the absolute top edge by Windows.
-    frame: false,
+    autoHideMenuBar: !isMac,
+    frame: !isMac ? false : true,
+    titleBarStyle: isMac ? "hiddenInset" : undefined,
+    trafficLightPosition: isMac ? { x: 14, y: 12 } : undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -113,8 +220,7 @@ function createWindow() {
     },
   });
 
-  // No application menu (a native desktop app, not a browser).
-  Menu.setApplicationMenu(null);
+  createApplicationMenu();
 
   mainWindow.once("ready-to-show", () => {
     if (!startHidden) mainWindow.show();
@@ -174,17 +280,11 @@ function createWindow() {
 }
 
 // Auto-update via electron-updater (GitHub Releases as the update server).
-// Only meaningful in a packaged app — in electron:dev there's no installer to
-// swap, and autoUpdater would just error, so we skip it entirely. The renderer
-// is told when an update is available and when it's finished downloading so it
-// can show a subtle, non-blocking banner; clicking it sends "quit-and-install".
 function setupAutoUpdates(win) {
   if (!app.isPackaged) {
     // Dev: nothing to update. Skip gracefully.
     return;
   }
-  // Download in the background; we surface the "restart to install" prompt in
-  // the UI rather than auto-quitting.
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -207,19 +307,16 @@ function setupAutoUpdates(win) {
     send("update-error", String(err && err.message ? err.message : err))
   );
 
-  // Silent check on startup; nothing is shown unless an update turns up.
   autoUpdater.checkForUpdatesAndNotify().catch(() => {
     /* offline / no releases yet — stay silent */
   });
 }
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
   createTray();
   createWindow();
 
-  // Renderer syncs settings.desktop here (main can't read localStorage).
-  // Login-item registration only happens in the packaged app — in dev it
-  // would register the bare electron binary.
   ipcMain.on("desktop:configure", (_event, cfg = {}) => {
     closeToTray = cfg.closeToTray !== false;
     if (app.isPackaged) {
@@ -230,11 +327,8 @@ app.whenReady().then(() => {
     }
   });
 
-  // Show/focus the window (e.g. the user clicked a reminder notification
-  // while Ligand sat in the tray).
   ipcMain.on("window:show", showMainWindow);
 
-  // Renderer clicked "restart to install" — swap in the downloaded update.
   ipcMain.on("quit-and-install", () => {
     try {
       quitting = true;
@@ -244,8 +338,6 @@ app.whenReady().then(() => {
     }
   });
 
-  // Manual "Check for updates" from Settings → About. Resolves with a plain
-  // status; progress/downloaded events stream separately (setupAutoUpdates).
   ipcMain.handle("updates:check", async () => {
     if (!app.isPackaged) return { ok: false, reason: "dev" };
     try {
@@ -256,7 +348,6 @@ app.whenReady().then(() => {
     }
   });
 
-  // Kick off the background update check once the window exists.
   setupAutoUpdates(mainWindow);
 
   ipcMain.on("window:control", (event, action) => {
@@ -283,9 +374,7 @@ app.whenReady().then(() => {
     if (win) win.webContents.stopFindInPage(action || "clearSelection");
   });
 
-  // ---- Focus-mode website blocker (Windows hosts file) ----
-  // Reading is unprivileged; apply/clear elevate only when needed (see
-  // appBlocker.js). All three are async and return a plain status object.
+  // ---- Focus-mode website blocker ----
   ipcMain.handle("blocker:status", () => appBlocker.status());
   ipcMain.handle("blocker:apply", (_e, domains) => appBlocker.apply(domains || []));
   ipcMain.handle("blocker:clear", () => appBlocker.clear());
@@ -300,12 +389,9 @@ app.on("before-quit", () => {
   quitting = true;
 });
 
-// Always restore sites on exit — the block is only meant to hold while Ligand
-// is open. Best-effort and only when a block is actually present (so a normal
-// quit never triggers a UAC prompt). A crash can't run this; the renderer
-// reconciles a leftover block on next launch via blocker:status.
+// Always restore sites on exit
 app.on("before-quit", (event) => {
-  if (process.platform !== "win32" || !appBlocker.hasBlock()) return;
+  if (!appBlocker.hasBlock()) return;
   event.preventDefault();
   appBlocker.clear().finally(() => app.exit(0));
 });

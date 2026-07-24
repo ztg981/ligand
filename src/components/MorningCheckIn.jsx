@@ -65,7 +65,7 @@ export default function MorningCheckIn({
             </h2>
             {!manual && (
               <p className="sleep-gate-sub">
-                Just this one thing — everything else can wait behind this screen.
+                Just this one thing. Everything else can wait behind this screen.
               </p>
             )}
 

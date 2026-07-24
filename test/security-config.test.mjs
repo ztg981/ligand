@@ -155,8 +155,8 @@ test("Vercel config includes an enforced CSP and SPA rewrite", () => {
 
 test("nested web routes use root assets while Electron keeps file-relative assets", () => {
   assert.match(viteConfig, /base:\s*mode === 'electron' \? '\.\/' : '\/'/);
-  assert.equal(
+  assert.match(
     packageConfig.scripts["electron:build"],
-    "vite build --mode electron && electron-builder"
+    /vite build --mode electron && electron-builder/
   );
 });

@@ -152,6 +152,7 @@ export default function DayDial({
   date, // YYYY-MM-DD being viewed
   isToday,
   blocks = [],
+  actualSegments = [], // slim tracks for real sleep/activities/workouts
   alarms = [], // [{ id, label, minutes }]
   selectedId = null,
   draftRange = null, // { start, end } being composed in the editor — ghost wedge
@@ -458,6 +459,31 @@ export default function DayDial({
             )}
             {isMoving && rangeTip(b.start, b.end)}
           </g>
+        );
+      })}
+
+      {/* Reality tracks. They are deliberately drawn after planned wedges:
+          inner = actual sleep, outer = things the user actually did. Keeping
+          separate lanes makes overlaps honest (e.g. a late-night activity
+          inside the usual sleep window) instead of one hiding the other. */}
+      {actualSegments.map((segment) => {
+        const inner = segment.kind === "sleep";
+        return (
+          <path
+            key={segment.id}
+            d={
+              inner
+                ? sectorPath(segment.start, segment.end, R_IN + 3, R_IN + 12, 0)
+                : sectorPath(segment.start, segment.end, R_OUT - 12, R_OUT - 3, 0)
+            }
+            fill={segment.color}
+            stroke="var(--panel)"
+            strokeWidth="1.2"
+            opacity="0.98"
+            pointerEvents="none"
+          >
+            <title>{`${segment.title} · ${minutesToLabel(segment.start)} – ${minutesToLabel(segment.end)}`}</title>
+          </path>
         );
       })}
 

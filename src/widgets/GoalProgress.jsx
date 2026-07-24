@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { todayKey, shiftDay, isCheckedOn } from "../lib/model.js";
 import { Icon } from "../components/Icons.jsx";
-import { fetchAiInsight, clearAiCache } from "../lib/aiApi.js";
+import { fetchAiInsight } from "../lib/aiApi.js";
 
 /* GoalProgress - a calm snapshot for ONE goal:
    - task completion (done / total)

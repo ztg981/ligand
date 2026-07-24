@@ -238,6 +238,7 @@ function AvatarMenu({
   onOpenSleep,
   onOpenAlarms,
   onOpenBadges,
+  onReplayTour,
   onOpenFreshStart,
   hasFreshStart = false,
   onClearData,
@@ -260,6 +261,7 @@ function AvatarMenu({
       <button
         ref={triggerRef}
         className="iconbtn avatar-btn"
+        data-tour="avatar"
         title="You"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -388,6 +390,18 @@ function AvatarMenu({
             >
               <Icon.Trophy /> Badges
             </button>
+
+            {onReplayTour && (
+              <button
+                className="avatar-menu-item"
+                onClick={() => {
+                  onReplayTour();
+                  close();
+                }}
+              >
+                <Icon.Spark /> Replay intro
+              </button>
+            )}
 
             {/* Manual door into the fresh-start goal reset. The automatic
                popup respects snooze/cooldown so it never nags — but changing
@@ -684,6 +698,7 @@ export default function TopNav({
   onOpenSettings,
   onOpenAlarms,
   onOpenBadges,
+  onReplayTour,
   onOpenFreshStart,
   hasFreshStart = false,
   onClearData,
@@ -711,6 +726,47 @@ export default function TopNav({
     })
   );
 
+  const navScrollRef = useRef(null);
+  const [navScrollEdges, setNavScrollEdges] = useState({
+    left: false,
+    right: false,
+  });
+
+  useLayoutEffect(() => {
+    const scroller = navScrollRef.current;
+    if (!scroller) return undefined;
+
+    const updateEdges = () => {
+      const maxScrollLeft = Math.max(
+        0,
+        scroller.scrollWidth - scroller.clientWidth
+      );
+      const next = {
+        left: scroller.scrollLeft > 1,
+        right: scroller.scrollLeft < maxScrollLeft - 1,
+      };
+      setNavScrollEdges((previous) =>
+        previous.left === next.left && previous.right === next.right
+          ? previous
+          : next
+      );
+    };
+
+    updateEdges();
+    scroller.addEventListener("scroll", updateEdges, { passive: true });
+    window.addEventListener("resize", updateEdges);
+
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(scroller);
+    Array.from(scroller.children).forEach((child) => observer.observe(child));
+
+    return () => {
+      scroller.removeEventListener("scroll", updateEdges);
+      window.removeEventListener("resize", updateEdges);
+      observer.disconnect();
+    };
+  }, []);
+
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -732,7 +788,7 @@ export default function TopNav({
         <div className="topbar">
         {/* The logo doubles as a Home button (kept tight — just the mark +
            wordmark, not the whole bar). */}
-        <button className="brand" onClick={() => setTab("home")} title="Home" aria-label="Home">
+        <button className="brand" data-tour="brand" onClick={() => setTab("home")} title="Home" aria-label="Home">
           <span className="brand-dot" />
           <span className="brand-name">Ligand</span>
         </button>
@@ -742,9 +798,16 @@ export default function TopNav({
            tools group (right, with the avatar) are never pushed off-screen.
            On phones the main app tabs move to a bottom tab bar, so only the goal
            pills remain here. */}
-        <div className="topbar-scroll">
+        <div
+          ref={navScrollRef}
+          className={
+            "topbar-scroll" +
+            (navScrollEdges.left ? " can-scroll-left" : "") +
+            (navScrollEdges.right ? " can-scroll-right" : "")
+          }
+        >
           {/* Main app tabs (hidden on phone - see .bottom-nav) */}
-          <div className="topbar-main-tabs">
+          <div className="topbar-main-tabs" data-tour="nav">
             <Tabset items={TOOLS} activeId={tab} onSelect={setTab} />
             {/* Divider between app tabs and goal tabs */}
             <div className="tab-sep" />
@@ -792,12 +855,13 @@ export default function TopNav({
           {/* Desktop quick-add (the phone uses the floating Add button). */}
           <button
             className="iconbtn topbar-quickadd"
-            title="Quick add — task, note, workout, alarm, focus"
+            data-tour="quickadd"
+            title="Quick add: task, note, workout, alarm, focus"
             onClick={onOpenQuickAdd}
           >
             <Icon.Plus />
           </button>
-          <button className="iconbtn" title="Search (⌘K)" onClick={onOpenSearch}>
+          <button className="iconbtn" data-tour="search" title="Search (⌘K)" onClick={onOpenSearch}>
             <Icon.Search />
           </button>
           <button className="iconbtn topbar-badges" title="Badges" onClick={onOpenBadges}>
@@ -826,6 +890,7 @@ export default function TopNav({
             onOpenSleep={() => setTab("sleep")}
             onOpenAlarms={onOpenAlarms}
             onOpenBadges={onOpenBadges}
+            onReplayTour={onReplayTour}
             onOpenFreshStart={onOpenFreshStart}
             hasFreshStart={hasFreshStart}
             onClearData={onClearData}
@@ -838,9 +903,15 @@ export default function TopNav({
         </div>
       </DndContext>
 
+      {/* In Electron the status sits below the window controls instead of
+          consuming scarce horizontal room in the navigation bar. */}
+      <div className="electron-sync-pop" aria-live="polite">
+        <SyncPill status={syncStatus} />
+      </div>
+
       {/* Bottom tab bar - phone only (CSS-gated). Shows the 5 tabs most useful
          one-handed; Pomodoro + Settings live in the avatar menu on mobile. */}
-      <nav className="bottom-nav" aria-label="Main">
+      <nav className="bottom-nav" data-tour="nav-mobile" aria-label="Main">
         {BOTTOM_NAV_IDS.map((id) => {
           const it = TOOLS.find((t) => t.id === id);
           const active = tab === id;

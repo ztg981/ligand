@@ -156,7 +156,7 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
       ) : (
         <p className="focustrend-foot">
           {todayMin > 0
-            ? `${todayMin} min today — nice, keep the chain going.`
+            ? `${todayMin} min today. Nice, keep the chain going.`
             : "Nothing today yet. Even one session counts."}
         </p>
       )}

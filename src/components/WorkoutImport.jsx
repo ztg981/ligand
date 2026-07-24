@@ -131,7 +131,7 @@ export default function WorkoutImport({ onImported, compact = false, bare = fals
           className="btn ghost sm"
           onClick={runQuickParse}
           disabled={loading || !notes.trim()}
-          title="Deterministic parse for simple formats — works offline, no AI"
+          title="Deterministic parse for simple formats. Works offline, no AI"
         >
           Quick parse
         </button>

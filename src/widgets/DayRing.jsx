@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
-import { todayKey } from "../lib/model.js";
+import { shiftDay, todayKey } from "../lib/model.js";
 import { categoryById } from "../lib/dayPlanner.js";
 import { categoryOf, hhmmToMin } from "../lib/activities.js";
+import { minutesOfDay } from "../lib/sleep.js";
 
 /* DayRing — a small "time visibility" dial for Home.
 
@@ -56,6 +57,7 @@ export default function DayRing({
   scheduledWorkouts = [],
   dayBlocks = [],
   activities = [],
+  sleepLog = [],
   onOpenWorkout,
   onOpenAlarms,
 }) {
@@ -106,6 +108,28 @@ export default function DayRing({
         };
       });
   }, [activities, today]);
+
+  const sleepArcs = useMemo(() => {
+    const out = [];
+    const todayEntry = sleepLog.find((entry) => entry.date === today);
+    const tomorrowEntry = sleepLog.find((entry) => entry.date === shiftDay(today, 1));
+    if (todayEntry) {
+      const bed = minutesOfDay(todayEntry.bedTime);
+      const wake = minutesOfDay(todayEntry.wakeTime);
+      if (bed != null && wake != null) {
+        if (bed < wake) out.push({ id: `${todayEntry.id}-same`, from: bed / 60, to: wake / 60 });
+        else if (wake > 0) out.push({ id: `${todayEntry.id}-am`, from: 0, to: wake / 60 });
+      }
+    }
+    if (tomorrowEntry) {
+      const bed = minutesOfDay(tomorrowEntry.bedTime);
+      const wake = minutesOfDay(tomorrowEntry.wakeTime);
+      if (bed != null && wake != null && bed > wake) {
+        out.push({ id: `${tomorrowEntry.id}-pm`, from: bed / 60, to: 23.999 });
+      }
+    }
+    return out;
+  }, [sleepLog, today]);
 
   const todaysAlarms = useMemo(() => {
     const weekday = (now.getDay() + 6) % 7;
@@ -195,6 +219,20 @@ export default function DayRing({
               strokeLinecap="round"
               opacity={b.done ? 0.35 : 0.9}
             />
+          ))}
+          {/* Actual sleep is separate from the usual target band. It sits on
+              its own inner lane so late-night activity remains visible. */}
+          {sleepArcs.map((sleep) => (
+            <path
+              key={sleep.id}
+              d={arcPath(sleep.from, sleep.to, R - 18)}
+              fill="none"
+              stroke="oklch(0.58 0.11 285)"
+              strokeWidth={5}
+              strokeLinecap="round"
+            >
+              <title>Actual sleep</title>
+            </path>
           ))}
           {/* logged activity arcs — slim segments CASED in the panel color so
              they sit crisply ON the track instead of muddying into the gray

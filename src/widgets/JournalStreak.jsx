@@ -110,7 +110,7 @@ export default function JournalStreak({ journal = [], onOpenJournal }) {
       <p className="jstreak-foot">
         {monthCount > 0
           ? `${monthCount} ${monthCount === 1 ? "day" : "days"} written this month${wroteToday ? " · today's done ✓" : ""}`
-          : "Start with a line today — that's a streak of one."}
+          : "Start with a line today. That's a streak of one."}
       </p>
 
       <ul className="visually-hidden">

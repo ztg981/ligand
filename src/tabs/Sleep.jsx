@@ -223,6 +223,9 @@ export default function Sleep({
   sleepSettings = {},
   setSection,
   onLogNight, // opens the morning check-in (manual) for a quick today-log
+  pendingSleep = null,
+  onSleepNow,
+  onCancelSleepNow,
 }) {
   const today = todayKey();
   const nights = useMemo(() => buildNights(sleepLog, DAYS, today), [sleepLog, today]);
@@ -251,12 +254,30 @@ export default function Sleep({
           <div className="eyebrow">Sleep diary</div>
           <h1 className="page-title">Sleep</h1>
           <p className="page-sub">
-            Your own picture of your nights. No scores, no judgments — logging is the whole practice.
+            Your own picture of your nights. No scores, no judgments. Logging is the whole practice.
           </p>
         </div>
-        <button className="btn primary sm" onClick={onLogNight}>
-          <Icon.Moon width={13} height={13} /> {todayEntry ? "Edit last night" : "Log last night"}
-        </button>
+        <div className="sleep-head-actions">
+          {pendingSleep ? (
+            <div className="sleep-now-pending" role="status">
+              <span>
+                Sleep started at{" "}
+                {new Date(pendingSleep.startedAt).toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+              <button type="button" onClick={onCancelSleepNow}>Cancel</button>
+            </div>
+          ) : (
+            <button className="btn primary sm sleep-now-btn" onClick={onSleepNow}>
+              <Icon.Moon width={13} height={13} /> Going to sleep now
+            </button>
+          )}
+          <button className="btn ghost sm" onClick={onLogNight}>
+            {todayEntry ? "Edit last night" : "Log a past night"}
+          </button>
+        </div>
       </div>
 
       <div className="sltab-grid">
@@ -286,7 +307,7 @@ export default function Sleep({
             </div>
           ) : (
             <p className="sltab-hero-empty">
-              Nothing logged yet. Two taps each morning — lights-out, woke-up — and
+              Nothing logged yet. Two taps each morning, lights-out and woke-up, and
               this page becomes your own sleep picture.
             </p>
           )}

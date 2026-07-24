@@ -32,20 +32,23 @@
    · waves: archive.org/details/Oceans1 (CC0 / public domain)
    ============================================================ */
 
+// Vite's Electron build uses a relative base under file:// while the web app
+// uses "/". Building URLs from BASE_URL keeps audio working in both shells.
+const assetUrl = (file) => `${import.meta.env.BASE_URL || "/"}sounds/${file}`;
 const SCENE_SOUND = {
-  airplane:  "/sounds/ambient-wind.ogg",
-  cafe:      "/sounds/ambient-cafe.ogg",
-  library:   "/sounds/ambient-rain.ogg",
-  subway:    "/sounds/ambient-subway.mp3",
-  airport:   "/sounds/ambient-airport.mp3",
-  forest:    "/sounds/ambient-forest.ogg",
-  fireplace: "/sounds/ambient-fireplace.ogg",
-  void:      "/sounds/ambient-rain.ogg",
+  airplane:  assetUrl("ambient-wind.ogg"),
+  cafe:      assetUrl("ambient-cafe.ogg"),
+  library:   assetUrl("ambient-rain.ogg"),
+  subway:    assetUrl("ambient-subway.mp3"),
+  airport:   assetUrl("ambient-airport.mp3"),
+  forest:    assetUrl("ambient-forest.ogg"),
+  fireplace: assetUrl("ambient-fireplace.ogg"),
+  void:      assetUrl("ambient-rain.ogg"),
   // standalone extra options (not scene-id based)
-  rain:      "/sounds/ambient-rain.ogg",
-  stream:    "/sounds/ambient-stream.ogg",
-  waves:     "/sounds/ambient-waves.ogg",
-  wind:      "/sounds/ambient-wind.ogg",
+  rain:      assetUrl("ambient-rain.ogg"),
+  stream:    assetUrl("ambient-stream.ogg"),
+  waves:     assetUrl("ambient-waves.ogg"),
+  wind:      assetUrl("ambient-wind.ogg"),
 };
 
 const FADE_MS = 800; // cross-fade duration
@@ -115,6 +118,7 @@ export function playAmbient(sceneOrSoundId, volume = 0.35) {
     }
     const audio = new Audio(src);
     audio.loop = true;
+    audio.preload = "auto";
     audio.volume = 0;
     _el = audio;
     _currentSrc = src;

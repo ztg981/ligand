@@ -19,7 +19,7 @@ export default function GoalLoad({ goals = [], onStartFreshStart }) {
   const slots = Math.max(n, COMFORTABLE_GOALS);
 
   const line = heavy
-    ? `${n} goals is a heavy plate — most brains push 3–5 well. Lightening it is allowed.`
+    ? `${n} goals is a heavy plate. Most brains handle 3 to 5 well. Lightening it is allowed.`
     : n >= 3
     ? `${n} goals in motion. A solid, workable plate.`
     : `${n} goal${n === 1 ? "" : "s"} in motion. Focused is a fine way to be.`;

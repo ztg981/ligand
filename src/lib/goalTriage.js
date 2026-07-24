@@ -160,7 +160,7 @@ const REASON_LINES = {
   [REASONS.NEVER_STARTED]: (s) =>
     `Set ${describeAge(s.ageDays)} ago and still waiting for its first step`,
   [REASONS.GONE_QUIET]: (s) =>
-    `Nothing new in ${s.quietDays} days — it may just need a smaller shape`,
+    `Nothing new in ${s.quietDays} days. Maybe it just needs a smaller shape`,
   [REASONS.WINDOW_TIGHT]: () =>
     `Most of its time window has passed without a start`,
 };

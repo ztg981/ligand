@@ -181,6 +181,22 @@ export function createReflection({
   };
 }
 
+// A mood check-in belongs to the day, not to a journal entry. Multiple
+// check-ins are intentional: they let the user record a real change in how
+// the day feels without needing to create another reflection.
+export function createMoodCheckIn({
+  mood,
+  date = todayKey(),
+  createdAt = new Date().toISOString(),
+} = {}) {
+  return {
+    id: uid("mood"),
+    mood,
+    date,
+    createdAt,
+  };
+}
+
 // A lightweight song log entry - "what I was listening to", not a player.
 // `date` (YYYY-MM-DD) is what same-day journal surfacing matches on;
 // `createdAt` is the full timestamp, used to break ties when several songs
@@ -780,6 +796,7 @@ export function seedData() {
     // add their own count-ups ("No gaming", etc.) from the goal-tab widget.
     countUps: [],
     journal: [], // app-wide reflections (per-goal reflections live on each goal)
+    moodLog: [], // day-level mood check-ins; several are allowed in one day
     notes: [], // frictionless plain-text scratchpad (see Notes tab)
     alarms: [], // photo-scan alarms (see Alarms in Settings)
     // Fitness / workout system. All start empty; a fitnessProfile is created

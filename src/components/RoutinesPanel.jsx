@@ -117,7 +117,7 @@ export default function RoutinesPanel({
           <div className="card-title"><Icon.Spark /> Starter routines</div>
         </div>
         <p className="rt-empty" style={{ marginBottom: 10 }}>
-          One tap adds a copy to My routines — then edit it to fit you.
+          One tap adds a copy to My routines, then edit it to fit you.
         </p>
         <div className="rt-starters">
           {STARTER_ROUTINES.map((r) => {

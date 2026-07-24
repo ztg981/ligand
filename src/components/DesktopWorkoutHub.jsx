@@ -52,7 +52,7 @@ export default function DesktopWorkoutHub({
       ) : (
         <div className="card dwh-plan-nudge">
           <Icon.Bolt />
-          <span>Plan your week below — today's focus then shows up here and on your phone.</span>
+          <span>Plan your week below. Today's focus shows up here and on your phone.</span>
         </div>
       )}
 

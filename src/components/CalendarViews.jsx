@@ -151,6 +151,7 @@ export function MonthView({
 }) {
   const today = todayKey();
   const [mKey, setMKey] = useState(() => monthKey(selected || today));
+  const [expanded, setExpanded] = useState(false);
   const grid = useMemo(() => monthGrid(mKey), [mKey]);
   // One merged item list per visible day (memoized on data + month).
   const byDay = useMemo(() => {
@@ -163,12 +164,20 @@ export function MonthView({
   const dayItems = byDay[selected] || itemsForDate(stores, selected);
 
   return (
-    <div className={isMobile ? "" : "grid grid-12"}>
-      <div className={isMobile ? "" : "col-7"} style={{ minWidth: 0 }}>
+    <div className={(isMobile ? "cal-month-layout mobile" : "grid grid-12 cal-month-layout") + (expanded ? " expanded" : "")}>
+      <div className={isMobile ? "" : expanded ? "col-12" : "col-7"} style={{ minWidth: 0 }}>
         <div className="card cal-card">
           <div className="cal-head">
             <div className="cal-month">{monthLabel(mKey)}</div>
             <div className="cal-nav">
+              <button
+                type="button"
+                className="btn ghost sm cal-expand-btn"
+                onClick={() => setExpanded((value) => !value)}
+                aria-pressed={expanded}
+              >
+                {expanded ? "Fit view" : "Expand"}
+              </button>
               {mKey !== monthKey(today) && (
                 <button
                   className="btn ghost sm"
@@ -189,7 +198,15 @@ export function MonthView({
             </div>
           </div>
 
-          <div className={"cal-grid" + (isMobile ? "" : " cal-grid-wide")} role="grid" aria-label={monthLabel(mKey)}>
+          <div
+            className={
+              "cal-grid" +
+              (isMobile ? "" : " cal-grid-wide") +
+              (expanded ? " cal-grid-expanded" : "")
+            }
+            role="grid"
+            aria-label={monthLabel(mKey)}
+          >
             {WEEKDAY_MIN.map((d, i) => (
               <div key={"h" + i} className="cal-dow" aria-hidden="true">
                 {d}
@@ -241,7 +258,7 @@ export function MonthView({
         </div>
       </div>
 
-      <div className={isMobile ? "" : "col-5"} style={{ minWidth: 0 }}>
+      <div className={isMobile ? "" : expanded ? "col-12" : "col-5"} style={{ minWidth: 0 }}>
         <div className="card cal-day">
           <div className="card-head">
             <div className="card-title">
@@ -279,6 +296,7 @@ export function WeekView({
   isMobile = false,
 }) {
   const today = todayKey();
+  const [expanded, setExpanded] = useState(false);
   const week = useMemo(() => weekOf(date), [date]);
   const byDay = useMemo(() => {
     const out = {};
@@ -298,6 +316,14 @@ export function WeekView({
               Today
             </button>
           )}
+          <button
+            type="button"
+            className="btn ghost sm cal-expand-btn"
+            onClick={() => setExpanded((value) => !value)}
+            aria-pressed={expanded}
+          >
+            {expanded ? "Compact" : "Expand"}
+          </button>
           <button className="iconbtn" title="Previous week" onClick={() => onShiftWeek(-7)}>
             ‹
           </button>
@@ -307,7 +333,7 @@ export function WeekView({
         </div>
       </div>
 
-      <div className={"calv-week" + (isMobile ? " stack-days" : "")}>
+      <div className={"calv-week" + (isMobile ? " stack-days" : "") + (expanded ? " expanded" : "")}>
         {week.map((key) => {
           const items = byDay[key];
           const isToday = key === today;

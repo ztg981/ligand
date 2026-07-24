@@ -61,12 +61,12 @@ function prettyDate() {
 // reduce. Everything stays one Customize-tap away; nothing is deleted.
 const HOME_WIDGETS = [
   { id: "lastactivity", label: "Just did something?" },
-  { id: "screentime", label: "Screen check-ins" },
+  { id: "screentime", label: "Screen check-ins", defaultOff: true },
   { id: "sleep", label: "Sleep" },
-  { id: "showupweek", label: "Your week" },
-  { id: "winddown", label: "Evening wind-down" },
+  { id: "showupweek", label: "Your week", defaultOff: true },
+  { id: "winddown", label: "Evening wind-down", defaultOff: true },
   { id: "upnext", label: "Up next" },
-  { id: "nextbadge", label: "Almost there (badges)" },
+  { id: "nextbadge", label: "Almost there (badges)", defaultOff: true },
   { id: "dayring", label: "Your day ring" },
   { id: "goalload", label: "Your plate", defaultOff: true },
   { id: "focustrend", label: "Focus this week", defaultOff: true },
@@ -359,7 +359,7 @@ export default function Home({
               : `${triageCount} goals look out of date`}
           </div>
           <div className="fresh-start-sub">
-            Plans age — that's information, not a verdict. A guided reset takes
+            Plans age. That's information, not a verdict. A guided reset takes
             about two minutes.
           </div>
         </div>
@@ -530,6 +530,7 @@ export default function Home({
             scheduledWorkouts={scheduledWorkouts}
             dayBlocks={dayBlocks}
             activities={activities}
+            sleepLog={sleepLog}
             onOpenWorkout={onOpenWorkout}
             onOpenAlarms={onOpenAlarms}
           />
@@ -576,7 +577,9 @@ export default function Home({
               alarms={alarms}
               focusLog={focusLog}
               scheduledWorkouts={scheduledWorkouts}
+              dayBlocks={dayBlocks}
               activities={activities}
+              sleepLog={sleepLog}
               onOpenWorkout={onOpenWorkout}
               onOpenAlarms={onOpenAlarms}
             />

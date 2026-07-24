@@ -220,7 +220,7 @@ export default function QuickAdd({
         </p>
       ) : type === "activity" ? (
         <p className="qa-note">
-          Log the last thing you did — tennis, a game, a scroll, a chore.
+          Log the last thing you did: tennis, a game, a scroll, a chore.
           Anything that took time counts.
         </p>
       ) : (

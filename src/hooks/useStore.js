@@ -19,6 +19,7 @@ import {
   createDayBlock,
   createActivity,
   createSong,
+  createMoodCheckIn,
   shiftDay,
   todayKey,
   toggleCheckIn,
@@ -333,6 +334,25 @@ export function useStore() {
       setData((d) => ({
         ...d,
         journal: (d.journal || []).filter((e) => e.id !== id),
+      })),
+    [setData]
+  );
+
+  // -- day-level mood check-ins ----------------------------------
+  const addMoodCheckIn = useCallback(
+    (opts) => {
+      const entry = createMoodCheckIn(opts);
+      setData((d) => ({ ...d, moodLog: [entry, ...(d.moodLog || [])] }));
+      return entry;
+    },
+    [setData]
+  );
+
+  const removeMoodCheckIn = useCallback(
+    (id) =>
+      setData((d) => ({
+        ...d,
+        moodLog: (d.moodLog || []).filter((entry) => entry.id !== id),
       })),
     [setData]
   );
@@ -785,6 +805,8 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addMoodCheckIn,
+      removeMoodCheckIn,
       addCountUp,
       updateCountUp,
       removeCountUp,
@@ -843,6 +865,8 @@ export function useStore() {
       removeReflection,
       addJournalEntry,
       removeJournalEntry,
+      addMoodCheckIn,
+      removeMoodCheckIn,
       addCountUp,
       updateCountUp,
       removeCountUp,
@@ -889,6 +913,7 @@ export function useStore() {
     tasks: data.tasks,
     countUps: data.countUps,
     journal: data.journal || [],
+    moodLog: data.moodLog || [],
     notes: data.notes || [],
     alarms: data.alarms || [],
     focusLog: data.focusLog || [],

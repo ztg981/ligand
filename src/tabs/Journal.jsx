@@ -11,6 +11,7 @@ import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js
 import MoodTrend from "../widgets/MoodTrend.jsx";
 import DayStory from "../components/DayStory.jsx";
 import { activitiesOn, categoryOf, fmtMinutes } from "../lib/activities.js";
+import { MOODS, moodLabel } from "../lib/mood.js";
 
 const SONG_SEARCH_DEBOUNCE_MS = 400;
 
@@ -18,18 +19,6 @@ const SONG_SEARCH_DEBOUNCE_MS = 400;
    A gentle, rotating prompt you can shuffle, an optional mood, and a box
    to write. Entries are saved newest-first and kept on this device only.
    Tone stays forgiving: writing is invited, never required. */
-
-const MOODS = [
-  { value: "rough", label: "Rough" },
-  { value: "low", label: "Low" },
-  { value: "okay", label: "Okay" },
-  { value: "good", label: "Good" },
-  { value: "great", label: "Great" },
-];
-
-function moodLabel(value) {
-  return MOODS.find((m) => m.value === value)?.label || null;
-}
 
 // Shared inline form for both the standalone "Log a song" button and the
 // compose card's "+ Add song" - a fast capture tool, not a music player, so
@@ -43,7 +32,6 @@ function SongForm({ onSave, onCancel }) {
   const [artworkUrl, setArtworkUrl] = useState(null);
   const [picked, setPicked] = useState(false); // a search result was chosen
   const [note, setNote] = useState("");
-  const [mood, setMood] = useState(null);
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const debounceRef = useRef(null);
@@ -96,7 +84,6 @@ function SongForm({ onSave, onCancel }) {
       album,
       artworkUrl,
       note: note.trim() || null,
-      mood,
     });
   };
 
@@ -128,18 +115,6 @@ function SongForm({ onSave, onCancel }) {
           onChange={(e) => setNote(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
         />
-        <div className="row mood-row" style={{ gap: 6 }}>
-          {MOODS.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              className={"chip mood-chip" + (mood === m.value ? " accent" : "")}
-              onClick={() => setMood(mood === m.value ? null : m.value)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
         <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
           <button type="button" className="btn ghost sm" onClick={onCancel}>Cancel</button>
           <button type="button" className="btn primary sm" onClick={submit}>
@@ -212,18 +187,6 @@ function SongForm({ onSave, onCancel }) {
         onChange={(e) => setNote(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && submit()}
       />
-      <div className="row mood-row" style={{ gap: 6 }}>
-        {MOODS.map((m) => (
-          <button
-            key={m.value}
-            type="button"
-            className={"chip mood-chip" + (mood === m.value ? " accent" : "")}
-            onClick={() => setMood(mood === m.value ? null : m.value)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
       <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
         <button type="button" className="btn ghost sm" onClick={onCancel}>
           Cancel
@@ -242,6 +205,96 @@ function SongForm({ onSave, onCancel }) {
   );
 }
 
+function SongTitle({ song, compact = false }) {
+  const [open, setOpen] = useState(false);
+  const hasNote = Boolean(song.note);
+  return (
+    <div className={"song-title-disclosure" + (compact ? " compact" : "")}>
+      <button
+        type="button"
+        className="song-title-button"
+        onClick={() => hasNote && setOpen((value) => !value)}
+        aria-expanded={hasNote ? open : undefined}
+        title={hasNote ? (open ? "Hide song note" : "Show song note") : undefined}
+      >
+        <Icon.Music width={11} height={11} />
+        <span>{song.title}</span>
+        {song.artist ? <span className="song-title-artist">— {song.artist}</span> : null}
+        {hasNote && (
+          <span className="song-note-indicator" aria-label="Has a note">
+            <Icon.Note width={11} height={11} />
+          </span>
+        )}
+      </button>
+      {open && <div className="song-note-disclosed">{song.note}</div>}
+    </div>
+  );
+}
+
+function DailyMoodCheckIn({ moodLog = [], addMoodCheckIn, removeMoodCheckIn }) {
+  const today = todayKey();
+  const todayEntries = useMemo(
+    () =>
+      moodLog
+        .filter((entry) => (entry.date || String(entry.createdAt || "").slice(0, 10)) === today)
+        .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))),
+    [moodLog, today]
+  );
+  const latest = todayEntries.at(-1) || null;
+
+  const choose = (mood) => {
+    if (
+      latest?.mood === mood &&
+      Date.now() - Date.parse(latest.createdAt || "") < 30 * 60 * 1000
+    ) {
+      return;
+    }
+    addMoodCheckIn?.({ mood, date: today });
+  };
+
+  return (
+    <div className="card daily-mood-card">
+      <div className="card-head">
+        <div>
+          <div className="card-title"><Icon.Heart /> How are you feeling right now?</div>
+          <div className="daily-mood-sub">One check-in is enough. Add another if your mood changes.</div>
+        </div>
+        {todayEntries.length > 0 && (
+          <span className="daily-mood-count">{todayEntries.length} today</span>
+        )}
+      </div>
+      <div className="daily-mood-options" role="radiogroup" aria-label="Mood right now">
+        {MOODS.map((mood) => (
+          <button
+            key={mood.value}
+            type="button"
+            role="radio"
+            aria-checked={latest?.mood === mood.value}
+            className={"daily-mood-option" + (latest?.mood === mood.value ? " active" : "")}
+            onClick={() => choose(mood.value)}
+          >
+            {mood.label}
+          </button>
+        ))}
+      </div>
+      {latest && (
+        <div className="daily-mood-latest">
+          <span>
+            Latest: {moodLabel(latest.mood)} at{" "}
+            {new Date(latest.createdAt).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </span>
+          <button type="button" onClick={() => removeMoodCheckIn?.(latest.id)}>
+            Undo
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Journal({
   journal,
   addJournalEntry,
@@ -250,6 +303,9 @@ export default function Journal({
   addSong,
   updateSong,
   deleteSong,
+  moodLog = [],
+  addMoodCheckIn,
+  removeMoodCheckIn,
   activities = [],
   workouts = [],
   focusLog = [],
@@ -262,7 +318,6 @@ export default function Journal({
   const [salt, setSalt] = useState(0);
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
   const [text, setText] = useState("");
-  const [mood, setMood] = useState(null);
   const [location, setLocation] = useState(null);
   // Sort preference persists across sessions (app-wide for the main journal).
   const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
@@ -320,10 +375,9 @@ export default function Journal({
     const t = text.trim();
     // An image-only entry is still worth saving.
     if (!t && images.length === 0) return;
-    const entry = addJournalEntry({ text: t, prompt, mood, location, attachments: images });
+    const entry = addJournalEntry({ text: t, prompt, location, attachments: images });
     attachedSongIds.forEach((id) => updateSong(id, { journalEntryId: entry.id }));
     setText("");
-    setMood(null);
     setLocation(null);
     setAttachedSongIds([]);
     setImages([]);
@@ -345,6 +399,11 @@ export default function Journal({
       <div className="grid grid-12">
         {/* Compose */}
         <div className="col-7 stack" style={{ gap: 12, minWidth: 0 }}>
+          <DailyMoodCheckIn
+            moodLog={moodLog}
+            addMoodCheckIn={addMoodCheckIn}
+            removeMoodCheckIn={removeMoodCheckIn}
+          />
           <div className="card">
             <div className="card-head">
               <div className="card-title">
@@ -442,23 +501,6 @@ export default function Journal({
               </div>
             )}
 
-            {/* Optional mood */}
-            <div className="row mood-row" style={{ gap: 6, marginTop: 10 }}>
-              <span className="mood-row-label" style={{ fontSize: 12, color: "var(--ink-3)", marginRight: 2 }}>
-                Mood
-              </span>
-              {MOODS.map((m) => (
-                <button
-                  key={m.value}
-                  className={"chip mood-chip" + (mood === m.value ? " accent" : "")}
-                  onClick={() => setMood(mood === m.value ? null : m.value)}
-                  style={{ cursor: "pointer" }}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
             {/* Optional location */}
             <div style={{ marginTop: 10 }}>
               <LocationPicker location={location} onChange={setLocation} />
@@ -530,7 +572,7 @@ export default function Journal({
 
         {/* Past entries */}
         <div className="col-5 stack" style={{ gap: 12, minWidth: 0 }}>
-          <MoodTrend journal={journal} />
+          <MoodTrend journal={journal} moodLog={moodLog} />
           <div className="card">
             <div className="card-head">
               <div className="card-title">
@@ -625,13 +667,9 @@ export default function Journal({
                         </div>
                       )}
                       {attached.length > 0 && (
-                        <div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                        <div className="song-entry-list">
                           {attached.map((s) => (
-                            <span key={s.id} className="chip song-chip static">
-                              <Icon.Music width={11} height={11} />
-                              {s.title}
-                              {s.note ? ` - ${s.note}` : s.artist ? ` - ${s.artist}` : ""}
-                            </span>
+                            <SongTitle key={s.id} song={s} compact />
                           ))}
                         </div>
                       )}
@@ -709,11 +747,7 @@ export default function Journal({
                       </span>
                     )}
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div className="song-log-title">
-                        {s.title}
-                        {s.artist ? <span className="song-log-artist"> - {s.artist}</span> : null}
-                      </div>
-                      {s.note && <div className="song-log-note">{s.note}</div>}
+                      <SongTitle song={s} />
                       <div className="song-log-meta">
                         {s.date === todayKey() ? "Today" : s.date}
                         {s.mood ? ` · ${moodLabel(s.mood)}` : ""}

@@ -188,8 +188,8 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
       <div className="fit-section-label"><Icon.Flame /> Weekly sets per muscle</div>
       {weekSets.length === 0 ? (
         <div className="card fit-empty">
-          Complete some working sets this week and this fills in — research ties
-          growth most closely to sets per muscle per week (10–20 is the usual sweet spot).
+          Complete some working sets this week and this fills in. Growth tracks
+          most closely to sets per muscle per week (10 to 20 is the usual sweet spot).
         </div>
       ) : (
         <div className="card fp-weeksets">
@@ -217,7 +217,7 @@ export default function FitnessProgress({ profile, workouts = [], updateFitnessP
             );
           })}
           <p className="fp-weeksets-note">
-            Working sets only — warm-ups don't count. Under the zone is fine while
+            Working sets only, warm-ups don't count. Under the zone is fine while
             you're building up; it's a guide, not a grade.
           </p>
         </div>
