@@ -150,6 +150,33 @@ export default function Settings({
 
         <ChatGPTAccessPanel goals={goals} />
 
+        {typeof window !== "undefined" && window.electron?.isElectron && (
+          <Section
+            icon={<Icon.Home />}
+            title="Desktop app"
+            sub="Choose whether Ligand stays available in the Windows system tray and starts with your computer."
+          >
+            <Row
+              name="Keep running in the system tray"
+              hint="Closing the window tucks Ligand behind the taskbar's up-arrow instead of quitting, so reminders, alarms, and Pomodoro can still reach you. Right-click the tray icon to quit fully"
+            >
+              <Switch
+                checked={desktop.closeToTray ?? false}
+                onChange={(v) => setSection("desktop", { closeToTray: v })}
+              />
+            </Row>
+            <Row
+              name="Launch at Windows sign-in"
+              hint="Ligand starts quietly in the tray after you sign in. The window stays hidden until you open it"
+            >
+              <Switch
+                checked={desktop.launchAtLogin ?? false}
+                onChange={(v) => setSection("desktop", { launchAtLogin: v })}
+              />
+            </Row>
+          </Section>
+        )}
+
         {/* Appearance (mirrors Tweaks) */}
         <Section icon={<Icon.Wand />} title="Appearance">
           <Row name="Theme" hint="Auto follows your system light/dark setting">
@@ -495,28 +522,6 @@ export default function Settings({
                 style={{ maxWidth: 220 }}
               />
             </Row>
-          )}
-          {typeof window !== "undefined" && window.electron?.isElectron && (
-            <>
-              <Row
-                name="Keep running in the tray"
-                hint="Closing the window tucks Ligand into the system tray instead of quitting, so reminders and alarms still reach you. Quit fully from the tray icon"
-              >
-                <Switch
-                  checked={desktop.closeToTray ?? true}
-                  onChange={(v) => setSection("desktop", { closeToTray: v })}
-                />
-              </Row>
-              <Row
-                name="Start with your computer"
-                hint="Ligand starts quietly in the tray when you log in, so reminders work without you having to remember to open it"
-              >
-                <Switch
-                  checked={desktop.launchAtLogin ?? false}
-                  onChange={(v) => setSection("desktop", { launchAtLogin: v })}
-                />
-              </Row>
-            </>
           )}
         </Section>
 

@@ -910,7 +910,7 @@ export default function App() {
   // can't read localStorage). No-op in the browser/PWA.
   useEffect(() => {
     window.electron?.desktop?.configure?.({
-      closeToTray: settings.desktop?.closeToTray ?? true,
+      closeToTray: settings.desktop?.closeToTray ?? false,
       launchAtLogin: settings.desktop?.launchAtLogin ?? false,
     });
   }, [settings.desktop?.closeToTray, settings.desktop?.launchAtLogin]);

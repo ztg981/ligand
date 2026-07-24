@@ -5355,11 +5355,79 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    CSS picks one so there's no resize-listener/JS branching to keep in sync.
    ============================================================ */
 .home-mobile-only { display: none; }
+.home-desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: row;
+  gap: 14px;
+  align-items: stretch;
+}
+/* The two historical columns stay as harmless grouping wrappers in the JSX,
+   but their children now participate in one shared grid. This is what prevents
+   one short column from leaving a page-sized hole under it. */
+.home-desktop-grid > .stack { display: contents; }
+.home-desktop-grid > .stack > * {
+  grid-column: span 6;
+  min-width: 0;
+  height: 100%;
+}
+.home-desktop-grid > .stack > .card,
+.home-desktop-grid > .stack > .home-goals-section {
+  align-self: stretch;
+}
+.home-desktop-grid .resume-card,
+.home-desktop-grid .fresh-start-card,
+.home-desktop-grid .needs-attention-card,
+.home-desktop-grid .goals-review-card,
+.home-desktop-grid .ov-focus-card {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid .pick-one-card,
+.home-desktop-grid .progress-card,
+.home-desktop-grid .dayring-card,
+.home-desktop-grid .lastact,
+.home-desktop-grid .home-goals-section {
+  grid-column: span 7;
+}
+.home-desktop-grid .upnext-card,
+.home-desktop-grid .upcoming-card,
+.home-desktop-grid .sleep-card,
+.home-desktop-grid .showup-card,
+.home-desktop-grid .nextbadge-card {
+  grid-column: span 5;
+}
+/* Optional partners expand when the neighboring widget is hidden or has no
+   meaningful data, so customization never reintroduces a mystery gap. */
+.home-desktop-grid:not(:has(.pick-one-card)) .upnext-card {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid:not(:has(.upnext-card)) .pick-one-card,
+.home-desktop-grid:not(:has(.sleep-card)) .dayring-card,
+.home-desktop-grid:not(:has(.dayring-card)) .sleep-card,
+.home-desktop-grid:not(:has(.showup-card)) .lastact,
+.home-desktop-grid:not(:has(.lastact)) .showup-card,
+.home-desktop-grid:not(:has(.nextbadge-card)) .home-goals-section {
+  grid-column: 1 / -1;
+}
+.home-desktop-grid .ov-focus-card {
+  background:
+    linear-gradient(145deg, color-mix(in oklab, var(--accent) 5%, transparent), transparent 55%),
+    var(--panel);
+  border-color: color-mix(in oklab, var(--accent) 20%, var(--line));
+}
+.home-goals-section {
+  padding-top: 2px;
+}
 @supports (content-visibility: auto) {
   .home-mobile-only > .card,
-  .home-desktop-grid .stack > .card {
+  .home-desktop-grid > .stack > .card {
     content-visibility: auto;
     contain-intrinsic-size: auto 220px;
+  }
+}
+@media (max-width: 1100px) and (min-width: 768px) {
+  .home-desktop-grid > .stack > * {
+    grid-column: 1 / -1 !important;
   }
 }
 @media (max-width: 767px) {

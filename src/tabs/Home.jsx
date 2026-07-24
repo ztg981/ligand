@@ -63,10 +63,10 @@ const HOME_WIDGETS = [
   { id: "lastactivity", label: "Just did something?" },
   { id: "screentime", label: "Screen check-ins", defaultOff: true },
   { id: "sleep", label: "Sleep" },
-  { id: "showupweek", label: "Your week", defaultOff: true },
+  { id: "showupweek", label: "Your week" },
   { id: "winddown", label: "Evening wind-down", defaultOff: true },
   { id: "upnext", label: "Up next" },
-  { id: "nextbadge", label: "Almost there (badges)", defaultOff: true },
+  { id: "nextbadge", label: "Almost there (badges)" },
   { id: "dayring", label: "Your day ring" },
   { id: "goalload", label: "Your plate", defaultOff: true },
   { id: "focustrend", label: "Focus this week", defaultOff: true },
@@ -163,7 +163,7 @@ export default function Home({
   // The overdue-goals review card - shared by the mobile stack and the desktop
   // left column so plans-changed cleanup lives in one place.
   const goalsToReview = overdueGoals.length > 0 && (
-    <div className="card">
+    <div className="card goals-review-card">
       <div className="card-head">
         <div className="card-title">
           <Icon.Calendar /> Goals to review
@@ -234,7 +234,7 @@ export default function Home({
 
   // Needs attention - urgent, undone tasks. Shared between layouts.
   const needsAttention = (
-    <div className="card">
+    <div className="card needs-attention-card">
       <div className="card-head">
         <div className="card-title">
           <Icon.Bell /> Needs attention
@@ -317,7 +317,7 @@ export default function Home({
   );
 
   const goalsSection = (
-    <div>
+    <div className="home-goals-section">
       <div className="ov-section-label">
         <Icon.Target /> Your goals
       </div>
@@ -469,14 +469,6 @@ export default function Home({
           onOpenHabits={onGoToHabits}
         />
 
-        {show("lastactivity") && (
-          <LastActivityCard
-            activities={activities}
-            onLogActivity={onLogActivity}
-            onOpenDay={onOpenDay}
-          />
-        )}
-
         {show("upnext") && (
           <UpNext
             dayBlocks={dayBlocks}
@@ -484,6 +476,14 @@ export default function Home({
             tasks={tasks}
             onOpenDay={onOpenDay}
             onGoToTasks={onGoToTasks}
+          />
+        )}
+
+        {show("lastactivity") && (
+          <LastActivityCard
+            activities={activities}
+            onLogActivity={onLogActivity}
+            onOpenDay={onOpenDay}
           />
         )}
 
@@ -552,25 +552,31 @@ export default function Home({
         {show("didyouknow") && <DidYouKnow />}
       </div>
 
-      <div className="grid grid-12 home-desktop-grid">
+      <div className="home-desktop-grid">
         {/* Left column - the main content */}
         <div className="col-8 stack" style={{ gap: 12, minWidth: 0 }}>
           {resumeCard}
           {freshStartCard}
-          {needsAttention}
+          {urgent.length > 0 && needsAttention}
           {goalsToReview}
           {showPickOne && pickOneCard}
-          {goalsSection}
-          {goalLoadCard}
-          <ProgressTracker goals={goals} tasks={tasks} />
-          <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
-          {show("nextbadge") && (
-            <NextBadge
-              badgeStats={badgeStats}
-              unlockedIds={unlockedBadgeIds}
-              onOpenBadges={onOpenBadges}
+          {show("upnext") && (
+            <UpNext
+              dayBlocks={dayBlocks}
+              alarms={alarms}
+              tasks={tasks}
+              onOpenDay={onOpenDay}
+              onGoToTasks={onGoToTasks}
             />
           )}
+          <DailyFocus
+            goals={goals}
+            tasks={tasks}
+            checkInHabit={checkInHabit}
+            updateHabit={updateHabit}
+            onOpenGoal={onOpenGoal}
+            onOpenHabits={onGoToHabits}
+          />
           {show("dayring") && (
             <DayRing
               workouts={workouts}
@@ -584,10 +590,9 @@ export default function Home({
               onOpenAlarms={onOpenAlarms}
             />
           )}
-        </div>
-
-        {/* Right column - secondary info */}
-        <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
+          {show("sleep") && (
+            <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
+          )}
           {show("lastactivity") && (
             <LastActivityCard
               activities={activities}
@@ -595,6 +600,22 @@ export default function Home({
               onOpenDay={onOpenDay}
             />
           )}
+          {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
+          {goalsSection}
+          {show("nextbadge") && (
+            <NextBadge
+              badgeStats={badgeStats}
+              unlockedIds={unlockedBadgeIds}
+              onOpenBadges={onOpenBadges}
+            />
+          )}
+          <ProgressTracker goals={goals} tasks={tasks} />
+          <UpcomingDeadlines goals={goals} onOpenGoal={onOpenGoal} />
+          {goalLoadCard}
+        </div>
+
+        {/* Right column - secondary info */}
+        <div className="col-4 stack" style={{ gap: 12, minWidth: 0 }}>
           {show("winddown") && (
             <WindDown
               tasks={tasks}
@@ -607,22 +628,9 @@ export default function Home({
               addJournalEntry={addJournalEntry}
             />
           )}
-          {show("upnext") && (
-            <UpNext
-              dayBlocks={dayBlocks}
-              alarms={alarms}
-              tasks={tasks}
-              onOpenDay={onOpenDay}
-              onGoToTasks={onGoToTasks}
-            />
-          )}
-          {show("sleep") && (
-            <SleepCard sleepLog={sleepLog} onLogSleep={onLogSleep} onOpenSleep={onOpenSleep} />
-          )}
           {show("screentime") && (
             <ScreenTimeCard activities={activities} addActivity={addActivity} />
           )}
-          {show("showupweek") && <ShowUpWeek visitDates={visitDates} />}
           {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
           {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
           {show("consistency") && <ConsistencyDots focusLog={focusLog} />}

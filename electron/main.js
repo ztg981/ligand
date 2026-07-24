@@ -45,7 +45,7 @@ let tray = null;
 let quitting = false;
 // Mirrors settings.desktop.closeToTray in the renderer; synced over IPC so the
 // close handler works even though main can't read localStorage.
-let closeToTray = true;
+let closeToTray = false;
 
 // Started with --hidden (login launch): create the window but keep it tucked
 // in the tray until the user asks for it.
@@ -318,7 +318,7 @@ app.whenReady().then(() => {
   createWindow();
 
   ipcMain.on("desktop:configure", (_event, cfg = {}) => {
-    closeToTray = cfg.closeToTray !== false;
+    closeToTray = Boolean(cfg.closeToTray);
     if (app.isPackaged) {
       app.setLoginItemSettings({
         openAtLogin: Boolean(cfg.launchAtLogin),

@@ -40,7 +40,7 @@ export default function ProgressTracker({ goals, tasks }) {
     });
 
   return (
-    <div className="card">
+    <div className="card progress-card">
       <div className="card-head">
         <div className="card-title">
           <Icon.Target /> Progress
