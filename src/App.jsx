@@ -888,23 +888,29 @@ export default function App() {
       setActiveDaysDay(today);
     }
 
-    // One-time cleanup: the old seed shipped a generic "What I'm proud of"
-    // count-up labelled "Days showing up" whose number was elapsed calendar
-    // days since install — it could read far higher than the days actually
-    // opened. The real metric now lives in `activeDays`, so retire that one
-    // seeded count-up (only the untouched seed, matched by its exact label).
-    try {
-      if (!localStorage.getItem("ligand.daysShowingUpMigrated")) {
-        (store.countUps || [])
-          .filter((c) => c.label === "Days showing up")
-          .forEach((c) => store.removeCountUp(c.id));
-        localStorage.setItem("ligand.daysShowingUpMigrated", "1");
-      }
-    } catch {
-      /* localStorage unavailable — harmless, migration simply retries later */
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Retire the legacy auto-seeded "Days showing up" count-up. The old seed
+  // shipped a generic "What I'm proud of" counter whose number was elapsed
+  // calendar days since install (it could read far higher than the days
+  // actually opened, and it surfaces on every goal's dashboard — the reported
+  // "new goal says days showing up since <install date>" confusion). The real
+  // metric now lives in `activeDays`.
+  //
+  // This is idempotent and runs whenever countUps changes, NOT a one-shot
+  // flag: a signed-in account hydrates its cloud data AFTER mount, so a
+  // flag-gated pass could run against an empty list, set the flag, and never
+  // catch the count-up once it arrived. "Days showing up" was only ever the
+  // auto-seed's label (real ones are user-typed like "No gaming"), so matching
+  // it exactly is safe.
+  useEffect(() => {
+    (store.countUps || [])
+      .filter((c) => c.label === "Days showing up")
+      .forEach((c) => store.removeCountUp(c.id));
+    // store.removeCountUp is stable; store.countUps is the reactive trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.countUps, store.removeCountUp]);
 
   // Mirror desktop tray preferences into the Electron main process (which
   // can't read localStorage). No-op in the browser/PWA.
@@ -922,6 +928,21 @@ export default function App() {
       volume: (settings.uiSounds?.volume ?? 75) / 100,
     });
   }, [settings.uiSounds?.enabled, settings.uiSounds?.volume]);
+
+  // The quiet mute switch in the top bar. Flips ONLY the UI sound effects
+  // (clicks, toggles, check-in chirps) — Pomodoro chimes and alarms bypass
+  // this toggle by design, so muting clicks never costs you a timer you set.
+  // Unmuting applies the change to the audio module synchronously so the
+  // confirmation pop is audible immediately (the effect above would otherwise
+  // not have run yet, and the pop would be swallowed).
+  const toggleUiSounds = () => {
+    const next = !(settings.uiSounds?.enabled ?? true);
+    setSection("uiSounds", { enabled: next });
+    if (next) {
+      configureUiSounds({ enabled: true });
+      pop();
+    }
+  };
 
   // Background music — app-wide ambient loops. Plays across all tabs.
   // Off by default; only starts after the user explicitly enables it
@@ -1884,6 +1905,8 @@ export default function App() {
           theme={resolvedTheme}
           themeChoice={themeChoice}
           setThemeChoice={setThemeChoice}
+          soundsEnabled={settings.uiSounds?.enabled ?? true}
+          onToggleSounds={toggleUiSounds}
           onOpenSearch={() => setShowSearch(true)}
           onOpenQuickAdd={() => setQuickAddOpen(true)}
           notifications={notif.items}

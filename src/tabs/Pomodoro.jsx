@@ -6,7 +6,7 @@ import FocusPicker from "../components/FocusPicker.jsx";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
-import { pomodoroComplete, phaseChange, startAlarm } from "../lib/uiSounds.js";
+import { startPomodoroChime, phaseChange, startAlarm, pauseNudge } from "../lib/uiSounds.js";
 import {
   playAmbient,
   stopAmbient,
@@ -538,6 +538,15 @@ export default function Pomodoro({
     }
     setAlarmRinging(false);
   };
+  // The repeating completion chime (the default, gentler cousin of the alarm).
+  // Held here so returning to the tab — or taking any next action — cuts it off.
+  const chimeStopRef = useRef(null);
+  const stopChime = () => {
+    if (chimeStopRef.current) {
+      chimeStopRef.current();
+      chimeStopRef.current = null;
+    }
+  };
   // Latest alarm preference without re-subscribing the phase-end callback.
   const alarmPrefRef = useRef(alarmOnComplete);
   alarmPrefRef.current = alarmOnComplete;
@@ -556,7 +565,16 @@ export default function Pomodoro({
             alarmStopRef.current = startAlarm();
             setAlarmRinging(true);
           } else {
-            pomodoroComplete();
+            // Repeat the chime so the finish isn't missed. If you're looking at
+            // the tab, three rings is plenty; if you're away (another tab/app —
+            // exactly when a single ding gets lost), keep ringing until you come
+            // back, capped so it can never nag forever. The visibility effect
+            // below stops it the moment the tab is open again.
+            stopChime();
+            chimeStopRef.current = startPomodoroChime({
+              maxRings: document.visibilityState === "visible" ? 3 : 20,
+              intervalMs: 2600,
+            });
           }
         } else {
           phaseChange();
@@ -616,15 +634,35 @@ export default function Pomodoro({
   // the timer is paused/stopped.
   const [focusMode, setFocusMode] = useState(false);
 
+  // "Log past focus": credit real focus time you did BEFORE opening the timer
+  // (or forgot to start it). It writes honest minutes to today's focus log,
+  // attributed to whatever you're focusing on — never a fake timed block.
+  const [showLogPast, setShowLogPast] = useState(false);
+  const [pastMin, setPastMin] = useState(25);
+  const [justLoggedMin, setJustLoggedMin] = useState(0);
+  useEffect(() => {
+    if (!justLoggedMin) return undefined;
+    const t = setTimeout(() => setJustLoggedMin(0), 5000);
+    return () => clearTimeout(t);
+  }, [justLoggedMin]);
+
   // Pause stopwatch: pausing mid-block starts a count-UP of how long you've
   // been stopped, next to a slider for how long you MEANT to stop. Interrupts
   // stop being open-ended ("I'll just check my phone") and become a measured
   // break with a visible edge. Never shaming: overshooting just says so.
-  const [pausedAt, setPausedAt] = useState(null); // epoch ms | null
-  const [pauseElapsedSec, setPauseElapsedSec] = useState(0);
+  // pausedAt is an absolute epoch, persisted (device-local) so a refresh while
+  // stopped restores the "Stopped for X" card still counting from when you
+  // actually paused — the timer countdown already survives a reload, and this
+  // keeps its companion stopwatch honest instead of resetting to 0.
+  const [pausedAt, setPausedAt] = useLocalStorage("ligand.pomodoro.pausedAt", null); // epoch ms | null
+  const [pauseElapsedSec, setPauseElapsedSec] = useState(
+    pausedAt ? Math.floor((Date.now() - pausedAt) / 1000) : 0
+  );
   const [pausePlanMin, setPausePlanMin] = useLocalStorage("ligand.pausePlanMin", 5);
   useEffect(() => {
     if (!pausedAt) return undefined;
+    // Correct immediately on (re)mount, then tick every second.
+    setPauseElapsedSec(Math.floor((Date.now() - pausedAt) / 1000));
     const t = setInterval(
       () => setPauseElapsedSec(Math.floor((Date.now() - pausedAt) / 1000)),
       1000
@@ -639,6 +677,8 @@ export default function Pomodoro({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot clear on resume; guarded so it can't cascade
       setPausedAt(null);
     }
+    // setPausedAt is a stable useState setter (via useLocalStorage), not a real dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pomo.running, pausedAt, logPause]);
   const pausedTodayMin = useMemo(() => {
     const today = todayKey();
@@ -660,10 +700,49 @@ export default function Pomodoro({
   const pausePlanSec = pausePlanMin * 60;
   const pauseOver = pausedAt && pauseElapsedSec > pausePlanSec;
 
+  // A gentle chime the moment a pause runs past the time you planned to stop —
+  // an external cue to come back, since "I'll just check my phone" is exactly
+  // the interrupt that quietly eats an afternoon. Fires once per pause (the ref
+  // resets when a new pause starts), and follows the Pomodoro chime setting.
+  const pauseOverFiredRef = useRef(false);
+  useEffect(() => {
+    pauseOverFiredRef.current = false;
+  }, [pausedAt]);
+  useEffect(() => {
+    if (pausedAt && pauseOver && !pauseOverFiredRef.current) {
+      pauseOverFiredRef.current = true;
+      if (chimeEnabled) pauseNudge();
+    }
+  }, [pauseOver, pausedAt, chimeEnabled]);
+
   // Auto-exit focus mode if the timer stops.
   useEffect(() => {
     if (!pomo.running && focusMode) setFocusMode(false);
   }, [pomo.running, focusMode]);
+
+  // "Rings until you open the tab": coming back to a visible tab — or clicking
+  // anywhere in the app — is acknowledgement enough, so the chime stops. Also
+  // stops when the next block starts and on unmount, so it can never outlive
+  // the moment it belongs to.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") stopChime();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("pointerdown", stopChime);
+    window.addEventListener("keydown", stopChime);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pointerdown", stopChime);
+      window.removeEventListener("keydown", stopChime);
+    };
+  }, []);
+  useEffect(() => {
+    if (pomo.running) stopChime();
+  }, [pomo.running]);
+  useEffect(() => () => stopChime(), []);
 
   const ambientOn = settings.ambientSound;
   const ambientVolume = settings.ambientVolume ?? 35;
@@ -710,6 +789,35 @@ export default function Pomodoro({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [focusMode]);
+
+  // "Log past focus" helpers: a friendly minutes label, the goal the current
+  // focus selection maps to (same rules the phase-end auto-log uses), and a
+  // human label for what the time will be credited to.
+  const fmtMin = (m) =>
+    m >= 60
+      ? m % 60 === 0
+        ? m / 60 + "h"
+        : Math.floor(m / 60) + "h " + (m % 60) + "m"
+      : m + "m";
+  const focusGoalOf = (taskId) => {
+    if (taskId?.startsWith("goal:")) return taskId.slice(5);
+    if (taskId && taskId !== "custom") return tasks.find((t) => t.id === taskId)?.goalId || null;
+    return null;
+  };
+  const focusLabel = (() => {
+    if (!focusTaskId) return "nothing in particular";
+    if (focusTaskId === "custom") return focusCustom.trim() || "something else";
+    if (focusTaskId.startsWith("goal:"))
+      return goals.find((g) => g.id === focusTaskId.slice(5))?.name || "a goal";
+    return tasks.find((t) => t.id === focusTaskId)?.text || "nothing in particular";
+  })();
+  const logPastFocus = () => {
+    const m = Math.round(pastMin);
+    if (!m || m <= 0) return;
+    logFocusSession?.({ minutes: m, goalId: focusGoalOf(focusTaskId) });
+    setJustLoggedMin(m);
+    setShowLogPast(false);
+  };
 
   return (
     <>
@@ -936,6 +1044,84 @@ export default function Pomodoro({
             tasks={tasks}
             goals={goals}
           />
+        </div>
+
+        {/* Log focus you already did — for when you got into it before opening
+           the timer, or forgot to start it. Adds honest minutes to today's
+           log, attributed to whatever you're focusing on above. */}
+        <div className="pomo-logpast-wrap">
+          {showLogPast ? (
+            <div className="card pomo-logpast">
+              <div className="pomo-logpast-head">
+                <span className="pomo-logpast-title">
+                  <Icon.Timer width={14} height={14} /> Already been focusing?
+                </span>
+                <button
+                  className="iconbtn sm"
+                  onClick={() => setShowLogPast(false)}
+                  title="Close"
+                  aria-label="Close"
+                >
+                  <Icon.Close width={13} height={13} />
+                </button>
+              </div>
+              <p className="pomo-logpast-sub">
+                Add time you already put in. It counts toward today just like a
+                timed block — no need to run the clock after the fact.
+              </p>
+              <div className="pomo-logpast-chips" role="group" aria-label="How long did you focus?">
+                {[15, 25, 30, 45, 60, 90].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={"chip" + (pastMin === m ? " accent" : "")}
+                    onClick={() => setPastMin(m)}
+                  >
+                    {fmtMin(m)}
+                  </button>
+                ))}
+              </div>
+              <div className="pomo-logpast-slider">
+                <Slider
+                  value={pastMin}
+                  min={5}
+                  max={180}
+                  step={5}
+                  onChange={(v) => setPastMin(v)}
+                  format={fmtMin}
+                />
+              </div>
+              <div className="pomo-logpast-foot">
+                <span className="pomo-logpast-attr">
+                  For <strong>{focusLabel}</strong>
+                </span>
+                <button className="btn primary sm" onClick={logPastFocus}>
+                  <Icon.Check width={13} height={13} /> Add {fmtMin(pastMin)}
+                </button>
+              </div>
+            </div>
+          ) : justLoggedMin ? (
+            <div className="pomo-logpast-done" role="status">
+              <span className="pomo-logpast-done-msg">
+                <Icon.Check width={14} height={14} /> Added {fmtMin(justLoggedMin)} to today's focus.
+              </span>
+              <button
+                type="button"
+                className="pomo-logpast-again"
+                onClick={() => setShowLogPast(true)}
+              >
+                Add more
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn ghost sm pomo-logpast-open"
+              onClick={() => setShowLogPast(true)}
+            >
+              <Icon.Plus width={13} height={13} /> Log focus you already did
+            </button>
+          )}
         </div>
       </div>
 

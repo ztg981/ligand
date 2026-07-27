@@ -633,6 +633,18 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .topbar-spacer { flex: 1; }
 .topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar-tools-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+
+/* The mute switch: deliberately near-invisible until you go looking for it.
+   It's a set-and-forget control, so at rest it reads as a faint hint rather
+   than another button competing for the eye. Hover/focus brings it up to a
+   normal icon button, and the muted state stays legible so the app never
+   looks silently broken ("why are there no sounds?"). */
+.topbar-mute { opacity: 0.3; transition: opacity 0.18s var(--ease), color 0.18s var(--ease); }
+.topbar-mute:hover, .topbar-mute:focus-visible { opacity: 1; }
+.topbar-mute.is-muted { opacity: 0.75; color: var(--ink-3); }
+.topbar-mute.is-muted:hover, .topbar-mute.is-muted:focus-visible { opacity: 1; }
+/* Touch devices get no hover, so leave it a bit more present there. */
+@media (hover: none) { .topbar-mute { opacity: 0.55; } }
 .topbar-main-tabs { display: flex; align-items: center; gap: 12px; }
 /* The horizontal goal pills are superseded everywhere now: the vertical
    sidebar owns goals on desktop (≥768px) and the goal dropdown owns them on
@@ -9333,6 +9345,41 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
 .pomo-pause-slider > div, .pomo-pause-slider .slider { flex: 1; }
 .pomo-pause-note { font-size: 11.5px; color: var(--ink-4); margin: 8px 0 0; }
 
+/* Log-past-focus: credit time you did before starting the timer. */
+.pomo-logpast-wrap { display: flex; justify-content: center; width: 100%; }
+.pomo-logpast-open { color: var(--ink-3); }
+.pomo-logpast { max-width: 420px; width: 100%; margin: 0 auto; }
+.pomo-logpast-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pomo-logpast-title {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 650; color: var(--ink);
+}
+.pomo-logpast-sub { font-size: 11.5px; color: var(--ink-4); margin: 6px 0 12px; line-height: 1.45; }
+.pomo-logpast-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.pomo-logpast-chips .chip { cursor: pointer; }
+.pomo-logpast-slider { margin-bottom: 14px; }
+.pomo-logpast-slider > div, .pomo-logpast-slider .slider { width: 100%; }
+.pomo-logpast-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.pomo-logpast-attr { font-size: 12px; color: var(--ink-3); min-width: 0; }
+.pomo-logpast-attr strong { color: var(--ink); font-weight: 650; }
+.pomo-logpast-done {
+  display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 14px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: 12.5px; font-weight: 600;
+  animation: notifPop 0.2s var(--ease);
+}
+.pomo-logpast-done-msg { display: inline-flex; align-items: center; gap: 6px; }
+.pomo-logpast-again {
+  border: none; background: none; cursor: pointer;
+  font: inherit; font-weight: 700; color: var(--accent-ink);
+  text-decoration: underline; text-underline-offset: 2px;
+  padding: 0;
+}
+
 /* ============================================================
    Day tab zoom levels: Week + Month views, NL add bar, repeat UI
    ============================================================ */
@@ -9526,7 +9573,16 @@ html[data-hyperfocus="true"][data-hf-theme="mono"] {
   padding: 6px;
   -webkit-backdrop-filter: blur(24px) saturate(150%);
   backdrop-filter: blur(24px) saturate(150%);
-  animation: notifPop 0.16s var(--ease);
+  /* Fade only — never animate transform here. This popover is centered with a
+     static translateX(-50%); an open animation that touched `transform` (even
+     the shared notifPop) dropped that offset for the animation's duration, so
+     the menu opened shifted right and snapped left when it ended. Animating
+     opacity alone leaves the centering transform untouched the whole time. */
+  animation: focuspickPop 0.16s var(--ease);
+}
+@keyframes focuspickPop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .focuspick-item {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -9678,6 +9734,13 @@ input[type="date"].input::-webkit-date-and-time-value {
 .task-sched input[type="date"] { width: 138px; }
 .task-sched input[type="time"] { width: 96px; min-width: 96px; }
 .task-sched-dash { color: var(--ink-4); }
+.task-sched-lbl {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--ink-3); flex: none;
+}
+/* The Today / Tomorrow quick-day chips are buttons — make them read as
+   tappable and give the active one the accent fill the filters already use. */
+.task-sched button.chip { cursor: pointer; flex: none; }
 @media (max-width: 640px) {
   .task-sched { flex-wrap: wrap; }
 }

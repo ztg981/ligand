@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Icon } from "../components/Icons.jsx";
 import Select from "../components/Select.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
-import { TASK_TERMS, repeatLabel } from "../lib/model.js";
+import { TASK_TERMS, repeatLabel, todayKey, shiftDay } from "../lib/model.js";
 import { flashElement } from "../lib/scrollFlash.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
@@ -58,6 +58,8 @@ function TaskFormFields({
   sched,
   setSched,
 }) {
+  const today = todayKey();
+  const tomorrow = shiftDay(today, 1);
   return (
     <>
       <Select
@@ -96,10 +98,32 @@ function TaskFormFields({
           })),
         ]}
       />
-      {/* Optional schedule: a date puts it on the calendar; adding times
-         carves a real block on that day's plan (dial/agenda included). */}
+      {/* When: put this task on a day. Quick chips for the two most common
+         choices (Today / Tomorrow); the date field covers "Sunday" or any
+         other day. A scheduled task shows up in that day's "Today's focus"
+         and on that day's plan. Adding times also carves a real block. */}
       <div className="task-sched" title="Schedule this task onto a day">
-        <Icon.Calendar width={13} height={13} />
+        <span className="task-sched-lbl">
+          <Icon.Calendar width={13} height={13} /> When
+        </span>
+        <button
+          type="button"
+          className={"chip" + (sched.date === today ? " accent" : "")}
+          onClick={() => setSched({ ...sched, date: sched.date === today ? "" : today })}
+          aria-pressed={sched.date === today}
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          className={"chip" + (sched.date === tomorrow ? " accent" : "")}
+          onClick={() =>
+            setSched({ ...sched, date: sched.date === tomorrow ? "" : tomorrow })
+          }
+          aria-pressed={sched.date === tomorrow}
+        >
+          Tomorrow
+        </button>
         <input
           className="input"
           type="date"

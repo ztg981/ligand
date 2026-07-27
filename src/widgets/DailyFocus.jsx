@@ -151,9 +151,11 @@ export default function DailyFocus({
   const doneHabits = totalHabits - openHabits.length;
   const showHabitSummary = habitsSummaryOnMobile && isMobile && totalHabits > 0;
 
-  // Tasks labeled Today/Urgent that aren't done yet.
+  // Tasks that belong to today and aren't done yet: labelled Today/Urgent
+  // (an always-visible priority), or explicitly scheduled for this date. The
+  // scheduled path is what makes "add a task for Sunday" show up on Sunday.
   const focusTasks = tasks.filter(
-    (t) => !t.done && (t.label === "Today" || t.label === "Urgent")
+    (t) => !t.done && (t.label === "Today" || t.label === "Urgent" || t.scheduledFor === today)
   );
 
   const overdue = goals.filter((g) => isGoalOverdue(g));
@@ -349,17 +351,24 @@ export default function DailyFocus({
                 <span className="ov-count">{focusTasks.length}</span>
               </div>
               <div className="stack" style={{ gap: 6 }}>
-                {focusTasks.map((t) => (
-                  <div key={t.id} className="ov-task-row">
-                    <span
-                      className={"chip " + (t.label === "Urgent" ? "rose" : "")}
-                      style={{ flex: "none" }}
-                    >
-                      {t.label}
-                    </span>
-                    <span className="ov-task-text">{t.text}</span>
-                  </div>
-                ))}
+                {focusTasks.map((t) => {
+                  // A task pulled in only because it's scheduled for today
+                  // reads as "Today" (not its underlying General/goal label).
+                  const scheduledToday =
+                    t.scheduledFor === today && t.label !== "Urgent";
+                  const chipLabel =
+                    t.label === "Urgent" ? "Urgent" : scheduledToday ? "Today" : t.label;
+                  const chipClass =
+                    t.label === "Urgent" ? "rose" : scheduledToday ? "accent" : "";
+                  return (
+                    <div key={t.id} className="ov-task-row">
+                      <span className={"chip " + chipClass} style={{ flex: "none" }}>
+                        {chipLabel}
+                      </span>
+                      <span className="ov-task-text">{t.text}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

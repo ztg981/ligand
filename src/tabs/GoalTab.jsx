@@ -43,7 +43,13 @@ function niceAchievable(value) {
   return "Not chosen yet";
 }
 
-function GoalDetails({ goal }) {
+const ACHIEVABLE_OPTIONS = [
+  { value: "easy", label: "Easy" },
+  { value: "balanced", label: "Balanced" },
+  { value: "stretch", label: "Stretch" },
+];
+
+function GoalDetails({ goal, updateGoal }) {
   const smart = goal.smartFields || {};
   const details = [
     ["Specific", smart.specific],
@@ -53,7 +59,51 @@ function GoalDetails({ goal }) {
     ["Time-bound", goalTargetDate(goal)],
   ];
   const hasDetails = details.some(([, value]) => value && value !== "Not chosen yet");
+  const canEdit = typeof updateGoal === "function";
   const [open, setOpen] = useState(hasDetails);
+  const [editing, setEditing] = useState(false);
+  // Draft fields, seeded from the goal when edit mode opens.
+  const [draft, setDraft] = useState(null);
+
+  const startEdit = () => {
+    setDraft({
+      specific: smart.specific || "",
+      measurable: smart.measurable || "",
+      achievable: smart.achievable || "",
+      relevant: smart.relevant || "",
+      timeBound: goalTargetDate(goal) || "",
+    });
+    setOpen(true);
+    setEditing(true);
+  };
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraft(null);
+  };
+  const saveEdit = () => {
+    if (!draft) return;
+    const date = draft.timeBound || "";
+    // One atomic write: the SMART fields, plus deadline + timeBound kept in sync
+    // (mirrors reviseGoalTargetDate) so goalTargetDate stays correct. Only clear
+    // an overdue snooze when the date actually moved.
+    const patch = {
+      smartFields: {
+        ...smart,
+        specific: draft.specific.trim(),
+        measurable: draft.measurable.trim(),
+        achievable: draft.achievable,
+        relevant: draft.relevant.trim(),
+        timeBound: date,
+      },
+      deadline: date || null,
+    };
+    if ((goalTargetDate(goal) || "") !== date) patch.overdueSnoozedUntil = null;
+    updateGoal(goal.id, patch);
+    setEditing(false);
+    setDraft(null);
+  };
+
+  const setField = (key) => (val) => setDraft((d) => ({ ...d, [key]: val }));
 
   return (
     <div className="card">
@@ -64,16 +114,27 @@ function GoalDetails({ goal }) {
           </div>
           <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 3 }}>
             {hasDetails
-              ? "Your SMART notes are saved here. You can adjust this later."
-              : "No SMART details yet. Older goals still work normally."}
+              ? "Your SMART notes are saved here. You can adjust them anytime."
+              : canEdit
+                ? "No SMART details yet. Add them anytime — nothing here is locked in."
+                : "No SMART details yet. Older goals still work normally."}
           </div>
         </div>
-        <button type="button" className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
-          {open ? "Hide" : "Show"}
-        </button>
+        <div className="row" style={{ gap: 6, flex: "none" }}>
+          {canEdit && !editing && (
+            <button type="button" className="btn ghost sm" onClick={startEdit}>
+              <Icon.Pencil width={13} height={13} /> Edit
+            </button>
+          )}
+          {!editing && (
+            <button type="button" className="btn ghost sm" onClick={() => setOpen((v) => !v)}>
+              {open ? "Hide" : "Show"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {open && (
+      {open && !editing && (
         <div className="grid grid-12" style={{ marginTop: 12 }}>
           {details.map(([label, value]) => (
             <div key={label} className={label === "Relevant" ? "col-12" : "col-6"}>
@@ -85,6 +146,74 @@ function GoalDetails({ goal }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {editing && draft && (
+        <div className="stack" style={{ gap: 12, marginTop: 12 }}>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="tag">Specific</span>
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="What exactly do you want to do?"
+              value={draft.specific}
+              onChange={(e) => setField("specific")(e.target.value)}
+            />
+          </label>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="tag">Measurable</span>
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="How will you know you're making progress?"
+              value={draft.measurable}
+              onChange={(e) => setField("measurable")(e.target.value)}
+            />
+          </label>
+          <div className="stack" style={{ gap: 4 }}>
+            <span className="tag">Achievable</span>
+            <div className="seg" style={{ alignSelf: "flex-start" }}>
+              {ACHIEVABLE_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={draft.achievable === o.value ? "active" : ""}
+                  onClick={() => setField("achievable")(o.value)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="tag">Relevant</span>
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="Why does this matter to you?"
+              value={draft.relevant}
+              onChange={(e) => setField("relevant")(e.target.value)}
+            />
+          </label>
+          <label className="stack" style={{ gap: 4 }}>
+            <span className="tag">Time-bound (target date)</span>
+            <input
+              className="input"
+              type="date"
+              style={{ maxWidth: 180 }}
+              value={draft.timeBound}
+              onChange={(e) => setField("timeBound")(e.target.value)}
+            />
+          </label>
+          <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+            <button type="button" className="btn ghost sm" onClick={cancelEdit}>
+              Cancel
+            </button>
+            <button type="button" className="btn primary sm" onClick={saveEdit}>
+              <Icon.Check width={13} height={13} /> Save details
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -439,7 +568,9 @@ const WIDGET_REGISTRY = {
     allowedSizes: WIDGET_SIZE_VARIANTS,
     preset: true,
     locked: true,
-    render: ({ goal }) => <GoalDetails key={goal.id} goal={goal} />,
+    render: ({ goal, updateGoal }) => (
+      <GoalDetails key={goal.id} goal={goal} updateGoal={updateGoal} />
+    ),
   },
   habits: {
     type: "habits",

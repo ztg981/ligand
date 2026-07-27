@@ -12,6 +12,10 @@ export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.goalSidebarCollapsed",
   "ligand.journalSort",
   "ligand.focusTaskId",
+  // The live Pomodoro countdown + pause stopwatch are machine-local: a timer
+  // running (or paused) on your laptop must not teleport onto your phone.
+  "ligand.pomodoro.session",
+  "ligand.pomodoro.pausedAt",
   // Version snapshots and queued task mutations are account/device control
   // state, not user content. Never mirror them into the legacy JSON blob.
   "ligand.taskRecordSync",

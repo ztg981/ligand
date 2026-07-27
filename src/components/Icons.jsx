@@ -95,6 +95,13 @@ export const Icon = {
       <path d="M10 6c.7.5.7 3.5 0 4" />
     </>
   ),
+  // Same speaker, wave replaced by a small x — the muted counterpart.
+  VolumeOff: make(
+    <>
+      <path d="M3 6.5v3h2L8 12V4L5 6.5H3z" />
+      <path d="M10.5 6.5l3 3M13.5 6.5l-3 3" />
+    </>
+  ),
   Cloud: make(<path d="M4.5 11.5h7a2.5 2.5 0 0 0 .3-5A3.5 3.5 0 0 0 5 5.5a2.5 2.5 0 0 0-.5 6z" />),
   Lock: make(
     <>

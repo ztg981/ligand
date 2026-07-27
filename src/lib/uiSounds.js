@@ -309,6 +309,34 @@ export function pomodoroComplete() {
   } catch {/* ignore */}
 }
 
+/* --- startPomodoroChime (a focus block finished, insistently) ---
+   ONE bing-bong is easy to miss — you look up two minutes later and the block
+   ended without you. This repeats pomodoroComplete() so the finish actually
+   lands, and returns a stop function so the caller can cut it short the moment
+   you're back (see the Pomodoro tab: it stops on tab focus / next action).
+
+   Still the reward sound, not the alarm: same calm descending fourth, spaced
+   generously apart. `maxRings` caps it so it can never ring forever — the
+   caller passes a small number when you're already looking at the tab and a
+   larger one when you're away. */
+export function startPomodoroChime({ maxRings = 3, intervalMs = 2600 } = {}) {
+  let stopped = false;
+  let rings = 0;
+  let timer = null;
+  const ring = () => {
+    if (stopped) return;
+    pomodoroComplete();
+    rings += 1;
+    if (rings >= maxRings) return;
+    timer = setTimeout(ring, intervalMs);
+  };
+  ring();
+  return () => {
+    stopped = true;
+    if (timer) clearTimeout(timer);
+  };
+}
+
 /* --- phaseChange (break over, back to focus) ---------------
    The gentle counterpart to pomodoroComplete: a rising major second
    (B4 -> D5, the "seatbelt-on" chime) that says "let's go again"
@@ -317,6 +345,19 @@ export function phaseChange() {
   try {
     bell(493.88, 0, 0.42, 0.14);   // B4
     bell(587.33, 0.3, 0.7, 0.15);  // D5 — lifts up
+  } catch {/* ignore */}
+}
+
+/* --- pauseNudge (you've been stopped a while) --------------
+   A gentle "still there?" for when a Pomodoro pause runs past the time you
+   said you'd stop. NOT the completion bing-bong (that means "done, rest") and
+   NOT the alarm (that's insistent): a soft two-note tap that settles down —
+   just enough to catch your eye without scolding. Like the chime, it follows
+   the Pomodoro chime setting via its caller, not the UI-sounds toggle. */
+export function pauseNudge() {
+  try {
+    bell(659.25, 0, 0.26, 0.12);                    // E5
+    bell(587.33, 0.24, 0.55, 0.12, { body: 0.15 }); // D5 — a calm "time?" settle
   } catch {/* ignore */}
 }
 
@@ -392,9 +433,12 @@ if (typeof window !== "undefined" && !window.__ligandUiSoundsInit) {
   window.__ligandUiSoundsInit = true;
 
   // Unlock/resume the AudioContext on the first user gesture so the very
-  // first sound isn't dropped while the context is still suspended.
+  // first sound isn't dropped while the context is still suspended. This does
+  // NOT check the UI-sounds toggle on purpose: the Pomodoro chime and the
+  // alarm deliberately bypass that toggle, so the context must be unlocked by a
+  // gesture even when click sounds are off — otherwise a suspended context
+  // would swallow the one sound the user actually asked to hear.
   const unlock = () => {
-    if (!_enabled) return;
     const c = getCtx();
     if (c && c.state === "suspended") c.resume().catch(() => {});
   };

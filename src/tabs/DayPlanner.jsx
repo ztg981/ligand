@@ -593,12 +593,19 @@ export default function DayPlanner({
   const unscheduledTasks = useMemo(() => {
     const linked = new Set(blocks.filter((b) => b.linkType === "task").map((b) => b.linkId));
     // Newest first: the thing you just captured is the thing you most
-    // likely want to give a time.
+    // likely want to give a time. A task scheduled for another day belongs to
+    // THAT day's planner, not this one — so only offer tasks with no day set
+    // or a day matching the one being viewed.
     return tasks
-      .filter((t) => !t.done && !linked.has(t.id))
+      .filter(
+        (t) =>
+          !t.done &&
+          !linked.has(t.id) &&
+          (!t.scheduledFor || t.scheduledFor === date)
+      )
       .slice(-5)
       .reverse();
-  }, [tasks, blocks]);
+  }, [tasks, blocks, date]);
 
   const todaysWorkouts = useMemo(() => {
     const linked = new Set(blocks.filter((b) => b.linkType === "workout").map((b) => b.linkId));

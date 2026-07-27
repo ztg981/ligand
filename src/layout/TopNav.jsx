@@ -709,6 +709,8 @@ export default function TopNav({
   onSignOut,
   onRequestAuth,
   syncStatus = "idle",
+  soundsEnabled = true,
+  onToggleSounds,
 }) {
   const goalItems = goals.map((g) => ({
     id: g.id,
@@ -878,6 +880,25 @@ export default function TopNav({
             onOpenAlarms={onOpenAlarms}
             alarms={alarms}
           />
+          {/* Quiet mute switch for UI sound effects (clicks, toggles, check-in
+             chirps). Deliberately low-contrast until hovered — it's a set-and-
+             forget control, not a thing to look at. Timer chimes and alarms are
+             NOT affected: those bypass the UI-sound toggle by design, so muting
+             clicks never silences a Pomodoro finishing or an alarm you set. */}
+          <button
+            className={"iconbtn topbar-mute" + (soundsEnabled ? "" : " is-muted")}
+            onClick={onToggleSounds}
+            aria-pressed={!soundsEnabled}
+            title={
+              soundsEnabled
+                ? "Mute sound effects (timer chimes and alarms still play)"
+                : "Sound effects muted — click to unmute (timer chimes and alarms still play)"
+            }
+            aria-label={soundsEnabled ? "Mute sound effects" : "Unmute sound effects"}
+            data-mute-click
+          >
+            {soundsEnabled ? <Icon.Volume /> : <Icon.VolumeOff />}
+          </button>
           <ThemeMenu theme={theme} themeChoice={themeChoice} setThemeChoice={setThemeChoice} />
           <div className="topbar-tools-sep" />
           <AvatarMenu
