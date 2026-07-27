@@ -634,17 +634,40 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .topbar-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .topbar-tools-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 
-/* The mute switch: deliberately near-invisible until you go looking for it.
-   It's a set-and-forget control, so at rest it reads as a faint hint rather
-   than another button competing for the eye. Hover/focus brings it up to a
-   normal icon button, and the muted state stays legible so the app never
-   looks silently broken ("why are there no sounds?"). */
-.topbar-mute { opacity: 0.3; transition: opacity 0.18s var(--ease), color 0.18s var(--ease); }
-.topbar-mute:hover, .topbar-mute:focus-visible { opacity: 1; }
-.topbar-mute.is-muted { opacity: 0.75; color: var(--ink-3); }
-.topbar-mute.is-muted:hover, .topbar-mute.is-muted:focus-visible { opacity: 1; }
-/* Touch devices get no hover, so leave it a bit more present there. */
-@media (hover: none) { .topbar-mute { opacity: 0.55; } }
+/* The mute dot: a tiny circle tucked in the corner under the avatar.
+   Deliberately near-invisible — it's a set-and-forget switch, so at rest it
+   reads as a faint smudge rather than another button competing for the eye.
+   Hover/focus resolves it into a real control. The muted state stays legible
+   so the app never looks silently broken ("why are there no sounds?"). */
+.mute-dot {
+  position: fixed;
+  top: 68px;
+  right: 26px;
+  z-index: 19; /* just under the topbar (20) so it never covers the avatar */
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: var(--ink-4);
+  cursor: pointer;
+  opacity: 0.22;
+  transition: opacity 0.18s var(--ease), color 0.18s var(--ease);
+  /* Electron: this sits outside .topbar, so it needs its own drag opt-out. */
+  -webkit-app-region: no-drag;
+}
+.mute-dot:hover, .mute-dot:focus-visible { opacity: 1; color: var(--ink-2); }
+.mute-dot.is-muted { opacity: 0.7; color: var(--ink-3); }
+.mute-dot.is-muted:hover, .mute-dot.is-muted:focus-visible { opacity: 1; }
+/* Touch devices get no hover, so leave it a little more present there, and
+   clear the taller mobile topbar. */
+@media (hover: none) { .mute-dot { opacity: 0.45; } }
+@media (max-width: 767px) { .mute-dot { top: 74px; right: 18px; } }
 .topbar-main-tabs { display: flex; align-items: center; gap: 12px; }
 /* The horizontal goal pills are superseded everywhere now: the vertical
    sidebar owns goals on desktop (≥768px) and the goal dropdown owns them on
