@@ -5,6 +5,7 @@ import { accentFor, ambientFor } from "../theme/palettes.js";
 import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import AlarmsPanel from "../components/AlarmsPanel.jsx";
 import { downloadBackup } from "../lib/backup.js";
+import { mediaStats, formatBytes } from "../lib/mediaStore.js";
 import ChatGPTAccessPanel from "../components/ChatGPTAccessPanel.jsx";
 import pkg from "../../package.json";
 
@@ -78,6 +79,19 @@ export default function MobileSettings({
   const [signingOut, setSigningOut] = useState(false);
   const loggedIn = Boolean(accountEmail);
   const alarmsRef = useRef(null);
+
+  // Journal recordings live in IndexedDB, so a JSON export cannot carry them.
+  // Say so here rather than let an export look like a complete backup.
+  const [mediaInfo, setMediaInfo] = useState({ count: 0, bytes: 0 });
+  useEffect(() => {
+    let alive = true;
+    mediaStats().then((stats) => {
+      if (alive && stats) setMediaInfo(stats);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (focusSection === "alarms" && alarmsRef.current) {
@@ -331,7 +345,14 @@ export default function MobileSettings({
               </button>
             )}
           </Row>
-          <Row name="Export data" hint="Download everything as a JSON backup">
+          <Row
+            name="Export data"
+            hint={
+              mediaInfo.count > 0
+                ? `Download everything as a JSON backup. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) stay on this device and are not in the file.`
+                : "Download everything as a JSON backup"
+            }
+          >
             <button className="btn ghost sm" onClick={() => downloadBackup()}>
               ↓ Export
             </button>

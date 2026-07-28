@@ -8,6 +8,8 @@ import { formatEntryDateTime, todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { searchItunesSongs } from "../lib/itunesSearch.js";
 import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js";
+import { MediaCapture, MediaStrip } from "../components/JournalMedia.jsx";
+import { deleteMediaMany } from "../lib/mediaStore.js";
 import MoodTrend from "../widgets/MoodTrend.jsx";
 import DayStory from "../components/DayStory.jsx";
 import { activitiesOn, categoryOf, fmtMinutes } from "../lib/activities.js";
@@ -341,6 +343,12 @@ export default function Journal({
   };
   const removeImage = (id) => setImages((prev) => prev.filter((a) => a.id !== id));
 
+  // Voice notes / clips staged for the entry-in-progress. Only references are
+  // held here; the blobs already live in IndexedDB (see lib/mediaStore.js).
+  const [media, setMedia] = useState([]); // [{ id, kind, mime, durationMs, size }]
+  const addMedia = (ref) => setMedia((prev) => [...prev, ref]);
+  const removeMedia = (id) => setMedia((prev) => prev.filter((m) => m.id !== id));
+
   // Entries newest- or oldest-first by createdAt (ISO strings sort chrono).
   const orderedJournal = useMemo(() => {
     const arr = [...(journal || [])];
@@ -373,15 +381,22 @@ export default function Journal({
 
   const save = () => {
     const t = text.trim();
-    // An image-only entry is still worth saving.
-    if (!t && images.length === 0) return;
-    const entry = addJournalEntry({ text: t, prompt, location, attachments: images });
+    // An image- or recording-only entry is still worth saving.
+    if (!t && images.length === 0 && media.length === 0) return;
+    const entry = addJournalEntry({
+      text: t,
+      prompt,
+      location,
+      attachments: images,
+      media,
+    });
     attachedSongIds.forEach((id) => updateSong(id, { journalEntryId: entry.id }));
     setText("");
     setLocation(null);
     setAttachedSongIds([]);
     setImages([]);
     setImgMsg("");
+    setMedia([]);
   };
 
   return (
@@ -500,6 +515,9 @@ export default function Journal({
                 ))}
               </div>
             )}
+
+            {/* Optional voice note / short clip */}
+            <MediaCapture media={media} onAdd={addMedia} onRemove={removeMedia} />
 
             {/* Optional location */}
             <div style={{ marginTop: 10 }}>
@@ -643,7 +661,13 @@ export default function Journal({
                         <ConfirmButton
                           className="iconbtn journal-entry-del"
                           title="Delete entry"
-                          onConfirm={() => removeJournalEntry(e.id)}
+                          onConfirm={() => {
+                            // Drop the blobs too — deleting the entry only
+                            // removes the reference, so without this the
+                            // recordings would linger in IndexedDB forever.
+                            deleteMediaMany((e.media || []).map((m) => m.id));
+                            removeJournalEntry(e.id);
+                          }}
                           requireConfirmation={confirmBeforeDelete}
                           style={{ color: "var(--ink-4)" }}
                           icon={<Icon.Trash width={13} height={13} />}
@@ -666,6 +690,7 @@ export default function Journal({
                           ))}
                         </div>
                       )}
+                      {(e.media || []).length > 0 && <MediaStrip media={e.media} />}
                       {attached.length > 0 && (
                         <div className="song-entry-list">
                           {attached.map((s) => (

@@ -1,0 +1,170 @@
+/* mediaRecord — a thin, careful wrapper over MediaRecorder.
+
+   Two deliberate shapes, matching how the phone camera behaves:
+
+     • voice note  — mic on. iOS activates an audio session for this, which
+       ducks or stops whatever you were listening to. There is NO web API to
+       ask for "mix with others" (native apps use AVAudioSession; Safari does
+       not expose it), so this interruption is a platform fact we surface in
+       the UI rather than a bug we can fix.
+
+     • quick clip  — video with `audio: false`. Because the mic is never
+       requested, iOS generally leaves your music playing. This is the
+       QuickTake-style capture.
+
+   Codecs differ by browser and cannot be hardcoded: Safari records MP4
+   (AAC/H.264), Chrome records WebM (Opus/VP8). `pickMimeType` walks a ladder
+   and lets the browser pick the first it actually supports; it takes the
+   support test as an argument so it stays unit-testable off-browser.
+
+   Bitrates are deliberately low. These are journal notes, not production
+   footage, and every byte lives in the user's device quota. */
+
+export const MAX_AUDIO_MS = 2 * 60 * 1000; // 2 minutes
+export const MAX_VIDEO_MS = 15 * 1000; // 15 seconds
+
+const AUDIO_TYPES = [
+  "audio/webm;codecs=opus", // best voice quality per byte (Chrome/Firefox)
+  "audio/ogg;codecs=opus",
+  "audio/mp4", // Safari's only option
+  "audio/webm",
+];
+
+const VIDEO_TYPES = [
+  "video/mp4", // Safari, and plays back everywhere
+  "video/webm;codecs=vp9",
+  "video/webm;codecs=vp8",
+  "video/webm",
+];
+
+const defaultIsSupported = (type) => {
+  try {
+    return typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(type) === true;
+  } catch {
+    return false;
+  }
+};
+
+/** First supported container/codec for `kind`, or "" to let the browser choose. */
+export function pickMimeType(kind, isSupported = defaultIsSupported) {
+  const ladder = kind === "video" ? VIDEO_TYPES : AUDIO_TYPES;
+  for (const type of ladder) {
+    if (isSupported(type)) return type;
+  }
+  return ""; // MediaRecorder falls back to its own default
+}
+
+export function isRecordingSupported() {
+  return (
+    typeof navigator !== "undefined" &&
+    Boolean(navigator.mediaDevices?.getUserMedia) &&
+    typeof MediaRecorder !== "undefined"
+  );
+}
+
+export function formatDuration(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Begin recording. Resolves to a controller once the stream is live:
+ *
+ *   { stream, mimeType, kind, stop(), cancel() }
+ *
+ * `stop()` resolves the recording via onStop({ blob, durationMs }); `cancel()`
+ * discards it. Both always release the camera/mic — leaving a track live keeps
+ * the recording indicator on and holds the audio session open.
+ */
+export async function startRecording({
+  kind = "audio",
+  maxMs = kind === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS,
+  facingMode = "user",
+  onStop,
+  onError,
+} = {}) {
+  if (!isRecordingSupported()) throw new Error("Recording is not supported here.");
+
+  const constraints =
+    kind === "video"
+      ? {
+          // No `audio` key at all — requesting it is what interrupts music.
+          video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        }
+      : { audio: true };
+
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+  const mimeType = pickMimeType(kind);
+  let recorder;
+  try {
+    recorder = new MediaRecorder(stream, {
+      ...(mimeType ? { mimeType } : {}),
+      ...(kind === "video"
+        ? { videoBitsPerSecond: 900_000 }
+        : { audioBitsPerSecond: 32_000 }),
+    });
+  } catch {
+    // Some browsers reject the options object; retry bare before giving up.
+    recorder = new MediaRecorder(stream);
+  }
+
+  const chunks = [];
+  const startedAt = Date.now();
+  let settled = false;
+  let cancelled = false;
+  let capTimer = null;
+
+  const releaseStream = () => {
+    stream.getTracks().forEach((track) => track.stop());
+    if (capTimer) clearTimeout(capTimer);
+    capTimer = null;
+  };
+
+  recorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) chunks.push(event.data);
+  };
+
+  recorder.onerror = (event) => {
+    releaseStream();
+    if (!settled) {
+      settled = true;
+      onError?.(event?.error || new Error("Recording failed."));
+    }
+  };
+
+  recorder.onstop = () => {
+    releaseStream();
+    if (settled) return;
+    settled = true;
+    if (cancelled) return;
+    const blob = new Blob(chunks, { type: recorder.mimeType || mimeType || "application/octet-stream" });
+    onStop?.({ blob, durationMs: Date.now() - startedAt, kind });
+  };
+
+  recorder.start();
+
+  // Hard cap so a forgotten recording can't eat the device's storage.
+  capTimer = setTimeout(() => {
+    if (recorder.state === "recording") recorder.stop();
+  }, maxMs);
+
+  return {
+    stream,
+    kind,
+    mimeType: recorder.mimeType || mimeType,
+    startedAt,
+    stop() {
+      if (recorder.state === "recording") recorder.stop();
+      else releaseStream();
+    },
+    cancel() {
+      cancelled = true;
+      if (recorder.state === "recording") recorder.stop();
+      else releaseStream();
+    },
+  };
+}

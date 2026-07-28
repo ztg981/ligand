@@ -13,6 +13,7 @@ import AppearanceModePreset from "../components/AppearanceModePreset.jsx";
 import Select from "../components/Select.jsx";
 import { BG_TRACKS } from "../lib/bgMusicPlayer.js";
 import { applyBackupData, downloadBackup, readBackupFile } from "../lib/backup.js";
+import { mediaStats, formatBytes } from "../lib/mediaStore.js";
 import ChatGPTAccessPanel from "../components/ChatGPTAccessPanel.jsx";
 import pkg from "../../package.json";
 
@@ -79,6 +80,20 @@ export default function Settings({
   removeAlarm,
   onTestAlarm,
 }) {
+  // Journal recordings live in IndexedDB, not localStorage, so the JSON export
+  // cannot carry them. Surface the size here rather than letting someone
+  // assume an export is a complete backup.
+  const [mediaInfo, setMediaInfo] = useState({ count: 0, bytes: 0 });
+  useEffect(() => {
+    let alive = true;
+    mediaStats().then((stats) => {
+      if (alive && stats) setMediaInfo(stats);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Pomodoro timings live in their own key (shared with the timer engine).
   const [pomoStored, setPomo] = useLocalStorage("ligand.pomodoro", POMO_DEFAULTS);
   const pomo = { ...POMO_DEFAULTS, ...pomoStored };
@@ -801,7 +816,14 @@ export default function Settings({
               onChange={(v) => setSection("behavior", { confirmBeforeDelete: v })}
             />
           </Row>
-          <Row name="Export data" hint="Download all your goals, tasks and journal as JSON">
+          <Row
+            name="Export data"
+            hint={
+              mediaInfo.count > 0
+                ? `Download all your goals, tasks and journal as JSON. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) stay on this device and are not in the file.`
+                : "Download all your goals, tasks and journal as JSON"
+            }
+          >
             <button
               className="btn ghost sm"
               onClick={() => downloadBackup()}

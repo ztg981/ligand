@@ -95,6 +95,13 @@ export const Icon = {
       <path d="M10 6c.7.5.7 3.5 0 4" />
     </>
   ),
+  // Camcorder: a rounded body with the lens barrel pointing right.
+  Video: make(
+    <>
+      <rect x="2" y="4.5" width="9" height="7" rx="1.5" />
+      <path d="M11 7.5l3-2v5l-3-2z" />
+    </>
+  ),
   // Same speaker, wave replaced by a small x — the muted counterpart.
   VolumeOff: make(
     <>

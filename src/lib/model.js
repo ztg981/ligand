@@ -172,6 +172,7 @@ export function createReflection({
   mood = null,
   location = null,
   attachments = [],
+  media = [],
 } = {}) {
   return {
     id: uid("refl"),
@@ -182,6 +183,11 @@ export function createReflection({
     location,
     // Optional image attachments: [{ id, dataUrl }]. Ride the sync blob.
     attachments,
+    // Voice notes / clips: [{ id, kind, mime, durationMs, size }]. Only the
+    // REFERENCE lives here — the blob itself is in IndexedDB (see
+    // lib/mediaStore.js), because base64 media would blow the localStorage
+    // budget the sync blob has to fit inside.
+    media,
     createdAt: new Date().toISOString(),
   };
 }
