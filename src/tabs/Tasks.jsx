@@ -14,6 +14,14 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
    ============================================================ */
 
 const BASE_LABELS = ["Today", "Urgent", "General"];
+
+// Chrome's nine tab-group colors, for the chip on a task linked to a group
+// from the browser extension.
+const TAB_GROUP_COLORS = {
+  grey: "#8a8f98", blue: "#4f7bd8", red: "#d85f57", yellow: "#d9a441",
+  green: "#4fa06a", pink: "#d2609a", purple: "#8a6fd0", cyan: "#3fa3ad",
+  orange: "#d98040",
+};
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
 const COMPLETION_BURST_MS = 560;
@@ -652,6 +660,22 @@ export default function Tasks({
                     <span className="chip task-private-chip" title="Private from assistants">
                       <Icon.Lock width={11} height={11} />
                       Private
+                    </span>
+                  )}
+                  {task.tabGroup?.title && (
+                    <span
+                      className="chip"
+                      title={`Worked in the "${task.tabGroup.title}" tab group`}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                    >
+                      <span
+                        className="swatch"
+                        style={{
+                          background: TAB_GROUP_COLORS[task.tabGroup.color] || "var(--ink-4)",
+                          boxShadow: "none",
+                        }}
+                      />
+                      {task.tabGroup.title}
                     </span>
                   )}
                   <LabelChip task={task} goals={goals} />

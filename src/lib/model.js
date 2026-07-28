@@ -101,6 +101,10 @@ export function createTask({
   repeat = null, // null | { type: "daily" } | { type: "weekly", weekday: 0-6 }
   scheduledFor = null,
   assistantPrivate = false,
+  // The Chrome tab group this task is worked in, set from the browser
+  // extension: { title, color }. Keyed by the group's human identity because
+  // Chrome's numeric group ids do not survive a browser restart.
+  tabGroup = null,
 } = {}) {
   const now = new Date().toISOString();
   return {
@@ -111,6 +115,7 @@ export function createTask({
     term,
     repeat,
     scheduledFor,
+    tabGroup,
     assistantPrivate: Boolean(assistantPrivate),
     done: false,
     completedOn: null, // YYYY-MM-DD a recurring task was last completed

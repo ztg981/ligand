@@ -1,0 +1,114 @@
+/* Popup styling — a small, calm echo of Ligand's look. Deliberately its own
+   tiny stylesheet: the app's CSS is far too large to load into a popup, and
+   this surface only ever needs a handful of controls. */
+
+:root {
+  --bg: #faf6f0;
+  --panel: #fff;
+  --panel-2: #f3eee7;
+  --ink: #23201c;
+  --ink-2: #4a453e;
+  --ink-3: #7b746a;
+  --ink-4: #a49c91;
+  --line: #e5ded4;
+  --accent: #3f6fd8;
+  --accent-soft: #e8eefc;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15161a;
+    --panel: #1c1e23;
+    --panel-2: #23262c;
+    --ink: #eceaea;
+    --ink-2: #c8c5c1;
+    --ink-3: #948e87;
+    --ink-4: #6d6862;
+    --line: #2e3138;
+    --accent: #7aa2f7;
+    --accent-soft: #232c40;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+/* header */
+.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.brand { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); }
+.status { font-size: 11px; color: var(--ink-4); }
+.status.on { color: var(--accent); }
+
+/* pomodoro */
+.pomo {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 8px 10px; margin-bottom: 10px;
+  background: var(--accent-soft); border-radius: var(--radius);
+}
+.pomo-time { font-size: 20px; font-weight: 600; letter-spacing: 0.01em; }
+.pomo-phase { font-size: 11.5px; color: var(--ink-3); }
+
+/* tab group */
+.group {
+  padding: 10px; margin-bottom: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.group-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; min-width: 0; }
+.swatch { width: 9px; height: 9px; border-radius: 999px; background: var(--ink-4); flex: none; }
+.group-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-count { font-size: 11px; color: var(--ink-4); flex: none; margin-left: auto; }
+
+.field { display: block; }
+.label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-4); margin-bottom: 3px; }
+
+/* capture */
+.capture { display: flex; flex-direction: column; gap: 8px; }
+.seg { display: flex; gap: 2px; padding: 2px; background: var(--panel-2); border-radius: 999px; }
+.seg button {
+  flex: 1; padding: 5px 0; border: none; border-radius: 999px;
+  background: none; color: var(--ink-3); font: inherit; font-size: 12px; font-weight: 550;
+  cursor: pointer;
+}
+.seg button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.input, select {
+  width: 100%; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); font: inherit;
+}
+.input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.row { display: flex; gap: 6px; }
+
+.btn {
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer;
+}
+.btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.btn.primary:disabled { opacity: .5; cursor: default; }
+
+.linkbtn {
+  border: none; background: none; padding: 0;
+  color: var(--ink-3); font: inherit; font-size: 11.5px;
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+.linkbtn:hover { color: var(--ink); }
+
+/* footer */
+.foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--ink-3); min-height: 18px;
+}
+.foot span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.foot span.ok { color: var(--accent); }

@@ -27,6 +27,7 @@ import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useSleepLog } from "./hooks/useSleepLog.js";
 import MorningCheckIn from "./components/MorningCheckIn.jsx";
 import { useStore } from "./hooks/useStore.js";
+import { useExtensionBridge } from "./hooks/useExtensionBridge.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
@@ -157,6 +158,17 @@ export default function App() {
   const preferenceScope = usesMobilePreferences ? "mobile" : "desktop";
   const { tweaks, set } = useTweaks(preferenceScope);
   const store = useStore();
+  // Browser-extension link: lets the Chrome extension capture tasks/notes/logs
+  // and read the running Pomodoro. Writes run through the real store actions
+  // here, never through the extension. Completely inert with no extension
+  // installed — nothing else posts on this channel.
+  useExtensionBridge({
+    tasks: store.tasks,
+    addTask: store.addTask,
+    addNote: store.addNote,
+    addActivity: store.addActivity,
+    updateTask: store.updateTask,
+  });
   // Photo-scan alarms: watch the clock and raise the firing alarm (if any).
   const { firing: firingAlarm, dismiss: dismissAlarm } = useAlarms(
     store.alarms,

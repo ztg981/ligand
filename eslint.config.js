@@ -32,4 +32,16 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
+  {
+    // The browser extension is plain scripts running against the WebExtension
+    // APIs, not React and not modules — it only needs the `chrome` global.
+    files: ['extension/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser, chrome: 'readonly' },
+      sourceType: 'script',
+    },
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

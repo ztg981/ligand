@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <span class="brand"><span class="dot"></span> Ligand</span>
+      <span class="status" id="status">…</span>
+    </header>
+
+    <!-- Running Pomodoro. Ticks locally from the session's absolute end time,
+         so it stays right even while Ligand isn't the focused tab. -->
+    <section class="pomo" id="pomo" hidden>
+      <span class="pomo-time mono" id="pomoTime">--:--</span>
+      <span class="pomo-phase" id="pomoPhase">Focus</span>
+    </section>
+
+    <!-- The tab group you're in, and the task it belongs to. -->
+    <section class="group" id="groupSection">
+      <div class="group-head">
+        <span class="swatch" id="groupSwatch"></span>
+        <span class="group-name" id="groupName">No tab group</span>
+        <span class="group-count" id="groupCount"></span>
+      </div>
+      <label class="field">
+        <span class="label">Working on</span>
+        <select id="taskSelect">
+          <option value="">Nothing linked</option>
+        </select>
+      </label>
+    </section>
+
+    <!-- Quick capture -->
+    <section class="capture">
+      <div class="seg" role="tablist">
+        <button class="active" data-kind="task" role="tab">Task</button>
+        <button data-kind="note" role="tab">Note</button>
+        <button data-kind="log" role="tab">Log</button>
+      </div>
+
+      <input id="text" class="input" placeholder="Add a task…" autofocus />
+
+      <div class="row" id="logRow" hidden>
+        <select id="logCategory" class="input">
+          <option value="focus">Work / study</option>
+          <option value="screen">Scrolling</option>
+          <option value="creative">Creating</option>
+          <option value="social">People</option>
+          <option value="gaming">Gaming</option>
+          <option value="rest">Rest</option>
+          <option value="other">Other</option>
+        </select>
+        <select id="logMinutes" class="input">
+          <option value="15">15m</option>
+          <option value="25">25m</option>
+          <option value="30" selected>30m</option>
+          <option value="45">45m</option>
+          <option value="60">1h</option>
+          <option value="90">1h 30m</option>
+        </select>
+      </div>
+
+      <button class="btn primary" id="submit">Add</button>
+      <button class="linkbtn" id="usePage">Use this page's title</button>
+    </section>
+
+    <footer class="foot">
+      <span id="hint"></span>
+      <button class="linkbtn" id="openLigand">Open Ligand</button>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
