@@ -67,6 +67,62 @@ export function isGoalOverdue(goal, refKey = todayKey()) {
 }
 
 // ---- factories -------------------------------------------------
+/* Goal dot colours.
+
+   Every goal used to fall back to the same blue, so a dashboard of five goals
+   was five identical dots and the colour carried no information at all. These
+   are spread around the hue wheel at a common lightness/chroma so they stay
+   distinguishable from each other without any one shouting. */
+export const GOAL_COLORS = [
+  "oklch(0.62 0.13 245)", // blue
+  "oklch(0.64 0.14 150)", // green
+  "oklch(0.68 0.15 55)", // amber
+  "oklch(0.60 0.15 300)", // violet
+  "oklch(0.64 0.12 195)", // teal
+  "oklch(0.63 0.16 15)", // rose
+  "oklch(0.66 0.14 105)", // lime
+  "oklch(0.60 0.14 270)", // indigo
+  "oklch(0.64 0.15 340)", // pink
+  "oklch(0.66 0.13 75)", // ochre
+];
+
+/** The hue angle out of an oklch(...) string, or null if it isn't one. */
+function hueOf(color) {
+  const m = /oklch\(\s*[\d.]+\s+[\d.]+\s+([\d.]+)/i.exec(color || "");
+  return m ? Number(m[1]) : null;
+}
+
+/** Shortest distance between two hue angles, in degrees (0–180). */
+function hueGap(a, b) {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/**
+ * A dot colour that reads as distinct from the goals already in play.
+ *
+ * Exact-match avoidance isn't enough: the old default blue and the palette's
+ * blue differ only in chroma, so "unused" colours could still look identical
+ * on screen. This keeps a minimum hue separation, which is what the eye
+ * actually reads, and only falls back to a plain unused colour (then to
+ * cycling) when the palette runs out of room.
+ */
+export function nextGoalColor(goals = [], minHueGap = 25) {
+  const used = (goals || []).map((g) => g?.color).filter(Boolean);
+  const usedSet = new Set(used);
+  const usedHues = used.map(hueOf).filter((h) => h != null);
+
+  const distinct = GOAL_COLORS.find((c) => {
+    if (usedSet.has(c)) return false;
+    const h = hueOf(c);
+    return h == null || usedHues.every((u) => hueGap(h, u) >= minHueGap);
+  });
+  if (distinct) return distinct;
+
+  const free = GOAL_COLORS.find((c) => !usedSet.has(c));
+  return free || GOAL_COLORS[used.length % GOAL_COLORS.length];
+}
+
 export function createGoal({
   name,
   type = GOAL_TYPES.CUSTOM,
@@ -79,7 +135,9 @@ export function createGoal({
     id: uid("goal"),
     name: name || "New goal",
     type,
-    color: color || "oklch(0.62 0.10 245)",
+    // Callers that care (recovery, fitness) pass a colour; everyone else gets
+    // one assigned by addGoal, which can see the goals already in play.
+    color: color || GOAL_COLORS[0],
     // Free-form SMART fields (specific / measurable / achievable / relevant / timebound)
     smartFields,
     habits: [],

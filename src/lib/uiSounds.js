@@ -51,11 +51,34 @@ let _tone = null; // gentle master low-pass to round off harshness
 let _limiter = null; // master limiter so stacked sounds never get painfully loud
 let _lastClick = 0; // throttle guard for rapid click spam
 
+/* Respect the iPhone's silent switch.
+
+   Web Audio on iOS defaults to a "playback" audio session, which deliberately
+   IGNORES the ring/silent switch and interrupts whatever else is playing —
+   correct for a music app, wrong for us. A chime is not worth overriding a
+   phone the user has deliberately silenced.
+
+   navigator.audioSession (Safari 16.4+) lets us declare what kind of audio
+   this actually is. "ambient" both obeys the silent switch and mixes with
+   other audio instead of ducking it, so muting the phone silences Ligand and
+   music keeps playing under the app's sounds. Unsupported browsers simply
+   ignore this, keeping their existing behaviour. */
+function applyAmbientAudioSession() {
+  try {
+    if (navigator.audioSession && navigator.audioSession.type !== "ambient") {
+      navigator.audioSession.type = "ambient";
+    }
+  } catch {
+    /* not supported — nothing to do */
+  }
+}
+
 function getCtx() {
   if (typeof window === "undefined") return null;
   const Ctor = window.AudioContext || window.webkitAudioContext;
   if (!Ctor) return null;
   if (!_ctx) {
+    applyAmbientAudioSession();
     _ctx = new Ctor();
     // sound -> _master (volume) -> _tone (round top) -> _limiter -> speakers
     _master = _ctx.createGain();
@@ -439,6 +462,10 @@ if (typeof window !== "undefined" && !window.__ligandUiSoundsInit) {
   // gesture even when click sounds are off — otherwise a suspended context
   // would swallow the one sound the user actually asked to hear.
   const unlock = () => {
+    // Re-assert on every gesture: recording switches the session to
+    // play-and-record, and this puts it back so later chimes stay silent on a
+    // muted phone.
+    applyAmbientAudioSession();
     const c = getCtx();
     if (c && c.state === "suspended") c.resume().catch(() => {});
   };

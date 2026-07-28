@@ -531,7 +531,16 @@ export default function Pomodoro({
     setFocusCustom,
     alarmRinging,
     stopAlarm,
+    endSession,
   } = engine;
+  // A short receipt after ending early, so banked focus time is visible rather
+  // than something you have to trust happened.
+  const [endedNote, setEndedNote] = useState("");
+  useEffect(() => {
+    if (!endedNote) return undefined;
+    const t = setTimeout(() => setEndedNote(""), 6000);
+    return () => clearTimeout(t);
+  }, [endedNote]);
   const { settings, setSettings } = pomo;
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
 
@@ -864,7 +873,35 @@ export default function Pomodoro({
           <button className="btn ghost" onClick={pomo.skip} title="Skip to next phase">
             <Icon.Arrow /> Skip
           </button>
+          {/* Done for the day, mid-block. Unlike Reset (which throws the block
+             away), this BANKS the minutes already spent into your focus log. */}
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setPausedAt(null);
+              const r = endSession();
+              const banked = r?.wasFocus && r.elapsedSec >= 5;
+              setEndedNote(
+                !banked
+                  ? "Session ended."
+                  : r.elapsedMin < 1
+                    ? "Session ended. Under a minute added to today's focus."
+                    : `Session ended. ${fmtMin(Math.round(r.elapsedMin))} added to today's focus.`
+              );
+            }}
+            title="End the session and keep the focus time so far"
+          >
+            <Icon.Check /> End session
+          </button>
         </div>
+
+        {endedNote && (
+          <div className="pomo-logpast-done" role="status">
+            <span className="pomo-logpast-done-msg">
+              <Icon.Check width={14} height={14} /> {endedNote}
+            </span>
+          </div>
+        )}
 
         {/* The pause stopwatch: how long you've been stopped vs. how long
            you meant to stop. */}

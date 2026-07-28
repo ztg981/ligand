@@ -5,6 +5,7 @@ import { queueTaskDelete, queueTaskUpsert } from "../lib/taskRecordSync.js";
 import {
   seedData,
   createGoal,
+  nextGoalColor,
   createTask,
   createHabit,
   createReflection,
@@ -67,8 +68,12 @@ export function useStore() {
   const addGoal = useCallback(
     (opts) => {
       const { starterHabits = [], ...goalOpts } = opts || {};
+      // Pick a dot colour the existing goals aren't already using. createGoal
+      // can't do this — it has no view of the other goals — which is why every
+      // goal used to come out the same blue.
+      const color = goalOpts.color || nextGoalColor(data.goals || []);
       const goal = {
-        ...createGoal(goalOpts),
+        ...createGoal({ ...goalOpts, color }),
         habits: starterHabits
           .map((name) => name.trim())
           .filter(Boolean)
@@ -78,7 +83,7 @@ export function useStore() {
       setData((d) => ({ ...d, goals: [...d.goals, goal] }));
       return goal;
     },
-    [setData]
+    [data.goals, setData]
   );
 
   const updateGoal = useCallback(

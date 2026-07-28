@@ -32,7 +32,7 @@ import { useExtensionBridge } from "./hooks/useExtensionBridge.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak, createWorkout, createWorkoutExercise, createSet } from "./lib/model.js";
+import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak, createWorkout, createWorkoutExercise, createSet, nextGoalColor } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import {
   wallpaperById,
@@ -949,6 +949,45 @@ export default function App() {
     // store.removeCountUp is stable; store.countUps is the reactive trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.countUps, store.removeCountUp]);
+
+  // One-time: spread duplicate goal dots across the palette.
+  //
+  // Goals used to fall back to a single hardcoded blue, so everyone ended up
+  // with a row of identical dots and the colour said nothing. New goals now
+  // pick a free colour, but goals created before that fix are still all blue —
+  // repaint them once. Only goals SHARING a colour are touched, and the first
+  // of each group keeps what it has, so a deliberate choice is never
+  // overwritten. Guarded by a flag so it can't fight a user who later sets two
+  // goals to the same colour on purpose.
+  useEffect(() => {
+    const goals = store.goals || [];
+    if (goals.length < 2) return;
+    try {
+      if (window.localStorage.getItem("ligand.goalColorsSpread.v1")) return;
+    } catch {
+      return; // no storage: skip rather than risk repainting on every load
+    }
+    const seen = new Set();
+    const clashes = [];
+    for (const goal of goals) {
+      if (seen.has(goal.color)) clashes.push(goal);
+      else seen.add(goal.color);
+    }
+    if (clashes.length) {
+      const taken = [...seen];
+      for (const goal of clashes) {
+        const color = nextGoalColor(taken.map((c) => ({ color: c })));
+        taken.push(color);
+        store.updateGoal(goal.id, { color });
+      }
+    }
+    try {
+      window.localStorage.setItem("ligand.goalColorsSpread.v1", "1");
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.goals]);
 
   // Mirror desktop tray preferences into the Electron main process (which
   // can't read localStorage). No-op in the browser/PWA.

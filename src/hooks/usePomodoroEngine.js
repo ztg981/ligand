@@ -19,6 +19,9 @@ import { startPomodoroChime, phaseChange, startAlarm } from "../lib/uiSounds.js"
 
    Returns everything the tab needs to render and drive the timer. */
 
+/** Below this an "end session" reads as a mis-tap rather than real focus. */
+export const MIN_LOGGED_SEC = 5;
+
 export function usePomodoroEngine({
   chimeEnabled = true,
   alarmOnComplete = false,
@@ -113,6 +116,37 @@ export function usePomodoroEngine({
 
   focusEndRef.current = { taskId: focusTaskId, work: pomo.settings.work, tasks };
 
+  /* Which goal the current focus selection credits (same rules the phase-end
+     logging uses): a task credits its goal, "goal:<id>" credits it directly,
+     and free text or "nothing in particular" credit none. */
+  const currentGoalId = () => {
+    const taskId = focusTaskId;
+    if (taskId?.startsWith("goal:")) return taskId.slice(5);
+    if (taskId && taskId !== "custom") {
+      return tasks.find((t) => t.id === taskId)?.goalId || null;
+    }
+    return null;
+  };
+
+  /* End the session early and KEEP the focus time already spent.
+
+     Stopping mid-block is a normal way to finish a day, and the minutes you
+     actually sat there are real. Reset discards them; this banks them, so the
+     focus stats stay honest either way.
+
+     The floor is deliberately low (5s): only an accidental start-then-stop is
+     worth discarding, and anything above that is time the user genuinely spent
+     and expects to see counted. */
+  const endSession = () => {
+    stopChime();
+    stopAlarm();
+    const result = pomo.endSession();
+    if (result?.wasFocus && result.elapsedSec >= MIN_LOGGED_SEC) {
+      logRef.current?.({ minutes: result.elapsedMin, goalId: currentGoalId() });
+    }
+    return result;
+  };
+
   // Coming back to the app — or any interaction — acknowledges the chime.
   useEffect(() => {
     const onVisible = () => {
@@ -160,6 +194,7 @@ export function usePomodoroEngine({
     alarmRinging,
     stopAlarm,
     stopChime,
+    endSession,
     /** True while a FOCUS block is actively running (drives the site blocker). */
     focusActive: pomo.running && pomo.phase === PHASES.WORK,
   };

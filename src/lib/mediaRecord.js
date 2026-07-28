@@ -91,11 +91,33 @@ export function formatDuration(ms) {
  * The back camera is the default: journal clips are usually of something in
  * front of you, not a selfie.
  */
+/* iOS audio-session juggling.
+
+   Capturing needs a "play-and-record" session; the rest of the app wants
+   "ambient" (obeys the silent switch, mixes with music). Declaring the right
+   one around a take is also the closest the web gets to letting your music
+   resume afterwards: handing the session back is what lets iOS reactivate
+   whatever it interrupted. Nothing can force a resume — that call is iOS's. */
+function setAudioSession(type) {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = type;
+  } catch {
+    /* unsupported — the browser keeps its default behaviour */
+  }
+}
+
+export function releaseAudioSession() {
+  setAudioSession("ambient");
+}
+
 export async function openStream({
   kind = "audio",
   facingMode = "environment",
   silent = false,
 } = {}) {
+  // A silent clip never touches the mic, so it needs no recording session and
+  // leaves your music alone.
+  if (!(kind === "video" && silent)) setAudioSession("play-and-record");
   const constraints =
     kind === "video"
       ? {
@@ -145,7 +167,10 @@ export async function startRecording({
   const releaseStream = () => {
     // Only tear down a stream we opened. A caller-supplied preview stream stays
     // live so the camera doesn't blink off between takes.
-    if (ownsStream) stream.getTracks().forEach((track) => track.stop());
+    if (ownsStream) {
+      stream.getTracks().forEach((track) => track.stop());
+      releaseAudioSession(); // hand the session back so iOS can resume music
+    }
     if (capTimer) clearTimeout(capTimer);
     capTimer = null;
   };

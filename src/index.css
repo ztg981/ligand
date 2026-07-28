@@ -6983,32 +6983,81 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .jm-modes button.on { background: #fff; color: #17171a; }
 .jm-modes button:disabled { opacity: 0.45; cursor: default; }
 
-/* The shutter: a ring with a core that morphs to a stop square while running,
-   and slides right along a rail to lock the take (the camera-app gesture). */
+/* The shutter, built to feel like the camera app.
+
+   The ring stays put and the core does the work: a spring-eased squash to a
+   rounded square on record, a slow breathing pulse while the take runs, and a
+   halo that expands behind the ring so the whole control reads as live. The
+   ring itself thickens and warms rather than jumping size, which is what makes
+   the transition feel mechanical instead of like a CSS hover. */
 .jm-shutter-wrap { position: relative; display: grid; place-items: center; }
 .jm-shutter {
-  width: 74px; height: 74px; padding: 0;
-  border-radius: 999px; border: 4px solid rgba(255,255,255,0.9);
+  width: 78px; height: 78px; padding: 0;
+  border-radius: 999px; border: 4px solid rgba(255,255,255,0.92);
   background: none; cursor: pointer;
   display: grid; place-items: center;
   position: relative; z-index: 2;
-  /* No transition on transform: it must track the finger exactly. Everything
-     else animates. */
-  transition: border-color 0.18s var(--ease), scale 0.18s var(--ease);
+  /* No transition on transform — it must track the finger exactly during the
+     slide. Everything else is eased. */
+  transition:
+    border-color 0.22s cubic-bezier(0.34, 1.4, 0.64, 1),
+    border-width 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 /* Must out-specify `.jm-sheet button` above, or the browser keeps panning
    rights and steals the horizontal slide-to-lock drag. */
 .jm-sheet .jm-shutter { touch-action: none; }
 .jm-shutter:disabled { opacity: 0.5; cursor: default; }
-.jm-shutter.recording { scale: 1.06; border-color: oklch(0.7 0.19 25); }
-.jm-shutter.locked { scale: 1; border-color: rgba(255,255,255,0.9); }
-.jm-shutter-core {
-  width: 56px; height: 56px; border-radius: 999px;
-  background: oklch(0.62 0.2 25);
-  transition: width 0.2s var(--ease), height 0.2s var(--ease), border-radius 0.2s var(--ease);
+.jm-shutter:active .jm-shutter-core { transform: scale(0.9); }
+.jm-shutter.recording { border-color: rgba(255,255,255,0.55); border-width: 5px; }
+
+/* The live halo — sits behind the ring, breathing while the take runs. */
+.jm-shutter::after {
+  content: ""; position: absolute; inset: -10px;
+  border-radius: 999px; background: oklch(0.62 0.2 25 / 0.22);
+  opacity: 0; transform: scale(0.8);
+  transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+  pointer-events: none;
 }
-.jm-shutter.recording .jm-shutter-core { width: 30px; height: 30px; border-radius: 8px; }
-.jm-shutter.locked .jm-shutter-core { width: 26px; height: 26px; border-radius: 6px; }
+.jm-shutter.recording::after { opacity: 1; animation: jmHalo 2s ease-in-out infinite; }
+@keyframes jmHalo {
+  0%, 100% { transform: scale(0.92); opacity: 0.75; }
+  50% { transform: scale(1.06); opacity: 0.3; }
+}
+
+.jm-shutter-core {
+  width: 60px; height: 60px; border-radius: 999px;
+  background: oklch(0.62 0.2 25);
+  /* A spring curve: the core overshoots slightly as it squares off, which is
+     the bit that reads as "physical". */
+  transition:
+    width 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+    height 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-radius 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.12s var(--ease);
+}
+.jm-shutter.recording .jm-shutter-core {
+  width: 30px; height: 30px; border-radius: 9px;
+  animation: jmCorePulse 2s ease-in-out infinite;
+}
+@keyframes jmCorePulse { 50% { background: oklch(0.68 0.21 25); } }
+.jm-shutter.locked .jm-shutter-core { width: 27px; height: 27px; border-radius: 7px; animation: none; }
+
+/* Camera flip — big, and parked bottom-right of the shutter like the app. */
+.jm-flip {
+  position: absolute; z-index: 3;
+  left: 50%; top: 50%;
+  transform: translate(52px, 26px);
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: rgba(255,255,255,0.16); color: #fff; cursor: pointer;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: background 0.18s var(--ease), rotate 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.jm-flip:hover { background: rgba(255,255,255,0.26); }
+.jm-flip:active { rotate: 180deg; }
+.jm-flip:disabled { opacity: 0.35; cursor: default; }
+.jm-tool-spacer { width: 40px; }
 
 /* The rail only appears mid-hold, hinting where to drag. */
 .jm-lock-rail {
@@ -7029,12 +7078,12 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em;
 }
 
-/* Camera flip + clip-sound toggles */
-.jm-sheet-tools { display: inline-flex; gap: 8px; min-width: 36px; justify-content: flex-end; }
+/* Clip-sound toggle (top right of the sheet) */
 .jm-tool {
-  width: 36px; height: 36px; display: grid; place-items: center;
+  width: 40px; height: 40px; display: grid; place-items: center;
   border: none; border-radius: 999px;
-  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer;
+  background: rgba(255,255,255,0.14); color: #fff; cursor: pointer;
+  transition: background 0.18s var(--ease);
 }
 .jm-tool:disabled { opacity: 0.4; cursor: default; }
 .jm-tool.off { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }

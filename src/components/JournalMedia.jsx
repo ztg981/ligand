@@ -5,6 +5,7 @@ import {
   isRecordingSupported,
   startRecording,
   openStream,
+  releaseAudioSession,
   formatDuration,
   MAX_AUDIO_MS,
   MAX_VIDEO_MS,
@@ -67,8 +68,11 @@ function CaptureSheet({ onClose, onSaved }) {
         : "Couldn't start recording here.";
 
   const releasePreview = () => {
-    previewStreamRef.current?.getTracks().forEach((t) => t.stop());
+    if (!previewStreamRef.current) return;
+    previewStreamRef.current.getTracks().forEach((t) => t.stop());
     previewStreamRef.current = null;
+    // Give the audio session back so iOS can resume whatever it interrupted.
+    releaseAudioSession();
   };
 
   // Everything shuts down on the way out — a live track keeps the camera light
@@ -248,34 +252,22 @@ function CaptureSheet({ onClose, onSaved }) {
           {locked && <span className="jm-lock-tag">Locked</span>}
         </span>
         {mode === "video" ? (
-          <div className="jm-sheet-tools">
-            <button
-              type="button"
-              className={"jm-tool" + (silent ? " off" : "")}
-              onClick={() => setSilent((s) => !s)}
-              disabled={recording}
-              title={
-                silent
-                  ? "Sound off — your music keeps playing"
-                  : "Sound on — recording will pause your music"
-              }
-              aria-label={silent ? "Turn clip sound on" : "Turn clip sound off"}
-            >
-              {silent ? <Icon.VolumeOff width={15} height={15} /> : <Icon.Volume width={15} height={15} />}
-            </button>
-            <button
-              type="button"
-              className="jm-tool"
-              onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
-              disabled={recording}
-              title="Switch camera"
-              aria-label="Switch camera"
-            >
-              <Icon.Reset width={15} height={15} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className={"jm-tool" + (silent ? " off" : "")}
+            onClick={() => setSilent((s) => !s)}
+            disabled={recording}
+            title={
+              silent
+                ? "Sound off — your music keeps playing"
+                : "Sound on — recording will pause your music"
+            }
+            aria-label={silent ? "Turn clip sound on" : "Turn clip sound off"}
+          >
+            {silent ? <Icon.VolumeOff width={16} height={16} /> : <Icon.Volume width={16} height={16} />}
+          </button>
         ) : (
-          <span className="jm-sheet-tools" />
+          <span className="jm-tool-spacer" />
         )}
       </header>
 
@@ -319,7 +311,8 @@ function CaptureSheet({ onClose, onSaved }) {
           </button>
         </div>
 
-        {/* Shutter + the lock rail it slides along. */}
+        {/* Shutter + the lock rail it slides along, with the camera flip
+           parked bottom-right of it the way the camera app does. */}
         <div className={"jm-shutter-wrap" + (recording && !locked ? " sliding" : "")}>
           <button
             type="button"
@@ -344,6 +337,18 @@ function CaptureSheet({ onClose, onSaved }) {
               <Icon.Lock width={13} height={13} />
               <Icon.Arrow width={13} height={13} />
             </span>
+          )}
+          {mode === "video" && (
+            <button
+              type="button"
+              className="jm-flip"
+              onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+              disabled={recording}
+              title="Switch camera"
+              aria-label="Switch camera"
+            >
+              <Icon.Reset width={22} height={22} />
+            </button>
           )}
         </div>
 

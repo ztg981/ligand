@@ -234,6 +234,33 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     setRemaining(phaseSeconds(phase));
   }, [phase, phaseSeconds]);
 
+  /* End the whole session early — "I'm done for the day", mid-block.
+
+     Reset throws the block away; this BANKS it. It reports how much of the
+     current phase was actually spent so the caller can log that focus time,
+     because time you really sat and worked should count whether or not you
+     happened to reach the end of a 25-minute box. Returns
+     { wasFocus, elapsedSec, elapsedMin } and leaves the timer on a fresh
+     focus block with the cycle cleared. */
+  const endSession = useCallback(() => {
+    const total = phaseSeconds(phase);
+    const left =
+      running && endTimeRef.current != null ? secsLeft() : Math.max(0, remaining);
+    const elapsedSec = Math.max(0, total - left);
+    const wasFocus = phase === PHASES.WORK;
+    endTimeRef.current = null;
+    setRunning(false);
+    setCompleted(0);
+    setPhase(PHASES.WORK);
+    setRemaining(phaseSeconds(PHASES.WORK));
+    return {
+      wasFocus,
+      elapsedSec,
+      elapsedMin: Math.round((elapsedSec / 60) * 10) / 10,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, phaseSeconds, running, remaining]);
+
   // Manually jump to a phase (also used by the segmented control).
   const goToPhase = useCallback((p) => {
     endTimeRef.current = null;
@@ -273,6 +300,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     pause,
     reset,
     skip,
+    endSession,
     goToPhase,
   };
 }
