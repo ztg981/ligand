@@ -338,12 +338,13 @@ function CaptureSheet({ onClose, onSaved }) {
               <Icon.Arrow width={13} height={13} />
             </span>
           )}
-          {mode === "video" && (
+          {/* Hidden mid-take: the camera can't be swapped during a recording,
+             and it would otherwise sit where the lock rail appears. */}
+          {mode === "video" && !recording && (
             <button
               type="button"
               className="jm-flip"
               onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
-              disabled={recording}
               title="Switch camera"
               aria-label="Switch camera"
             >
