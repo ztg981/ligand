@@ -5,6 +5,7 @@ import {
   formatDuration,
   MAX_AUDIO_MS,
   MAX_VIDEO_MS,
+  MAX_VIDEO_LOCKED_MS,
 } from "../src/lib/mediaRecord.js";
 
 /* The codec ladder is the part that silently breaks across browsers, so it
@@ -48,4 +49,11 @@ test("caps keep a forgotten recording from eating the device", () => {
   assert.equal(MAX_VIDEO_MS, 15_000);
   assert.equal(MAX_AUDIO_MS, 120_000);
   assert.ok(MAX_VIDEO_MS < MAX_AUDIO_MS);
+});
+
+test("locking a take raises the video cap, but still bounds it", () => {
+  // A quick hold stays short; sliding to lock means "I meant this to run".
+  assert.ok(MAX_VIDEO_LOCKED_MS > MAX_VIDEO_MS);
+  assert.equal(MAX_VIDEO_LOCKED_MS, 180_000);
+  assert.ok(Number.isFinite(MAX_VIDEO_LOCKED_MS)); // never unbounded
 });

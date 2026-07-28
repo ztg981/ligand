@@ -21,7 +21,8 @@
    footage, and every byte lives in the user's device quota. */
 
 export const MAX_AUDIO_MS = 2 * 60 * 1000; // 2 minutes
-export const MAX_VIDEO_MS = 15 * 1000; // 15 seconds
+export const MAX_VIDEO_MS = 15 * 1000; // a quick hold-to-record clip
+export const MAX_VIDEO_LOCKED_MS = 3 * 60 * 1000; // after you slide to lock
 
 const AUDIO_TYPES = [
   "audio/webm;codecs=opus", // best voice quality per byte (Chrome/Firefox)
@@ -78,13 +79,28 @@ export function formatDuration(ms) {
  * discards it. Both always release the camera/mic — leaving a track live keeps
  * the recording indicator on and holds the audio session open.
  */
-export async function openStream({ kind = "audio", facingMode = "user" } = {}) {
+/**
+ * Open a capture stream.
+ *
+ * Video records WITH sound by default — a silent clip of someone talking is
+ * worthless, which is exactly what shipping `audio: false` produced. The
+ * music-preserving variant is still available via `silent: true`, but it is now
+ * an opt-in for when you deliberately want ambience over narration, not the
+ * default that quietly eats your voice.
+ *
+ * The back camera is the default: journal clips are usually of something in
+ * front of you, not a selfie.
+ */
+export async function openStream({
+  kind = "audio",
+  facingMode = "environment",
+  silent = false,
+} = {}) {
   const constraints =
     kind === "video"
       ? {
-          // No `audio` key at all — requesting it is what interrupts music.
-          video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false,
+          video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: !silent,
         }
       : { audio: true };
   return navigator.mediaDevices.getUserMedia(constraints);
@@ -93,7 +109,7 @@ export async function openStream({ kind = "audio", facingMode = "user" } = {}) {
 export async function startRecording({
   kind = "audio",
   maxMs = kind === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS,
-  facingMode = "user",
+  facingMode = "environment",
   // An already-open stream (e.g. a live camera preview). When supplied we
   // record from it and leave it running afterwards, so the preview survives
   // between takes; the caller owns closing it.
@@ -112,7 +128,7 @@ export async function startRecording({
     recorder = new MediaRecorder(stream, {
       ...(mimeType ? { mimeType } : {}),
       ...(kind === "video"
-        ? { videoBitsPerSecond: 900_000 }
+        ? { videoBitsPerSecond: 1_500_000, audioBitsPerSecond: 64_000 }
         : { audioBitsPerSecond: 32_000 }),
     });
   } catch {
@@ -158,15 +174,23 @@ export async function startRecording({
   recorder.start();
 
   // Hard cap so a forgotten recording can't eat the device's storage.
-  capTimer = setTimeout(() => {
-    if (recorder.state === "recording") recorder.stop();
-  }, maxMs);
+  const armCap = (ms) => {
+    if (capTimer) clearTimeout(capTimer);
+    capTimer = setTimeout(() => {
+      if (recorder.state === "recording") recorder.stop();
+    }, Math.max(0, ms - (Date.now() - startedAt)));
+  };
+  armCap(maxMs);
 
   return {
     stream,
     kind,
     mimeType: recorder.mimeType || mimeType,
     startedAt,
+    /** Raise the cap mid-take — used when a hold is slid into a locked take. */
+    extendCap(ms) {
+      armCap(ms);
+    },
     stop() {
       if (recorder.state === "recording") recorder.stop();
       else releaseStream();

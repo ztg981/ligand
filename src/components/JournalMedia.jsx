@@ -8,6 +8,7 @@ import {
   formatDuration,
   MAX_AUDIO_MS,
   MAX_VIDEO_MS,
+  MAX_VIDEO_LOCKED_MS,
 } from "../lib/mediaRecord.js";
 import { putMedia, getMediaUrl, deleteMedia, formatBytes } from "../lib/mediaStore.js";
 import { fetchMedia } from "../lib/mediaSync.js";
@@ -35,9 +36,15 @@ import { fetchMedia } from "../lib/mediaSync.js";
    one big shutter, a timer, and an obvious way out — and every control opts out
    of touch selection so a press does exactly one thing. */
 
+const LOCK_SLIDE_PX = 56; // how far right you drag before the take locks
+
 function CaptureSheet({ onClose, onSaved }) {
   const [mode, setMode] = useState("audio"); // "audio" | "video"
+  const [facing, setFacing] = useState("environment"); // back camera by default
+  const [silent, setSilent] = useState(false); // opt-in music-preserving clip
   const [recording, setRecording] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [slide, setSlide] = useState(0); // px dragged toward the lock
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -47,8 +54,10 @@ function CaptureSheet({ onClose, onSaved }) {
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const closedRef = useRef(false);
+  const holdRef = useRef({ active: false, x: 0, locked: false });
 
-  const cap = mode === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS;
+  const cap =
+    mode === "video" ? (locked ? MAX_VIDEO_LOCKED_MS : MAX_VIDEO_MS) : MAX_AUDIO_MS;
 
   const permissionMessage = (err) =>
     err?.name === "NotAllowedError"
@@ -87,12 +96,14 @@ function CaptureSheet({ onClose, onSaved }) {
     }
     (async () => {
       try {
-        const stream = await openStream({ kind: "video" });
+        releasePreview(); // flipping camera or muting reopens the stream
+        const stream = await openStream({ kind: "video", facingMode: facing, silent });
         if (cancelled || closedRef.current) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         previewStreamRef.current = stream;
+        setError("");
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play?.().catch(() => {});
@@ -104,11 +115,15 @@ function CaptureSheet({ onClose, onSaved }) {
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, facing, silent]);
 
   const finish = async ({ blob, durationMs, kind }) => {
     clearInterval(timerRef.current);
     setRecording(false);
+    setLocked(false);
+    setSlide(0);
+    holdRef.current = { active: false, x: 0, locked: false };
     setElapsed(0);
     controllerRef.current = null;
     setSaving(true);
@@ -128,6 +143,7 @@ function CaptureSheet({ onClose, onSaved }) {
     try {
       const controller = await startRecording({
         kind: mode,
+        facingMode: facing,
         stream: mode === "video" ? previewStreamRef.current : null,
         onStop: finish,
         onError: () => {
@@ -136,6 +152,11 @@ function CaptureSheet({ onClose, onSaved }) {
           setError("Recording stopped unexpectedly.");
         },
       });
+      // Released before the recorder was ready — honour the release.
+      if (!holdRef.current.active && !holdRef.current.locked) {
+        controller.cancel();
+        return;
+      }
       controllerRef.current = controller;
       setRecording(true);
       clearInterval(timerRef.current);
@@ -153,7 +174,53 @@ function CaptureSheet({ onClose, onSaved }) {
     controllerRef.current = null;
   };
 
-  const shutter = () => (recording ? stop() : start());
+  /* Hold to record, slide right to lock — the camera-app gesture.
+
+     Holding keeps the take alive only while your finger is down, which suits a
+     quick clip. Dragging past the lock threshold latches it so you can let go
+     and keep filming; the cap rises from 15s to 3 minutes at the same moment,
+     because "I meant this to be short" and "I meant this to run" are exactly
+     what the two gestures distinguish. */
+  const onShutterDown = (e) => {
+    if (saving) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (recording) {
+      // A locked take is stopped by a plain tap.
+      if (locked) stop();
+      return;
+    }
+    holdRef.current = { active: true, x: e.clientX, locked: false };
+    setSlide(0);
+    start();
+  };
+
+  const onShutterMove = (e) => {
+    const hold = holdRef.current;
+    // Don't track the slide until a take is actually running — otherwise a
+    // denied permission still "locks", showing a recording UI for nothing.
+    if (!hold.active || hold.locked || !controllerRef.current) return;
+    const dx = Math.max(0, e.clientX - hold.x);
+    setSlide(Math.min(dx, LOCK_SLIDE_PX));
+    if (dx >= LOCK_SLIDE_PX) {
+      hold.locked = true;
+      hold.active = false;
+      setLocked(true);
+      setSlide(LOCK_SLIDE_PX);
+      // Locking is a promise of a longer take, so lift the cap to match.
+      controllerRef.current?.extendCap?.(
+        mode === "video" ? MAX_VIDEO_LOCKED_MS : MAX_AUDIO_MS
+      );
+    }
+  };
+
+  const onShutterUp = () => {
+    const hold = holdRef.current;
+    if (!hold.active) return; // locked, or never started
+    hold.active = false;
+    setSlide(0);
+    if (controllerRef.current) stop();
+  };
 
   const close = () => {
     if (recording) controllerRef.current?.cancel();
@@ -178,7 +245,38 @@ function CaptureSheet({ onClose, onSaved }) {
         <span className={"jm-sheet-timer mono" + (recording ? " on" : "")}>
           {recording && <i className="jm-rec-dot" aria-hidden="true" />}
           {formatDuration(elapsed)} <span className="jm-cap">/ {formatDuration(cap)}</span>
+          {locked && <span className="jm-lock-tag">Locked</span>}
         </span>
+        {mode === "video" ? (
+          <div className="jm-sheet-tools">
+            <button
+              type="button"
+              className={"jm-tool" + (silent ? " off" : "")}
+              onClick={() => setSilent((s) => !s)}
+              disabled={recording}
+              title={
+                silent
+                  ? "Sound off — your music keeps playing"
+                  : "Sound on — recording will pause your music"
+              }
+              aria-label={silent ? "Turn clip sound on" : "Turn clip sound off"}
+            >
+              {silent ? <Icon.VolumeOff width={15} height={15} /> : <Icon.Volume width={15} height={15} />}
+            </button>
+            <button
+              type="button"
+              className="jm-tool"
+              onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+              disabled={recording}
+              title="Switch camera"
+              aria-label="Switch camera"
+            >
+              <Icon.Reset width={15} height={15} />
+            </button>
+          </div>
+        ) : (
+          <span className="jm-sheet-tools" />
+        )}
       </header>
 
       <div className="jm-sheet-stage">
@@ -221,24 +319,46 @@ function CaptureSheet({ onClose, onSaved }) {
           </button>
         </div>
 
-        <button
-          type="button"
-          className={"jm-shutter" + (recording ? " recording" : "")}
-          onClick={shutter}
-          disabled={saving}
-          aria-label={recording ? "Stop recording" : "Start recording"}
-        >
-          <span className="jm-shutter-core" />
-        </button>
+        {/* Shutter + the lock rail it slides along. */}
+        <div className={"jm-shutter-wrap" + (recording && !locked ? " sliding" : "")}>
+          <button
+            type="button"
+            className={
+              "jm-shutter" +
+              (recording ? " recording" : "") +
+              (locked ? " locked" : "")
+            }
+            style={slide ? { transform: `translateX(${slide}px)` } : undefined}
+            onPointerDown={onShutterDown}
+            onPointerMove={onShutterMove}
+            onPointerUp={onShutterUp}
+            onPointerCancel={onShutterUp}
+            onContextMenu={(e) => e.preventDefault()}
+            disabled={saving}
+            aria-label={recording ? "Stop recording" : "Hold to record, slide right to lock"}
+          >
+            <span className="jm-shutter-core" />
+          </button>
+          {recording && !locked && (
+            <span className="jm-lock-rail" aria-hidden="true">
+              <Icon.Lock width={13} height={13} />
+              <Icon.Arrow width={13} height={13} />
+            </span>
+          )}
+        </div>
 
         <p className="jm-sheet-hint">
           {saving
             ? "Saving…"
-            : recording
-              ? "Tap to stop"
-              : mode === "video"
-                ? "Tap to record. Your music keeps playing."
-                : "Tap to record. This pauses your music."}
+            : locked
+              ? "Locked — tap to stop"
+              : recording
+                ? "Release to stop · slide right to lock"
+                : mode === "video"
+                  ? silent
+                    ? "Hold to record. No sound, so your music keeps playing."
+                    : "Hold to record, slide right to lock."
+                  : "Hold to record, slide right to lock."}
         </p>
       </footer>
     </div>,

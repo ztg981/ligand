@@ -322,7 +322,14 @@ export default function Journal({
 }) {
   const [salt, setSalt] = useState(0);
   const prompt = useMemo(() => reflectionPrompt(salt), [salt]);
-  const [text, setText] = useState("");
+  // The composer draft is PERSISTED, not component state. This tab unmounts the
+  // moment you switch to Tasks (every tab is lazily mounted), which silently
+  // threw away whatever you had typed — the single most annoying way to lose
+  // writing. Kept device-local: a half-written thought isn't worth syncing.
+  const [text, setText] = useLocalStorage("ligand.journalDraft", "");
+  // Recordings staged but not yet saved to an entry. Only the small references
+  // live here; the blobs are already safe in IndexedDB.
+  const [media, setMedia] = useLocalStorage("ligand.journalDraftMedia", []);
   const [location, setLocation] = useState(null);
   // Sort preference persists across sessions (app-wide for the main journal).
   const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
@@ -346,9 +353,6 @@ export default function Journal({
   };
   const removeImage = (id) => setImages((prev) => prev.filter((a) => a.id !== id));
 
-  // Voice notes / clips staged for the entry-in-progress. Only references are
-  // held here; the blobs already live in IndexedDB (see lib/mediaStore.js).
-  const [media, setMedia] = useState([]); // [{ id, kind, mime, durationMs, size }]
   const addMedia = (ref) => setMedia((prev) => [...prev, ref]);
   const removeMedia = (id) => setMedia((prev) => prev.filter((m) => m.id !== id));
 

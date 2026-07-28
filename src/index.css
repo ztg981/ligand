@@ -6983,20 +6983,61 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .jm-modes button.on { background: #fff; color: #17171a; }
 .jm-modes button:disabled { opacity: 0.45; cursor: default; }
 
-/* The shutter: a ring with a core that morphs to a stop square while running. */
+/* The shutter: a ring with a core that morphs to a stop square while running,
+   and slides right along a rail to lock the take (the camera-app gesture). */
+.jm-shutter-wrap { position: relative; display: grid; place-items: center; }
 .jm-shutter {
   width: 74px; height: 74px; padding: 0;
   border-radius: 999px; border: 4px solid rgba(255,255,255,0.9);
   background: none; cursor: pointer;
   display: grid; place-items: center;
+  position: relative; z-index: 2;
+  /* No transition on transform: it must track the finger exactly. Everything
+     else animates. */
+  transition: border-color 0.18s var(--ease), scale 0.18s var(--ease);
 }
+/* Must out-specify `.jm-sheet button` above, or the browser keeps panning
+   rights and steals the horizontal slide-to-lock drag. */
+.jm-sheet .jm-shutter { touch-action: none; }
 .jm-shutter:disabled { opacity: 0.5; cursor: default; }
+.jm-shutter.recording { scale: 1.06; border-color: oklch(0.7 0.19 25); }
+.jm-shutter.locked { scale: 1; border-color: rgba(255,255,255,0.9); }
 .jm-shutter-core {
   width: 56px; height: 56px; border-radius: 999px;
   background: oklch(0.62 0.2 25);
-  transition: width 0.18s var(--ease), height 0.18s var(--ease), border-radius 0.18s var(--ease);
+  transition: width 0.2s var(--ease), height 0.2s var(--ease), border-radius 0.2s var(--ease);
 }
-.jm-shutter.recording .jm-shutter-core { width: 28px; height: 28px; border-radius: 7px; }
+.jm-shutter.recording .jm-shutter-core { width: 30px; height: 30px; border-radius: 8px; }
+.jm-shutter.locked .jm-shutter-core { width: 26px; height: 26px; border-radius: 6px; }
+
+/* The rail only appears mid-hold, hinting where to drag. */
+.jm-lock-rail {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  margin-left: 86px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85);
+  animation: jmRailIn 0.2s var(--ease), jmRailNudge 1.4s ease-in-out 0.2s infinite;
+  pointer-events: none;
+}
+@keyframes jmRailIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } }
+@keyframes jmRailNudge { 50% { margin-left: 94px; } }
+.jm-lock-tag {
+  margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+  background: oklch(0.62 0.2 25); color: #fff;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em;
+}
+
+/* Camera flip + clip-sound toggles */
+.jm-sheet-tools { display: inline-flex; gap: 8px; min-width: 36px; justify-content: flex-end; }
+.jm-tool {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer;
+}
+.jm-tool:disabled { opacity: 0.4; cursor: default; }
+.jm-tool.off { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
 .jm-sheet-hint {
   margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); text-align: center;
   min-height: 16px;
