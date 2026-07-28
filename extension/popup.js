@@ -30,8 +30,16 @@ const mmss = (secs) => {
 
 function renderPomodoro() {
   const p = state.snapshot?.pomodoro;
+  // With no session at all there is nothing to show — but keep the strip
+  // visible (with Start) whenever Ligand is open, so the popup can begin a
+  // block without switching to the app.
   if (!p || (!p.running && p.remaining == null)) {
-    $("pomo").hidden = true;
+    $("pomo").hidden = !state.ligandOpen;
+    if (state.ligandOpen) {
+      $("pomoTime").textContent = "--:--";
+      $("pomoPhase").textContent = "No block yet";
+      $("pomoToggle").textContent = "Start";
+    }
     return;
   }
   // A running block is stored as an absolute end time, so the countdown stays
@@ -47,6 +55,18 @@ function renderPomodoro() {
   $("pomoTime").textContent = mmss(left);
   const phase = p.phase === "short" ? "Short break" : p.phase === "long" ? "Long break" : "Focus";
   $("pomoPhase").textContent = p.running ? phase : `${phase} · paused`;
+  $("pomoToggle").textContent = p.running ? "Pause" : "Resume";
+}
+
+/** Drive the timer through the bridge; Ligand's engine does the actual work. */
+async function pomoCommand(command) {
+  const res = await send({ type: "popup:submit", action: "pomodoro", payload: { command } });
+  if (!res?.ok || res.queued) {
+    hint("Open Ligand to use the timer.");
+    return;
+  }
+  // The page pushes a fresh snapshot right after the command lands.
+  setTimeout(refresh, 180);
 }
 
 // ---- tab group --------------------------------------------------------
@@ -199,6 +219,11 @@ $("text").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitCapture();
 });
 $("taskSelect").addEventListener("change", (e) => linkGroupToTask(e.target.value));
+$("pomoToggle").addEventListener("click", () => {
+  const running = state.snapshot?.pomodoro?.running;
+  pomoCommand(running ? "pause" : "start");
+});
+$("pomoSkip").addEventListener("click", () => pomoCommand("skip"));
 $("usePage").addEventListener("click", () => {
   if (activeTab?.title) {
     $("text").value = activeTab.title;

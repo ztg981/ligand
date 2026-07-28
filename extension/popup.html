@@ -13,8 +13,14 @@
     <!-- Running Pomodoro. Ticks locally from the session's absolute end time,
          so it stays right even while Ligand isn't the focused tab. -->
     <section class="pomo" id="pomo" hidden>
-      <span class="pomo-time mono" id="pomoTime">--:--</span>
-      <span class="pomo-phase" id="pomoPhase">Focus</span>
+      <div class="pomo-read">
+        <span class="pomo-time mono" id="pomoTime">--:--</span>
+        <span class="pomo-phase" id="pomoPhase">Focus</span>
+      </div>
+      <div class="pomo-controls">
+        <button id="pomoToggle" title="Start or pause">Start</button>
+        <button id="pomoSkip" title="Skip to the next block">Skip</button>
+      </div>
     </section>
 
     <!-- The tab group you're in, and the task it belongs to. -->

@@ -19,9 +19,14 @@ Pin the extension so the icon — and the Pomodoro badge — stay visible.
 - **Link a tab group to a task.** "Working on" picks which task the current
   group belongs to. A group belongs to at most one task, so choosing a new
   one releases the old.
-- **Pomodoro.** The popup shows the live countdown and the toolbar badge shows
-  minutes left. Both read the session's absolute end time, so they stay
-  correct even when Ligand isn't the focused tab.
+- **Pomodoro, with controls.** The popup shows the live countdown and can
+  start, pause and skip the block; the toolbar badge shows minutes left. Both
+  read the session's absolute end time, so they stay correct even when Ligand
+  isn't the focused tab. The timer runs at app level in Ligand, so the popup
+  can drive it whatever tab the app is on.
+- **The icon wears your accent.** The toolbar icon is the Ligand mark, redrawn
+  in whatever accent colour the app is currently using — change the theme and
+  the icon follows.
 - **Captures survive Ligand being closed.** They queue and flush the moment a
   Ligand tab loads.
 
@@ -69,6 +74,7 @@ two places in `manifest.json` — `host_permissions` and `content_scripts.matche
 
 ## Status
 
-v0.1 — quick capture, tab-group→task linking, Pomodoro display. Not published
-to the Chrome Web Store; load it unpacked. Firefox is not supported yet (its
-tab-group extension API is newer and differs).
+v0.2 — quick capture, tab-group→task linking, Pomodoro display *and*
+transport controls, accent-themed toolbar icon. Not published to the Chrome
+Web Store; load it unpacked. Firefox is not supported yet (its tab-group
+extension API is newer and differs).

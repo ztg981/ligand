@@ -41,6 +41,7 @@ import {
   withoutCustomWallpaper,
 } from "./lib/wallpaper.js";
 import { setAiGuestMode } from "./lib/aiApi.js";
+import { renderAccentIcon, resolvedAccent } from "./lib/appIcon.js";
 import Home from "./tabs/Home.jsx";
 import { Icon } from "./components/Icons.jsx";
 import SmartGoalModal from "./components/SmartGoalModal.jsx";
@@ -159,17 +160,6 @@ export default function App() {
   const preferenceScope = usesMobilePreferences ? "mobile" : "desktop";
   const { tweaks, set } = useTweaks(preferenceScope);
   const store = useStore();
-  // Browser-extension link: lets the Chrome extension capture tasks/notes/logs
-  // and read the running Pomodoro. Writes run through the real store actions
-  // here, never through the extension. Completely inert with no extension
-  // installed — nothing else posts on this channel.
-  useExtensionBridge({
-    tasks: store.tasks,
-    addTask: store.addTask,
-    addNote: store.addNote,
-    addActivity: store.addActivity,
-    updateTask: store.updateTask,
-  });
   // Photo-scan alarms: watch the clock and raise the firing alarm (if any).
   const { firing: firingAlarm, dismiss: dismissAlarm } = useAlarms(
     store.alarms,
@@ -203,6 +193,20 @@ export default function App() {
         wasFocus ? "Time for a break." : "Ready to focus?"
       );
     },
+  });
+
+  // Browser-extension link: lets the Chrome extension capture tasks/notes/logs
+  // and read *and drive* the running Pomodoro. Writes run through the real
+  // store actions here, never through the extension. Declared after the engine
+  // so the popup's transport controls reach the live timer. Completely inert
+  // with no extension installed — nothing else posts on this channel.
+  useExtensionBridge({
+    tasks: store.tasks,
+    addTask: store.addTask,
+    addNote: store.addNote,
+    addActivity: store.addActivity,
+    updateTask: store.updateTask,
+    pomo: pomoEngine.pomo,
   });
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
@@ -1277,6 +1281,21 @@ export default function App() {
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute("content", browserColor);
   }, [activeWallpaperSelection.id, activeWallpaperSelection.customId, resolvedTheme, activeCustom, tweaks, hyperfocus]);
+
+  // Desktop app: repaint the taskbar/tray icon in the current accent whenever
+  // the theme changes. Only the renderer knows what --accent actually resolved
+  // to, so it draws the mark and hands the main process a PNG. A no-op in the
+  // browser and PWA (window.electron is undefined there). Runs a tick late so
+  // the effect above has already written the new accent onto :root.
+  useEffect(() => {
+    const desktop = window.electron?.desktop;
+    if (!desktop?.setAccentIcon) return undefined;
+    const id = window.setTimeout(() => {
+      const png = renderAccentIcon(resolvedAccent());
+      if (png) desktop.setAccentIcon(png);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [resolvedTheme, tweaks, hyperfocus]);
 
   // Cmd/Ctrl+K opens search from anywhere.
   useEffect(() => {

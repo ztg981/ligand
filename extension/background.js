@@ -87,6 +87,40 @@ async function submit(action, payload) {
   return { ok: true, queued: true };
 }
 
+// ---- toolbar icon: the Ligand bolt, in the app's current accent -------
+// The mark is the same path as public/favicon.svg (viewBox 0 0 48 46). It is
+// redrawn whenever the page reports a different accent, so changing the theme
+// in Ligand recolours the toolbar icon to match.
+const BOLT_PATH =
+  "M25.946 44.938c-.664.845-2.021.375-2.021-.698V33.937a2.26 2.26 0 0 0-2.262-2.262" +
+  "H10.287c-.92 0-1.456-1.04-.92-1.788l7.48-10.471c1.07-1.497 0-3.578-1.842-3.578" +
+  "H1.237c-.92 0-1.456-1.04-.92-1.788L10.013.474c.214-.297.556-.474.92-.474h28.894" +
+  "c.92 0 1.456 1.04.92 1.788l-7.48 10.471c-1.07 1.498 0 3.579 1.842 3.579h11.377" +
+  "c.943 0 1.473 1.088.89 1.83L25.947 44.94z";
+const FALLBACK_ACCENT = "#863bff"; // the logo's own violet
+let lastIconAccent = null;
+
+async function refreshIcon(accent) {
+  const color = accent || FALLBACK_ACCENT;
+  if (color === lastIconAccent) return;
+  try {
+    const size = 32;
+    const canvas = new OffscreenCanvas(size, size);
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, size, size);
+    // Fit the 48x46 artwork into the square with a little breathing room.
+    const scale = (size * 0.86) / 48;
+    ctx.translate((size - 48 * scale) / 2, (size - 46 * scale) / 2);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = color;
+    ctx.fill(new Path2D(BOLT_PATH));
+    await chrome.action.setIcon({ imageData: ctx.getImageData(0, 0, size, size) });
+    lastIconAccent = color;
+  } catch {
+    // OffscreenCanvas/Path2D unavailable — keep the bundled PNG icon.
+  }
+}
+
 // ---- badge: the running Pomodoro -------------------------------------
 async function refreshBadge() {
   const snap = await get(KEY_SNAPSHOT);
@@ -112,6 +146,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       case "bridge:snapshot":
         await set(KEY_SNAPSHOT, { ...message.snapshot, at: Date.now() });
         await refreshBadge();
+        await refreshIcon(message.snapshot?.theme?.accent);
         sendResponse({ ok: true });
         break;
       case "bridge:ready":
@@ -152,5 +187,12 @@ chrome.alarms.create("tick", { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "tick") refreshBadge();
 });
-chrome.runtime.onStartup.addListener(refreshBadge);
-chrome.runtime.onInstalled.addListener(refreshBadge);
+// Repaint from the cached accent on wake, so the icon survives the service
+// worker being evicted without waiting for Ligand to push a fresh snapshot.
+async function restoreFromCache() {
+  const snap = await get(KEY_SNAPSHOT);
+  await refreshBadge();
+  await refreshIcon(snap?.theme?.accent);
+}
+chrome.runtime.onStartup.addListener(restoreFromCache);
+chrome.runtime.onInstalled.addListener(restoreFromCache);

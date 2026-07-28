@@ -329,6 +329,26 @@ app.whenReady().then(() => {
 
   ipcMain.on("window:show", showMainWindow);
 
+  // Accent-tinted app icon. The renderer owns the theme, so it draws the Ligand
+  // mark in the live accent and sends a PNG data URL; we apply it to the window
+  // (taskbar) and the tray. Best-effort: a malformed or empty image is ignored
+  // so the bundled icon simply stays.
+  ipcMain.on("desktop:accent-icon", (_event, dataUrl) => {
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/png;base64,")) {
+      return;
+    }
+    try {
+      const image = nativeImage.createFromDataURL(dataUrl);
+      if (image.isEmpty()) return;
+      // macOS uses the bundle icon for the Dock and ignores setIcon, so only
+      // Windows/Linux get the window icon swap.
+      if (process.platform !== "darwin") mainWindow?.setIcon(image);
+      tray?.setImage(image.resize({ width: 18, height: 18 }));
+    } catch {
+      // Keep the bundled icon rather than surfacing an error for cosmetics.
+    }
+  });
+
   ipcMain.on("quit-and-install", () => {
     try {
       quitting = true;

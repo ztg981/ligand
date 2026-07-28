@@ -61,6 +61,10 @@ contextBridge.exposeInMainWorld("electron", {
   desktop: {
     configure: (cfg) => ipcRenderer.send("desktop:configure", cfg),
     showWindow: () => ipcRenderer.send("window:show"),
+    // Recolour the taskbar/tray icon to match the app's current accent. The
+    // renderer draws the mark (it is the only side that knows the resolved
+    // theme colour) and hands over a PNG data URL.
+    setAccentIcon: (dataUrl) => ipcRenderer.send("desktop:accent-icon", dataUrl),
   },
 
   // Focus-mode website blocker (Windows). All async; each resolves to a status

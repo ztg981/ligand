@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { resolvedAccent } from "../lib/appIcon.js";
 
 /* useExtensionBridge — the Ligand side of the Chrome extension link.
 
@@ -47,18 +48,35 @@ function readSession() {
   }
 }
 
+/* The live accent, already flattened to sRGB by resolvedAccent (see
+   lib/appIcon.js) so the extension's service worker can paint with it without
+   needing to understand oklch. */
+function readTheme() {
+  try {
+    return {
+      accent: resolvedAccent(),
+      mode: document.documentElement.dataset.theme || "light",
+    };
+  } catch {
+    return { accent: null, mode: "light" };
+  }
+}
+
 export function useExtensionBridge({
   tasks = [],
   addTask,
   addNote,
   addActivity,
   updateTask,
+  // The app-level Pomodoro engine, so the popup can drive the timer without
+  // the Pomodoro tab being open (it usually isn't).
+  pomo = null,
   enabled = true,
 } = {}) {
   // Latest values, so the (once-registered) message listener never closes over
   // a stale store.
   const ref = useRef({});
-  ref.current = { tasks, addTask, addNote, addActivity, updateTask };
+  ref.current = { tasks, addTask, addNote, addActivity, updateTask, pomo };
 
   const post = (message) => {
     try {
@@ -71,6 +89,8 @@ export function useExtensionBridge({
   const snapshot = () => ({
     tasks: publicTasks(ref.current.tasks),
     pomodoro: readSession(),
+    // Lets the toolbar icon wear the same accent as the app.
+    theme: readTheme(),
   });
 
   // ---- serve requests -------------------------------------------------
@@ -153,6 +173,24 @@ export function useExtensionBridge({
               if (owns && t.id !== taskId) store.updateTask?.(t.id, { tabGroup: null });
             }
             if (taskId) store.updateTask?.(taskId, { tabGroup: group });
+            reply(true);
+            break;
+          }
+
+          // Drive the timer from the popup. The engine is app-level, so this
+          // works on any tab — the Pomodoro tab does not need to be open.
+          case "pomodoro": {
+            const timer = store.pomo;
+            if (!timer) return reply(false, { error: "Timer unavailable." });
+            const command = String(payload?.command || "");
+            if (command === "start") timer.start?.();
+            else if (command === "pause") timer.pause?.();
+            else if (command === "skip") timer.skip?.();
+            else if (command === "reset") timer.reset?.();
+            else return reply(false, { error: "Unknown timer command." });
+            // Push the new state straight back so the popup updates at once
+            // (the periodic poll would otherwise take up to five seconds).
+            setTimeout(() => post({ type: SNAPSHOT, snapshot: snapshot() }), 60);
             reply(true);
             break;
           }
