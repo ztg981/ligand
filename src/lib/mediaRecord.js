@@ -78,15 +78,7 @@ export function formatDuration(ms) {
  * discards it. Both always release the camera/mic — leaving a track live keeps
  * the recording indicator on and holds the audio session open.
  */
-export async function startRecording({
-  kind = "audio",
-  maxMs = kind === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS,
-  facingMode = "user",
-  onStop,
-  onError,
-} = {}) {
-  if (!isRecordingSupported()) throw new Error("Recording is not supported here.");
-
+export async function openStream({ kind = "audio", facingMode = "user" } = {}) {
   const constraints =
     kind === "video"
       ? {
@@ -95,8 +87,24 @@ export async function startRecording({
           audio: false,
         }
       : { audio: true };
+  return navigator.mediaDevices.getUserMedia(constraints);
+}
 
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+export async function startRecording({
+  kind = "audio",
+  maxMs = kind === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS,
+  facingMode = "user",
+  // An already-open stream (e.g. a live camera preview). When supplied we
+  // record from it and leave it running afterwards, so the preview survives
+  // between takes; the caller owns closing it.
+  stream: existingStream = null,
+  onStop,
+  onError,
+} = {}) {
+  if (!isRecordingSupported()) throw new Error("Recording is not supported here.");
+
+  const ownsStream = !existingStream;
+  const stream = existingStream || (await openStream({ kind, facingMode }));
 
   const mimeType = pickMimeType(kind);
   let recorder;
@@ -119,7 +127,9 @@ export async function startRecording({
   let capTimer = null;
 
   const releaseStream = () => {
-    stream.getTracks().forEach((track) => track.stop());
+    // Only tear down a stream we opened. A caller-supplied preview stream stays
+    // live so the camera doesn't blink off between takes.
+    if (ownsStream) stream.getTracks().forEach((track) => track.stop());
     if (capTimer) clearTimeout(capTimer);
     capTimer = null;
   };

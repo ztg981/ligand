@@ -639,35 +639,34 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
    reads as a faint smudge rather than another button competing for the eye.
    Hover/focus resolves it into a real control. The muted state stays legible
    so the app never looks silently broken ("why are there no sounds?"). */
+/* Anchored to the topbar (which is sticky) rather than the viewport, so it
+   travels with the bar and never floats over scrolled content. It hangs just
+   below the bar's bottom edge, under the avatar. */
 .mute-dot {
-  position: fixed;
-  top: 68px;
-  right: 26px;
-  z-index: 19; /* just under the topbar (20) so it never covers the avatar */
-  width: 22px;
-  height: 22px;
+  position: absolute;
+  right: 14px;
+  bottom: -7px;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
   padding: 0;
   display: grid;
   place-items: center;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: color-mix(in oklab, var(--panel) 70%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: var(--panel);
   color: var(--ink-4);
   cursor: pointer;
-  opacity: 0.22;
+  opacity: 0.16;
   transition: opacity 0.18s var(--ease), color 0.18s var(--ease);
-  /* Electron: this sits outside .topbar, so it needs its own drag opt-out. */
-  -webkit-app-region: no-drag;
 }
-.mute-dot:hover, .mute-dot:focus-visible { opacity: 1; color: var(--ink-2); }
-.mute-dot.is-muted { opacity: 0.7; color: var(--ink-3); }
+.mute-dot:hover, .mute-dot:focus-visible { opacity: 0.95; color: var(--ink-2); }
+/* Muted stays readable enough to explain why the app went quiet. */
+.mute-dot.is-muted { opacity: 0.6; color: var(--ink-3); }
 .mute-dot.is-muted:hover, .mute-dot.is-muted:focus-visible { opacity: 1; }
-/* Touch devices get no hover, so leave it a little more present there, and
-   clear the taller mobile topbar. */
-@media (hover: none) { .mute-dot { opacity: 0.45; } }
-@media (max-width: 767px) { .mute-dot { top: 74px; right: 18px; } }
+/* Phones don't get it at all: the hardware switch and system volume already
+   own this, and the bar is far too tight to hide a control under. */
+@media (max-width: 767px) { .mute-dot { display: none; } }
 .topbar-main-tabs { display: flex; align-items: center; gap: 12px; }
 /* The horizontal goal pills are superseded everywhere now: the vertical
    sidebar owns goals on desktop (≥768px) and the goal dropdown owns them on
@@ -6894,19 +6893,113 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .jm-capture { margin-top: 10px; }
 .jm-note { font-size: 11.5px; color: var(--ink-4); margin: 6px 0 0; line-height: 1.45; }
 .jm-note.jm-error { color: oklch(0.58 0.16 25); }
-.jm-timer { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-.jm-timer .jm-cap { color: var(--ink-4); font-weight: 500; }
-/* A recording button pulses so it never looks like nothing is happening. */
-.btn.jm-recording {
-  border-color: oklch(0.62 0.17 25);
-  color: oklch(0.58 0.17 25);
-  animation: jmPulse 1.4s ease-in-out infinite;
+.jm-cap { color: var(--ink-4); font-weight: 500; }
+
+/* ---- the full-screen capture sheet (camera-app style) ----
+   Every control here opts out of touch selection and callouts: on a phone a
+   press inside a text form otherwise starts selecting text, which is exactly
+   what made the old inline press-and-hold unusable. */
+.jm-sheet {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column;
+  background: #0b0b0d;
+  color: #fff;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  animation: jmSheetIn 0.18s var(--ease);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-@keyframes jmPulse { 50% { opacity: 0.6; } }
-.jm-preview {
-  display: block; width: 100%; max-width: 260px;
-  margin-top: 8px; border-radius: var(--r-md);
-  background: #000; aspect-ratio: 4 / 3; object-fit: cover;
+@keyframes jmSheetIn { from { opacity: 0; } to { opacity: 1; } }
+.jm-sheet button { -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+
+.jm-sheet-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; flex: none;
+}
+.jm-sheet-x {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: rgba(255,255,255,0.12); color: #fff; cursor: pointer;
+}
+.jm-sheet-timer {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.6);
+  font-variant-numeric: tabular-nums;
+}
+.jm-sheet-timer.on { color: #fff; }
+.jm-sheet-timer .jm-cap { color: rgba(255,255,255,0.4); }
+.jm-rec-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: oklch(0.62 0.2 25);
+  animation: jmPulse 1.2s ease-in-out infinite;
+}
+@keyframes jmPulse { 50% { opacity: 0.25; } }
+
+.jm-sheet-stage {
+  flex: 1; min-height: 0; position: relative;
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.jm-sheet-video {
+  width: 100%; height: 100%; object-fit: cover; background: #000;
+}
+/* Voice mode has nothing to look at, so the mic breathes while it records. */
+.jm-orb {
+  width: 132px; height: 132px; border-radius: 999px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.65);
+}
+.jm-orb.on {
+  color: #fff;
+  background: oklch(0.5 0.16 25 / 0.28);
+  border-color: oklch(0.66 0.18 25 / 0.6);
+  animation: jmBreathe 1.8s ease-in-out infinite;
+}
+@keyframes jmBreathe { 50% { transform: scale(1.07); } }
+.jm-sheet-error {
+  position: absolute; left: 16px; right: 16px; bottom: 16px;
+  margin: 0; padding: 10px 12px; border-radius: var(--r-md);
+  background: rgba(0,0,0,0.6); color: #ffd9d4;
+  font-size: 12.5px; text-align: center; line-height: 1.45;
+}
+
+.jm-sheet-bottom {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 18px 16px 26px;
+}
+.jm-modes {
+  display: flex; gap: 3px; padding: 3px;
+  background: rgba(255,255,255,0.1); border-radius: 999px;
+}
+.jm-modes button {
+  padding: 6px 18px; border: none; border-radius: 999px;
+  background: none; color: rgba(255,255,255,0.62);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.jm-modes button.on { background: #fff; color: #17171a; }
+.jm-modes button:disabled { opacity: 0.45; cursor: default; }
+
+/* The shutter: a ring with a core that morphs to a stop square while running. */
+.jm-shutter {
+  width: 74px; height: 74px; padding: 0;
+  border-radius: 999px; border: 4px solid rgba(255,255,255,0.9);
+  background: none; cursor: pointer;
+  display: grid; place-items: center;
+}
+.jm-shutter:disabled { opacity: 0.5; cursor: default; }
+.jm-shutter-core {
+  width: 56px; height: 56px; border-radius: 999px;
+  background: oklch(0.62 0.2 25);
+  transition: width 0.18s var(--ease), height 0.18s var(--ease), border-radius 0.18s var(--ease);
+}
+.jm-shutter.recording .jm-shutter-core { width: 28px; height: 28px; border-radius: 7px; }
+.jm-sheet-hint {
+  margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); text-align: center;
+  min-height: 16px;
 }
 .jm-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .jm-item {

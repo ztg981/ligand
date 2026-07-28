@@ -855,6 +855,30 @@ export default function TopNav({
           />
         </div>
 
+        {/* Mute dot — a tiny switch for UI sound effects only (timer chimes and
+           alarms bypass it by design). It lives INSIDE the topbar, hanging just
+           below its bottom edge near the avatar, so it travels with the sticky
+           bar instead of floating over whatever you've scrolled underneath it.
+           Desktop only: phones have system volume, and the bar is too tight. */}
+        <button
+          className={"mute-dot" + (soundsEnabled ? "" : " is-muted")}
+          onClick={onToggleSounds}
+          aria-pressed={!soundsEnabled}
+          title={
+            soundsEnabled
+              ? "Mute sound effects (timer chimes and alarms still play)"
+              : "Sound effects muted — click to unmute (timer chimes and alarms still play)"
+          }
+          aria-label={soundsEnabled ? "Mute sound effects" : "Unmute sound effects"}
+          data-mute-click
+        >
+          {soundsEnabled ? (
+            <Icon.Volume width={8} height={8} />
+          ) : (
+            <Icon.VolumeOff width={8} height={8} />
+          )}
+        </button>
+
         <div className="topbar-tools">
           <SyncPill status={syncStatus} />
           {/* Desktop quick-add (the phone uses the floating Add button). */}
@@ -907,31 +931,6 @@ export default function TopNav({
         <WindowControls />
         </div>
       </DndContext>
-
-      {/* A tiny mute dot parked in the corner just under the avatar. Kept
-         deliberately faint — it's a set-and-forget switch, not something to
-         look at, so at rest it reads as a smudge and only resolves on hover.
-         Silences UI sound effects (clicks, toggles, check-in chirps) ONLY:
-         Pomodoro chimes and alarms bypass the UI-sound toggle by design, so
-         muting clicks can never cost you a timer you were waiting on. */}
-      <button
-        className={"mute-dot" + (soundsEnabled ? "" : " is-muted")}
-        onClick={onToggleSounds}
-        aria-pressed={!soundsEnabled}
-        title={
-          soundsEnabled
-            ? "Mute sound effects (timer chimes and alarms still play)"
-            : "Sound effects muted — click to unmute (timer chimes and alarms still play)"
-        }
-        aria-label={soundsEnabled ? "Mute sound effects" : "Unmute sound effects"}
-        data-mute-click
-      >
-        {soundsEnabled ? (
-          <Icon.Volume width={11} height={11} />
-        ) : (
-          <Icon.VolumeOff width={11} height={11} />
-        )}
-      </button>
 
       {/* In Electron the status sits below the window controls instead of
           consuming scarce horizontal room in the navigation bar. */}

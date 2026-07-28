@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./Icons.jsx";
 import {
   isRecordingSupported,
   startRecording,
+  openStream,
   formatDuration,
   MAX_AUDIO_MS,
   MAX_VIDEO_MS,
@@ -22,77 +24,127 @@ import { fetchMedia } from "../lib/mediaSync.js";
    pause whatever is playing. That trade-off is stated in the UI instead of
    surprising the user afterwards. */
 
-const MUSIC_NOTE = "Recording audio pauses music. A clip (hold) leaves it playing.";
+/* ---------- the capture sheet (camera-app style) ----------
 
-/* ---------- capture (composer) ---------- */
+   A full-screen recorder rather than inline buttons. The inline press-and-hold
+   was unusable on a phone: holding a button inside a text form triggers the
+   browser's own text-selection and callout gestures, so the "hold" fought the
+   page instead of driving the recorder.
 
-export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
-  const supported = isRecordingSupported();
-  const [busy, setBusy] = useState(null); // null | "audio" | "video"
+   This mirrors the camera app people already know — mode switch, live preview,
+   one big shutter, a timer, and an obvious way out — and every control opts out
+   of touch selection so a press does exactly one thing. */
+
+function CaptureSheet({ onClose, onSaved }) {
+  const [mode, setMode] = useState("audio"); // "audio" | "video"
+  const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
-  const controllerRef = useRef(null);
-  const holdingRef = useRef(false);
-  const previewRef = useRef(null);
-  const timerRef = useRef(null);
+  const [saving, setSaving] = useState(false);
 
-  // Always release the camera/mic if this unmounts mid-recording.
+  const controllerRef = useRef(null);
+  const previewStreamRef = useRef(null);
+  const videoRef = useRef(null);
+  const timerRef = useRef(null);
+  const closedRef = useRef(false);
+
+  const cap = mode === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS;
+
+  const permissionMessage = (err) =>
+    err?.name === "NotAllowedError"
+      ? "Ligand needs permission to use the camera or microphone."
+      : err?.name === "NotFoundError"
+        ? "No camera or microphone found on this device."
+        : "Couldn't start recording here.";
+
+  const releasePreview = () => {
+    previewStreamRef.current?.getTracks().forEach((t) => t.stop());
+    previewStreamRef.current = null;
+  };
+
+  // Everything shuts down on the way out — a live track keeps the camera light
+  // on and holds the audio session open.
   useEffect(
     () => () => {
+      closedRef.current = true;
       controllerRef.current?.cancel();
+      releasePreview();
       clearInterval(timerRef.current);
     },
     []
   );
 
-  const tick = (startedAt) => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setElapsed(Date.now() - startedAt), 200);
-  };
+  // Video mode opens the camera immediately so you can frame the shot, exactly
+  // like the camera app. The mic is NOT requested here, so your music keeps
+  // playing while you line things up (and for the whole clip).
+  useEffect(() => {
+    let cancelled = false;
+    if (mode !== "video") {
+      releasePreview();
+      return () => {
+        cancelled = true;
+      };
+    }
+    (async () => {
+      try {
+        const stream = await openStream({ kind: "video" });
+        if (cancelled || closedRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        previewStreamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play?.().catch(() => {});
+        }
+      } catch (err) {
+        if (!cancelled) setError(permissionMessage(err));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const finish = async ({ blob, durationMs, kind }) => {
     clearInterval(timerRef.current);
-    setBusy(null);
+    setRecording(false);
     setElapsed(0);
     controllerRef.current = null;
+    setSaving(true);
     const ref = await putMedia(blob, { kind, durationMs });
-    if (ref) onAdd?.(ref);
-    else setError("Couldn't save that recording on this device.");
+    setSaving(false);
+    if (ref) {
+      onSaved?.(ref);
+      onClose?.();
+    } else {
+      setError("Couldn't save that recording on this device.");
+    }
   };
 
-  const begin = async (kind) => {
-    if (busy) return;
+  const start = async () => {
+    if (recording || saving) return;
     setError("");
-    setBusy(kind);
     try {
       const controller = await startRecording({
-        kind,
+        kind: mode,
+        stream: mode === "video" ? previewStreamRef.current : null,
         onStop: finish,
         onError: () => {
           clearInterval(timerRef.current);
-          setBusy(null);
+          setRecording(false);
           setError("Recording stopped unexpectedly.");
         },
       });
-      // A hold released before the camera warmed up should not start a clip.
-      if (kind === "video" && !holdingRef.current) {
-        controller.cancel();
-        setBusy(null);
-        return;
-      }
       controllerRef.current = controller;
-      tick(controller.startedAt);
-      if (kind === "video" && previewRef.current) {
-        previewRef.current.srcObject = controller.stream;
-        previewRef.current.play?.().catch(() => {});
-      }
-    } catch (err) {
-      setBusy(null);
-      setError(
-        err?.name === "NotAllowedError"
-          ? "Ligand needs permission to use the microphone or camera."
-          : "Couldn't start recording here."
+      setRecording(true);
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(
+        () => setElapsed(Date.now() - controller.startedAt),
+        200
       );
+    } catch (err) {
+      setError(permissionMessage(err));
     }
   };
 
@@ -101,17 +153,104 @@ export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
     controllerRef.current = null;
   };
 
-  // Hold-to-record wiring for the clip button.
-  const holdStart = (e) => {
-    e.preventDefault();
-    holdingRef.current = true;
-    begin("video");
+  const shutter = () => (recording ? stop() : start());
+
+  const close = () => {
+    if (recording) controllerRef.current?.cancel();
+    onClose?.();
   };
-  const holdEnd = () => {
-    if (!holdingRef.current) return;
-    holdingRef.current = false;
-    if (busy === "video") stop();
-  };
+
+  // Escape leaves — never trap someone inside a recorder.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  return createPortal(
+    <div className="jm-sheet" role="dialog" aria-modal="true" aria-label="Record">
+      <header className="jm-sheet-top">
+        <button type="button" className="jm-sheet-x" onClick={close} aria-label="Close">
+          <Icon.Close width={16} height={16} />
+        </button>
+        <span className={"jm-sheet-timer mono" + (recording ? " on" : "")}>
+          {recording && <i className="jm-rec-dot" aria-hidden="true" />}
+          {formatDuration(elapsed)} <span className="jm-cap">/ {formatDuration(cap)}</span>
+        </span>
+      </header>
+
+      <div className="jm-sheet-stage">
+        {mode === "video" ? (
+          <video ref={videoRef} className="jm-sheet-video" muted playsInline autoPlay />
+        ) : (
+          <div className={"jm-orb" + (recording ? " on" : "")} aria-hidden="true">
+            <Icon.Mic width={38} height={38} />
+          </div>
+        )}
+        {error && (
+          <p className="jm-sheet-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+
+      <footer className="jm-sheet-bottom">
+        {/* Mode can't change mid-take — that would throw away the recording. */}
+        <div className="jm-modes" role="tablist" aria-label="What to record">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "audio"}
+            className={mode === "audio" ? "on" : ""}
+            disabled={recording}
+            onClick={() => setMode("audio")}
+          >
+            Voice
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "video"}
+            className={mode === "video" ? "on" : ""}
+            disabled={recording}
+            onClick={() => setMode("video")}
+          >
+            Video
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className={"jm-shutter" + (recording ? " recording" : "")}
+          onClick={shutter}
+          disabled={saving}
+          aria-label={recording ? "Stop recording" : "Start recording"}
+        >
+          <span className="jm-shutter-core" />
+        </button>
+
+        <p className="jm-sheet-hint">
+          {saving
+            ? "Saving…"
+            : recording
+              ? "Tap to stop"
+              : mode === "video"
+                ? "Tap to record. Your music keeps playing."
+                : "Tap to record. This pauses your music."}
+        </p>
+      </footer>
+    </div>,
+    document.body
+  );
+}
+
+/* ---------- capture (composer) ---------- */
+
+export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
+  const supported = isRecordingSupported();
+  const [open, setOpen] = useState(false);
 
   if (!supported) {
     return (
@@ -121,53 +260,14 @@ export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
     );
   }
 
-  const cap = busy === "video" ? MAX_VIDEO_MS : MAX_AUDIO_MS;
-
   return (
     <div className="jm-capture">
-      <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          className={"btn ghost sm" + (busy === "audio" ? " jm-recording" : "")}
-          onClick={() => (busy === "audio" ? stop() : begin("audio"))}
-          disabled={busy === "video"}
-          title="Record a voice note"
-        >
-          <Icon.Mic width={13} height={13} />
-          {busy === "audio" ? "Stop" : "Voice note"}
-        </button>
+      <button type="button" className="btn ghost sm" onClick={() => setOpen(true)}>
+        <Icon.Mic width={13} height={13} /> Record
+      </button>
 
-        <button
-          type="button"
-          className={"btn ghost sm" + (busy === "video" ? " jm-recording" : "")}
-          disabled={busy === "audio"}
-          onPointerDown={holdStart}
-          onPointerUp={holdEnd}
-          onPointerLeave={holdEnd}
-          onPointerCancel={holdEnd}
-          onContextMenu={(e) => e.preventDefault()}
-          title="Hold to record a short clip (keeps your music playing)"
-        >
-          <Icon.Video width={13} height={13} />
-          {busy === "video" ? "Recording…" : "Hold for clip"}
-        </button>
-
-        {busy && (
-          <span className="jm-timer mono" role="status">
-            {formatDuration(elapsed)} <span className="jm-cap">/ {formatDuration(cap)}</span>
-          </span>
-        )}
-      </div>
-
-      {busy === "video" && (
-        <video ref={previewRef} className="jm-preview" muted playsInline autoPlay />
-      )}
-
-      {!busy && <p className="jm-note">{MUSIC_NOTE}</p>}
-      {error && (
-        <p className="jm-note jm-error" role="alert">
-          {error}
-        </p>
+      {open && (
+        <CaptureSheet onClose={() => setOpen(false)} onSaved={(ref) => onAdd?.(ref)} />
       )}
 
       {media.length > 0 && (
