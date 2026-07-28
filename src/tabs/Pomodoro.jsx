@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePomodoro, PHASES } from "../hooks/usePomodoro.js";
+import { PHASES } from "../hooks/usePomodoro.js";
 import { todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import FocusPicker from "../components/FocusPicker.jsx";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
 import PomodoroPresets from "../components/PomodoroPresets.jsx";
-import { startPomodoroChime, phaseChange, startAlarm, pauseNudge } from "../lib/uiSounds.js";
+import { pauseNudge } from "../lib/uiSounds.js";
 import {
   playAmbient,
   stopAmbient,
@@ -508,108 +508,32 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
    Main component
    ============================================================ */
 export default function Pomodoro({
+  // The timer engine lives in App (see hooks/usePomodoroEngine.js) so it keeps
+  // running, chiming and logging when this lazily-mounted tab unmounts. This
+  // component is now purely the view over it.
+  engine,
   chimeEnabled = true,
-  alarmOnComplete = false,
-  onPhaseComplete,
-  onFocusStateChange,
   ambientOverride = "none",
   tasks = [],
   goals = [],
   hyperfocus = false,
+  // Used only by "log focus you already did" — the automatic logging of
+  // completed blocks happens in the engine, so it survives tab changes.
   logFocusSession,
   logPause,
   pauseLog = [],
 }) {
-  // What the user is focusing on this session (persisted so it survives
-  // reloads). Value is "" (nothing), a task id, "goal:<goalId>" (a goal
-  // directly), or "custom" (free text held in ligand.focusCustom).
-  const [focusTaskId, setFocusTaskId] = useLocalStorage("ligand.focusTaskId", "");
-  const [focusCustom, setFocusCustom] = useLocalStorage("ligand.focusCustom", "");
-  // Carries the latest values into the phase-end callback without stale closures.
-  const focusEndRef = useRef(null);
-  // When "ring until dismissed" is on, a finished focus block starts an
-  // insistent looping alarm; we hold its stop fn here and surface a Stop button.
-  const alarmStopRef = useRef(null);
-  const [alarmRinging, setAlarmRinging] = useState(false);
-  const stopAlarm = () => {
-    if (alarmStopRef.current) {
-      alarmStopRef.current();
-      alarmStopRef.current = null;
-    }
-    setAlarmRinging(false);
-  };
-  // The repeating completion chime (the default, gentler cousin of the alarm).
-  // Held here so returning to the tab — or taking any next action — cuts it off.
-  const chimeStopRef = useRef(null);
-  const stopChime = () => {
-    if (chimeStopRef.current) {
-      chimeStopRef.current();
-      chimeStopRef.current = null;
-    }
-  };
-  // Latest alarm preference without re-subscribing the phase-end callback.
-  const alarmPrefRef = useRef(alarmOnComplete);
-  alarmPrefRef.current = alarmOnComplete;
-
-  const pomo = usePomodoro({
-    onPhaseEnd: ({ endedPhase }) => {
-      // A finished WORK block is a reward (descending bing-bong); a finished
-      // break is "back to focus" (rising lift). Both follow the Pomodoro chime
-      // setting, not the UI-sounds toggle. If the user opted into the insistent
-      // "ring until dismissed" alarm, a finished FOCUS block loops that instead
-      // of the gentle chime (kitchen-timer style), until they hit Stop.
-      if (chimeEnabled) {
-        if (endedPhase === PHASES.WORK) {
-          if (alarmPrefRef.current) {
-            stopAlarm(); // clear any prior ring first
-            alarmStopRef.current = startAlarm();
-            setAlarmRinging(true);
-          } else {
-            // Repeat the chime so the finish isn't missed. If you're looking at
-            // the tab, three rings is plenty; if you're away (another tab/app —
-            // exactly when a single ding gets lost), keep ringing until you come
-            // back, capped so it can never nag forever. The visibility effect
-            // below stops it the moment the tab is open again.
-            stopChime();
-            chimeStopRef.current = startPomodoroChime({
-              maxRings: document.visibilityState === "visible" ? 3 : 20,
-              intervalMs: 2600,
-            });
-          }
-        } else {
-          phaseChange();
-        }
-      }
-      // EVERY completed focus block is logged (the trends and the day ring
-      // should never miss real focus time). A task attributes it to the
-      // task's goal, "goal:<id>" to that goal directly; custom text and
-      // "nothing in particular" log with no goal.
-      if (endedPhase === PHASES.WORK && focusEndRef.current) {
-        const { taskId, work, tasks: ts } = focusEndRef.current;
-        if (logFocusSession) {
-          let goalId = null;
-          if (taskId?.startsWith("goal:")) {
-            goalId = taskId.slice(5);
-          } else if (taskId && taskId !== "custom") {
-            goalId = ts.find((t) => t.id === taskId)?.goalId || null;
-          }
-          logFocusSession({ minutes: work, goalId });
-        }
-      }
-      onPhaseComplete?.({ endedPhase });
-    },
-  });
+  const {
+    pomo,
+    focusTaskId,
+    setFocusTaskId,
+    focusCustom,
+    setFocusCustom,
+    alarmRinging,
+    stopAlarm,
+  } = engine;
   const { settings, setSettings } = pomo;
-  focusEndRef.current = { taskId: focusTaskId, work: settings.work, tasks };
   const theme = THEMES.find((t) => t.id === settings.theme) || THEMES[0];
-
-  // Report FOCUS-block active state up to App (drives the website-blocker auto
-  // mode: block during focus, unblock on break/stop). Reset to false on unmount
-  // (leaving the tab stops the timer, so it must lift the block too).
-  useEffect(() => {
-    onFocusStateChange?.(pomo.running && pomo.phase === PHASES.WORK);
-  }, [pomo.running, pomo.phase, onFocusStateChange]);
-  useEffect(() => () => onFocusStateChange?.(false), [onFocusStateChange]);
 
   // Hyperfocus overrides the scene without mutating the saved theme, so the
   // user's previous scene is automatically restored when the mode turns off.
@@ -720,29 +644,8 @@ export default function Pomodoro({
     if (!pomo.running && focusMode) setFocusMode(false);
   }, [pomo.running, focusMode]);
 
-  // "Rings until you open the tab": coming back to a visible tab — or clicking
-  // anywhere in the app — is acknowledgement enough, so the chime stops. Also
-  // stops when the next block starts and on unmount, so it can never outlive
-  // the moment it belongs to.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") stopChime();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    window.addEventListener("pointerdown", stopChime);
-    window.addEventListener("keydown", stopChime);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-      window.removeEventListener("pointerdown", stopChime);
-      window.removeEventListener("keydown", stopChime);
-    };
-  }, []);
-  useEffect(() => {
-    if (pomo.running) stopChime();
-  }, [pomo.running]);
-  useEffect(() => () => stopChime(), []);
+  // (Chime acknowledgement and the alarm's safety timeout now live in the
+  // app-level engine, so they work on every tab rather than only this one.)
 
   const ambientOn = settings.ambientSound;
   const ambientVolume = settings.ambientVolume ?? 35;
@@ -771,16 +674,6 @@ export default function Pomodoro({
 
   // Always silence the audio when leaving the Pomodoro tab.
   useEffect(() => () => stopAmbient(), []);
-
-  // Safety: an insistent completion alarm auto-stops after 90s so it can never
-  // ring forever if the user has stepped away. Also stop it on unmount.
-  useEffect(() => {
-    if (!alarmRinging) return;
-    const t = setTimeout(() => stopAlarm(), 90000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alarmRinging]);
-  useEffect(() => () => stopAlarm(), []);
 
   // Escape key exits focus mode - never trap the user.
   useEffect(() => {

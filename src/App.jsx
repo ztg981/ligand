@@ -27,6 +27,7 @@ import FreshStartReview from "./components/FreshStartReview.jsx";
 import { useSleepLog } from "./hooks/useSleepLog.js";
 import MorningCheckIn from "./components/MorningCheckIn.jsx";
 import { useStore } from "./hooks/useStore.js";
+import { usePomodoroEngine } from "./hooks/usePomodoroEngine.js";
 import { useExtensionBridge } from "./hooks/useExtensionBridge.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
@@ -183,6 +184,26 @@ export default function App() {
   const { settings, setSection, reset: resetSettings } = useSettings(preferenceScope);
   const isGuest = !session;
   const notif = useNotifications({ enabled: settings.notifications.enabled });
+
+  // The Pomodoro engine lives HERE, not in the Pomodoro tab. That tab is lazy
+  // and unmounts as soon as you switch to Journal, which used to tear down the
+  // clock and the phase-end effect with it: a block that finished while you
+  // were elsewhere never chimed and was never written to the focus log. Owned
+  // at app level, the timer keeps running, logging and ringing wherever you are.
+  const pomoEngine = usePomodoroEngine({
+    chimeEnabled: settings.notifications.pomodoroChime,
+    alarmOnComplete: settings.notifications.pomodoroAlarm,
+    tasks: store.tasks,
+    logFocusSession: store.logFocusSession,
+    onPhaseComplete: ({ endedPhase }) => {
+      const wasFocus = endedPhase === PHASES.WORK;
+      notif.push(
+        "pomodoro",
+        wasFocus ? "Focus block done" : "Break over",
+        wasFocus ? "Time for a break." : "Ready to focus?"
+      );
+    },
+  });
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
   const [activeGoal, setActiveGoal] = useState("productivity");
@@ -324,8 +345,9 @@ export default function App() {
   // across reloads; the data-hyperfocus attribute on <html> drives all the CSS.
   const [hyperfocus, setHyperfocus] = useLocalStorage("ligand.hyperfocus", false);
   // True while a Pomodoro FOCUS block is actively running (drives the website
-  // blocker auto-mode: block during focus, unblock on break/stop).
-  const [pomoFocus, setPomoFocus] = useState(false);
+  // blocker auto-mode: block during focus, unblock on break/stop). Derived from
+  // the app-level engine, so it stays correct on every tab — not just Pomodoro.
+  const pomoFocus = pomoEngine.focusActive;
   useEffect(() => {
     const root = document.documentElement;
     if (hyperfocus) root.setAttribute("data-hyperfocus", "true");
@@ -1613,8 +1635,8 @@ export default function App() {
       case "pomodoro":
         return (
           <Pomodoro
+            engine={pomoEngine}
             chimeEnabled={settings.notifications.pomodoroChime}
-            alarmOnComplete={settings.notifications.pomodoroAlarm}
             ambientOverride={settings.wallpaper?.sound ?? "none"}
             tasks={store.tasks}
             goals={activeGoals}
@@ -1622,15 +1644,6 @@ export default function App() {
             logFocusSession={store.logFocusSession}
             logPause={store.logPause}
             pauseLog={store.pauseLog}
-            onFocusStateChange={setPomoFocus}
-            onPhaseComplete={({ endedPhase }) => {
-              const wasFocus = endedPhase === PHASES.WORK;
-              notif.push(
-                "pomodoro",
-                wasFocus ? "Focus block done" : "Break over",
-                wasFocus ? "Time for a break." : "Ready to focus?"
-              );
-            }}
           />
         );
       case "sleep":
