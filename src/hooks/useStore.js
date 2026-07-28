@@ -329,6 +329,15 @@ export function useStore() {
     [setData]
   );
 
+  const updateJournalEntry = useCallback(
+    (id, patch) =>
+      setData((d) => ({
+        ...d,
+        journal: (d.journal || []).map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      })),
+    [setData]
+  );
+
   const removeJournalEntry = useCallback(
     (id) =>
       setData((d) => ({
@@ -804,6 +813,7 @@ export function useStore() {
       addReflection,
       removeReflection,
       addJournalEntry,
+      updateJournalEntry,
       removeJournalEntry,
       addMoodCheckIn,
       removeMoodCheckIn,
@@ -864,6 +874,7 @@ export function useStore() {
       addReflection,
       removeReflection,
       addJournalEntry,
+      updateJournalEntry,
       removeJournalEntry,
       addMoodCheckIn,
       removeMoodCheckIn,

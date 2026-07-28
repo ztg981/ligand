@@ -1652,7 +1652,9 @@ export default function App() {
           <Journal
             journal={store.journal}
             addJournalEntry={store.addJournalEntry}
+            updateJournalEntry={store.updateJournalEntry}
             removeJournalEntry={store.removeJournalEntry}
+            userId={session?.user?.id || null}
             songLog={store.songLog}
             addSong={store.addSong}
             updateSong={store.updateSong}

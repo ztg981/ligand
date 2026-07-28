@@ -10,6 +10,7 @@ import { searchItunesSongs } from "../lib/itunesSearch.js";
 import { readImageAttachments, imagesFromClipboard } from "../lib/imageAttach.js";
 import { MediaCapture, MediaStrip } from "../components/JournalMedia.jsx";
 import { deleteMediaMany } from "../lib/mediaStore.js";
+import { uploadMedia, removeRemoteMedia, syncPendingMedia } from "../lib/mediaSync.js";
 import MoodTrend from "../widgets/MoodTrend.jsx";
 import DayStory from "../components/DayStory.jsx";
 import { activitiesOn, categoryOf, fmtMinutes } from "../lib/activities.js";
@@ -300,7 +301,9 @@ function DailyMoodCheckIn({ moodLog = [], addMoodCheckIn, removeMoodCheckIn }) {
 export default function Journal({
   journal,
   addJournalEntry,
+  updateJournalEntry,
   removeJournalEntry,
+  userId = null,
   songLog = [],
   addSong,
   updateSong,
@@ -391,6 +394,25 @@ export default function Journal({
       media,
     });
     attachedSongIds.forEach((id) => updateSong(id, { journalEntryId: entry.id }));
+    // Push recordings to the cloud in the background. The entry is already
+    // saved and playable locally, so a failed upload costs nothing — the
+    // retry sweep below catches it later.
+    if (userId && media.length) {
+      (async () => {
+        const next = [];
+        let changed = false;
+        for (const ref of media) {
+          const path = await uploadMedia(userId, ref);
+          if (path) {
+            next.push({ ...ref, remotePath: path });
+            changed = true;
+          } else {
+            next.push(ref);
+          }
+        }
+        if (changed) updateJournalEntry?.(entry.id, { media: next });
+      })();
+    }
     setText("");
     setLocation(null);
     setAttachedSongIds([]);
@@ -398,6 +420,19 @@ export default function Journal({
     setImgMsg("");
     setMedia([]);
   };
+
+  // Anything captured offline (or before signing in) gets pushed once, on
+  // mount and whenever the account changes, so a recording is never stranded
+  // on one device.
+  const sweptRef = useRef(null);
+  useEffect(() => {
+    if (!userId || sweptRef.current === userId) return;
+    sweptRef.current = userId;
+    syncPendingMedia(userId, journal, (entryId, nextMedia) =>
+      updateJournalEntry?.(entryId, { media: nextMedia })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   return (
     <>
@@ -517,7 +552,12 @@ export default function Journal({
             )}
 
             {/* Optional voice note / short clip */}
-            <MediaCapture media={media} onAdd={addMedia} onRemove={removeMedia} />
+            <MediaCapture
+              media={media}
+              onAdd={addMedia}
+              onRemove={removeMedia}
+              userId={userId}
+            />
 
             {/* Optional location */}
             <div style={{ marginTop: 10 }}>
@@ -664,8 +704,10 @@ export default function Journal({
                           onConfirm={() => {
                             // Drop the blobs too — deleting the entry only
                             // removes the reference, so without this the
-                            // recordings would linger in IndexedDB forever.
+                            // recordings would linger in IndexedDB (and in
+                            // the storage bucket) forever.
                             deleteMediaMany((e.media || []).map((m) => m.id));
+                            removeRemoteMedia(userId, e.media || []);
                             removeJournalEntry(e.id);
                           }}
                           requireConfirmation={confirmBeforeDelete}
@@ -690,7 +732,9 @@ export default function Journal({
                           ))}
                         </div>
                       )}
-                      {(e.media || []).length > 0 && <MediaStrip media={e.media} />}
+                      {(e.media || []).length > 0 && (
+                        <MediaStrip media={e.media} userId={userId} />
+                      )}
                       {attached.length > 0 && (
                         <div className="song-entry-list">
                           {attached.map((s) => (

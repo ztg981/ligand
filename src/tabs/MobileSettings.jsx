@@ -349,7 +349,7 @@ export default function MobileSettings({
             name="Export data"
             hint={
               mediaInfo.count > 0
-                ? `Download everything as a JSON backup. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) stay on this device and are not in the file.`
+                ? `Download everything as a JSON backup. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) are not in the file — signed in they sync to your account, otherwise they stay on this device.`
                 : "Download everything as a JSON backup"
             }
           >

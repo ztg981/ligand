@@ -108,6 +108,27 @@ export async function putMedia(blob, { kind = "audio", durationMs = 0 } = {}) {
   };
 }
 
+/**
+ * Store a blob under a SPECIFIC id (rather than minting a new one). Used when
+ * caching a recording downloaded from the cloud, which must land under the id
+ * the journal entry already references or the local lookup would miss it.
+ */
+export async function putMediaAt(id, blob, { kind = "audio", durationMs = 0 } = {}) {
+  if (!id || !blob) return false;
+  return tx("readwrite", (store, set) => {
+    store.put({
+      id,
+      blob,
+      kind,
+      mime: blob.type || (kind === "video" ? "video/mp4" : "audio/mp4"),
+      durationMs: Math.max(0, Math.round(durationMs)),
+      size: blob.size,
+      createdAt: new Date().toISOString(),
+    });
+    set(true);
+  }, false);
+}
+
 export async function getMediaBlob(id) {
   if (!id) return null;
   return tx("readonly", (store, set) => {

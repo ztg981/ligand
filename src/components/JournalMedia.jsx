@@ -8,6 +8,7 @@ import {
   MAX_VIDEO_MS,
 } from "../lib/mediaRecord.js";
 import { putMedia, getMediaUrl, deleteMedia, formatBytes } from "../lib/mediaStore.js";
+import { fetchMedia } from "../lib/mediaSync.js";
 
 /* JournalMedia — recording controls for the composer, and playback for saved
    entries.
@@ -25,7 +26,7 @@ const MUSIC_NOTE = "Recording audio pauses music. A clip (hold) leaves it playin
 
 /* ---------- capture (composer) ---------- */
 
-export function MediaCapture({ media = [], onAdd, onRemove }) {
+export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
   const supported = isRecordingSupported();
   const [busy, setBusy] = useState(null); // null | "audio" | "video"
   const [elapsed, setElapsed] = useState(0);
@@ -169,37 +170,57 @@ export function MediaCapture({ media = [], onAdd, onRemove }) {
         </p>
       )}
 
-      {media.length > 0 && <MediaStrip media={media} onRemove={onRemove} />}
+      {media.length > 0 && (
+        <MediaStrip media={media} onRemove={onRemove} userId={userId} />
+      )}
     </div>
   );
 }
 
 /* ---------- playback ---------- */
 
-function MediaItem({ item, onRemove }) {
+function MediaItem({ item, onRemove, userId = null }) {
   const [url, setUrl] = useState(null);
   const [missing, setMissing] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     let revoked = false;
     let objectUrl = null;
-    getMediaUrl(item.id).then((next) => {
+    const show = (next) => {
       if (revoked) {
         if (next) URL.revokeObjectURL(next);
-        return;
+        return true;
       }
-      if (next) {
-        objectUrl = next;
-        setUrl(next);
-      } else {
-        setMissing(true);
+      objectUrl = next;
+      setUrl(next);
+      return false;
+    };
+
+    (async () => {
+      const local = await getMediaUrl(item.id);
+      if (local) return show(local);
+      // Not on this device. If it was uploaded and we're signed in, pull it
+      // down once and cache it locally so it plays offline from now on.
+      if (userId && item.remotePath) {
+        if (!revoked) setFetching(true);
+        const blob = await fetchMedia(userId, item);
+        if (!revoked) setFetching(false);
+        if (blob) return show(URL.createObjectURL(blob));
       }
-    });
+      if (!revoked) setMissing(true);
+      return false;
+    })();
+
     return () => {
       revoked = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [item.id]);
+    // Keyed on identity + where the bytes live, not the whole `item`: a
+    // changed duration or size must not re-fetch and re-mint the object URL
+    // (which would restart playback mid-listen).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, item.remotePath, userId]);
 
   const remove = async () => {
     await deleteMedia(item.id);
@@ -208,11 +229,15 @@ function MediaItem({ item, onRemove }) {
 
   return (
     <div className={"jm-item" + (item.kind === "video" ? " is-video" : "")}>
-      {missing ? (
+      {fetching ? (
+        <span className="jm-note">Fetching this recording…</span>
+      ) : missing ? (
         <span className="jm-note">
-          This recording isn't on this device.
-          {/* Media is device-local until cloud sync lands, so an entry made on
-             another device shows its reference without a playable blob. */}
+          {/* Either it was never uploaded (recorded in guest mode / offline) or
+             we are signed out on this device, so there is nothing to fetch. */}
+          {item.remotePath
+            ? "Sign in to play this recording."
+            : "This recording is only on the device it was made on."}
         </span>
       ) : item.kind === "video" ? (
         <video className="jm-video" src={url || undefined} controls playsInline preload="metadata" />
@@ -232,12 +257,12 @@ function MediaItem({ item, onRemove }) {
   );
 }
 
-export function MediaStrip({ media = [], onRemove }) {
+export function MediaStrip({ media = [], onRemove, userId = null }) {
   if (!media.length) return null;
   return (
     <div className="jm-strip">
       {media.map((item) => (
-        <MediaItem key={item.id} item={item} onRemove={onRemove} />
+        <MediaItem key={item.id} item={item} onRemove={onRemove} userId={userId} />
       ))}
     </div>
   );

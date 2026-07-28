@@ -820,7 +820,7 @@ export default function Settings({
             name="Export data"
             hint={
               mediaInfo.count > 0
-                ? `Download all your goals, tasks and journal as JSON. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) stay on this device and are not in the file.`
+                ? `Download all your goals, tasks and journal as JSON. Your ${mediaInfo.count} journal recording${mediaInfo.count === 1 ? "" : "s"} (${formatBytes(mediaInfo.bytes)}) are not in the file — signed in they sync to your account, otherwise they stay on this device.`
                 : "Download all your goals, tasks and journal as JSON"
             }
           >
