@@ -18,28 +18,71 @@ function getPosition() {
       return;
     }
     navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      timeout: 10000,
-      maximumAge: 5 * 60 * 1000, // a 5-min-old fix is fine for a city name
+      // Naming the actual place you're standing in ("Costco") needs a real
+      // fix — a coarse one lands you somewhere in the neighbourhood, which is
+      // only ever good enough for a city name.
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60 * 1000,
     });
   });
 }
 
-// Pick the most specific human-friendly place name from a Nominatim address.
-function placeNameFromAddress(address = {}) {
-  const place =
+// The settlement a place sits in — the second half of "Costco, Brooklyn".
+function areaFromAddress(address = {}) {
+  return (
     address.city ||
     address.town ||
     address.village ||
-    address.neighbourhood ||
     address.suburb ||
+    address.neighbourhood ||
     address.municipality ||
     address.county ||
+    null
+  );
+}
+
+/* The named venue you're actually standing in, if there is one.
+
+   Nominatim puts a POI's own name at the top level (`name`) once the zoom is
+   fine enough to resolve a building. The address keys are the fallback: a
+   shop, amenity or office often carries the brand even when `name` doesn't. */
+function venueFromResult(data = {}) {
+  const address = data.address || {};
+  const venue =
+    data.name ||
+    address.shop ||
+    address.amenity ||
+    address.office ||
+    address.leisure ||
+    address.tourism ||
+    address.building ||
     null;
+  // A "venue" that's really just the street isn't worth naming.
+  if (!venue || venue === address.road) return null;
+  return venue;
+}
+
+/* Build the display name, most specific part first.
+
+   "Costco, Brooklyn" beats "Brooklyn", and "Brooklyn, New York" beats
+   "Brooklyn" — but never repeat a name ("Brooklyn, Brooklyn"). */
+export function placeNameFromResult(data = {}) {
+  const address = data.address || {};
+  const area = areaFromAddress(address);
   const region = address.state || address.country || null;
-  if (!place) return region;
-  if (region && region !== place) return `${place}, ${region}`;
-  return place;
+  const venue = venueFromResult(data);
+
+  const parts = [];
+  if (venue) parts.push(venue);
+  if (area && area !== venue) parts.push(area);
+  // Only reach for the region when there's nothing more specific, so a venue
+  // doesn't drag a whole "Costco, Brooklyn, New York" tail behind it.
+  if (!parts.length && region) parts.push(region);
+  else if (parts.length === 1 && !venue && region && region !== area) {
+    parts.push(region);
+  }
+  return parts.join(", ") || null;
 }
 
 /* Request location permission (browser handles the prompt), then resolve a
@@ -51,8 +94,10 @@ export async function captureLocationName() {
   const lat = pos.coords.latitude;
   const lon = pos.coords.longitude;
 
+  // zoom=18 resolves an individual building/POI rather than a district, which
+  // is what turns "Brooklyn" into "Costco, Brooklyn".
   const url =
-    "https://nominatim.openstreetmap.org/reverse?format=json&zoom=14" +
+    "https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&addressdetails=1" +
     `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
 
   const res = await fetch(url, {
@@ -60,6 +105,5 @@ export async function captureLocationName() {
   });
   if (!res.ok) throw new Error("Reverse geocode failed");
   const data = await res.json();
-  const name = placeNameFromAddress(data.address || {});
-  return name || null;
+  return placeNameFromResult(data) || null;
 }

@@ -6,6 +6,14 @@ import ConfirmButton from "../components/ConfirmButton.jsx";
 import { TASK_TERMS, repeatLabel, todayKey, shiftDay } from "../lib/model.js";
 import { flashElement } from "../lib/scrollFlash.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import {
+  SORT_OPTIONS,
+  DEFAULT_SORT,
+  taskComparator,
+  normalizeSort,
+  directionLabel,
+} from "../lib/taskSort.js";
 
 /* ============================================================
    Tasks tab
@@ -238,6 +246,28 @@ export default function Tasks({
   const [status, setStatus] = useState("active"); // all | active | done
   const [filter, setFilter] = useState("all"); // all | label:* | goal:*
 
+  // Filtering to a category is a statement about what you're working on, so a
+  // task added while that filter is up should land THERE. Previously it went to
+  // General and immediately vanished from the list you were looking at.
+  // Only follows the filter — you can still override the picker per task.
+  useEffect(() => {
+    if (filter !== "all") setPick(filter);
+  }, [filter]);
+
+  // Sort order is remembered PER filter tab: "Today" usually wants what's due
+  // soonest, while a goal's backlog often wants oldest-first so nothing rots
+  // at the bottom. Keyed by the filter string ("all", "label:Today", "goal:x").
+  const [sortByFilter, setSortByFilter] = useLocalStorage("ligand.taskSort", {});
+  const sort = normalizeSort(sortByFilter[filter] || DEFAULT_SORT);
+  const setSort = (patch) =>
+    setSortByFilter((prev) => ({ ...prev, [filter]: { ...sort, ...patch } }));
+  const filterName =
+    filter === "all"
+      ? "All"
+      : filter.startsWith("goal:")
+        ? goals.find((g) => g.id === filter.slice(5))?.name || "this goal"
+        : filter.slice(6);
+
   // When search sends us to a specific task, clear the filters so it's
   // guaranteed visible, then scroll to and flash it.
   useEffect(() => {
@@ -370,7 +400,12 @@ export default function Tasks({
     setPressingId(null);
   };
 
-  // Filter + sort: matches first, active before done, newest first.
+  // Filter + sort: matches first, active before done, then this tab's order.
+  // Keyed on the two fields rather than the object: `sort` is rebuilt every
+  // render by normalizeSort, so depending on it would rebuild the comparator
+  // (and re-sort) on every keystroke.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const compare = useMemo(() => taskComparator(sort), [sort.by, sort.dir]);
   const visible = useMemo(() => {
     return tasks
       .filter((t) => {
@@ -393,9 +428,13 @@ export default function Tasks({
           if (leavingDone) return true;
           return t.done;
         };
-        return Number(effectiveDone(a)) - Number(effectiveDone(b)) || b.id.localeCompare(a.id);
+        // Done always sinks below open work, whatever the chosen order.
+        return (
+          Number(effectiveDone(a)) - Number(effectiveDone(b)) || compare(a, b)
+        );
       });
-  }, [tasks, status, filter, burst]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, status, filter, burst, sort.by, sort.dir]);
 
   const counts = useMemo(
     () => ({
@@ -571,6 +610,31 @@ export default function Tasks({
         </div>
 
         {renderStatusSeg("tasks-status-seg-desktop")}
+      </div>
+
+      {/* Order, remembered per tab. The trailing note says whose order this is,
+         because a setting that silently differs between tabs is confusing
+         otherwise. */}
+      <div className="tasks-sort-bar">
+        <Icon.Sort width={13} height={13} />
+        <Select
+          ariaLabel="Sort tasks by"
+          value={sort.by}
+          onChange={(by) => setSort({ by })}
+          options={SORT_OPTIONS}
+        />
+        <button
+          type="button"
+          className="btn ghost sm tasks-sort-dir"
+          onClick={() => setSort({ dir: sort.dir === "asc" ? "desc" : "asc" })}
+          title="Flip the order"
+        >
+          <span className={"tasks-sort-arrow" + (sort.dir === "asc" ? " up" : "")}>
+            <Icon.Arrow width={13} height={13} />
+          </span>
+          {directionLabel(sort.by, sort.dir)}
+        </button>
+        <span className="tasks-sort-scope">for {filterName}</span>
       </div>
 
       {/* List */}

@@ -95,6 +95,12 @@ export const Icon = {
       <path d="M10 6c.7.5.7 3.5 0 4" />
     </>
   ),
+  // Three descending rules — the usual "sort / order by" mark.
+  Sort: make(
+    <>
+      <path d="M3 4.5h10M3 8h6.5M3 11.5h3.5" />
+    </>
+  ),
   // Camcorder: a rounded body with the lens barrel pointing right.
   Video: make(
     <>
