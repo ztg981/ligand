@@ -349,3 +349,69 @@ export function earnedBadgeIds(stats) {
     }
   }).map((b) => b.id);
 }
+
+/**
+ * Decide what to grant and what to celebrate — pure, so the rules can be
+ * tested without mounting anything.
+ *
+ * `celebrated` is the important one. It is an append-only record of badges
+ * whose celebration has ALREADY played, kept separately from `unlocked`
+ * because `unlocked` is synced: a cloud pull carrying a slightly stale list
+ * would revert a just-granted badge, the badge would look freshly earned all
+ * over again, and the full-screen celebration replayed on every single app
+ * open. Consulting a record that only ever grows makes a replay impossible
+ * no matter how the sync races.
+ *
+ * Returns nulls for anything that doesn't need writing, so callers can skip
+ * pointless state updates.
+ */
+export function planBadgeUpdate({
+  earned = [],
+  allIds = [],
+  unlocked = null,
+  known = null,
+  celebrated = null,
+  now = new Date().toISOString(),
+}) {
+  // First run ever: adopt what's already earned in silence, so a returning
+  // user isn't ambushed by a queue of celebrations for old milestones.
+  if (unlocked === null) {
+    return {
+      firstRun: true,
+      nextUnlocked: earned.map((id) => ({ id, at: now })),
+      nextKnown: allIds,
+      nextCelebrated: earned,
+      celebrate: [],
+    };
+  }
+
+  const unlockedIds = unlocked.map((u) => u.id);
+  const unlockedSet = new Set(unlockedIds);
+  const knownSet = new Set(known || []);
+  // First time this install has tracked celebrations: everything already
+  // unlocked counts as celebrated, so upgrading never replays history.
+  const celebratedSet = new Set(celebrated === null ? unlockedIds : celebrated);
+
+  // Definitions brand-new to this install — granted, but never celebrated.
+  const newlyIntroduced = new Set(allIds.filter((id) => !knownSet.has(id)));
+
+  const freshEarned = earned.filter((id) => !unlockedSet.has(id));
+  const celebrate = freshEarned.filter(
+    (id) => !newlyIntroduced.has(id) && !celebratedSet.has(id)
+  );
+
+  return {
+    firstRun: false,
+    nextUnlocked: freshEarned.length
+      ? [...unlocked, ...freshEarned.map((id) => ({ id, at: now }))]
+      : null,
+    nextKnown: newlyIntroduced.size ? allIds : null,
+    // Record every earned badge as celebrated — including ones suppressed as
+    // newly-introduced, which must not fire later either.
+    nextCelebrated:
+      celebrated === null || freshEarned.length
+        ? [...new Set([...celebratedSet, ...earned])]
+        : null,
+    celebrate,
+  };
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage.js";
-import { BADGES, earnedBadgeIds } from "../lib/badges.js";
+import { BADGES, earnedBadgeIds, planBadgeUpdate } from "../lib/badges.js";
 
 /* ============================================================
    useBadges — unlock detection for achievement milestones.
@@ -23,43 +23,33 @@ export function useBadges(stats) {
   const [unlocked, setUnlocked] = useLocalStorage("ligand.badges", null);
   // The set of badge ids this install has already evaluated at least once.
   const [known, setKnown] = useLocalStorage("ligand.badgesKnown", null);
+  // Badges whose celebration has already played. DEVICE-LOCAL and append-only
+  // on purpose: `ligand.badges` is synced, so a cloud pull carrying a slightly
+  // stale list used to revert a just-granted badge, which then looked freshly
+  // earned and replayed its full-screen celebration on every app open.
+  const [celebrated, setCelebrated] = useLocalStorage("ligand.badgesCelebrated", null);
   const [toastQueue, setToastQueue] = useState([]);
 
   useEffect(() => {
     if (!stats) return;
-    const earned = earnedBadgeIds(stats);
-    const allIds = BADGES.map((b) => b.id);
-    const now = new Date().toISOString();
+    const plan = planBadgeUpdate({
+      earned: earnedBadgeIds(stats),
+      allIds: BADGES.map((b) => b.id),
+      unlocked,
+      known,
+      celebrated,
+    });
 
-    // First run ever: grant already-earned badges quietly, record known set.
-    if (unlocked === null) {
-      setUnlocked(earned.map((id) => ({ id, at: now })));
-      setKnown(allIds);
-      return;
-    }
-
-    const knownSet = new Set(known || []);
-    const unlockedSet = new Set(unlocked.map((u) => u.id));
-    // Definitions brand-new to this install (incl. all of them when `known`
-    // is absent, i.e. an existing user upgrading to a larger badge set).
-    const newlyIntroduced = new Set(allIds.filter((id) => !knownSet.has(id)));
-
-    const freshEarned = earned.filter((id) => !unlockedSet.has(id));
-    const celebrate = freshEarned.filter((id) => !newlyIntroduced.has(id));
-
-    if (freshEarned.length) {
-      setUnlocked([...unlocked, ...freshEarned.map((id) => ({ id, at: now }))]);
-    }
-    if (newlyIntroduced.size) {
-      setKnown(allIds); // we've now seen every current definition
-    }
-    if (celebrate.length) {
+    if (plan.nextUnlocked) setUnlocked(plan.nextUnlocked);
+    if (plan.nextKnown) setKnown(plan.nextKnown);
+    if (plan.nextCelebrated) setCelebrated(plan.nextCelebrated);
+    if (plan.celebrate.length) {
       setToastQueue((q) => [
         ...q,
-        ...celebrate.map((id) => BADGES.find((b) => b.id === id)).filter(Boolean),
+        ...plan.celebrate.map((id) => BADGES.find((b) => b.id === id)).filter(Boolean),
       ]);
     }
-  }, [stats, unlocked, known, setUnlocked, setKnown]);
+  }, [stats, unlocked, known, celebrated, setUnlocked, setKnown, setCelebrated]);
 
   const dismissToast = (id) =>
     setToastQueue((q) => q.filter((b) => b.id !== id));

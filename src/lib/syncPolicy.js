@@ -16,6 +16,10 @@ export const DEVICE_LOCAL_KEYS = new Set([
   // running (or paused) on your laptop must not teleport onto your phone.
   "ligand.pomodoro.session",
   "ligand.pomodoro.pausedAt",
+  // "Which celebrations have already played here" is a UI fact about this
+  // device, not account data — and keeping it out of the synced blob is what
+  // stops a stale pull from replaying a badge animation on every app open.
+  "ligand.badgesCelebrated",
   // Version snapshots and queued task mutations are account/device control
   // state, not user content. Never mirror them into the legacy JSON blob.
   "ligand.taskRecordSync",
