@@ -38,6 +38,7 @@ import { fetchMedia } from "../lib/mediaSync.js";
    of touch selection so a press does exactly one thing. */
 
 const LOCK_SLIDE_PX = 56; // how far right you drag before the take locks
+const TAP_MS = 350; // below this a press is a tap ("start"), not a hold
 
 function CaptureSheet({ onClose, onSaved }) {
   const [mode, setMode] = useState("audio"); // "audio" | "video"
@@ -60,12 +61,18 @@ function CaptureSheet({ onClose, onSaved }) {
   const cap =
     mode === "video" ? (locked ? MAX_VIDEO_LOCKED_MS : MAX_VIDEO_MS) : MAX_AUDIO_MS;
 
+  /* Say how to FIX it, not just that it failed.
+     Once a site has been denied, the browser stops prompting entirely — so
+     "needs permission" with no dialog is exactly what the user sees, and the
+     only way back is the padlock/camera control in the address bar. */
   const permissionMessage = (err) =>
     err?.name === "NotAllowedError"
-      ? "Ligand needs permission to use the camera or microphone."
+      ? "Camera and microphone are blocked for this site. Click the camera (or padlock) icon in the address bar, allow them, then reload."
       : err?.name === "NotFoundError"
         ? "No camera or microphone found on this device."
-        : "Couldn't start recording here.";
+        : err?.name === "NotReadableError"
+          ? "Another app is using the camera or microphone. Close it and try again."
+          : "Couldn't start recording here.";
 
   const releasePreview = () => {
     if (!previewStreamRef.current) return;
@@ -194,7 +201,7 @@ function CaptureSheet({ onClose, onSaved }) {
       if (locked) stop();
       return;
     }
-    holdRef.current = { active: true, x: e.clientX, locked: false };
+    holdRef.current = { active: true, x: e.clientX, locked: false, at: Date.now() };
     setSlide(0);
     start();
   };
@@ -218,12 +225,28 @@ function CaptureSheet({ onClose, onSaved }) {
     }
   };
 
+  /* Releasing only ENDS the take if you were actually holding.
+     A quick tap is a different intent — "start recording" — so it latches the
+     take instead, exactly as sliding to lock would. Ending a tapped take is
+     another tap. Without this, tapping started and instantly stopped a
+     recording, which read as the button not working. */
   const onShutterUp = () => {
     const hold = holdRef.current;
-    if (!hold.active) return; // locked, or never started
+    if (!hold.active) return; // already locked, or never started
     hold.active = false;
     setSlide(0);
-    if (controllerRef.current) stop();
+    if (!controllerRef.current) return;
+
+    const wasTap = Date.now() - (hold.at || 0) < TAP_MS;
+    if (wasTap) {
+      hold.locked = true;
+      setLocked(true);
+      controllerRef.current.extendCap?.(
+        mode === "video" ? MAX_VIDEO_LOCKED_MS : MAX_AUDIO_MS
+      );
+      return;
+    }
+    stop();
   };
 
   const close = () => {
@@ -357,14 +380,12 @@ function CaptureSheet({ onClose, onSaved }) {
           {saving
             ? "Saving…"
             : locked
-              ? "Locked — tap to stop"
+              ? "Recording — tap to stop"
               : recording
-                ? "Release to stop · slide right to lock"
-                : mode === "video"
-                  ? silent
-                    ? "Hold to record. No sound, so your music keeps playing."
-                    : "Hold to record, slide right to lock."
-                  : "Hold to record, slide right to lock."}
+                ? "Release to stop · slide right to keep going"
+                : mode === "video" && silent
+                  ? "Tap to record, or hold. No sound, so your music keeps playing."
+                  : "Tap to record, or hold and release to stop."}
         </p>
       </footer>
     </div>,
@@ -397,7 +418,7 @@ export function MediaCapture({ media = [], onAdd, onRemove, userId = null }) {
       )}
 
       {media.length > 0 && (
-        <MediaStrip media={media} onRemove={onRemove} userId={userId} />
+        <MediaStrip media={media} onRemove={onRemove} userId={userId} expanded />
       )}
     </div>
   );
@@ -483,13 +504,39 @@ function MediaItem({ item, onRemove, userId = null }) {
   );
 }
 
-export function MediaStrip({ media = [], onRemove, userId = null }) {
+/* In a saved entry the players are COLLAPSED to a one-line chip: a video box
+   in every entry turned the journal into a wall of black rectangles. The chip
+   says what it is and how long, and expands on click. In the composer
+   (`expanded`) they stay open, since you've just made them. */
+export function MediaStrip({ media = [], onRemove, userId = null, expanded = false }) {
+  const [openIds, setOpenIds] = useState(() => (expanded ? media.map((m) => m.id) : []));
   if (!media.length) return null;
+  const toggle = (id) =>
+    setOpenIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
   return (
     <div className="jm-strip">
-      {media.map((item) => (
-        <MediaItem key={item.id} item={item} onRemove={onRemove} userId={userId} />
-      ))}
+      {media.map((item) =>
+        openIds.includes(item.id) ? (
+          <MediaItem key={item.id} item={item} onRemove={onRemove} userId={userId} />
+        ) : (
+          <button
+            key={item.id}
+            type="button"
+            className="jm-chip"
+            onClick={() => toggle(item.id)}
+            title="Play"
+          >
+            {item.kind === "video" ? (
+              <Icon.Video width={13} height={13} />
+            ) : (
+              <Icon.Mic width={13} height={13} />
+            )}
+            <span>{item.kind === "video" ? "Clip" : "Voice note"}</span>
+            <span className="jm-chip-time mono">{formatDuration(item.durationMs || 0)}</span>
+          </button>
+        )
+      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
-import { useTweaks } from "./theme/useTweaks.js";
+import { useTweaks, accentShade } from "./theme/useTweaks.js";
 import { accentFor, ambientFor, paletteFor } from "./theme/palettes.js";
 import { goalHealth } from "./lib/goalHealth.js";
 import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
@@ -234,6 +234,12 @@ export default function App() {
   useEffect(() => {
     if (onboardDecidedRef.current || onboarded || tourOpen) return;
     if (authLoading || syncHydrating || showAuthScreen) return;
+    // Signing in on a NEW machine starts with an empty local store, and
+    // `syncHydrating` can already be false before the account's data arrives —
+    // so deciding here showed the first-run tour to established users. Wait
+    // until the account has actually synced before judging emptiness. A brand
+    // new account still qualifies: it reaches "synced" with nothing in it.
+    if (session && syncStatus !== "synced") return;
     onboardDecidedRef.current = true;
     const allGoals = store.goals || [];
     const customGoals = allGoals.filter((g) => g.type !== "built-in");
@@ -254,6 +260,8 @@ export default function App() {
     authLoading,
     syncHydrating,
     showAuthScreen,
+    session,
+    syncStatus,
     store.goals,
     store.tasks,
     store.journal,
@@ -1302,7 +1310,18 @@ export default function App() {
     // follow whichever mode is actually showing — same as the palette above.
     // Applied here (not in useTweaks) because this is where the auto/wallpaper-
     // resolved mode is known.
-    root.style.setProperty("--accent-h", accentFor(effectiveMode, tweaks));
+    const activeAccent = accentFor(effectiveMode, tweaks);
+    root.style.setProperty("--accent-h", activeAccent);
+    // Deep accents carry their own lightness/chroma; everything else falls back
+    // to the theme's, so the override must be REMOVED rather than left behind.
+    const shade = accentShade(activeAccent);
+    if (shade?.l != null) {
+      root.style.setProperty("--accent-l", shade.l);
+      root.style.setProperty("--accent-c", shade.c);
+    } else {
+      root.style.removeProperty("--accent-l");
+      root.style.removeProperty("--accent-c");
+    }
     root.style.setProperty(
       "--ambient-opacity",
       ambientFor(effectiveMode, tweaks) / 100

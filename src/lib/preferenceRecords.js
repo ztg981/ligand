@@ -69,13 +69,20 @@ export const SETTINGS_DEFAULTS = {
 // the glass look is still available in the theme picker for anyone who wants
 // it, it's just no longer the default.
 export const TWEAK_DEFAULTS = {
-  theme: "light",
+  // New installs open dark, on Liquid Glass, with a purple accent. Light mode
+  // keeps the blue accent, and each mode carries its own ambient level —
+  // 70% reads as a glow on paper but as haze on a dark panel.
+  theme: "dark",
   accent: 245,
+  lightAccent: 245,
+  darkAccent: 290,
   ambient: 70,
+  lightAmbient: 75,
+  darkAmbient: 55,
   radius: 10,
   density: "compact",
-  lightPalette: "paper",
-  darkPalette: "midnight",
+  lightPalette: "glass",
+  darkPalette: "glassdark",
   wordmarkFont: "plain",
 };
 
@@ -84,13 +91,19 @@ export const TWEAK_DEFAULTS = {
 // get. Kept deliberately separate — see useTweaks(scope) and the mobile
 // branches of normalizeTweaksRecord / shouldSyncPhonePreference below.
 export const MOBILE_TWEAK_DEFAULTS = {
-  theme: "light",
+  // Same opening look as desktop (dark, Liquid Glass, purple accent), but the
+  // phone keeps its own rounder corners and wordmark.
+  theme: "dark",
   accent: 245,
+  lightAccent: 245,
+  darkAccent: 290,
   ambient: 70,
+  lightAmbient: 75,
+  darkAmbient: 55,
   radius: 16,
   density: "compact",
-  lightPalette: "paper",
-  darkPalette: "midnight",
+  lightPalette: "glass",
+  darkPalette: "glassdark",
   wordmarkFont: "instrument",
 };
 

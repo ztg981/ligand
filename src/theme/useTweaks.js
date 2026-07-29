@@ -25,13 +25,23 @@ export const WORDMARK_FONTS = [
   { id: "plain", name: "Clean", sample: "Ligand" },
 ];
 
+/* Accent choices. `id` is the hue; `l`/`c` are optional overrides for accents
+   that need a different lightness/chroma than the theme default — that's what
+   makes "deep purple" possible, since a hue on its own can only be a different
+   colour, never a darker one. */
 export const ACCENTS = [
   { id: 245, color: "oklch(0.62 0.10 245)" },
   { id: 290, color: "oklch(0.62 0.10 290)" },
+  { id: 295, color: "oklch(0.45 0.15 295)", l: 0.45, c: 0.15, deep: true },
   { id: 165, color: "oklch(0.62 0.10 165)" },
   { id: 70, color: "oklch(0.72 0.12 70)" },
   { id: 20, color: "oklch(0.65 0.13 20)" },
 ];
+
+/** The ACCENTS entry for a stored hue, if it carries shade overrides. */
+export function accentShade(hue) {
+  return ACCENTS.find((a) => a.id === hue) || null;
+}
 
 function mobileInitialTweaks() {
   if (typeof window === "undefined") return MOBILE_TWEAK_DEFAULTS;

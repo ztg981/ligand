@@ -22,6 +22,7 @@ import {
   currentStreak,
   daysBetween,
   goalTargetDate,
+  GOAL_COLORS,
   isGoalOverdue,
   todayKey,
 } from "../lib/model.js";
@@ -72,6 +73,7 @@ function GoalDetails({ goal, updateGoal }) {
       achievable: smart.achievable || "",
       relevant: smart.relevant || "",
       timeBound: goalTargetDate(goal) || "",
+      color: goal.color || GOAL_COLORS[0],
     });
     setOpen(true);
     setEditing(true);
@@ -96,6 +98,7 @@ function GoalDetails({ goal, updateGoal }) {
         timeBound: date,
       },
       deadline: date || null,
+      ...(draft.color ? { color: draft.color } : {}),
     };
     if ((goalTargetDate(goal) || "") !== date) patch.overdueSnoozedUntil = null;
     updateGoal(goal.id, patch);
@@ -206,6 +209,25 @@ function GoalDetails({ goal, updateGoal }) {
               onChange={(e) => setField("timeBound")(e.target.value)}
             />
           </label>
+
+          {/* Colour is assigned automatically when a goal is made; this is the
+             override for when you want a specific one. */}
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="tag">Dot colour</span>
+            <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+              {GOAL_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={"goal-color-pick" + (draft.color === c ? " active" : "")}
+                  style={{ background: c }}
+                  onClick={() => setField("color")(c)}
+                  aria-label={`Use this colour`}
+                  aria-pressed={draft.color === c}
+                />
+              ))}
+            </div>
+          </div>
           <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
             <button type="button" className="btn ghost sm" onClick={cancelEdit}>
               Cancel

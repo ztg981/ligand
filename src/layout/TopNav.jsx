@@ -873,9 +873,9 @@ export default function TopNav({
           data-mute-click
         >
           {soundsEnabled ? (
-            <Icon.Volume width={8} height={8} />
+            <Icon.Volume width={10} height={10} />
           ) : (
-            <Icon.VolumeOff width={8} height={8} />
+            <Icon.VolumeOff width={10} height={10} />
           )}
         </button>
 

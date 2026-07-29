@@ -27,9 +27,14 @@
   --ink-3: #8a847b;
   --ink-4: #b8b1a4;
 
-  /* accents — single hue family, varied by tweak */
+  /* Accents — a hue family, varied by tweak. Lightness and chroma are their
+     own variables so an accent can be genuinely DEEPER, not just a different
+     hue: a "deep purple" is the same hue at lower lightness, which hue alone
+     cannot express. Accents that don't set them inherit the theme's values. */
   --accent-h: 245;
-  --accent: oklch(0.62 0.09 var(--accent-h));
+  --accent-l: 0.62;
+  --accent-c: 0.09;
+  --accent: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
   --accent-soft: oklch(0.92 0.04 var(--accent-h));
   --accent-glow: oklch(0.72 0.11 var(--accent-h) / 0.45);
   --accent-ink: oklch(0.42 0.10 var(--accent-h));
@@ -78,7 +83,9 @@
   --ink-2: #b9b4a8;
   --ink-3: #807a6e;
   --ink-4: #54504a;
-  --accent: oklch(0.74 0.12 var(--accent-h));
+  --accent-l: 0.74;
+  --accent-c: 0.12;
+  --accent: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
   --accent-soft: oklch(0.32 0.06 var(--accent-h));
   --accent-glow: oklch(0.7 0.15 var(--accent-h) / 0.55);
   --accent-ink: oklch(0.85 0.10 var(--accent-h));
@@ -203,7 +210,11 @@
   --ink-2: #b8bccb;
   --ink-3: #838a9d;
   --ink-4: #565d70;
-  --accent: oklch(0.8 0.13 var(--accent-h));
+  /* Declared through the shared vars so a "deep" accent can still override the
+     lightness inline; a hardcoded oklch() here would ignore it. */
+  --accent-l: 0.8;
+  --accent-c: 0.13;
+  --accent: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
   --accent-glow: oklch(0.75 0.15 var(--accent-h) / 0.5);
   --accent-ink: oklch(0.86 0.11 var(--accent-h));
   --app-bg:
@@ -645,10 +656,12 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .mute-dot {
   position: absolute;
   right: 14px;
-  bottom: -7px;
+  /* Clear of the bar, not straddling it — at -7px it sat half inside the nav
+     and read as overlapping. */
+  bottom: -22px;
   z-index: 1;
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -7102,7 +7115,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   margin: 0; font-size: 12px; color: rgba(255,255,255,0.6); text-align: center;
   min-height: 16px;
 }
-.jm-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.jm-strip { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; align-items: flex-start; }
+/* Collapsed player in a saved entry — a chip, not a black rectangle. */
+.jm-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 11px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); color: var(--ink-2);
+  font: inherit; font-size: 12px; font-weight: 550; cursor: pointer;
+}
+.jm-chip:hover { border-color: var(--line-strong); color: var(--ink); }
+.jm-chip-time { color: var(--ink-4); font-size: 11px; }
 .jm-item {
   display: flex; align-items: center; gap: 8px;
   padding: 7px 9px;
@@ -10059,6 +10082,18 @@ input[type="date"].input::-webkit-date-and-time-value {
 }
 .jmap-canvas .leaflet-control-attribution a { color: var(--ink-3); }
 
+/* Goal dot-colour override, in the goal details editor. */
+.goal-color-pick {
+  width: 22px; height: 22px; padding: 0;
+  border-radius: 999px; border: 2px solid transparent;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--line) inset;
+}
+.goal-color-pick.active {
+  border-color: var(--ink);
+  transform: scale(1.12);
+}
+
 /* Per-tab sort row under the filter chips. */
 .tasks-sort-bar {
   display: flex; align-items: center; gap: 8px;
@@ -10067,9 +10102,13 @@ input[type="date"].input::-webkit-date-and-time-value {
   flex-wrap: wrap;
 }
 .tasks-sort-bar .select-btn, .tasks-sort-bar .select { flex: none; }
-.tasks-sort-dir { flex: none; gap: 6px; }
-.tasks-sort-arrow { display: inline-flex; transform: rotate(90deg); transition: transform 0.18s var(--ease); }
-.tasks-sort-arrow.up { transform: rotate(-90deg); }
+.tasks-sort-dir {
+  flex: none;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+}
+.tasks-sort-dir svg { transform: rotate(90deg); transition: transform 0.18s var(--ease); }
+.tasks-sort-dir.up svg { transform: rotate(-90deg); }
 .tasks-sort-scope { font-size: 11.5px; color: var(--ink-4); }
 @media (max-width: 640px) {
   .tasks-sort-scope { width: 100%; }

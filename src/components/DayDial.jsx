@@ -282,12 +282,22 @@ export default function DayDial({
     const dur = b.end - b.start;
     let didMove = false;
     let finalStart = b.start; // tracked outside React state so `up` stays pure
+    // Accumulate the drag from the PREVIOUS pointer position, not from where
+    // the press started. Measured against a fixed origin, any drag longer than
+    // half the dial looks like a midnight wrap, and the shortest-path
+    // correction then flung the block to the opposite side of the ring. Each
+    // frame's step is small, so the wrap correction is always the right one.
+    let prevMin = downMin;
+    let travelled = 0;
     const move = (ev) => {
-      let delta = minuteFromEvent(ev) - downMin;
-      if (delta > DAY_MIN / 2) delta -= DAY_MIN;
-      if (delta < -DAY_MIN / 2) delta += DAY_MIN;
-      if (Math.abs(delta) >= SNAP) didMove = true;
-      let ns = Math.round((b.start + delta) / SNAP) * SNAP;
+      const cur = minuteFromEvent(ev);
+      let step = cur - prevMin;
+      if (step > DAY_MIN / 2) step -= DAY_MIN;
+      if (step < -DAY_MIN / 2) step += DAY_MIN;
+      prevMin = cur;
+      travelled += step;
+      if (Math.abs(travelled) >= SNAP) didMove = true;
+      let ns = Math.round((b.start + travelled) / SNAP) * SNAP;
       ns = Math.max(0, Math.min(DAY_MIN - dur, ns));
       finalStart = ns;
       setMoving({ id: b.id, start: ns, end: ns + dur });

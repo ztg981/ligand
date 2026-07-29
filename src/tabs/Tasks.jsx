@@ -623,16 +623,16 @@ export default function Tasks({
           onChange={(by) => setSort({ by })}
           options={SORT_OPTIONS}
         />
+        {/* Just an arrow — the label lives in the tooltip, the way every other
+           app does it. A full-width labelled button for a flip was too loud. */}
         <button
           type="button"
-          className="btn ghost sm tasks-sort-dir"
+          className={"iconbtn sm tasks-sort-dir" + (sort.dir === "asc" ? " up" : "")}
           onClick={() => setSort({ dir: sort.dir === "asc" ? "desc" : "asc" })}
-          title="Flip the order"
+          title={directionLabel(sort.by, sort.dir) + " — click to flip"}
+          aria-label={directionLabel(sort.by, sort.dir)}
         >
-          <span className={"tasks-sort-arrow" + (sort.dir === "asc" ? " up" : "")}>
-            <Icon.Arrow width={13} height={13} />
-          </span>
-          {directionLabel(sort.by, sort.dir)}
+          <Icon.Arrow width={13} height={13} />
         </button>
         <span className="tasks-sort-scope">for {filterName}</span>
       </div>

@@ -22,6 +22,28 @@ import { startPomodoroChime, phaseChange, startAlarm } from "../lib/uiSounds.js"
 /** Below this an "end session" reads as a mis-tap rather than real focus. */
 export const MIN_LOGGED_SEC = 5;
 
+/** A pause this long means you left, not that you stepped away. */
+export const AUTO_END_PAUSED_MS = 3 * 60 * 60 * 1000; // 3 hours
+
+function readSessionRaw() {
+  try {
+    const raw = window.localStorage.getItem("ligand.pomodoro.session");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readPausedAt() {
+  try {
+    const raw = window.localStorage.getItem("ligand.pomodoro.pausedAt");
+    const v = raw ? JSON.parse(raw) : null;
+    return Number.isFinite(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 export function usePomodoroEngine({
   chimeEnabled = true,
   alarmOnComplete = false,
@@ -146,6 +168,37 @@ export function usePomodoroEngine({
     }
     return result;
   };
+
+  /* Abandoned sessions end themselves.
+
+     Pausing and walking away used to leave a block "in progress" for days, so
+     the next visit resumed a stale timer and the dots implied a cycle that
+     never happened. After AUTO_END_PAUSED_MS still paused, the session is
+     ended and whatever focus time was already spent is banked — the same
+     treatment as pressing End session, since that's what actually happened.
+
+     The window is deliberately long: an hour is a lunch break, not an
+     abandonment, and ending a real session early would be worse than leaving
+     a stale one. */
+  useEffect(() => {
+    const check = () => {
+      const session = readSessionRaw();
+      if (!session || session.running) return;
+      const pausedAt = readPausedAt();
+      if (!pausedAt) return;
+      if (Date.now() - pausedAt < AUTO_END_PAUSED_MS) return;
+      endSession();
+      try {
+        window.localStorage.removeItem("ligand.pomodoro.pausedAt");
+      } catch {
+        /* ignore */
+      }
+    };
+    check();
+    const id = window.setInterval(check, 60 * 1000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Coming back to the app — or any interaction — acknowledges the chime.
   useEffect(() => {
