@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { reflectionPrompt } from "../lib/ai.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
@@ -15,6 +15,10 @@ import MoodTrend from "../widgets/MoodTrend.jsx";
 import DayStory from "../components/DayStory.jsx";
 import { activitiesOn, categoryOf, fmtMinutes } from "../lib/activities.js";
 import { MOODS, moodLabel } from "../lib/mood.js";
+
+// Leaflet and its CSS are a chunk nobody should pay for unless they open the
+// map, so the whole view is split out.
+const JournalMapView = lazy(() => import("../components/JournalMapView.jsx"));
 
 const SONG_SEARCH_DEBOUNCE_MS = 400;
 
@@ -331,6 +335,15 @@ export default function Journal({
   // live here; the blobs are already safe in IndexedDB.
   const [media, setMedia] = useLocalStorage("ligand.journalDraftMedia", []);
   const [location, setLocation] = useState(null);
+  // Coarse position for the map, captured alongside the name.
+  const [geo, setGeo] = useState(null);
+  const setPlace = (name, position) => {
+    setLocation(name);
+    setGeo(position || null);
+  };
+  // List or map. Remembered, since it's a way of reading the journal rather
+  // than a one-off action.
+  const [view, setView] = useLocalStorage("ligand.journalView", "list");
   // Sort preference persists across sessions (app-wide for the main journal).
   const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
 
@@ -394,6 +407,7 @@ export default function Journal({
       text: t,
       prompt,
       location,
+      geo,
       attachments: images,
       media,
     });
@@ -419,6 +433,7 @@ export default function Journal({
     }
     setText("");
     setLocation(null);
+    setGeo(null);
     setAttachedSongIds([]);
     setImages([]);
     setImgMsg("");
@@ -445,12 +460,47 @@ export default function Journal({
           <div className="eyebrow">Reflect</div>
           <h1 className="page-title">Journal</h1>
           <p className="page-sub">
-            A quiet place to check in. A line is plenty, or skip it entirely.
+            {view === "map"
+              ? "Where you've been writing. Zoom in and the bubbles break apart."
+              : "A quiet place to check in. A line is plenty, or skip it entirely."}
           </p>
+        </div>
+        <div className="seg journal-view-seg" role="tablist" aria-label="Journal view">
+          <button
+            role="tab"
+            aria-selected={view === "list"}
+            className={view === "list" ? "active" : ""}
+            onClick={() => setView("list")}
+          >
+            <Icon.Book width={13} height={13} /> Entries
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === "map"}
+            className={view === "map" ? "active" : ""}
+            onClick={() => setView("map")}
+          >
+            <Icon.Pin2 width={13} height={13} /> Map
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-12">
+      {view === "map" && (
+        <Suspense
+          fallback={<div className="card jmap-loading">Loading the map…</div>}
+        >
+          <JournalMapView
+            journal={journal}
+            onOpenEntry={(id) => {
+              // Jump back to the entry the pin belongs to.
+              setView("list");
+              setTimeout(() => flashElement("journal-" + id), 80);
+            }}
+          />
+        </Suspense>
+      )}
+
+      <div className="grid grid-12" hidden={view === "map"}>
         {/* Compose */}
         <div className="col-7 stack" style={{ gap: 12, minWidth: 0 }}>
           <DailyMoodCheckIn
@@ -565,7 +615,7 @@ export default function Journal({
 
             {/* Optional location */}
             <div style={{ marginTop: 10 }}>
-              <LocationPicker location={location} onChange={setLocation} />
+              <LocationPicker location={location} onChange={setPlace} />
             </div>
 
             {/* Optional song(s) attached to this entry */}

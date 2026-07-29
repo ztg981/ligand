@@ -9987,6 +9987,78 @@ input[type="date"].input::-webkit-date-and-time-value {
 .task-sched input[type="date"] { width: 138px; }
 .task-sched input[type="time"] { width: 96px; min-width: 96px; }
 .task-sched-dash { color: var(--ink-4); }
+/* ============================================================
+   Journal map — where entries were written
+   ============================================================ */
+.journal-view-seg { flex: none; align-self: center; }
+.journal-view-seg button { display: inline-flex; align-items: center; gap: 5px; }
+
+.jmap { display: grid; grid-template-columns: 1fr 220px; gap: 12px; align-items: start; }
+@media (max-width: 860px) { .jmap { grid-template-columns: 1fr; } }
+
+.jmap-canvas {
+  height: min(62vh, 520px);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: var(--panel-2);
+  z-index: 0; /* keep Leaflet's panes under the app's popovers */
+}
+.jmap-loading, .jmap-empty { padding: 28px; text-align: center; color: var(--ink-3); }
+.jmap-empty { display: flex; gap: 12px; align-items: center; text-align: left; }
+.jmap-empty-ic { color: var(--accent); flex: none; }
+.jmap-empty-title { font-weight: 650; color: var(--ink); }
+.jmap-empty-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.45; }
+
+/* The count bubbles. Leaflet's divIcon wrapper gets no styling of its own. */
+.jmap-bubble-wrap { background: none; border: none; }
+.jmap-bubble {
+  display: grid; place-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 78%, transparent);
+  color: #fff;
+  font-weight: 700; font-size: 12.5px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.16s var(--ease);
+}
+.jmap-bubble:hover { transform: scale(1.08); }
+/* A lone entry reads as a pin, not a tally. */
+.jmap-bubble.single { font-size: 0; background: var(--accent); }
+.jmap-bubble.single::after {
+  content: ""; width: 8px; height: 8px; border-radius: 999px; background: #fff;
+}
+
+.jmap-stats { display: flex; flex-direction: column; gap: 10px; }
+.jmap-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--panel);
+}
+.jmap-stat-num { display: block; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.jmap-stat-lbl { font-size: 11.5px; color: var(--ink-3); }
+.jmap-top {
+  padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--panel);
+}
+.jmap-top-lbl {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--ink-4); margin-bottom: 6px;
+}
+.jmap-top-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; padding: 3px 0; }
+.jmap-top-name { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jmap-top-count { color: var(--ink-4); font-variant-numeric: tabular-nums; flex: none; }
+
+/* Leaflet's own chrome, toned down to match the app. */
+.jmap-canvas .leaflet-container { font: inherit; background: var(--panel-2); }
+.jmap-canvas .leaflet-control-attribution {
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  color: var(--ink-4); font-size: 10px;
+}
+.jmap-canvas .leaflet-control-attribution a { color: var(--ink-3); }
+
 /* Per-tab sort row under the filter chips. */
 .tasks-sort-bar {
   display: flex; align-items: center; gap: 8px;

@@ -229,6 +229,7 @@ export function createReflection({
   prompt = null,
   mood = null,
   location = null,
+  geo = null,
   attachments = [],
   media = [],
 } = {}) {
@@ -237,8 +238,12 @@ export function createReflection({
     text: text || "",
     prompt,
     mood,
-    // Optional resolved place name (e.g. "New York, New York"). Never coords.
+    // Optional resolved place name (e.g. "Costco Wholesale, Brooklyn").
     location,
+    // Optional { lat, lon }, rounded to ~11 m — only so the journal map can
+    // plot the entry. Absent on entries written before the map existed, and
+    // on any entry saved without a location.
+    geo,
     // Optional image attachments: [{ id, dataUrl }]. Ride the sync blob.
     attachments,
     // Voice notes / clips: [{ id, kind, mime, durationMs, size }]. Only the

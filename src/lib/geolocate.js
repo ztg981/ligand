@@ -1,14 +1,28 @@
 /* ============================================================
-   Geolocation → place name (privacy-first)
+   Geolocation → place name (+ coarse coordinates)
    ------------------------------------------------------------
-   Captures the browser's location ONCE, reverse-geocodes it to a
-   human place name via the free OpenStreetMap Nominatim API, and
-   returns ONLY that string. The raw coordinates are never returned
-   or stored — they live only inside this function's scope.
+   Captures the browser's location ONCE and reverse-geocodes it to a
+   human place name via the free OpenStreetMap Nominatim API.
+
+   PRIVACY NOTE — this module used to return the name ONLY and never
+   surfaced coordinates. The journal map needs to plot entries, which
+   is impossible without them, so `captureLocation` now also returns a
+   position. Two deliberate limits keep that honest:
+
+     • coordinates are ROUNDED to ~4 decimals (about 11 m) — enough to
+       pin the shop you were in, not the room you were in;
+     • `captureLocationName` still exists and still returns just the
+       string, so any caller that doesn't need a position can't
+       accidentally start storing one.
 
    Everything fails silently (returns null / throws a generic error
    the caller swallows): location is always optional.
    ============================================================ */
+
+/** ~11 m of precision: a venue, not a doorway. */
+export function coarse(value) {
+  return Math.round(Number(value) * 1e4) / 1e4;
+}
 
 // Get the current position as a promise (with a sane timeout).
 function getPosition() {
@@ -85,12 +99,11 @@ export function placeNameFromResult(data = {}) {
   return parts.join(", ") || null;
 }
 
-/* Request location permission (browser handles the prompt), then resolve a
-   city / neighbourhood name. Returns the name string, or null if anything
-   goes wrong (denied, offline, no match). Never returns coordinates. */
-export async function captureLocationName() {
+/* Request location permission (browser handles the prompt), then resolve the
+   place. Returns { name, lat, lon } with coordinates rounded to ~11 m, or
+   null if anything goes wrong (denied, offline, no match). */
+export async function captureLocation() {
   const pos = await getPosition();
-  // Destructure into locals; these never leave this function.
   const lat = pos.coords.latitude;
   const lon = pos.coords.longitude;
 
@@ -105,5 +118,14 @@ export async function captureLocationName() {
   });
   if (!res.ok) throw new Error("Reverse geocode failed");
   const data = await res.json();
-  return placeNameFromResult(data) || null;
+  const name = placeNameFromResult(data);
+  if (!name) return null;
+  return { name, lat: coarse(lat), lon: coarse(lon) };
+}
+
+/* Name-only variant. Kept so callers that have no business holding a position
+   cannot start storing one by accident. */
+export async function captureLocationName() {
+  const place = await captureLocation();
+  return place?.name || null;
 }

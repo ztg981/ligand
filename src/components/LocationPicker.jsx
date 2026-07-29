@@ -1,20 +1,23 @@
 import { useState } from "react";
 import { Icon } from "./Icons.jsx";
-import { captureLocationName } from "../lib/geolocate.js";
+import { captureLocation } from "../lib/geolocate.js";
 
 /* A tiny, optional "add location" control for the journal/reflection compose
-   area. Requests the browser location, resolves a city name, and reports it up
-   via onChange. Only the resolved name is ever held - never coordinates.
-   Failures are quiet: a small muted hint, no scary errors. */
+   area. Requests the browser location and resolves the place you're at.
+
+   Reports BOTH the name (for the entry line) and a coarse position (for the
+   journal map) via onChange(name, geo). Callers that don't want a position
+   simply ignore the second argument. Failures are quiet: a small muted hint,
+   no scary errors. */
 export default function LocationPicker({ location, onChange }) {
   const [status, setStatus] = useState("idle"); // idle | locating | error
 
   const add = async () => {
     setStatus("locating");
     try {
-      const name = await captureLocationName();
-      if (name) {
-        onChange(name);
+      const place = await captureLocation();
+      if (place?.name) {
+        onChange(place.name, { lat: place.lat, lon: place.lon });
         setStatus("idle");
       } else {
         setStatus("error");
@@ -35,7 +38,7 @@ export default function LocationPicker({ location, onChange }) {
           type="button"
           className="iconbtn sm location-remove-btn"
           title="Remove location"
-          onClick={() => onChange(null)}
+          onClick={() => onChange(null, null)}
           style={{ color: "var(--ink-4)" }}
         >
           <Icon.Close width={11} height={11} />
