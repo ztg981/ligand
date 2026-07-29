@@ -184,9 +184,12 @@ export default function OnboardingTour({
     if (clean) onSaveName?.(clean);
   };
 
-  const finish = (nav) => {
+  // `opts.skipped` distinguishes "I bailed out" from "I saw it through", so the
+  // app can keep offering the tour to someone who skipped without nagging
+  // someone who actually completed it.
+  const finish = (nav, opts = {}) => {
     commitName();
-    onFinish?.(nav);
+    onFinish?.(nav, opts);
   };
 
   // Create the goal + habits the user entered, once. Called when leaving the
@@ -257,7 +260,7 @@ export default function OnboardingTour({
 
       <div className="tour-card" style={cardStyle}>
         {step.kind !== "welcome" && step.kind !== "finish" && (
-          <button className="tour-skip" onClick={() => finish("home")}>
+          <button className="tour-skip" onClick={() => finish("home", { skipped: true })}>
             Skip
           </button>
         )}

@@ -6828,6 +6828,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   position: absolute; top: 4px; right: 4px; z-index: 3;
   display: flex; flex-direction: column; gap: 6px;
 }
+/* Destructive, so it reads as such rather than as another dial preference. */
+.dp-dial-remove {
+  color: oklch(0.58 0.17 25);
+  border-color: oklch(0.58 0.17 25 / 0.4);
+}
+.dp-dial-remove:hover {
+  background: oklch(0.58 0.17 25 / 0.12);
+  border-color: oklch(0.58 0.17 25);
+}
 .dp-dial-tool {
   width: 34px; height: 34px;
   background: var(--panel);
@@ -10125,6 +10134,15 @@ input[type="date"].input::-webkit-date-and-time-value {
   color: var(--ink-4); font-size: 10px;
 }
 .jmap-canvas .leaflet-control-attribution a { color: var(--ink-3); }
+
+/* "Take the tour" — only shown to someone who skipped it. */
+.topbar-tour {
+  flex: none; white-space: nowrap;
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+@media (max-width: 900px) { .topbar-tour span { display: none; } }
+@media (max-width: 767px) { .topbar-tour { display: none; } }
 
 /* A row being dragged lifts off the list. */
 .taskrow.dragging {

@@ -984,6 +984,25 @@ export default function DayPlanner({
             {/* Dial controls: rotate the face and squeeze the sleep hours.
                Both animate; the choices persist in the dial preferences. */}
             <div className="dp-dial-tools">
+              {/* Removing the selected block, right next to the dial you
+                 selected it on. The only delete used to live down in the
+                 editor beside "Add block", which reads as the control for the
+                 thing you're creating rather than the one you picked. */}
+              {selectedId && (
+                <button
+                  type="button"
+                  className="iconbtn dp-dial-tool dp-dial-remove"
+                  title="Remove this block"
+                  aria-label="Remove this block"
+                  onClick={() => {
+                    deleteDayBlock?.(selectedId);
+                    setSelectedId(null);
+                    setDraft(null);
+                  }}
+                >
+                  <Icon.Trash width={15} height={15} />
+                </button>
+              )}
               {(() => {
                 // The dial is ROTATED by pref.dialTopHour hours; the hour that
                 // ends up at the top is the inverse of that rotation.

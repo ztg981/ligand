@@ -220,11 +220,20 @@ export default function App() {
   const [onboarded, setOnboarded] = useLocalStorage("ligand.onboarded.v1", false);
   const [tourOpen, setTourOpen] = useState(false);
   const onboardDecidedRef = useRef(false);
-  const finishTour = (nav) => {
+  // Skipping still counts as "seen" (nothing pops up again unprompted), but it
+  // leaves the tour on offer in the top bar, where someone who bailed can
+  // actually find it — it was buried in the avatar menu.
+  const [tourSkipped, setTourSkipped] = useLocalStorage("ligand.tourSkipped.v1", false);
+  const finishTour = (nav, opts = {}) => {
     setTourOpen(false);
     setOnboarded(true);
+    setTourSkipped(Boolean(opts.skipped));
     if (nav === "goal") setTab("goal");
     else if (nav) setTab("home");
+  };
+  const replayTour = () => {
+    setTourSkipped(false);
+    setTourOpen(true);
   };
 
   // Decide once, after the user is actually in the app and data has settled,
@@ -2026,7 +2035,8 @@ export default function App() {
             setTab("settings");
           }}
           onOpenBadges={() => setShowBadges(true)}
-          onReplayTour={() => setTourOpen(true)}
+          onReplayTour={replayTour}
+          showTourPrompt={tourSkipped}
           onOpenFreshStart={() => setShowFreshStart(true)}
           hasFreshStart={triageItems.length > 0}
           onClearData={store.resetData}

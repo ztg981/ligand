@@ -711,6 +711,7 @@ export default function TopNav({
   syncStatus = "idle",
   soundsEnabled = true,
   onToggleSounds,
+  showTourPrompt = false,
 }) {
   const goalItems = goals.map((g) => ({
     id: g.id,
@@ -880,6 +881,17 @@ export default function TopNav({
         </button>
 
         <div className="topbar-tools">
+          {/* Only for someone who SKIPPED the tour — a way back that isn't
+             buried in the avatar menu. Taking or finishing it removes this. */}
+          {showTourPrompt && (
+            <button
+              className="btn ghost sm topbar-tour"
+              onClick={onReplayTour}
+              title="Take the quick tour of Ligand"
+            >
+              <Icon.Spark width={13} height={13} /> Take the tour
+            </button>
+          )}
           <SyncPill status={syncStatus} />
           {/* Desktop quick-add (the phone uses the floating Add button). */}
           <button
