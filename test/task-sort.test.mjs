@@ -72,6 +72,33 @@ test("a corrupt stored setting falls back to the default", () => {
   assert.deepEqual(normalizeSort({ by: "name", dir: "asc" }), { by: "name", dir: "asc" });
 });
 
+test("manual order follows the arrangement you dragged", () => {
+  const tasks = [older, newer, newest];
+  const order = ["task_c_1", "task_a_1", "task_b_1"];
+  assert.deepEqual(
+    [...tasks].sort(taskComparator({ by: "manual" }, order)).map((t) => t.id),
+    order
+  );
+});
+
+test("a task made after the last drag goes to the top, not the bottom", () => {
+  // Otherwise new work is buried under an arrangement made before it existed.
+  const fresh = t("task_z_9", "Brand new");
+  const order = ["task_a_1", "task_b_1"];
+  const sorted = [...[older, newer, fresh]]
+    .sort(taskComparator({ by: "manual" }, order))
+    .map((x) => x.id);
+  assert.equal(sorted[0], "task_z_9");
+  assert.deepEqual(sorted.slice(1), order);
+});
+
+test("manual ignores direction — you already said what the order is", () => {
+  assert.deepEqual(normalizeSort({ by: "manual", dir: "desc" }), {
+    by: "manual",
+    dir: "asc",
+  });
+});
+
 test("direction labels read correctly for each sort key", () => {
   assert.equal(directionLabel("created", "desc"), "Newest first");
   assert.equal(directionLabel("created", "asc"), "Oldest first");

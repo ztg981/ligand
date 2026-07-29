@@ -1705,6 +1705,8 @@ export default function App() {
             toggleTask={store.toggleTask}
             removeTask={store.removeTask}
             addDayBlock={store.addDayBlock}
+            taskOrder={store.taskOrder}
+            setTaskOrder={store.setTaskOrder}
             confirmBeforeDelete={confirmBeforeDelete}
             scrollTo={scrollTarget?.tab === "tasks" ? scrollTarget : null}
           />

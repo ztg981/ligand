@@ -2335,11 +2335,28 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   border-radius: 24px;
   overflow: hidden;
   background: #0a1230;
-  border: 1px solid var(--line);
-  box-shadow:
-    var(--shadow-pop),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04); /* faint inner edge for depth */
+  /* The border is deliberately NOT --line: that's a pale colour meant for
+     panels, and ringing an always-dark scene with it showed as white flecks in
+     the rounded corners (worse on higher-DPI screens, where the antialiased
+     arc has more pale pixels to reveal). A faint light-on-dark edge instead. */
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: var(--shadow-pop);
+  transition: max-width 0.28s var(--ease);
 }
+/* Expanded: use the width either side of the scene instead of letting it sit
+   in a column. Toggled from the button on the window. */
+.pomo-window.wide { max-width: 100%; }
+.pomo-expand {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.85);
+  cursor: pointer; opacity: 0.45;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  transition: opacity 0.18s var(--ease), background 0.18s var(--ease);
+}
+.pomo-window:hover .pomo-expand { opacity: 1; }
+.pomo-expand:hover { background: rgba(0,0,0,0.55); }
 /* Semi-transparent veil over the real photo — keeps CSS scene
    animations and the timer ring legible against any photo content.
    A soft vignette + centre darken gives the ring/text a readable bed
@@ -3246,19 +3263,46 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   background: radial-gradient(circle at 30% 20%, #2a1b4d 0%, #0b1026 70%);
   overflow: hidden;
 }
+/* Cosmos reads as a still image next to the other scenes: a 4% drift over 34s
+   is below the threshold where the eye registers movement at all. The nebula
+   now travels and slowly rotates, and a shooting star crosses now and then so
+   there's something to actually catch. */
 .cosmos-nebula {
-  position: absolute; inset: -20%;
+  position: absolute; inset: -30%;
   background:
-    radial-gradient(circle at 62% 68%, rgba(150,90,255,0.28), transparent 55%),
-    radial-gradient(circle at 30% 32%, rgba(90,150,255,0.22), transparent 50%);
-  animation: cosmosDrift 34s ease-in-out infinite alternate;
+    radial-gradient(circle at 62% 68%, rgba(150,90,255,0.30), transparent 55%),
+    radial-gradient(circle at 30% 32%, rgba(90,150,255,0.24), transparent 50%);
+  animation: cosmosDrift 22s ease-in-out infinite alternate;
 }
 .cosmos-star {
   position: absolute; border-radius: 50%; background: #fff; opacity: 0.7;
   animation: cosmosTwinkle 3.2s ease-in-out infinite;
 }
+/* The whole field breathes very slowly, so even the "still" stars have life. */
+.scene.cosmos { animation: cosmosBreathe 26s ease-in-out infinite alternate; }
+.cosmos-shoot {
+  position: absolute; top: 18%; left: -12%;
+  width: 90px; height: 2px; border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  opacity: 0;
+  animation: cosmosShoot 9s linear infinite;
+}
+.cosmos-shoot.two { top: 54%; animation-duration: 13s; animation-delay: 5s; }
 @keyframes cosmosTwinkle { 0%,100% { opacity: 0.2; } 50% { opacity: 1; } }
-@keyframes cosmosDrift { from { transform: translate(0,0); } to { transform: translate(-4%,3%); } }
+@keyframes cosmosDrift {
+  from { transform: translate(-3%, -2%) rotate(-2deg); }
+  to   { transform: translate(5%, 4%) rotate(2deg); }
+}
+@keyframes cosmosBreathe {
+  from { background-size: 100% 100%; }
+  to   { background-size: 118% 118%; }
+}
+@keyframes cosmosShoot {
+  0%      { transform: translate(0, 0) rotate(14deg); opacity: 0; }
+  4%      { opacity: 0.9; }
+  16%     { transform: translate(135vw, 26vh) rotate(14deg); opacity: 0; }
+  100%    { transform: translate(135vw, 26vh) rotate(14deg); opacity: 0; }
+}
 
 .scene.ocean {
   background: linear-gradient(180deg, #7ad7e0 0%, #088395 45%, #0a4d68 100%);
@@ -10081,6 +10125,14 @@ input[type="date"].input::-webkit-date-and-time-value {
   color: var(--ink-4); font-size: 10px;
 }
 .jmap-canvas .leaflet-control-attribution a { color: var(--ink-3); }
+
+/* A row being dragged lifts off the list. */
+.taskrow.dragging {
+  opacity: 0.9;
+  box-shadow: var(--shadow-pop);
+  border-radius: var(--r-md);
+  cursor: grabbing;
+}
 
 /* Goal dot-colour override, in the goal details editor. */
 .goal-color-pick {

@@ -8,11 +8,28 @@ import { flashElement } from "../lib/scrollFlash.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   SORT_OPTIONS,
   DEFAULT_SORT,
   taskComparator,
   normalizeSort,
   directionLabel,
+  supportsDirection,
 } from "../lib/taskSort.js";
 
 /* ============================================================
@@ -193,6 +210,8 @@ export default function Tasks({
   toggleTask,
   removeTask,
   addDayBlock,
+  taskOrder = [],
+  setTaskOrder,
   confirmBeforeDelete = true,
   scrollTo = null,
 }) {
@@ -405,7 +424,29 @@ export default function Tasks({
   // render by normalizeSort, so depending on it would rebuild the comparator
   // (and re-sort) on every keystroke.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const compare = useMemo(() => taskComparator(sort), [sort.by, sort.dir]);
+  const compare = useMemo(() => taskComparator(sort, taskOrder), [sort.by, sort.dir, taskOrder]);
+
+  // Dragging a row rearranges the list and switches this tab to "My order", so
+  // the arrangement you just made is the one you keep seeing. A pointer needs
+  // to travel a few px before a drag starts, otherwise tapping a row to edit it
+  // would be swallowed by the drag sensor.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const ids = visible.map((t) => t.id);
+    const from = ids.indexOf(active.id);
+    const to = ids.indexOf(over.id);
+    if (from < 0 || to < 0) return;
+    // Merge the reordered visible rows back over the full saved order, so
+    // rearranging inside one filter never disturbs tasks hidden by it.
+    const reordered = arrayMove(ids, from, to);
+    const rest = (taskOrder || []).filter((id) => !ids.includes(id));
+    setTaskOrder?.([...reordered, ...rest]);
+    if (sort.by !== "manual") setSort({ by: "manual" });
+  };
   const visible = useMemo(() => {
     return tasks
       .filter((t) => {
@@ -625,15 +666,19 @@ export default function Tasks({
         />
         {/* Just an arrow — the label lives in the tooltip, the way every other
            app does it. A full-width labelled button for a flip was too loud. */}
-        <button
-          type="button"
-          className={"iconbtn sm tasks-sort-dir" + (sort.dir === "asc" ? " up" : "")}
-          onClick={() => setSort({ dir: sort.dir === "asc" ? "desc" : "asc" })}
-          title={directionLabel(sort.by, sort.dir) + " — click to flip"}
-          aria-label={directionLabel(sort.by, sort.dir)}
-        >
-          <Icon.Arrow width={13} height={13} />
-        </button>
+        {supportsDirection(sort.by) ? (
+          <button
+            type="button"
+            className={"iconbtn sm tasks-sort-dir" + (sort.dir === "asc" ? " up" : "")}
+            onClick={() => setSort({ dir: sort.dir === "asc" ? "desc" : "asc" })}
+            title={directionLabel(sort.by, sort.dir) + " — click to flip"}
+            aria-label={directionLabel(sort.by, sort.dir)}
+          >
+            <Icon.Arrow width={13} height={13} />
+          </button>
+        ) : (
+          <span className="tasks-sort-scope">{directionLabel(sort.by)}</span>
+        )}
         <span className="tasks-sort-scope">for {filterName}</span>
       </div>
 
@@ -647,16 +692,22 @@ export default function Tasks({
           </div>
         </div>
       ) : (
-        <div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+        <SortableContext items={visible.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {visible.map((task) => {
             const leaving =
               burst?.id === task.id &&
               ((burst.kind === "check" && status === "active") ||
                 (burst.kind === "uncheck" && status === "done"));
             return (
-              <div
+              <SortableTaskRow
                 key={task.id}
-                id={"task-" + task.id}
+                id={task.id}
+                domId={"task-" + task.id}
                 className={
                   "taskrow" +
                   (task.done ? " done" : "") +
@@ -785,12 +836,40 @@ export default function Tasks({
                     icon={<Icon.Trash width={14} height={14} />}
                   />
                 </span>
-              </div>
+              </SortableTaskRow>
             );
           })}
-        </div>
+        </SortableContext>
+        </DndContext>
       )}
     </>
+  );
+}
+
+/* One draggable row.
+
+   The drag listeners go on the ROW, not a separate handle: a dedicated grip
+   would cost horizontal room the row doesn't have on a phone. The pointer
+   sensor's small activation distance is what keeps a tap (edit) distinct from
+   a drag (reorder), and the row's own buttons stop propagation anyway. */
+function SortableTaskRow({ id, domId, className, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      id={domId}
+      className={className + (isDragging ? " dragging" : "")}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 5 : undefined,
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
   );
 }
 

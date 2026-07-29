@@ -417,6 +417,8 @@ function CosmosScene() {
   return (
     <div className="scene cosmos">
       <div className="cosmos-nebula" />
+      <span className="cosmos-shoot" />
+      <span className="cosmos-shoot two" />
       {STARS.map((s, i) => (
         <span
           key={i}
@@ -561,6 +563,9 @@ export default function Pomodoro({
     if (!hyperfocus) setPromptDismissed(false);
   }, [hyperfocus]);
   const showStartPrompt = hyperfocus && !pomo.running && !promptDismissed;
+
+  // Whether the scene fills the page or sits in its default column.
+  const [sceneWide, setSceneWide] = useLocalStorage("ligand.pomoSceneWide", false);
 
   // Focus mode: hides all surrounding UI, leaving only the scene + timer.
   // Only toggleable from within; exits cleanly on either the button or when
@@ -827,13 +832,27 @@ export default function Pomodoro({
       <div className="pomo-stage">
         {/* The scene window - real photo + CSS animations layered on top */}
         <div
-          className={"pomo-window" + (hyperfocus ? " hyperfocus" : "")}
+          className={
+            "pomo-window" + (hyperfocus ? " hyperfocus" : "") + (sceneWide ? " wide" : "")
+          }
           style={showScenePhoto ? {
             backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           } : undefined}
         >
+          {/* Use the empty space either side, for people who want the scene to
+             fill the page rather than sit in a column. */}
+          <button
+            type="button"
+            className="pomo-expand"
+            onClick={() => setSceneWide((w) => !w)}
+            title={sceneWide ? "Shrink the scene" : "Widen the scene"}
+            aria-pressed={sceneWide}
+            data-mute-click
+          >
+            <Icon.Grid width={14} height={14} />
+          </button>
           {/* Dark overlay so CSS animations + timer remain legible over photo */}
           <div className="pomo-photo-veil" />
           <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />

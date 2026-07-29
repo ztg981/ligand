@@ -768,6 +768,15 @@ export function useStore() {
     [setData]
   );
 
+  // -- task order (display only) ---------------------------------
+  // The order the user arranged by dragging, as an array of task ids. Only
+  // consulted when a tab's sort is "My order"; ids missing from it are simply
+  // treated as unplaced, so nothing needs migrating.
+  const setTaskOrder = useCallback(
+    (ids) => setData((d) => ({ ...d, taskOrder: ids })),
+    [setData]
+  );
+
   // -- focus log (Pomodoro time tracking) ------------------------
   // Each entry: { date: "YYYY-MM-DD", minutes, goalId|null }. Sessions not
   // linked to a goal are still logged (goalId null) but count toward no goal.
@@ -857,6 +866,7 @@ export function useStore() {
       deleteSong,
       resetData,
       setGoalOrder,
+      setTaskOrder,
       logFocusSession,
       logPause,
     }),
@@ -918,6 +928,7 @@ export function useStore() {
       deleteSong,
       resetData,
       setGoalOrder,
+      setTaskOrder,
       logFocusSession,
       logPause,
     ]
@@ -927,6 +938,7 @@ export function useStore() {
     data,
     goals: data.goals,
     tasks: data.tasks,
+    taskOrder: data.taskOrder || [],
     countUps: data.countUps,
     journal: data.journal || [],
     moodLog: data.moodLog || [],
