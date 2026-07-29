@@ -90,6 +90,40 @@ app.whenReady().then(async () => {
     await write(join(pub, file), size, { plate: true });
   }
 
+  /* Windows .ico for the desktop build.
+     An ICO is just a small header plus a directory of embedded images, so the
+     PNGs rendered above can be packed directly — no image library needed. A
+     size of 256 is written as 0, which is how the format encodes it. */
+  const icoSizes = [16, 32, 48, 64, 128, 256];
+  const images = [];
+  for (const size of icoSizes) {
+    const b64 = await win.webContents.executeJavaScript(draw(size, { plate: true }));
+    images.push({ size, data: Buffer.from(b64, "base64") });
+  }
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // 1 = icon
+  header.writeUInt16LE(images.length, 4);
+
+  const dir = Buffer.alloc(16 * images.length);
+  let offset = header.length + dir.length;
+  images.forEach((img, i) => {
+    const at = i * 16;
+    dir.writeUInt8(img.size >= 256 ? 0 : img.size, at + 0); // width
+    dir.writeUInt8(img.size >= 256 ? 0 : img.size, at + 1); // height
+    dir.writeUInt8(0, at + 2); // palette size
+    dir.writeUInt8(0, at + 3); // reserved
+    dir.writeUInt16LE(1, at + 4); // colour planes
+    dir.writeUInt16LE(32, at + 6); // bits per pixel
+    dir.writeUInt32LE(img.data.length, at + 8);
+    dir.writeUInt32LE(offset, at + 12);
+    offset += img.data.length;
+  });
+
+  const ico = join(pub, "ligand.ico");
+  writeFileSync(ico, Buffer.concat([header, dir, ...images.map((i) => i.data)]));
+  console.log(`wrote ${ico} (${icoSizes.length} sizes)`);
+
   win.destroy();
   app.quit();
 });
