@@ -8,6 +8,7 @@ import {
   placeStats,
   boundsOf,
 } from "../lib/journalMap.js";
+import { geocodePlaceName } from "../lib/geolocate.js";
 
 /* JournalMapView — where you've been writing.
 
@@ -29,19 +30,74 @@ function bubbleSize(count) {
   return Math.round(28 + Math.min(26, Math.sqrt(count) * 7));
 }
 
-export default function JournalMapView({ journal = [], onOpenEntry }) {
+/* Declared at module scope, not inside the view: a component created during
+   render is a brand-new type every pass, so React remounts it and it loses its
+   state (here, the running progress count). */
+function BackfillButton({ busy, done, total, onRun, disabled }) {
+  return (
+    <button
+      type="button"
+      className="btn ghost sm"
+      style={{ marginTop: 10 }}
+      onClick={onRun}
+      disabled={busy || disabled}
+    >
+      {busy
+        ? `Looking up… ${done}/${total}`
+        : `Put ${total} older ${total === 1 ? "entry" : "entries"} on the map`}
+    </button>
+  );
+}
+
+export default function JournalMapView({ journal = [], onOpenEntry, updateJournalEntry }) {
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const [zoom, setZoom] = useState(3);
   const [ready, setReady] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillDone, setBackfillDone] = useState(0);
+
+  /* Entries recorded before positions were stored: a place NAME and nothing
+     else, so they can never appear. Their names can be looked back up. */
+  const pending = useMemo(
+    () =>
+      (journal || []).filter(
+        (e) => e?.location && !(Number.isFinite(e?.geo?.lat) && Number.isFinite(e?.geo?.lon))
+      ),
+    [journal]
+  );
+  const backfillable = pending.length;
+
+  const runBackfill = async () => {
+    if (backfilling || !updateJournalEntry) return;
+    setBackfilling(true);
+    setBackfillDone(0);
+    // One at a time, a second apart: Nominatim's usage policy asks for at most
+    // one request per second, and this is their service being borrowed.
+    for (const entry of pending) {
+      const geo = await geocodePlaceName(entry.location);
+      if (geo) updateJournalEntry(entry.id, { geo });
+      setBackfillDone((n) => n + 1);
+      await new Promise((r) => setTimeout(r, 1100));
+    }
+    setBackfilling(false);
+  };
 
   const points = useMemo(() => entriesWithGeo(journal), [journal]);
   const stats = useMemo(() => placeStats(points), [points]);
   const clusters = useMemo(() => clusterPoints(points, zoom), [points, zoom]);
 
-  // Create the map once.
+  // Create the map once there is somewhere to put it.
+  //
+  // Keyed on `hasPoints`, not []: with no places the component returns the
+  // empty state early, so the canvas doesn't exist and this effect would bail
+  // with nothing to attach to — and, running only once, never try again. The
+  // map then stayed blank forever after the first location was added (or after
+  // backfilling older entries), which is exactly when it should appear.
+  const hasPoints = points.length > 0;
   useEffect(() => {
+    if (!hasPoints) return undefined;
     if (!hostRef.current || mapRef.current) return undefined;
     const map = L.map(hostRef.current, {
       zoomControl: true,
@@ -66,7 +122,7 @@ export default function JournalMapView({ journal = [], onOpenEntry }) {
       layerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasPoints]);
 
   // Leaflet measures the container on creation; inside a tab that was hidden
   // it can come up zero-sized and render a grey box until something resizes.
@@ -120,9 +176,18 @@ export default function JournalMapView({ journal = [], onOpenEntry }) {
         <div>
           <div className="jmap-empty-title">No places yet</div>
           <div className="jmap-empty-sub">
-            Add a location to a journal entry and it'll appear here. Entries
-            written before locations were saved won't have one.
+            Add a location to a journal entry and it'll appear here.
+            {backfillable > 0 && (
+              <>
+                {" "}
+                {backfillable} older {backfillable === 1 ? "entry has" : "entries have"}
+                {" "}a place name but no coordinates — they can be looked up.
+              </>
+            )}
           </div>
+          {backfillable > 0 && (
+            <BackfillButton busy={backfilling} done={backfillDone} total={backfillable} onRun={runBackfill} disabled={!updateJournalEntry} />
+          )}
         </div>
       </div>
     );
@@ -154,6 +219,18 @@ export default function JournalMapView({ journal = [], onOpenEntry }) {
                 <span className="jmap-top-count">{place.count}</span>
               </div>
             ))}
+          </div>
+        )}
+        {/* Older entries kept a place name but no coordinates; offer to look
+           them up rather than silently leaving them off the map. */}
+        {backfillable > 0 && (
+          <div className="jmap-backfill">
+            <div className="jmap-top-lbl">Not on the map</div>
+            <div className="jmap-backfill-sub">
+              {backfillable} {backfillable === 1 ? "entry has" : "entries have"} a
+              place name from before coordinates were saved.
+            </div>
+            <BackfillButton busy={backfilling} done={backfillDone} total={backfillable} onRun={runBackfill} disabled={!updateJournalEntry} />
           </div>
         )}
       </div>

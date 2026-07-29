@@ -129,3 +129,33 @@ export async function captureLocationName() {
   const place = await captureLocation();
   return place?.name || null;
 }
+
+/* Look a place name back up to coordinates.
+
+   Entries written before entries stored a position have a name and nothing
+   else, so they can never appear on the map. This is the way back: geocode
+   what was recorded ("Costco Wholesale, Brooklyn", or just "Brooklyn") and
+   put the entry roughly where it belongs. Coarse by nature — a city name maps
+   to the city's centre, which is exactly the resolution that name deserves.
+
+   Returns { lat, lon } or null. Never throws. */
+export async function geocodePlaceName(name) {
+  const query = String(name || "").trim();
+  if (!query) return null;
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(query);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const hit = Array.isArray(rows) ? rows[0] : null;
+    if (!hit) return null;
+    const lat = Number(hit.lat);
+    const lon = Number(hit.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat: coarse(lat), lon: coarse(lon) };
+  } catch {
+    return null;
+  }
+}

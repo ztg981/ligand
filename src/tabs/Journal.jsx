@@ -491,6 +491,7 @@ export default function Journal({
         >
           <JournalMapView
             journal={journal}
+            updateJournalEntry={updateJournalEntry}
             onOpenEntry={(id) => {
               // Jump back to the entry the pin belongs to.
               setView("list");
