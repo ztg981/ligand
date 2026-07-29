@@ -165,11 +165,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: true, snapshot, queued: queue.length, ligandOpen: open });
         break;
       }
-      case "popup:refresh":
-        // Ask any open page for a fresh snapshot (cheap, fire-and-forget).
-        await sendToPage("snapshot", null);
+      case "popup:refresh": {
+        // Ask an open page for a snapshot and store it BEFORE replying, so the
+        // popup's follow-up read can't race the page's own broadcast.
+        const fresh = await sendToPage("snapshot", null);
+        if (fresh?.result) {
+          await set(KEY_SNAPSHOT, { ...fresh.result, at: Date.now() });
+          await refreshBadge();
+          await refreshIcon(fresh.result?.theme?.accent);
+        }
         sendResponse({ ok: true });
         break;
+      }
       default:
         sendResponse({ ok: false, error: "Unknown message." });
     }

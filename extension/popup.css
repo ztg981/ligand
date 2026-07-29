@@ -2,7 +2,11 @@
    tiny stylesheet: the app's CSS is far too large to load into a popup, and
    this surface only ever needs a handful of controls. */
 
-:root {
+/* Theme follows LIGAND, not just the OS: the popup reads the app's current
+   mode out of the snapshot and stamps it on <html>, so a light app doesn't
+   sit behind a dark popup. Until a snapshot arrives we fall back to the
+   system preference, which is the best guess available. */
+:root, :root[data-theme="light"] {
   --bg: #faf6f0;
   --panel: #fff;
   --panel-2: #f3eee7;
@@ -13,10 +17,10 @@
   --line: #e5ded4;
   --accent: #3f6fd8;
   --accent-soft: #e8eefc;
-  --radius: 10px;
+  --radius: 12px;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #15161a;
     --panel: #1c1e23;
     --panel-2: #23262c;
@@ -29,8 +33,25 @@
     --accent-soft: #232c40;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #15161a;
+  --panel: #1c1e23;
+  --panel-2: #23262c;
+  --ink: #eceaea;
+  --ink-2: #c8c5c1;
+  --ink-3: #948e87;
+  --ink-4: #6d6862;
+  --line: #2e3138;
+  --accent: #7aa2f7;
+  --accent-soft: #232c40;
+}
 
 * { box-sizing: border-box; }
+
+/* The `hidden` attribute is only a UA rule (`display: none`) with almost no
+   specificity, so any class that sets a display — `.row { display: flex }` —
+   silently beats it. That's why the Log-only fields showed under Task. */
+[hidden] { display: none !important; }
 
 body {
   width: 300px;
@@ -77,6 +98,9 @@ body {
 .group-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .group-count { font-size: 11px; color: var(--ink-4); flex: none; margin-left: auto; }
 
+.group-hint {
+  margin: 8px 0 0; font-size: 11px; line-height: 1.45; color: var(--ink-4);
+}
 .field { display: block; }
 .label { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-4); margin-bottom: 3px; }
 

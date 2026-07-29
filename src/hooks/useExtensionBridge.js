@@ -118,17 +118,25 @@ export function useExtensionBridge({
             reply(true);
             break;
 
-          case "snapshot":
-            post({ type: SNAPSHOT, snapshot: snapshot() });
-            reply(true);
+          case "snapshot": {
+            // Return it in the REPLY as well as broadcasting it: the broadcast
+            // reaches the worker on its own schedule, so a caller that awaited
+            // this could still read a stale cache immediately afterwards.
+            const snap = snapshot();
+            post({ type: SNAPSHOT, snapshot: snap });
+            reply(true, { result: snap });
             break;
+          }
 
           case "addTask": {
             const text = String(payload?.text || "").trim().slice(0, 300);
             if (!text) return reply(false, { error: "Empty task." });
+            const label = ["Today", "Urgent", "General"].includes(payload?.label)
+              ? payload.label
+              : "Today";
             const saved = store.addTask?.({
               text,
-              label: "Today",
+              label,
               ...(payload?.tabGroup ? { tabGroup: payload.tabGroup } : {}),
             });
             reply(true, { result: { id: saved?.id } });

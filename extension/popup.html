@@ -36,6 +36,7 @@
           <option value="">Nothing linked</option>
         </select>
       </label>
+      <p class="group-hint" id="groupHint" hidden></p>
     </section>
 
     <!-- Quick capture -->
@@ -47,6 +48,15 @@
       </div>
 
       <input id="text" class="input" placeholder="Add a task…" autofocus />
+
+      <!-- Task-only: which list it lands in. -->
+      <div class="row" id="taskRow">
+        <select id="taskLabel" class="input">
+          <option value="Today">Today</option>
+          <option value="Urgent">Urgent</option>
+          <option value="General">General</option>
+        </select>
+      </div>
 
       <div class="row" id="logRow" hidden>
         <select id="logCategory" class="input">

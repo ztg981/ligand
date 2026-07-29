@@ -93,13 +93,20 @@ async function loadGroup() {
 }
 
 function renderGroup() {
+  const hint = $("groupHint");
   if (!group) {
+    // Explain what to do rather than just showing a dead control: linking is
+    // meaningless until the current tab actually belongs to a group.
     $("groupName").textContent = "No tab group";
     $("groupCount").textContent = "";
     $("groupSwatch").style.background = "var(--ink-4)";
     $("taskSelect").disabled = true;
+    hint.hidden = false;
+    hint.textContent =
+      "Right-click this tab → “Add tab to group”, then reopen this popup to link it to a task.";
     return;
   }
+  hint.hidden = true;
   $("taskSelect").disabled = false;
   $("groupName").textContent = group.title;
   $("groupCount").textContent = `${group.tabCount} tab${group.tabCount === 1 ? "" : "s"}`;
@@ -150,7 +157,10 @@ function setKind(next) {
   document.querySelectorAll(".seg button").forEach((b) => {
     b.classList.toggle("active", b.dataset.kind === next);
   });
+  // Each kind shows only its own fields — the category/duration pair belongs to
+  // an activity log and made no sense sitting under Task.
   $("logRow").hidden = next !== "log";
+  $("taskRow").hidden = next !== "task";
   $("text").placeholder =
     next === "task" ? "Add a task…" : next === "note" ? "Jot a note…" : "What did you just do?";
   $("text").focus();
@@ -172,9 +182,10 @@ async function submitCapture() {
       category: $("logCategory").value,
       durationMin: Number($("logMinutes").value),
     };
-  } else if (group) {
+  } else {
+    payload.label = $("taskLabel").value;
     // A task captured while inside a group starts life linked to it.
-    payload.tabGroup = { title: group.title, color: group.color };
+    if (group) payload.tabGroup = { title: group.title, color: group.color };
   }
 
   const res = await send({ type: "popup:submit", action, payload });
@@ -201,14 +212,30 @@ async function linkGroupToTask(taskId) {
 }
 
 // ---- boot -------------------------------------------------------------
+function applyTheme() {
+  const mode = state.snapshot?.theme?.mode;
+  if (mode === "dark" || mode === "light") {
+    document.documentElement.dataset.theme = mode;
+  }
+}
+
 async function refresh() {
   const res = await send({ type: "popup:state" });
   if (res?.ok) {
     state = { snapshot: res.snapshot, ligandOpen: res.ligandOpen, queued: res.queued };
   }
+  applyTheme();
   renderStatus();
   renderPomodoro();
   renderTasks();
+}
+
+/* Pull a genuinely fresh snapshot from the page, then re-render.
+   The cached one can be up to a few seconds stale, which is why a Pomodoro
+   started in the app didn't show here until the poll caught up. */
+async function syncFromPage() {
+  await send({ type: "popup:refresh" });
+  await refresh();
 }
 
 document.querySelectorAll(".seg button").forEach((b) => {
@@ -239,6 +266,8 @@ $("openLigand").addEventListener("click", async () => {
 
 setKind("task");
 loadGroup();
-refresh();
-send({ type: "popup:refresh" }); // nudge an open page for fresher state
+refresh().then(syncFromPage); // paint from cache, then correct from the page
+// Keep the countdown ticking, and re-pull periodically so a timer started or
+// stopped inside Ligand shows up here while the popup is open.
 setInterval(renderPomodoro, 1000);
+setInterval(syncFromPage, 3000);
