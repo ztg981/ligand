@@ -1065,6 +1065,11 @@ export default function DayPlanner({
                 const b = blocks.find((x) => x.id === id);
                 if (b?.protected) return; // protected hours don't move
                 updateDayBlock?.(id, { start: ns, end: ne });
+                // Dragging a block makes it the one you're working on, so it
+                // becomes selected — which is what puts the remove button on
+                // the dial. Without this, moving a block left nothing selected
+                // and the only delete was back down in the editor.
+                setSelectedId(id);
               }}
             />
             <div className="dp-reality-legend" aria-label="Day ring legend">

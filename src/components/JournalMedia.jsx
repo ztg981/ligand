@@ -196,12 +196,27 @@ function CaptureSheet({ onClose, onSaved }) {
     if (saving) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    // Pressing a RUNNING take is ambiguous until you let go: a tap means stop,
+    // but a slide means lock. So arm the gesture and decide on release —
+    // that's what keeps "tap to start, then slide to lock" possible.
     if (recording) {
-      // A locked take is stopped by a plain tap.
-      if (locked) stop();
+      holdRef.current = {
+        active: true,
+        x: e.clientX,
+        locked,
+        at: Date.now(),
+        onRunning: true,
+      };
+      setSlide(0);
       return;
     }
-    holdRef.current = { active: true, x: e.clientX, locked: false, at: Date.now() };
+    holdRef.current = {
+      active: true,
+      x: e.clientX,
+      locked: false,
+      at: Date.now(),
+      onRunning: false,
+    };
     setSlide(0);
     start();
   };
@@ -226,10 +241,11 @@ function CaptureSheet({ onClose, onSaved }) {
   };
 
   /* Releasing only ENDS the take if you were actually holding.
-     A quick tap is a different intent — "start recording" — so it latches the
-     take instead, exactly as sliding to lock would. Ending a tapped take is
-     another tap. Without this, tapping started and instantly stopped a
-     recording, which read as the button not working. */
+
+     A quick tap means "start recording", so the take simply keeps running —
+     still on the SHORT cap, and still lockable by pressing again and sliding,
+     because tapping shouldn't silently commit you to a three-minute take. Tap
+     again to stop. Only a genuine hold ends on release. */
   const onShutterUp = () => {
     const hold = holdRef.current;
     if (!hold.active) return; // already locked, or never started
@@ -238,14 +254,13 @@ function CaptureSheet({ onClose, onSaved }) {
     if (!controllerRef.current) return;
 
     const wasTap = Date.now() - (hold.at || 0) < TAP_MS;
-    if (wasTap) {
-      hold.locked = true;
-      setLocked(true);
-      controllerRef.current.extendCap?.(
-        mode === "video" ? MAX_VIDEO_LOCKED_MS : MAX_AUDIO_MS
-      );
+    if (hold.onRunning) {
+      // Pressed a take that was already running: a tap stops it, while a slide
+      // will have locked it on the way (so leave that alone).
+      if (wasTap && !hold.locked) stop();
       return;
     }
+    if (wasTap) return; // tap-start: leave it running, unlocked, on the short cap
     stop();
   };
 
@@ -380,12 +395,12 @@ function CaptureSheet({ onClose, onSaved }) {
           {saving
             ? "Saving…"
             : locked
-              ? "Recording — tap to stop"
+              ? "Locked — tap to stop"
               : recording
-                ? "Release to stop · slide right to keep going"
+                ? "Tap to stop · press and slide right to lock for longer"
                 : mode === "video" && silent
                   ? "Tap to record, or hold. No sound, so your music keeps playing."
-                  : "Tap to record, or hold and release to stop."}
+                  : "Tap to record · hold and release for a quick one"}
         </p>
       </footer>
     </div>,
@@ -508,6 +523,59 @@ function MediaItem({ item, onRemove, userId = null }) {
    in every entry turned the journal into a wall of black rectangles. The chip
    says what it is and how long, and expands on click. In the composer
    (`expanded`) they stay open, since you've just made them. */
+/* A collapsed clip keeps its first frame.
+
+   Fully hiding it behind a text chip lost the one thing that tells clips apart
+   at a glance; showing the full player made every entry a black rectangle.
+   A small poster is the middle: the frame is drawn by seeking the video to its
+   first moment with `preload="metadata"`, so nothing extra is stored. */
+function VideoThumb({ item, userId, onOpen }) {
+  const [url, setUrl] = useState(null);
+
+  useEffect(() => {
+    let dead = false;
+    let objectUrl = null;
+    (async () => {
+      const local = await getMediaUrl(item.id);
+      if (dead) {
+        if (local) URL.revokeObjectURL(local);
+        return;
+      }
+      if (local) {
+        objectUrl = local;
+        setUrl(local);
+        return;
+      }
+      if (userId && item.remotePath) {
+        const blob = await fetchMedia(userId, item);
+        if (!dead && blob) {
+          objectUrl = URL.createObjectURL(blob);
+          setUrl(objectUrl);
+        }
+      }
+    })();
+    return () => {
+      dead = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+    // Keyed on identity and where the bytes live, not the whole item — a
+    // changed duration must not re-fetch and re-mint the object URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, item.remotePath, userId]);
+
+  return (
+    <button type="button" className="jm-thumb" onClick={onOpen} title="Play clip">
+      {url ? (
+        <video className="jm-thumb-video" src={`${url}#t=0.1`} muted playsInline preload="metadata" />
+      ) : (
+        <span className="jm-thumb-fallback"><Icon.Video width={18} height={18} /></span>
+      )}
+      <span className="jm-thumb-play"><Icon.Play width={14} height={14} /></span>
+      <span className="jm-thumb-time mono">{formatDuration(item.durationMs || 0)}</span>
+    </button>
+  );
+}
+
 export function MediaStrip({ media = [], onRemove, userId = null, expanded = false }) {
   const [openIds, setOpenIds] = useState(() => (expanded ? media.map((m) => m.id) : []));
   if (!media.length) return null;
@@ -520,21 +588,26 @@ export function MediaStrip({ media = [], onRemove, userId = null, expanded = fal
         openIds.includes(item.id) ? (
           <MediaItem key={item.id} item={item} onRemove={onRemove} userId={userId} />
         ) : (
-          <button
-            key={item.id}
-            type="button"
-            className="jm-chip"
-            onClick={() => toggle(item.id)}
-            title="Play"
-          >
-            {item.kind === "video" ? (
-              <Icon.Video width={13} height={13} />
-            ) : (
+          item.kind === "video" ? (
+            <VideoThumb
+              key={item.id}
+              item={item}
+              userId={userId}
+              onOpen={() => toggle(item.id)}
+            />
+          ) : (
+            <button
+              key={item.id}
+              type="button"
+              className="jm-chip"
+              onClick={() => toggle(item.id)}
+              title="Play"
+            >
               <Icon.Mic width={13} height={13} />
-            )}
-            <span>{item.kind === "video" ? "Clip" : "Voice note"}</span>
-            <span className="jm-chip-time mono">{formatDuration(item.durationMs || 0)}</span>
-          </button>
+              <span>Voice note</span>
+              <span className="jm-chip-time mono">{formatDuration(item.durationMs || 0)}</span>
+            </button>
+          )
         )
       )}
     </div>

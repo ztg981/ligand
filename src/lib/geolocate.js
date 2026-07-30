@@ -24,6 +24,10 @@ export function coarse(value) {
   return Math.round(Number(value) * 1e4) / 1e4;
 }
 
+/* Above this many metres of uncertainty, naming a specific building would be a
+   guess dressed up as a fact — so we name the area instead. */
+export const VENUE_ACCURACY_M = 120;
+
 // Get the current position as a promise (with a sane timeout).
 function getPosition() {
   return new Promise((resolve, reject) => {
@@ -106,11 +110,20 @@ export async function captureLocation() {
   const pos = await getPosition();
   const lat = pos.coords.latitude;
   const lon = pos.coords.longitude;
+  const accuracy = Number(pos.coords.accuracy) || Infinity;
 
-  // zoom=18 resolves an individual building/POI rather than a district, which
-  // is what turns "Brooklyn" into "Costco, Brooklyn".
+  /* Only ask for a building when the fix is good enough to mean one.
+
+     A desktop browser locates you by wifi/IP — often accurate to a few hundred
+     metres or worse. Asking for building-level detail there doesn't produce
+     YOUR building, it produces whichever building happens to sit at the centre
+     of that blur, which is a confidently wrong answer. Above the threshold we
+     ask for neighbourhood/city level instead, which the fix can actually
+     support. A phone's GPS comfortably clears it, which is why venue names
+     work there and not on a laptop. */
+  const zoom = accuracy <= VENUE_ACCURACY_M ? 18 : 14;
   const url =
-    "https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&addressdetails=1" +
+    `https://nominatim.openstreetmap.org/reverse?format=json&zoom=${zoom}&addressdetails=1` +
     `&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
 
   const res = await fetch(url, {

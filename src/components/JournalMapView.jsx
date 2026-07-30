@@ -22,8 +22,24 @@ import { geocodePlaceName } from "../lib/geolocate.js";
    re-cluster on every zoom, which is what makes a bubble of 12 split into
    three of 4 as you move in. */
 
-const TILE_LIGHT = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+/* CARTO's Positron / Dark Matter basemaps rather than raw OpenStreetMap tiles.
+
+   Standard OSM tiles are a cartographer's map — every road name, shop and
+   footpath at full saturation — which fights the bubbles drawn on top and only
+   exists in light. These are deliberately muted, and the pair means the map can
+   actually follow the app's theme instead of glaring white in dark mode.
+   Still OSM data, still no key and no billing. */
+const TILE_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const TILE_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; ' +
+  '<a href="https://carto.com/attributions">CARTO</a>';
+
+/** The app's resolved light/dark, so the map matches the page it sits on. */
+function currentMode() {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
 
 /** Bubble size grows with the count, but sub-linearly so 100 isn't a blob. */
 function bubbleSize(count) {
@@ -53,6 +69,7 @@ export default function JournalMapView({ journal = [], onOpenEntry, updateJourna
   const hostRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
+  const tileRef = useRef(null);
   const [zoom, setZoom] = useState(3);
   const [ready, setReady] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
@@ -105,7 +122,10 @@ export default function JournalMapView({ journal = [], onOpenEntry, updateJourna
       // The page already scrolls; grabbing the wheel inside it is hostile.
       scrollWheelZoom: false,
     });
-    L.tileLayer(TILE_LIGHT, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(map);
+    tileRef.current = L.tileLayer(
+      currentMode() === "dark" ? TILE_DARK : TILE_LIGHT,
+      { attribution: ATTRIBUTION, maxZoom: 19 }
+    ).addTo(map);
 
     const box = boundsOf(points);
     if (box) map.fitBounds(box, { padding: [40, 40], maxZoom: 13 });
@@ -122,6 +142,20 @@ export default function JournalMapView({ journal = [], onOpenEntry, updateJourna
       layerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPoints]);
+
+  // Follow the app's theme while the map is open — switching Ligand to dark
+  // shouldn't leave a glaring white rectangle sitting in the page.
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      if (!tileRef.current) return;
+      tileRef.current.setUrl(currentMode() === "dark" ? TILE_DARK : TILE_LIGHT);
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    sync();
+    return () => observer.disconnect();
   }, [hasPoints]);
 
   // Leaflet measures the container on creation; inside a tab that was hidden

@@ -254,18 +254,40 @@ export default function DayDial({
     return Math.round((f * DAY_MIN) / SNAP) * SNAP;
   };
 
+  /* Drag empty ring to carve out time.
+
+     The end point is ACCUMULATED from each small movement rather than read
+     straight off the pointer. Taken raw, dragging clockwise from 23:00 past
+     midnight gives to=30 with from=1380; the two then get swapped into a
+     23-hour block covering almost the whole dial — the selection appearing to
+     flip around the ring. Accumulating lets us tell "dragged forwards past
+     midnight" from "dragged backwards", and since a block cannot span midnight
+     the selection simply stops at the end of the day instead. */
   const onBandDown = (e) => {
     e.preventDefault();
     const from = minuteFromEvent(e);
+    let prevMin = from;
+    let travelled = 0;
+    const endpoint = () => Math.max(0, Math.min(DAY_MIN, from + travelled));
     setDrag({ from, to: from });
-    const move = (ev) => setDrag({ from, to: minuteFromEvent(ev) });
-    const up = (ev) => {
+
+    const move = (ev) => {
+      const cur = minuteFromEvent(ev);
+      let step = cur - prevMin;
+      if (step > DAY_MIN / 2) step -= DAY_MIN;
+      if (step < -DAY_MIN / 2) step += DAY_MIN;
+      prevMin = cur;
+      travelled += step;
+      setDrag({ from, to: endpoint() });
+    };
+
+    const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      const to = minuteFromEvent(ev);
+      const to = endpoint();
       setDrag(null);
       const [s, en] = from <= to ? [from, to] : [to, from];
-      if (en - s >= SNAP) onCreateRange?.(s, Math.min(en, DAY_MIN));
+      if (en - s >= SNAP) onCreateRange?.(s, en);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
