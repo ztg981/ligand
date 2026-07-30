@@ -49,7 +49,7 @@ function Sparkline({ series, height = 44 }) {
   );
 }
 
-export default function Stats({ data = {}, sleepLog = [], onOpenPomodoro }) {
+export default function Stats({ data = {}, sleepLog = [], onOpenPomodoro, onOpenFocusDetail }) {
   const [windowDays, setWindowDays] = useState(7);
 
   const s = useMemo(() => computeStats(data, sleepLog, windowDays), [data, sleepLog, windowDays]);
@@ -136,9 +136,11 @@ export default function Stats({ data = {}, sleepLog = [], onOpenPomodoro }) {
           <div className="card">
             <div className="card-head">
               <div className="card-title"><Icon.Timer /> Focus over time</div>
-              {onOpenPomodoro && (
-                <button className="btn ghost sm" onClick={onOpenPomodoro}>
-                  Focus <Icon.Arrow width={13} height={13} />
+              {/* Opens the full picture rather than jumping to the timer —
+                 this card is where you came to LOOK at the numbers. */}
+              {(onOpenFocusDetail || onOpenPomodoro) && (
+                <button className="btn ghost sm" onClick={onOpenFocusDetail || onOpenPomodoro}>
+                  {onOpenFocusDetail ? "Details" : "Focus"} <Icon.Arrow width={13} height={13} />
                 </button>
               )}
             </div>

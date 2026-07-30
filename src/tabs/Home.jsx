@@ -103,6 +103,7 @@ export default function Home({
   onOpenWorkout,
   onOpenAlarms,
   onOpenPomodoro,
+  onOpenFocusDetail,
   onGoToTasks,
   onOpenJournal,
   onOpenDay,
@@ -535,7 +536,7 @@ export default function Home({
             onOpenAlarms={onOpenAlarms}
           />
         )}
-        {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
+        {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} onOpenDetail={onOpenFocusDetail} />}
         {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
         {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
         {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}
@@ -631,7 +632,7 @@ export default function Home({
           {show("screentime") && (
             <ScreenTimeCard activities={activities} addActivity={addActivity} />
           )}
-          {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} />}
+          {show("focustrend") && <FocusTrend focusLog={focusLog} onOpenPomodoro={onOpenPomodoro} onOpenDetail={onOpenFocusDetail} />}
           {show("taskmomentum") && <TaskMomentum tasks={tasks} onOpenTasks={onGoToTasks} />}
           {show("consistency") && <ConsistencyDots focusLog={focusLog} />}
           {show("journalstreak") && <JournalStreak journal={journal} onOpenJournal={onOpenJournal} />}

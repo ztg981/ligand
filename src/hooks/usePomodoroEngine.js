@@ -55,6 +55,10 @@ export function usePomodoroEngine({
   chimeEnabled = true,
   alarmOnComplete = false,
   tasks = [],
+  // Only so a logged session can record what it was FOR in words. The goal
+  // attribution below already needs the ids; this turns them into a label the
+  // focus detail view can show without re-resolving anything.
+  goals = [],
   logFocusSession,
   onPhaseComplete,
 } = {}) {
@@ -95,6 +99,10 @@ export function usePomodoroEngine({
   chimePrefRef.current = chimeEnabled;
   const logRef = useRef(logFocusSession);
   logRef.current = logFocusSession;
+  // Assigned further down, once `labelFor` exists. The phase-end callback is
+  // built before it (it's passed into usePomodoro) but only ever RUNS later,
+  // so reading it through a ref is what lets the two coexist.
+  const labelRef = useRef(null);
   const completeRef = useRef(onPhaseComplete);
   completeRef.current = onPhaseComplete;
 
@@ -128,7 +136,7 @@ export function usePomodoroEngine({
       // "goal:<id>" to that goal directly; custom text and "nothing in
       // particular" log with no goal.
       if (endedPhase === PHASES.WORK && focusEndRef.current) {
-        const { taskId, work, tasks: ts } = focusEndRef.current;
+        const { taskId, work, tasks: ts, goals: gs } = focusEndRef.current;
         if (logRef.current) {
           let goalId = null;
           if (taskId?.startsWith("goal:")) {
@@ -136,14 +144,36 @@ export function usePomodoroEngine({
           } else if (taskId && taskId !== "custom") {
             goalId = ts.find((t) => t.id === taskId)?.goalId || null;
           }
-          logRef.current({ minutes: work, goalId });
+          // "timer": a block that ran the whole way. The one kind of session
+          // worth distinguishing, since finishing is the thing being tracked.
+          logRef.current({
+            minutes: work,
+            goalId,
+            source: "timer",
+            taskId: taskId || null,
+            label: labelRef.current?.(taskId, ts, gs) || null,
+          });
         }
       }
       completeRef.current?.({ endedPhase });
     },
   });
 
-  focusEndRef.current = { taskId: focusTaskId, work: pomo.settings.work, tasks };
+  focusEndRef.current = { taskId: focusTaskId, work: pomo.settings.work, tasks, goals };
+
+  /* What the current focus selection is called, for the log. Mirrors the goal
+     attribution below: a task credits (and is named after) its own text,
+     "goal:<id>" the goal's name, "custom" the free text the user typed, and an
+     empty selection is honestly unattributed rather than invented. */
+  const labelFor = (taskId, ts = tasks, gs = goals) => {
+    if (!taskId) return null;
+    if (taskId === "custom") return focusCustom.trim() || null;
+    if (taskId.startsWith("goal:")) {
+      return gs.find((g) => g.id === taskId.slice(5))?.name || null;
+    }
+    return ts.find((t) => t.id === taskId)?.text || null;
+  };
+  labelRef.current = labelFor;
 
   /* Which goal the current focus selection credits (same rules the phase-end
      logging uses): a task credits its goal, "goal:<id>" credits it directly,
@@ -171,7 +201,16 @@ export function usePomodoroEngine({
     stopAlarm();
     const result = pomo.endSession();
     if (result?.wasFocus && result.elapsedSec >= MIN_LOGGED_SEC) {
-      logRef.current?.({ minutes: result.elapsedMin, goalId: currentGoalId() });
+      // "partial": real focus time, but a block you stopped rather than
+      // finished. Worth separating so the detail view can be honest about how
+      // many blocks actually ran to the end.
+      logRef.current?.({
+        minutes: result.elapsedMin,
+        goalId: currentGoalId(),
+        source: "partial",
+        taskId: focusTaskId || null,
+        label: labelFor(focusTaskId),
+      });
     }
     return result;
   };

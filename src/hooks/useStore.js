@@ -780,14 +780,39 @@ export function useStore() {
   // -- focus log (Pomodoro time tracking) ------------------------
   // Each entry: { date: "YYYY-MM-DD", minutes, goalId|null }. Sessions not
   // linked to a goal are still logged (goalId null) but count toward no goal.
+  /* Record focused time.
+
+     `minutes` and `goalId` are the whole of what this used to store, which is
+     enough for a weekly bar chart and nothing else — there was no way to say
+     when in the day you focus best, how long your sessions actually run, or
+     which of them you finished. The rest of the fields are what make the focus
+     detail view possible:
+
+       at      when it ENDED, as an ISO timestamp → hour-of-day patterns
+       source  "timer" finished a block · "partial" ended one early ·
+               "manual" logged after the fact · "block" a planned focus block
+       label   what you were focusing on, in words
+       taskId  the raw focus selection, for linking back
+
+     All of them are optional and every reader tolerates their absence, so
+     history written before this keeps working and simply shows less. */
   const logFocusSession = useCallback(
-    ({ minutes, goalId = null, date = null }) => {
+    ({ minutes, goalId = null, date = null, at = null, source = null, label = null, taskId = null }) => {
       if (!minutes || minutes <= 0) return;
+      const now = new Date();
       setData((d) => ({
         ...d,
         focusLog: [
           ...(d.focusLog || []),
-          { date: date || todayKey(), minutes, goalId },
+          {
+            date: date || todayKey(),
+            minutes,
+            goalId,
+            at: at || now.toISOString(),
+            source: source || "manual",
+            ...(label ? { label } : null),
+            ...(taskId ? { taskId } : null),
+          },
         ],
       }));
     },

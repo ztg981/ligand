@@ -93,7 +93,7 @@ function buildLifetime(focusLog) {
   return { lifetime: tidy(lifetime), bestDay: tidy(bestDay) };
 }
 
-export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
+export default function FocusTrend({ focusLog = [], onOpenPomodoro, onOpenDetail }) {
   const today = todayKey();
   const days = useMemo(() => buildDays(focusLog, today), [focusLog, today]);
   const { lifetime, bestDay } = useMemo(() => buildLifetime(focusLog), [focusLog]);
@@ -121,9 +121,17 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
     <div className="card focustrend-card">
       <div className="card-head">
         <div className="card-title"><Icon.Bolt /> Focus this week</div>
-        {onOpenPomodoro && (
-          <button className="btn ghost sm" onClick={onOpenPomodoro} title="Start a focus session">
-            Focus <Icon.Arrow width={13} height={13} />
+        {/* This used to jump straight to the Pomodoro tab, which is the one
+           place the widget's own numbers DIDN'T lead. It now opens the full
+           picture — records, streak, the hours you focus in — and starting a
+           session is a button inside that. */}
+        {(onOpenDetail || onOpenPomodoro) && (
+          <button
+            className="btn ghost sm"
+            onClick={onOpenDetail || onOpenPomodoro}
+            title={onOpenDetail ? "See your focus in detail" : "Start a focus session"}
+          >
+            {onOpenDetail ? "Details" : "Focus"} <Icon.Arrow width={13} height={13} />
           </button>
         )}
       </div>

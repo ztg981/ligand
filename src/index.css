@@ -3415,6 +3415,117 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   Focus detail — the whole picture of focused time.
+
+   Records and the streak lead, because those are the numbers that only ever
+   go up; totals get equal billing but no more. Nothing in here shows a
+   target you missed.
+   ══════════════════════════════════════════════════════════════════════ */
+/* The base .modal carries no padding of its own — each one insets its own
+   content — so without this the text ran flush to the border. */
+.fd-modal {
+  max-width: 620px; width: min(620px, 94vw);
+  max-height: 88vh; overflow: auto;
+  padding: 18px 20px 22px;
+}
+.fd-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px;
+}
+
+/* The streak, given the space a headline deserves. */
+.fd-hero {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: linear-gradient(135deg,
+    color-mix(in oklab, var(--accent) 16%, transparent),
+    color-mix(in oklab, var(--accent) 4%, transparent));
+  border: 1px solid color-mix(in oklab, var(--accent) 24%, transparent);
+}
+.fd-hero-main { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.fd-hero-num { font-size: 38px; font-weight: 600; line-height: 1; color: var(--ink); }
+.fd-hero-unit { font-size: 13px; color: var(--ink-2); }
+.fd-hero-note { font-size: 11.5px; color: var(--ink-3); flex-basis: 100%; }
+.fd-hero-note.good { color: var(--accent-ink, var(--accent)); }
+.fd-hero-side { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+
+.fd-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px;
+}
+@media (max-width: 560px) { .fd-stats { grid-template-columns: repeat(2, 1fr); } }
+.fd-stat {
+  padding: 10px 12px; border-radius: var(--r-md);
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.fd-stat-val { font-size: 17px; font-weight: 600; color: var(--ink); }
+.fd-stat-lbl { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.fd-stat-hint { font-size: 10.5px; color: var(--ink-4); margin-top: 3px; }
+.fd-stat.up .fd-stat-hint { color: oklch(0.58 0.13 150); }
+
+.fd-section { margin-top: 18px; }
+.fd-section-title {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 8px;
+}
+.fd-section-note { text-transform: none; letter-spacing: 0; color: var(--ink-4); font-size: 11.5px; }
+.fd-note { font-size: 11.5px; color: var(--ink-4); margin: 8px 0 0; line-height: 1.5; }
+
+.fd-records { display: grid; gap: 6px; }
+.fd-record {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: var(--r-md);
+  background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--ink-3);
+}
+.fd-record-val { font-family: var(--font-mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+.fd-record-lbl { font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hour-of-day strip. A shape to recognise, not a table to read — so the axis
+   is only marked at the quarters. */
+.fd-hours { margin-top: 4px; }
+.fd-hours-bars { display: flex; align-items: flex-end; gap: 2px; height: 76px; }
+.fd-hour-col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.fd-hour-bar {
+  width: 100%; border-radius: 2px 2px 0 0;
+  background: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+.fd-hour-bar.peak { background: var(--accent); }
+.fd-hour-bar.empty { background: var(--line); }
+.fd-hours-axis {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--ink-4); margin-top: 5px;
+}
+
+.fd-goals { display: grid; gap: 7px; }
+.fd-goal { display: grid; grid-template-columns: minmax(70px, 1fr) 2fr auto; gap: 10px; align-items: center; }
+.fd-goal-name { font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-goal-bar { height: 7px; border-radius: 999px; background: var(--panel-3); overflow: hidden; }
+.fd-goal-fill { display: block; height: 100%; border-radius: 999px; }
+.fd-goal-min { font-size: 11.5px; color: var(--ink-3); }
+
+.fd-log { display: grid; gap: 1px; background: var(--line); border-radius: var(--r-md); overflow: hidden; }
+.fd-log-row {
+  display: grid; grid-template-columns: 58px 1fr auto auto; gap: 10px; align-items: baseline;
+  padding: 8px 11px; background: var(--panel-2); font-size: 12px;
+}
+.fd-log-min { color: var(--ink); font-weight: 600; }
+.fd-log-what { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-log-what em { color: var(--ink-4); font-style: italic; }
+.fd-log-src { font-size: 10.5px; color: var(--ink-4); white-space: nowrap; }
+.fd-log-when { font-size: 10.5px; color: var(--ink-4); white-space: nowrap; }
+@media (max-width: 560px) {
+  .fd-log-row { grid-template-columns: 52px 1fr auto; }
+  .fd-log-src { display: none; }
+}
+
+.fd-foot { margin-top: 18px; display: flex; justify-content: center; }
+.fd-empty { text-align: center; padding: 26px 12px; }
+.fd-empty-ic { display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: var(--panel-3); color: var(--ink-3); }
+.fd-empty-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-top: 10px; }
+.fd-empty-sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; max-width: 340px; margin: 6px auto 14px; }
+
+/* ══════════════════════════════════════════════════════════════════════
    CA Highway — driving inland on a hot afternoon.
 
    Everything is aimed at ONE vanishing point (50% 47%, where the road meets

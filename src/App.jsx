@@ -14,6 +14,7 @@ import MigrationModal from "./components/MigrationModal.jsx";
 import SetNewPassword from "./components/SetNewPassword.jsx";
 import BadgeCelebration from "./components/BadgeCelebration.jsx";
 import BadgesModal from "./components/BadgesModal.jsx";
+import FocusDetail from "./components/FocusDetail.jsx";
 import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
@@ -184,6 +185,7 @@ export default function App() {
     chimeEnabled: settings.notifications.pomodoroChime,
     alarmOnComplete: settings.notifications.pomodoroAlarm,
     tasks: store.tasks,
+    goals: store.goals,
     logFocusSession: store.logFocusSession,
     onPhaseComplete: ({ endedPhase }) => {
       const wasFocus = endedPhase === PHASES.WORK;
@@ -703,6 +705,7 @@ export default function App() {
   const { unlocked: unlockedBadges, toastQueue: badgeToasts, dismissToast: dismissBadgeToast } =
     useBadges(badgeStats);
   const [showBadges, setShowBadges] = useState(false);
+  const [showFocusDetail, setShowFocusDetail] = useState(false);
 
   // --- Fresh-start review: guided reshaping of out-of-date goals ----------
   // Detection lives in lib/goalTriage.js; here we hold the offer state
@@ -1526,6 +1529,8 @@ export default function App() {
         minutes: fields.durationMin,
         goalId: fields.goalId || null,
         date: fields.date,
+        source: "block",
+        label: fields.title || null,
       });
     }
   };
@@ -1563,6 +1568,7 @@ export default function App() {
             dayBlocks={store.dayBlocks}
             onOpenWorkout={() => setTab("workout")}
             onOpenPomodoro={() => setTab("pomodoro")}
+            onOpenFocusDetail={() => setShowFocusDetail(true)}
             onOpenJournal={() => setTab("journal")}
             addJournalEntry={store.addJournalEntry}
             onOpenDay={() => setTab("day")}
@@ -1594,6 +1600,7 @@ export default function App() {
             data={store.data}
             sleepLog={sleepLog}
             onOpenPomodoro={() => setTab("pomodoro")}
+            onOpenFocusDetail={() => setShowFocusDetail(true)}
           />
         );
       case "day":
@@ -2164,6 +2171,18 @@ export default function App() {
 
       {showBadges && (
         <BadgesModal unlocked={unlockedBadges} onClose={() => setShowBadges(false)} />
+      )}
+
+      {showFocusDetail && (
+        <FocusDetail
+          focusLog={store.focusLog}
+          goals={store.goals}
+          onClose={() => setShowFocusDetail(false)}
+          onStartSession={() => {
+            setShowFocusDetail(false);
+            setTab("pomodoro");
+          }}
+        />
       )}
 
       {showSleepGate && (

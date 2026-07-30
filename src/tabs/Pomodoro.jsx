@@ -979,7 +979,13 @@ export default function Pomodoro({
   const logPastFocus = () => {
     const m = Math.round(pastMin);
     if (!m || m <= 0) return;
-    logFocusSession?.({ minutes: m, goalId: focusGoalOf(focusTaskId) });
+    logFocusSession?.({
+      minutes: m,
+      goalId: focusGoalOf(focusTaskId),
+      source: "manual",
+      taskId: focusTaskId || null,
+      label: focusTaskId ? focusLabel : null,
+    });
     setJustLoggedMin(m);
     setShowLogPast(false);
   };
