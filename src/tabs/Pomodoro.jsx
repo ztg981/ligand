@@ -56,6 +56,8 @@ const THEMES = [
   { id: "ocean",    name: "Ocean",      ready: true,  swatch: "linear-gradient(180deg,#7ad7e0,#088395,#0a4d68)" },
   { id: "rain",     name: "Rain",       ready: true,  swatch: "linear-gradient(180deg,#2a3340,#4a5a6a)" },
   { id: "zen",      name: "Zen",        ready: true,  swatch: "linear-gradient(180deg,#efe6d6,#d9bd97)" },
+  { id: "highway",  name: "CA Highway", ready: true,  swatch: "linear-gradient(180deg,#2f7fd4,#8fb6d8 52%,#c8a86a)" },
+  { id: "nyc",      name: "New York",   ready: true,  swatch: "linear-gradient(180deg,#1b2340,#7a4a6a 62%,#e8a24a)" },
 ];
 
 const PHASE_LABEL = {
@@ -408,6 +410,238 @@ const RAINFALL = Array.from({ length: 34 }, (_, i) => ({
   delay: -(i * 0.13),
 }));
 
+/* California highway — the roadside furniture, laid out once at module scope.
+
+   Everything rushes at you from a single vanishing point, so each item only
+   needs a lane (how far off-centre it ends up), a start offset, and a cycle
+   length. Staggering the NEGATIVE delays is what makes the traffic feel
+   continuous instead of arriving in convoys: by the time the scene paints,
+   each item is already partway through its run. */
+/* `lane` is in PIXELS, deliberately. These are 4px-wide sticks, and a
+   percentage inside translate() resolves against the element's own box — so a
+   "30%" lane moved a palm about one pixel sideways and the whole roadside sat
+   in a heap on the vanishing point. */
+const HW_PALMS = Array.from({ length: 10 }, (_, i) => ({
+  side: i % 2 ? 1 : -1,
+  lane: 150 + ((i * 47) % 160), // px off centre by the time it exits frame
+  dur: 7.5 + ((i * 7) % 5) * 0.6,
+  delay: -(i * 0.94),
+  lean: ((i * 37) % 11) - 5, // a few degrees of trunk lean each
+}));
+const HW_POLES = Array.from({ length: 6 }, (_, i) => ({
+  side: i % 2 ? 1 : -1,
+  lane: 260 + ((i * 53) % 120),
+  dur: 6.4,
+  delay: -(i * 1.07),
+}));
+// Dashes on the centre line. One element each, so they can accelerate outward
+// the way real markings do rather than sliding at a flat speed.
+const HW_DASHES = Array.from({ length: 7 }, (_, i) => ({ delay: -(i * 0.34), dur: 2.4 }));
+const HW_CARS = [
+  { delay: -1.2, dur: 9, lane: -22, tint: "#d8dde4" },
+  { delay: -5.6, dur: 11, lane: 26, tint: "#c05a4a" },
+];
+
+/* New York — a skyline built from real proportions rather than random bars.
+
+   `w` and `h` are percentages of the scene; `spire` gives a couple of them the
+   setback-and-mast silhouette that actually reads as Manhattan. Window grids
+   come from the CSS; `lit` seeds how many of them are on. */
+/* Widths and heights are deliberately uneven and the tall ones are off-centre.
+   An evenly-spread row of similar towers reads as a bar chart, not a city —
+   real skylines are mostly low mass with a few things sticking out of it. */
+const NYC_BUILDINGS = [
+  { w: 9, h: 22, lit: 0.34 },
+  { w: 5, h: 41, lit: 0.55 },
+  { w: 11, h: 17, lit: 0.24 },
+  { w: 4, h: 62, lit: 0.6, spire: true },
+  { w: 8, h: 27, lit: 0.4 },
+  { w: 6, h: 19, lit: 0.22 },
+  { w: 5, h: 78, lit: 0.66, spire: true }, // the tall one, off-centre on purpose
+  { w: 7, h: 31, lit: 0.44 },
+  { w: 12, h: 15, lit: 0.2 },
+  { w: 4, h: 49, lit: 0.5 },
+  { w: 9, h: 24, lit: 0.36 },
+  { w: 6, h: 36, lit: 0.46 },
+  { w: 10, h: 13, lit: 0.18 },
+  { w: 5, h: 29, lit: 0.38 },
+];
+// Windows that flick on and off — a building is never entirely still at dusk.
+const NYC_WINDOWS = Array.from({ length: 26 }, (_, i) => ({
+  left: 3 + ((i * 17) % 94),
+  bottom: 6 + ((i * 23) % 52),
+  dur: 4 + ((i * 11) % 9),
+  delay: -(i * 1.7),
+}));
+// Headlights and tail-lights streaking down the avenue.
+const NYC_TRAFFIC = Array.from({ length: 9 }, (_, i) => ({
+  dir: i % 3 === 0 ? -1 : 1,
+  bottom: 1 + ((i * 5) % 10),
+  dur: 2.6 + ((i * 7) % 6) * 0.45,
+  delay: -(i * 0.83),
+  warm: i % 3 !== 0, // oncoming headlights are white, tail-lights red
+}));
+const NYC_STEAM = Array.from({ length: 4 }, (_, i) => ({
+  left: 18 + i * 21,
+  dur: 7 + (i % 3) * 1.8,
+  delay: -(i * 2.3),
+  size: 40 + (i % 3) * 18,
+}));
+
+/* California highway — driving into the heat, palms streaming past.
+
+   The road is a CSS trapezoid rather than an image, so the whole thing is one
+   vanishing point everything else can be aimed at: markings, palms, poles and
+   traffic all run the same outward path from the horizon, which is what sells
+   the motion. Layered haze near the horizon does the rest — a hard edge where
+   the road meets the hills is the thing that always looks fake. */
+function HighwayScene() {
+  return (
+    <div className="scene highway">
+      <div className="hw-sky" />
+      <div className="hw-sun" />
+      <div className="hw-hills far" />
+      <div className="hw-hills near" />
+      {/* Dry ground either side of the tarmac. Without it the road's clipped
+         trapezoid left the scene's own background showing through as two black
+         wedges in the bottom corners. */}
+      <div className="hw-ground" />
+      <div className="hw-haze" />
+      <div className="hw-road">
+        <div className="hw-asphalt" />
+        {HW_DASHES.map((d, i) => (
+          <span
+            key={i}
+            className="hw-dash"
+            style={{ animationDuration: `${d.dur}s`, animationDelay: `${d.delay}s` }}
+          />
+        ))}
+        <span className="hw-edge left" />
+        <span className="hw-edge right" />
+        {/* The mirage: a band of shimmer sitting just above the tarmac. */}
+        <div className="hw-shimmer" />
+      </div>
+      {HW_CARS.map((c, i) => (
+        <span
+          key={`car${i}`}
+          className="hw-car"
+          style={{
+            "--lane": `${c.lane}px`,
+            "--tint": c.tint,
+            animationDuration: `${c.dur}s`,
+            animationDelay: `${c.delay}s`,
+          }}
+        />
+      ))}
+      {HW_POLES.map((p, i) => (
+        <span
+          key={`pole${i}`}
+          className="hw-pole"
+          style={{
+            "--lane": `${p.side * p.lane}px`,
+            animationDuration: `${p.dur}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        />
+      ))}
+      {HW_PALMS.map((p, i) => (
+        <span
+          key={`palm${i}`}
+          className="hw-palm"
+          style={{
+            "--lane": `${p.side * p.lane}px`,
+            "--lean": `${p.lean}deg`,
+            animationDuration: `${p.dur}s`,
+            animationDelay: `${p.delay}s`,
+          }}
+        >
+          {/* The trunk is its own element because it's tapered with a
+             clip-path, and a clip-path on the palm itself would cut the
+             fronds off with it — which left every tree a bare brown stick. */}
+          <i className="hw-trunk" />
+          <i className="hw-frond a" />
+          <i className="hw-frond b" />
+          <i className="hw-frond c" />
+          <i className="hw-frond d" />
+          <i className="hw-frond e" />
+        </span>
+      ))}
+      <div className="hw-glare" />
+    </div>
+  );
+}
+
+/* New York at dusk — the skyline, the avenue, and the steam.
+
+   Dusk rather than full night on purpose: the warm band low in the sky is
+   what reads as a city (light pollution against a cooling sky), and it gives
+   the buildings something to be silhouetted against instead of sitting on
+   flat black. */
+function NycScene() {
+  return (
+    <div className="scene nyc">
+      <div className="nyc-sky" />
+      <div className="nyc-glow" />
+      <span className="nyc-plane" />
+      <div className="nyc-skyline far">
+        {NYC_BUILDINGS.map((b, i) => (
+          <span
+            key={`f${i}`}
+            className="nyc-bldg"
+            style={{ "--w": `${b.w * 0.8}%`, "--h": `${b.h * 0.62}%` }}
+          />
+        ))}
+      </div>
+      <div className="nyc-skyline near">
+        {NYC_BUILDINGS.map((b, i) => (
+          <span
+            key={i}
+            className={"nyc-bldg lit" + (b.spire ? " spire" : "")}
+            style={{ "--w": `${b.w}%`, "--h": `${b.h}%`, "--lit": b.lit }}
+          />
+        ))}
+      </div>
+      {NYC_WINDOWS.map((w, i) => (
+        <span
+          key={`w${i}`}
+          className="nyc-win"
+          style={{
+            left: `${w.left}%`,
+            bottom: `${w.bottom}%`,
+            animationDuration: `${w.dur}s`,
+            animationDelay: `${w.delay}s`,
+          }}
+        />
+      ))}
+      {NYC_STEAM.map((s, i) => (
+        <span
+          key={`s${i}`}
+          className="nyc-steam"
+          style={{
+            left: `${s.left}%`,
+            "--size": `${s.size}px`,
+            animationDuration: `${s.dur}s`,
+            animationDelay: `${s.delay}s`,
+          }}
+        />
+      ))}
+      <div className="nyc-street" />
+      {NYC_TRAFFIC.map((t, i) => (
+        <span
+          key={`t${i}`}
+          className={"nyc-car" + (t.warm ? " warm" : " tail")}
+          style={{
+            "--dir": t.dir,
+            bottom: `${t.bottom}%`,
+            animationDuration: `${t.dur}s`,
+            animationDelay: `${t.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // Sunset — a sinking sun over gradient water.
 function SunsetScene() {
   return (
@@ -503,6 +737,8 @@ function SceneContent({ themeId, themeName, dimmed = false }) {
     case "ocean":    return <OceanScene />;
     case "rain":     return <RainScene />;
     case "zen":      return <ZenScene />;
+    case "highway":  return <HighwayScene />;
+    case "nyc":      return <NycScene />;
     default:
       return (
         <div className="scene placeholder">

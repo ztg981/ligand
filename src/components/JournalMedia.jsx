@@ -13,6 +13,7 @@ import {
 } from "../lib/mediaRecord.js";
 import { putMedia, getMediaUrl, deleteMedia, formatBytes } from "../lib/mediaStore.js";
 import { fetchMedia } from "../lib/mediaSync.js";
+import { posterFromVideo } from "../lib/videoPoster.js";
 
 /* JournalMedia — recording controls for the composer, and playback for saved
    entries.
@@ -529,46 +530,61 @@ function MediaItem({ item, onRemove, userId = null }) {
    at a glance; showing the full player made every entry a black rectangle.
    A small poster is the middle: the frame is drawn by seeking the video to its
    first moment with `preload="metadata"`, so nothing extra is stored. */
+/* A clip's tile in the strip: a real frame from the video, not a <video>.
+
+   The first attempt rendered `<video src={url + "#t=0.1"} preload="metadata">`
+   and got a black rectangle every time — metadata preloading fetches no
+   picture at all, the media fragment is ignored on blob: URLs, and frame zero
+   of a recording is usually black regardless. The frame is now fetched
+   deliberately and drawn to a canvas (see lib/videoPoster.js), which also
+   means one <img> per row instead of one live decoder. */
 function VideoThumb({ item, userId, onOpen }) {
-  const [url, setUrl] = useState(null);
+  const [poster, setPoster] = useState(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let dead = false;
     let objectUrl = null;
     (async () => {
       const local = await getMediaUrl(item.id);
-      if (dead) {
-        if (local) URL.revokeObjectURL(local);
-        return;
-      }
-      if (local) {
-        objectUrl = local;
-        setUrl(local);
-        return;
-      }
-      if (userId && item.remotePath) {
+      let url = local;
+      if (!url && userId && item.remotePath) {
         const blob = await fetchMedia(userId, item);
-        if (!dead && blob) {
+        if (blob) {
           objectUrl = URL.createObjectURL(blob);
-          setUrl(objectUrl);
+          url = objectUrl;
         }
+      } else if (local) {
+        objectUrl = local;
       }
+      if (dead || !url) {
+        if (!dead) setFailed(true);
+        return;
+      }
+      const frame = await posterFromVideo(url);
+      if (dead) return;
+      if (frame) setPoster(frame);
+      else setFailed(true);
     })();
     return () => {
       dead = true;
+      // The frame is a self-contained data URL, so the object URL has done its
+      // job the moment the poster exists and can be released either way.
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
     // Keyed on identity and where the bytes live, not the whole item — a
-    // changed duration must not re-fetch and re-mint the object URL.
+    // changed duration must not re-fetch and redraw the poster.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, item.remotePath, userId]);
 
   return (
     <button type="button" className="jm-thumb" onClick={onOpen} title="Play clip">
-      {url ? (
-        <video className="jm-thumb-video" src={`${url}#t=0.1`} muted playsInline preload="metadata" />
+      {poster ? (
+        <img className="jm-thumb-img" src={poster} alt="" draggable={false} />
       ) : (
-        <span className="jm-thumb-fallback"><Icon.Video width={18} height={18} /></span>
+        <span className={"jm-thumb-fallback" + (failed ? "" : " loading")}>
+          <Icon.Video width={18} height={18} />
+        </span>
       )}
       <span className="jm-thumb-play"><Icon.Play width={14} height={14} /></span>
       <span className="jm-thumb-time mono">{formatDuration(item.durationMs || 0)}</span>

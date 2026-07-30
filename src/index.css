@@ -3414,6 +3414,463 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   50%     { transform: scale(1.12); opacity: 1; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   CA Highway — driving inland on a hot afternoon.
+
+   Everything is aimed at ONE vanishing point (50% 47%, where the road meets
+   the hills). Markings, palms, poles and traffic all run the same outward
+   path from it, accelerating as they come — that shared origin is what makes
+   it read as travelling rather than as parts sliding about independently.
+
+   The other half of it is haze. A crisp line where tarmac meets hills is the
+   single thing that always looks like a diagram, so the horizon is deliberately
+   washed out and the distant hills are desaturated toward the sky colour.
+   ══════════════════════════════════════════════════════════════════════ */
+.scene.highway { overflow: hidden; }
+.hw-sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    #1c66c4 0%, #3f8ad8 22%, #79b0dd 40%, #b9d2e0 48%, #d8dcd0 52%);
+}
+/* High summer sun, just off-centre so it isn't a bullseye behind the timer. */
+.hw-sun {
+  position: absolute; left: 68%; top: 12%;
+  width: 150px; height: 150px; margin: -75px 0 0 -75px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(255,252,235,0.95) 0%, rgba(255,238,180,0.55) 26%, rgba(255,225,150,0) 68%);
+  animation: hwSunPulse 9s ease-in-out infinite alternate;
+}
+@keyframes hwSunPulse { from { opacity: 0.75; } to { opacity: 1; } }
+
+/* Golden dry hills — California in August, not a green hillside. The far
+   range is pushed toward the sky's colour so it sits BEHIND the near one. */
+/* Sized so both ranges BOTTOM OUT at 47% — the horizon the road starts from.
+   Any lower and the ground plane (which begins there) simply paints over
+   them and the scene loses its middle distance entirely. */
+.hw-hills {
+  position: absolute; left: -10%; right: -10%; top: 33%; height: 14%;
+  background-repeat: repeat-x;
+}
+.hw-hills.far {
+  background-image:
+    radial-gradient(58% 130% at 12% 100%, #9aa38c 0 99%, transparent 100%),
+    radial-gradient(46% 150% at 42% 100%, #8f9a86 0 99%, transparent 100%),
+    radial-gradient(66% 120% at 78% 100%, #97a08a 0 99%, transparent 100%);
+  filter: blur(0.6px); opacity: 0.85;
+  animation: hwHillDrift 90s linear infinite;
+}
+.hw-hills.near {
+  top: 38%; height: 9%;
+  background-image:
+    radial-gradient(52% 150% at 24% 100%, #b39a5f 0 99%, transparent 100%),
+    radial-gradient(64% 130% at 62% 100%, #a8904f 0 99%, transparent 100%),
+    radial-gradient(40% 170% at 92% 100%, #bda468 0 99%, transparent 100%);
+  animation: hwHillDrift 58s linear infinite;
+}
+@keyframes hwHillDrift { from { transform: translateX(0); } to { transform: translateX(-6%); } }
+
+/* The shoulder and scrubland the road is cut through. Sits between the hills
+   and the road, so the road's trapezoid has something to be cut OUT of rather
+   than exposing the scene's backdrop at the bottom corners. */
+.hw-ground {
+  position: absolute; left: 0; right: 0; top: 46.5%; bottom: 0;
+  background:
+    linear-gradient(180deg, #c3ae82 0%, #b09758 14%, #97824c 52%, #74643c 100%);
+}
+/* A little tonal break so it isn't one flat sheet of dirt. */
+.hw-ground::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 40% at 14% 88%, rgba(120,104,62,0.55), transparent 70%),
+    radial-gradient(50% 36% at 88% 76%, rgba(150,132,84,0.5), transparent 70%);
+}
+
+/* The wash that hides the horizon seam. */
+.hw-haze {
+  position: absolute; left: 0; right: 0; top: 34%; height: 22%;
+  background: linear-gradient(180deg,
+    rgba(226,236,240,0) 0%, rgba(226,236,240,0.55) 46%, rgba(226,236,240,0.18) 100%);
+  pointer-events: none;
+}
+
+/* The road: a trapezoid from the vanishing point down to the full width of
+   the scene. clip-path rather than a perspective transform, so the hill line
+   behind it stays put and nothing has to be 3-D. */
+.hw-road {
+  position: absolute; left: 0; right: 0; top: 47%; bottom: 0;
+  clip-path: polygon(47.5% 0%, 52.5% 0%, 100% 100%, 0% 100%);
+  overflow: hidden;
+}
+.hw-asphalt {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #9a9691 0%, #6d6a68 26%, #4b4948 62%, #3c3a3a 100%);
+}
+.hw-edge {
+  position: absolute; top: 0; bottom: 0; width: 42%;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 100%);
+  clip-path: polygon(100% 0%, 100% 1.5%, 6% 100%, 0% 100%);
+}
+.hw-edge.left { left: 0; transform: translateX(5.5%); }
+.hw-edge.right { right: 0; transform: scaleX(-1) translateX(5.5%); }
+
+/* Centre-line dashes. Each is its own element so it can ACCELERATE as it
+   comes — a single scrolling background moves at a flat rate and instantly
+   reads as a treadmill. */
+.hw-dash {
+  position: absolute; left: 50%; top: 0;
+  /* Narrow and elongated. Wider than this and the scale-up turned each dash
+     into a floating cream square rather than a marking lying on the road. */
+  width: 0.85%; height: 6%;
+  background: linear-gradient(180deg, rgba(246,232,186,0.35), rgba(248,236,196,0.85));
+  border-radius: 1px;
+  transform-origin: 50% 0;
+  animation-name: hwDash;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35);
+  animation-iteration-count: infinite;
+}
+/* 2000%, not 1000%: translateY's percentage is of the DASH's own height (5% of
+   the road), so a dash has to travel twenty of itself to cross the tarmac.
+   At half that it faded out mid-road and the markings looked like they stopped
+   in the middle distance. */
+@keyframes hwDash {
+  0%   { transform: translate(-50%, 0) scale(0.1); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translate(-50%, 1700%) scale(2.8); opacity: 1; }
+}
+/* Heat mirage over the tarmac — a soft light band that breathes and shifts. */
+.hw-shimmer {
+  position: absolute; left: 0; right: 0; top: 0; height: 26%;
+  background: linear-gradient(180deg, rgba(220,235,245,0.55), rgba(220,235,245,0));
+  filter: blur(3px);
+  animation: hwShimmer 3.4s ease-in-out infinite alternate;
+}
+@keyframes hwShimmer {
+  from { opacity: 0.5; transform: translateY(0) scaleY(1); }
+  to   { opacity: 0.85; transform: translateY(1.5%) scaleY(1.25); }
+}
+
+/* Roadside furniture. All three share one path out of the vanishing point;
+   only the lane, size and speed differ. */
+/* Anchored by their BOTTOM to the horizon line (47% from the top), not by
+   their top. With transform-origin at the base, that keeps every trunk planted
+   on the ground as it scales up — anchored from the top instead, a pole grew
+   from a point 60px below the horizon and its crossbar ended up floating in
+   the sky, detached from anything. */
+.hw-palm, .hw-pole, .hw-car {
+  position: absolute; left: 50%; bottom: 53%;
+  transform-origin: 50% 100%;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4);
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+.hw-palm {
+  width: 5px; height: 52px;
+  rotate: var(--lean, 0deg);
+  animation-name: hwPass;
+}
+/* Tapered trunk — a palm is thinner at the crown than at the base, and a plain
+   rectangle is most of what made the first pass read as clip-art. It has to be
+   a separate element: clip-path applies to descendants, so putting it on the
+   palm cut the fronds away and left a bare brown stick. */
+.hw-trunk {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #6d5637 0%, #7a6140 35%, #4a3a26 100%);
+  clip-path: polygon(26% 0%, 74% 0%, 100% 100%, 0% 100%);
+}
+/* Fronds. Curved (border-radius on one corner pair) and hung at seven angles
+   so the crown has a droop instead of being a symmetrical star. */
+.hw-frond {
+  position: absolute; left: 50%; top: -1px;
+  width: 23px; height: 6px;
+  background: linear-gradient(90deg, #2f5730 0%, #3d6b38 45%, rgba(61,107,56,0) 100%);
+  border-radius: 0 100% 100% 0 / 0 140% 60% 0;
+  transform-origin: 0 60%;
+}
+.hw-frond.a { transform: rotate(-84deg) scaleX(0.8); }
+.hw-frond.b { transform: rotate(-46deg); }
+.hw-frond.c { transform: rotate(-8deg) scaleX(1.1); }
+.hw-frond.d { transform: rotate(-134deg) scaleY(-1); }
+.hw-frond.e { transform: rotate(-172deg) scaleY(-1) scaleX(1.1); }
+/* Two more, drooping below the horizontal — the older fronds on a real palm. */
+.hw-palm::before, .hw-palm::after {
+  content: ""; position: absolute; left: 50%; top: 1px;
+  width: 19px; height: 5px;
+  background: linear-gradient(90deg, #26492a, rgba(38,73,42,0));
+  border-radius: 0 100% 100% 0 / 0 140% 60% 0;
+  transform-origin: 0 60%;
+}
+.hw-palm::before { transform: rotate(24deg); }
+.hw-palm::after { transform: rotate(-206deg) scaleY(-1); }
+.hw-pole {
+  width: 3px; height: 66px;
+  background: linear-gradient(180deg, #9b8f80 0%, #7a7167 55%, #57504a 100%);
+  animation-name: hwPass;
+}
+.hw-pole::before {
+  content: ""; position: absolute; left: -8px; top: 3px;
+  width: 19px; height: 2px; background: #6f6760; border-radius: 1px;
+}
+.hw-pole::after {
+  content: ""; position: absolute; left: -6px; top: 9px;
+  width: 15px; height: 2px; background: #6f6760; border-radius: 1px;
+}
+/* Cars ahead of you: they recede more slowly, because you're gaining on them
+   rather than passing something standing still. */
+.hw-car {
+  width: 16px; height: 11px;
+  background: var(--tint, #d8dde4);
+  border-radius: 3px 3px 2px 2px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.35), inset 0 -3px 0 rgba(0,0,0,0.18);
+  animation-name: hwCar;
+  animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5);
+}
+.hw-car::after {
+  content: ""; position: absolute; left: 1px; right: 1px; bottom: 1px; height: 2px;
+  background: rgba(190,40,30,0.9); border-radius: 1px;
+}
+/* `--lane` is a PIXEL length. Percentages inside translate() resolve against
+   the element's own box, and these are 3–4px sticks — a "30%" lane moved a
+   palm about a pixel, so the entire roadside stayed piled on the vanishing
+   point looking like a smudge. */
+/* `--lane` is a PIXEL length. Percentages inside translate() resolve against
+   the element's own box, and these are 3–5px sticks — a "30%" lane moved a
+   palm about a pixel, so the entire roadside stayed piled on the vanishing
+   point looking like a smudge.
+   The 420% is vertical travel measured in the element's own height, which is
+   what carries the base from the horizon down past the bottom of the frame. */
+@keyframes hwPass {
+  0%   { transform: translate(-50%, 0) scale(0.05); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--lane, 200px)), 420%) scale(4.2); opacity: 1; }
+}
+@keyframes hwCar {
+  0%   { transform: translate(calc(-50% + var(--lane, 0px) * 0.25), 0) scale(0.12); opacity: 0; }
+  14%  { opacity: 0.95; }
+  100% { transform: translate(calc(-50% + var(--lane, 0px)), 900%) scale(2.6); opacity: 1; }
+}
+/* Windscreen glare — the last thing, over everything. */
+.hw-glare {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 68% 14%, rgba(255,250,225,0.28), transparent 70%),
+    linear-gradient(180deg, rgba(255,245,210,0.14), transparent 34%);
+}
+/* Late drive: the same road at golden hour, sun low and long shadows. */
+[data-theme="dark"] .hw-sky {
+  background: linear-gradient(180deg,
+    #16233f 0%, #2c3a63 20%, #6b4a63 38%, #b9694a 47%, #d98a4e 52%);
+}
+[data-theme="dark"] .hw-sun { top: 40%; left: 56%; filter: saturate(1.4) brightness(1.05); }
+[data-theme="dark"] .hw-hills.far { filter: blur(0.6px) brightness(0.45) saturate(0.7); }
+[data-theme="dark"] .hw-hills.near { filter: brightness(0.4) saturate(0.8); }
+[data-theme="dark"] .hw-haze {
+  background: linear-gradient(180deg,
+    rgba(230,150,90,0) 0%, rgba(230,150,90,0.4) 46%, rgba(230,150,90,0.12) 100%);
+}
+[data-theme="dark"] .hw-asphalt {
+  background: linear-gradient(180deg, #5e5148 0%, #423a37 26%, #2e2a29 62%, #232120 100%);
+}
+[data-theme="dark"] .hw-glare {
+  background:
+    radial-gradient(60% 40% at 56% 42%, rgba(255,190,120,0.3), transparent 70%),
+    linear-gradient(180deg, rgba(255,200,140,0.1), transparent 34%);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   New York — dusk over the avenue.
+
+   Dusk rather than full night, because the warm band low in the sky IS the
+   city: that's light pollution against a cooling sky, and it gives the towers
+   something to be silhouetted against instead of sitting on flat black.
+
+   Two skylines at different scales and brightnesses do the depth. The near
+   one carries window grids (repeating-linear-gradient, so the windows line up
+   into floors rather than scattering), and a handful of individually animated
+   windows flick on and off over the top — a city is never entirely still.
+   ══════════════════════════════════════════════════════════════════════ */
+.scene.nyc { overflow: hidden; }
+.nyc-sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg,
+    #0d1430 0%, #1b2450 26%, #3c3566 48%, #7c4a5e 68%, #c26a4a 84%, #e8a24a 96%);
+}
+/* The haze the whole city sits in. */
+.nyc-glow {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+  background:
+    radial-gradient(80% 100% at 50% 100%, rgba(255,178,96,0.5), transparent 72%),
+    radial-gradient(40% 70% at 18% 100%, rgba(255,140,80,0.3), transparent 70%);
+  animation: nycGlow 12s ease-in-out infinite alternate;
+}
+@keyframes nycGlow { from { opacity: 0.85; } to { opacity: 1; } }
+/* A red blinker crossing, high up and slow — the give-away that it's a real sky. */
+.nyc-plane {
+  position: absolute; top: 14%; left: -4%;
+  width: 3px; height: 3px; border-radius: 50%;
+  background: #ff5a4a; box-shadow: 0 0 6px 2px rgba(255,90,74,0.6);
+  animation: nycPlane 26s linear infinite;
+}
+@keyframes nycPlane {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  6%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translate(120vw, -3vh); opacity: 0; }
+}
+
+.nyc-skyline {
+  position: absolute; left: 0; right: 0; bottom: 13%;
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 0.4%;
+}
+/* The far range is offset sideways as well as up, so it isn't the near one
+   with a blur on it — the towers have to land in the GAPS to read as depth. */
+.nyc-skyline.far {
+  bottom: 17%; opacity: 0.5; filter: blur(0.6px);
+  transform: translateX(3.5%);
+}
+.nyc-bldg {
+  position: relative;
+  width: var(--w, 6%);
+  height: 0;
+  padding-bottom: var(--h, 40%);
+  flex: 0 0 auto;
+  background: #141a30;
+}
+.nyc-skyline.far .nyc-bldg { background: #232b48; }
+/* Window grid. Two repeating gradients crossed: columns and floors. Sized in
+   px so the windows stay a believable SIZE as buildings get wider, instead of
+   stretching with them. */
+/* Window grid, in three layers and the ORDER MATTERS — earlier layers paint
+   on top. Floors first so the dark bands cut the columns into windows; with
+   the columns on top instead, they simply covered the floor bands and every
+   tower came out as full-height vertical stripes, like a bar chart.
+
+   Third layer knocks out a band of columns every so often. Without it the
+   grid is perfectly regular, which no real building is — a few dark bays are
+   most of what stops it looking like graph paper.
+
+   Sized in px, not %, so windows stay a believable SIZE as buildings get
+   wider rather than stretching with them. */
+.nyc-bldg.lit {
+  background-color: #0d1222;
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(11,14,26,0) 0 13px, rgba(11,14,26,0.8) 13px 19px),
+    repeating-linear-gradient(180deg,
+      rgba(11,14,26,0) 0 2px, rgba(11,14,26,0.97) 2px 7px),
+    repeating-linear-gradient(90deg,
+      rgba(255,203,128,var(--lit, 0.5)) 0 2px, rgba(13,18,34,0.97) 2px 6px);
+  background-position: 3px 5px;
+}
+/* The setback-and-mast profile that reads as Manhattan rather than as a box. */
+.nyc-bldg.spire::before {
+  content: ""; position: absolute; left: 30%; right: 30%; top: -7%; bottom: 94%;
+  background: inherit; background-color: #10162a;
+}
+.nyc-bldg.spire::after {
+  content: ""; position: absolute; left: calc(50% - 1px); top: -13%;
+  width: 2px; height: 8%;
+  background: linear-gradient(180deg, rgba(255,190,120,0.9), #10162a);
+}
+/* Individually animated windows, sprinkled over the near skyline. */
+.nyc-win {
+  position: absolute; width: 3px; height: 4px;
+  background: rgba(255,214,150,0.95);
+  box-shadow: 0 0 5px 1px rgba(255,190,110,0.5);
+  animation-name: nycWin;
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+}
+@keyframes nycWin {
+  0%, 44%  { opacity: 0; }
+  45%, 100% { opacity: 1; }
+}
+/* Steam from the vents — slow, and it should fade before it gets high. */
+.nyc-steam {
+  position: absolute; bottom: 4%;
+  width: var(--size, 46px); height: var(--size, 46px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,226,238,0.42), rgba(232,226,238,0) 68%);
+  filter: blur(5px);
+  animation-name: nycSteam;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+@keyframes nycSteam {
+  0%   { transform: translate(-50%, 20%) scale(0.35); opacity: 0; }
+  18%  { opacity: 0.75; }
+  100% { transform: translate(calc(-50% + 26px), -220%) scale(1.9); opacity: 0; }
+}
+/* The avenue itself — wet-looking, so the traffic has something to reflect in. */
+/* The avenue. Tall enough for the traffic to actually live in, and wet-looking
+   so the lights have something to smear into. */
+.nyc-street {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 14%;
+  background:
+    linear-gradient(180deg, rgba(255,190,120,0.18) 0 1px, transparent 1px),
+    linear-gradient(180deg, #241d2c 0%, #14111c 45%, #0a0810 100%);
+}
+/* Reflected glow off the wet road, under everything moving on it. */
+.nyc-street::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 100%;
+  background: radial-gradient(60% 130% at 50% 0%, rgba(255,180,110,0.22), transparent 70%);
+}
+.nyc-car {
+  position: absolute; left: -6%;
+  width: 46px; height: 2px; border-radius: 2px;
+  animation-name: nycCar;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.nyc-car.warm {
+  background: linear-gradient(90deg, rgba(255,236,200,0), rgba(255,236,200,0.95));
+  box-shadow: 0 0 9px 2px rgba(255,224,170,0.45);
+}
+.nyc-car.tail {
+  background: linear-gradient(90deg, rgba(255,80,60,0.9), rgba(255,80,60,0));
+  box-shadow: 0 0 8px 2px rgba(255,80,60,0.35);
+}
+@keyframes nycCar {
+  0%   { transform: translateX(0) scaleX(0.6); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(calc(var(--dir, 1) * 118vw)) scaleX(1.5); opacity: 0; }
+}
+/* Daylight New York: the same skyline under an overcast morning, lights off. */
+[data-theme="light"] .nyc-sky {
+  background: linear-gradient(180deg,
+    #6f92bd 0%, #93b0cf 30%, #b8cadb 58%, #d3dde5 82%, #dfe4e6 100%);
+}
+[data-theme="light"] .nyc-glow {
+  background: radial-gradient(80% 100% at 50% 100%, rgba(255,245,230,0.55), transparent 72%);
+}
+[data-theme="light"] .nyc-bldg { background: #7d8ba3; }
+[data-theme="light"] .nyc-skyline.far .nyc-bldg { background: #a3b0c2; }
+[data-theme="light"] .nyc-bldg.lit {
+  background-color: #6d7c95;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(109,124,149,0) 0 2px, rgba(109,124,149,0.95) 2px 7px),
+    repeating-linear-gradient(90deg, rgba(46,58,80,0.5) 0 2px, rgba(109,124,149,0.95) 2px 6px);
+  background-position: 3px 5px;
+}
+[data-theme="light"] .nyc-bldg.spire::before { background-color: #6d7c95; }
+[data-theme="light"] .nyc-win { opacity: 0 !important; }
+[data-theme="light"] .nyc-street {
+  background: linear-gradient(180deg, #6a7285 0%, #545b6c 60%, #454b59 100%);
+}
+[data-theme="light"] .nyc-plane { background: #3a4256; box-shadow: none; }
+/* Headlights don't glow in daylight — keep the traffic as moving shapes. */
+[data-theme="light"] .nyc-car.warm {
+  background: linear-gradient(90deg, rgba(226,232,240,0), rgba(226,232,240,0.7));
+  box-shadow: none;
+}
+[data-theme="light"] .nyc-car.tail {
+  background: linear-gradient(90deg, rgba(150,90,90,0.6), rgba(150,90,90,0));
+  box-shadow: none;
+}
+
 /* Honor the Settings "reduce motion" preference (also respects the OS setting). */
 [data-reduce-motion="true"] *,
 [data-reduce-motion="true"] *::before,
@@ -7283,8 +7740,13 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   display: block;
 }
 .jm-thumb:hover { border-color: var(--line-strong); }
-.jm-thumb-video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.jm-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .jm-thumb-fallback { display: grid; place-items: center; width: 100%; height: 100%; color: rgba(255,255,255,0.5); }
+/* Decoding a frame takes a moment; a quiet pulse says "coming" rather than
+   leaving what looks like a broken tile. */
+.jm-thumb-fallback.loading { animation: jmThumbWait 1.4s ease-in-out infinite; }
+@keyframes jmThumbWait { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .jm-thumb-fallback.loading { animation: none; } }
 .jm-thumb-play {
   position: absolute; inset: 0; margin: auto;
   width: 30px; height: 30px; border-radius: 999px;
