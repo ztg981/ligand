@@ -507,7 +507,11 @@ export function createDayBlock({
     id: uid("blk"),
     date,
     start: Math.max(0, Math.min(24 * 60, Math.round(start))),
-    end: Math.max(1, Math.min(24 * 60, Math.round(end))),
+    /* Up to 48h, not 24. A block that runs past midnight is stored with its
+       end carrying on past 1440 (11pm–1am is 1380 → 1500; see the header of
+       lib/dayPlanner.js), so clamping to a single day here silently truncated
+       every late-night block back to finishing at midnight. */
+    end: Math.max(1, Math.min(48 * 60, Math.round(end))),
     title,
     category,
     protected: Boolean(isProtected),

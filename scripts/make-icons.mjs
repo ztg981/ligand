@@ -56,6 +56,60 @@ const draw = (size, { plate = false } = {}) => `
   })()
 `;
 
+/* The social card: what Slack, iMessage, Discord, X and Google show when the
+   deployed URL is pasted anywhere. Without one they render a bare link with no
+   mark at all, which is most of why the site can look unbranded even though the
+   favicon is correct. 1200x630 is the size every one of them crops to. */
+const drawCard = (w = 1200, h = 630) => `
+  (() => {
+    const c = document.createElement('canvas');
+    c.width = ${w}; c.height = ${h};
+    const ctx = c.getContext('2d');
+
+    const bg = ctx.createLinearGradient(0, 0, ${w}, ${h});
+    bg.addColorStop(0, '#241a3d');
+    bg.addColorStop(1, '#0e0a19');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, ${w}, ${h});
+
+    // A violet bloom behind the mark, echoing the app's ambient glow.
+    const glow = ctx.createRadialGradient(${w} * 0.28, ${h} * 0.5, 0, ${w} * 0.28, ${h} * 0.5, ${h} * 0.75);
+    glow.addColorStop(0, 'rgba(140, 80, 255, 0.42)');
+    glow.addColorStop(1, 'rgba(140, 80, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, ${w}, ${h});
+
+    ctx.save();
+    const scale = ${h} * 0.46 / 46;
+    ctx.translate(${w} * 0.18 - (48 * scale) / 2, (${h} - 46 * scale) / 2);
+    ctx.scale(scale, scale);
+    const g = ctx.createLinearGradient(0, 0, 48, 46);
+    g.addColorStop(0, '#c4b0ff');
+    g.addColorStop(1, '#7c3aff');
+    ctx.fillStyle = g;
+    ctx.fill(new Path2D(${JSON.stringify(BOLT)}));
+    ctx.restore();
+
+    const x = ${w} * 0.33;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 104px "Segoe UI", system-ui, sans-serif';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('Ligand', x, ${h} * 0.5);
+    // Shrunk to fit rather than trusting a guess: the tagline is long, and a
+    // card whose text runs off the right edge is worse than a smaller one.
+    ctx.fillStyle = 'rgba(226, 216, 255, 0.74)';
+    const tagline = 'Focus, habits, and goals — designed for ADHD';
+    let size = 38;
+    do {
+      ctx.font = '400 ' + size + 'px "Segoe UI", system-ui, sans-serif';
+      size -= 1;
+    } while (size > 20 && ctx.measureText(tagline).width > ${w} - x - 56);
+    ctx.fillText(tagline, x, ${h} * 0.5 + 60);
+
+    return c.toDataURL('image/png').split(',')[1];
+  })()
+`;
+
 app.disableHardwareAcceleration();
 
 app.whenReady().then(async () => {
@@ -120,9 +174,20 @@ app.whenReady().then(async () => {
     offset += img.data.length;
   });
 
-  const ico = join(pub, "ligand.ico");
-  writeFileSync(ico, Buffer.concat([header, dir, ...images.map((i) => i.data)]));
-  console.log(`wrote ${ico} (${icoSizes.length} sizes)`);
+  const icoBytes = Buffer.concat([header, dir, ...images.map((i) => i.data)]);
+  // ligand.ico is what the Windows desktop build ships; favicon.ico is the
+  // same file at the path every browser, crawler and link-unfurler probes by
+  // convention when it doesn't parse the page's <link> tags.
+  for (const name of ["ligand.ico", "favicon.ico"]) {
+    writeFileSync(join(pub, name), icoBytes);
+    console.log(`wrote ${join(pub, name)} (${icoSizes.length} sizes)`);
+  }
+
+  // Social card.
+  const cardB64 = await win.webContents.executeJavaScript(drawCard());
+  const cardBytes = Buffer.from(cardB64, "base64");
+  writeFileSync(join(pub, "og-card.png"), cardBytes);
+  console.log(`wrote ${join(pub, "og-card.png")} (${cardBytes.length} bytes)`);
 
   win.destroy();
   app.quit();

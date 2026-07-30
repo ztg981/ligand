@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PHASES } from "../hooks/usePomodoro.js";
 import { todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import useSquishResize from "../hooks/useSquishResize.js";
 import FocusPicker from "../components/FocusPicker.jsx";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
 import { Icon } from "../components/Icons.jsx";
@@ -20,6 +21,11 @@ import {
    day (6 am–8 pm) and night variants automatically. Subway is
    always underground - no day/night.
    ============================================================ */
+
+/* The scene's narrow width — the bottom of the drag-to-resize range, and the
+   width it sits at by default. Kept in step with `max-width` on .pomo-window
+   in index.css; the gesture needs it as a number, CSS needs it as a length. */
+const POMO_NARROW_PX = 620;
 
 /* Real background photos (CC0/Pexels - bundled in /public/images/).
    Each scene photo is loaded lazily as a CSS background-image so the
@@ -564,8 +570,18 @@ export default function Pomodoro({
   }, [hyperfocus]);
   const showStartPrompt = hyperfocus && !pomo.running && !promptDismissed;
 
-  // Whether the scene fills the page or sits in its default column.
+  // Whether the scene fills the page or sits in its default column. Sized by
+  // grabbing the scene and dragging it sideways (see useSquishResize) rather
+  // than by a corner button — the width is a feel, not a toggle.
   const [sceneWide, setSceneWide] = useLocalStorage("ligand.pomoSceneWide", false);
+  const squish = useSquishResize({
+    wide: sceneWide,
+    setWide: setSceneWide,
+    minWidth: POMO_NARROW_PX,
+    // Hyperfocus is a deliberately fixed, undistracting layout — nothing to
+    // resize there, and a jiggling panel would undo the point of it.
+    enabled: !hyperfocus,
+  });
 
   // Focus mode: hides all surrounding UI, leaving only the scene + timer.
   // Only toggleable from within; exits cleanly on either the button or when
@@ -832,27 +848,20 @@ export default function Pomodoro({
       <div className="pomo-stage">
         {/* The scene window - real photo + CSS animations layered on top */}
         <div
-          className={
-            "pomo-window" + (hyperfocus ? " hyperfocus" : "") + (sceneWide ? " wide" : "")
-          }
-          style={showScenePhoto ? {
-            backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          } : undefined}
+          ref={squish.ref}
+          className={"pomo-window" + (hyperfocus ? " hyperfocus" : "") + squish.className}
+          role="group"
+          aria-label="Focus scene — drag sideways to resize"
+          style={{
+            ...(showScenePhoto ? {
+              backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : null),
+            ...squish.style,
+          }}
+          {...squish.handlers}
         >
-          {/* Use the empty space either side, for people who want the scene to
-             fill the page rather than sit in a column. */}
-          <button
-            type="button"
-            className="pomo-expand"
-            onClick={() => setSceneWide((w) => !w)}
-            title={sceneWide ? "Shrink the scene" : "Widen the scene"}
-            aria-pressed={sceneWide}
-            data-mute-click
-          >
-            <Icon.Grid width={14} height={14} />
-          </button>
           {/* Dark overlay so CSS animations + timer remain legible over photo */}
           <div className="pomo-photo-veil" />
           <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />

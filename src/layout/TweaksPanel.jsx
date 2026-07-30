@@ -88,7 +88,8 @@ export default function TweaksPanel({
               className={"swatch-pick " + (accent === a.id ? "active" : "")}
               style={{ background: a.color, width: 20, height: 20 }}
               onClick={() => set({ [accentKey]: a.id })}
-              title={`Hue ${a.id}`}
+              title={a.name}
+              aria-label={a.name}
             />
           ))}
         </div>

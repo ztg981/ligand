@@ -68,7 +68,8 @@ export default function AppearanceModePreset({
                 className={"swatch-pick " + (accent === a.id ? "active" : "")}
                 style={{ background: a.color, width: 22, height: 22 }}
                 onClick={() => onAccentChange(a.id)}
-                title={`Hue ${a.id}`}
+                title={a.name}
+                aria-label={a.name}
                 aria-pressed={accent === a.id}
               />
             ))}

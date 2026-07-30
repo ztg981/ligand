@@ -2331,6 +2331,12 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   width: 100%;
   max-width: 620px;
   aspect-ratio: 16 / 10; /* wide, immersive backdrop */
+  /* Widening must make the scene WIDER, not bigger. Left to the aspect ratio
+     alone, dragging it out to the full page also grows it downward until it
+     pushes the transport controls off-screen — "expand" then means "zoom",
+     which is not what a wide scene is for. A definite width plus a max-height
+     keeps the ratio as the natural size and lets the box out of it sideways. */
+  max-height: 388px; /* the 16/10 height at the 620px narrow width */
   margin: 0 auto;
   border-radius: 24px;
   overflow: hidden;
@@ -2340,23 +2346,67 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
      the rounded corners (worse on higher-DPI screens, where the antialiased
      arc has more pale pixels to reveal). A faint light-on-dark edge instead. */
   border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: var(--shadow-pop);
-  transition: max-width 0.28s var(--ease);
+  /* Deliberately NOT --shadow-pop. That token opens with an inset
+     `0 1px 0 rgba(255,255,255,0.95)` — a near-white highlight along the top
+     edge, which is right for a pale card and wrong for an always-dark scene:
+     it wrapped the rounded corners and read as random white flecks up there.
+     A plain drop shadow, no highlight. */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 18px 42px -16px rgba(0, 0, 0, 0.5);
+  /* Sideways drags belong to the resize gesture; vertical ones still scroll
+     the page, so the scene isn't a dead zone on a touchscreen. */
+  touch-action: pan-y;
+  transition:
+    max-width 0.46s cubic-bezier(0.22, 1.4, 0.36, 1),
+    transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+    scale 0.3s var(--ease);
 }
-/* Expanded: use the width either side of the scene instead of letting it sit
-   in a column. Toggled from the button on the window. */
+/* Widened: use the room either side instead of sitting in a column. */
 .pomo-window.wide { max-width: 100%; }
-.pomo-expand {
-  position: absolute; top: 12px; right: 12px; z-index: 3;
-  width: 30px; height: 30px; display: grid; place-items: center;
-  border: none; border-radius: 999px;
-  background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.85);
-  cursor: pointer; opacity: 0.45;
-  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-  transition: opacity 0.18s var(--ease), background 0.18s var(--ease);
+
+/* ── Grab-and-squish resizing ──────────────────────────────────────────
+   Press and it jiggles (a home-screen widget saying "you can move me"),
+   drag and the width tracks your pointer, push past either end and it
+   squashes instead of going dead. The squash transform is applied inline
+   by useSquishResize; the jiggle uses the individual `rotate`/`scale`
+   properties precisely so it composes with that instead of fighting it.
+   ────────────────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .pomo-window:not(.hyperfocus) { cursor: grab; }
 }
-.pomo-window:hover .pomo-expand { opacity: 1; }
-.pomo-expand:hover { background: rgba(0,0,0,0.55); }
+.pomo-window.grabbed { cursor: grabbing; animation: pomoJiggle 0.36s ease-in-out infinite; }
+.pomo-window.grabbed.dragging { animation: none; scale: 1.006; }
+/* While the finger is down the width must follow it exactly — a transition
+   here would lag the pointer and feel like drag on a rope. */
+.pomo-window.dragging { transition: none; }
+@keyframes pomoJiggle {
+  0%   { rotate: -0.5deg; scale: 1.006; }
+  50%  { rotate:  0.5deg; scale: 1.012; }
+  100% { rotate: -0.5deg; scale: 1.006; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pomo-window.grabbed { animation: none; }
+  .pomo-window { transition: max-width 0.01s linear; }
+}
+/* The gesture has no button to advertise it, so say so on hover — and only
+   on the widths where there is actually room to grow into. */
+@media (min-width: 900px) {
+  .pomo-window::after {
+    content: "↔ drag to resize";
+    position: absolute; bottom: 12px; left: 50%; margin-left: -68px;
+    width: 136px; text-align: center;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(0, 0, 0, 0.34);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    padding: 4px 0; border-radius: 999px;
+    opacity: 0; transition: opacity 0.2s var(--ease);
+    pointer-events: none; z-index: 3;
+  }
+  .pomo-window:hover::after { opacity: 1; }
+  .pomo-window.dragging::after,
+  .pomo-window.grabbed::after,
+  .pomo-window.hyperfocus::after { opacity: 0; }
+}
 /* Semi-transparent veil over the real photo — keeps CSS scene
    animations and the timer ring legible against any photo content.
    A soft vignette + centre darken gives the ring/text a readable bed
@@ -6828,6 +6878,34 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   position: absolute; top: 4px; right: 4px; z-index: 3;
   display: flex; flex-direction: column; gap: 6px;
 }
+/* The X on the selected wedge — the remove control that actually lives next
+   to the thing it removes (see DayDial). Pops in so it's noticed. */
+.dial-x-bg {
+  fill: oklch(0.58 0.19 25);
+  stroke: var(--panel);
+  stroke-width: 2.5;
+}
+.dial-x-mark {
+  stroke: #fff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  fill: none;
+}
+.dial-x { transform-box: fill-box; transform-origin: center; }
+.dial-x { animation: dialXPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.dial-x:hover .dial-x-bg { fill: oklch(0.52 0.21 25); }
+@keyframes dialXPop {
+  from { opacity: 0; scale: 0.4; }
+  to   { opacity: 1; scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .dial-x { animation: none; } }
+
+/* Late-night blocks: the editor says so where the times are. */
+.dp-overnight-note {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: -2px; font-size: 11.5px; color: var(--ink-3);
+}
+
 /* Destructive, so it reads as such rather than as another dial preference. */
 .dp-dial-remove {
   color: oklch(0.58 0.17 25);

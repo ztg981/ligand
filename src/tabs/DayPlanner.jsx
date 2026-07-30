@@ -17,6 +17,7 @@ import {
   hhmmToMinutes,
   minutesToLabel,
   nextFreeSlot,
+  resolveRange,
 } from "../lib/dayPlanner.js";
 import { describeRepeat, expandRepeat } from "../lib/recurrence.js";
 import { categoryOf, hhmmToMin } from "../lib/activities.js";
@@ -55,11 +56,17 @@ function BlockEditor({
   overlay = false, // week/month views: float the editor instead of inlining it
 }) {
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
+  const startMin = hhmmToMinutes(draft.startHH);
+  const endMin = hhmmToMinutes(draft.endHH);
+  // An end EARLIER than the start is a late night, not a mistake — 23:00 to
+  // 01:00 finishes tomorrow. Only an end EQUAL to the start is rejected, since
+  // that's the one reading with no sensible duration.
   const valid =
-    draft.title.trim() &&
-    hhmmToMinutes(draft.startHH) != null &&
-    hhmmToMinutes(draft.endHH) != null &&
-    hhmmToMinutes(draft.endHH) > hhmmToMinutes(draft.startHH);
+    draft.title.trim() && startMin != null && endMin != null && endMin !== startMin;
+  // Deliberately NOT gated on `valid`: the times are already on screen before
+  // the title is, and "23:00 → 01:00" is exactly when the reader needs telling
+  // it means tomorrow.
+  const overnight = startMin != null && endMin != null && endMin < startMin;
 
   const repeat = draft.repeat; // null | {freq, interval, weekdays, until}
   const setRepeatFreq = (freq) =>
@@ -127,7 +134,10 @@ function BlockEditor({
           />
         </label>
         <label className="dp-time">
-          <span>To</span>
+          {/* An end before the start is read as tomorrow, so say so where the
+             times are — otherwise "23:00 to 01:00" looks like a typo the app
+             quietly accepted. */}
+          <span>To{overnight ? " (next day)" : ""}</span>
           <input
             className="input"
             type="time"
@@ -136,6 +146,11 @@ function BlockEditor({
           />
         </label>
       </div>
+      {overnight && (
+        <div className="dp-overnight-note">
+          <Icon.Moon width={12} height={12} /> Runs past midnight into the next day.
+        </div>
+      )}
       <div className="dp-cats" role="group" aria-label="Category">
         {BLOCK_CATEGORIES.map((c) => (
           <button
@@ -499,8 +514,12 @@ export default function DayPlanner({
   };
 
   const saveDraft = () => {
-    const start = hhmmToMinutes(draft.startHH);
-    const end = hhmmToMinutes(draft.endHH);
+    // The time fields can only say "01:00", never "01:00 tomorrow", so an end
+    // that reads as earlier than the start is a block running past midnight.
+    const { start, end } = resolveRange(
+      hhmmToMinutes(draft.startHH),
+      hhmmToMinutes(draft.endHH)
+    );
     const fields = {
       title: draft.title.trim(),
       start,
@@ -1050,7 +1069,7 @@ export default function DayPlanner({
               selectedId={selectedId}
               draftRange={
                 draft && hhmmToMinutes(draft.startHH) != null && hhmmToMinutes(draft.endHH) != null
-                  ? { start: hhmmToMinutes(draft.startHH), end: hhmmToMinutes(draft.endHH) }
+                  ? resolveRange(hhmmToMinutes(draft.startHH), hhmmToMinutes(draft.endHH))
                   : null
               }
               textures={pref.textures}
@@ -1070,6 +1089,11 @@ export default function DayPlanner({
                 // the dial. Without this, moving a block left nothing selected
                 // and the only delete was back down in the editor.
                 setSelectedId(id);
+              }}
+              onRemove={(id) => {
+                deleteDayBlock?.(id);
+                setSelectedId(null);
+                setDraft(null);
               }}
             />
             <div className="dp-reality-legend" aria-label="Day ring legend">

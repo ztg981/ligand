@@ -17,7 +17,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(self), geolocation=(self), microphone=(), payment=(), usb=(), fullscreen=(self), clipboard-write=(self)"
+          "value": "camera=(self), geolocation=(self), microphone=(self), payment=(), usb=(), fullscreen=(self), clipboard-write=(self)"
         },
         {
           "key": "X-Frame-Options",

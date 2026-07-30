@@ -69,13 +69,14 @@ export const SETTINGS_DEFAULTS = {
 // the glass look is still available in the theme picker for anyone who wants
 // it, it's just no longer the default.
 export const TWEAK_DEFAULTS = {
-  // New installs open dark, on Liquid Glass, with a purple accent. Light mode
-  // keeps the blue accent, and each mode carries its own ambient level —
-  // 70% reads as a glow on paper but as haze on a dark panel.
+  // New installs open dark, on Liquid Glass, with the neon violet accent (295;
+  // see ACCENTS — the id is a slot, its rendered hue is 310). Light mode keeps
+  // the blue accent, and each mode carries its own ambient level — 70% reads as
+  // a glow on paper but as haze on a dark panel.
   theme: "dark",
   accent: 245,
   lightAccent: 245,
-  darkAccent: 290,
+  darkAccent: 295,
   ambient: 70,
   lightAmbient: 75,
   darkAmbient: 55,
@@ -96,7 +97,7 @@ export const MOBILE_TWEAK_DEFAULTS = {
   theme: "dark",
   accent: 245,
   lightAccent: 245,
-  darkAccent: 290,
+  darkAccent: 295,
   ambient: 70,
   lightAmbient: 75,
   darkAmbient: 55,

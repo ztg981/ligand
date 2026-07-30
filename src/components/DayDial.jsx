@@ -177,6 +177,7 @@ export default function DayDial({
   onSelect, // (id) => void
   onCreateRange, // (startMin, endMin) => void
   onMove, // (id, newStart, newEnd) => void — drag an existing block
+  onRemove, // (id) => void — the X badge on the selected wedge
   readOnly = false, // mobile: display + tap-to-edit only (no drag create/move)
   compact = false, // phone: crop the label gutters, upscale type, no leaders
   rotateHours = 0, // hours added to the top of the dial (0 = midnight top, 12 = noon top)
@@ -261,14 +262,16 @@ export default function DayDial({
      midnight gives to=30 with from=1380; the two then get swapped into a
      23-hour block covering almost the whole dial — the selection appearing to
      flip around the ring. Accumulating lets us tell "dragged forwards past
-     midnight" from "dragged backwards", and since a block cannot span midnight
-     the selection simply stops at the end of the day instead. */
+     midnight" from "dragged backwards", so the drag can simply carry on
+     through 12am and produce an 11pm–1am block (end 1500, i.e. 1am tomorrow —
+     see the note in lib/dayPlanner.js). The travel is capped at a full day in
+     each direction so a lap of the ring can't fold back on itself. */
   const onBandDown = (e) => {
     e.preventDefault();
     const from = minuteFromEvent(e);
     let prevMin = from;
     let travelled = 0;
-    const endpoint = () => Math.max(0, Math.min(DAY_MIN, from + travelled));
+    const endpoint = () => from + Math.max(-DAY_MIN, Math.min(DAY_MIN, travelled));
     setDrag({ from, to: from });
 
     const move = (ev) => {
@@ -286,7 +289,11 @@ export default function DayDial({
       window.removeEventListener("pointerup", up);
       const to = endpoint();
       setDrag(null);
-      const [s, en] = from <= to ? [from, to] : [to, from];
+      let [s, en] = from <= to ? [from, to] : [to, from];
+      // Dragging anticlockwise from just after midnight puts the start before
+      // 00:00. Same block, named from the other day: shift both ends forward so
+      // the start is a real time on this day and the end runs past midnight.
+      if (s < 0) { s += DAY_MIN; en += DAY_MIN; }
       if (en - s >= SNAP) onCreateRange?.(s, en);
     };
     window.addEventListener("pointermove", move);
@@ -319,8 +326,12 @@ export default function DayDial({
       prevMin = cur;
       travelled += step;
       if (Math.abs(travelled) >= SNAP) didMove = true;
+      // Wrap rather than clamp: the ring is a loop, so a block pushed past
+      // midnight should come round to the start of the day (with its end
+      // running on past 1440) instead of piling up against an invisible wall
+      // at 12am. Only the START is normalised — the duration rides along.
       let ns = Math.round((b.start + travelled) / SNAP) * SNAP;
-      ns = Math.max(0, Math.min(DAY_MIN - dur, ns));
+      ns = ((ns % DAY_MIN) + DAY_MIN) % DAY_MIN;
       finalStart = ns;
       setMoving({ id: b.id, start: ns, end: ns + dur });
     };
@@ -508,6 +519,38 @@ export default function DayDial({
           </g>
         );
       })}
+
+      {/* Remove the selected block, on the ring itself.
+
+         This used to be a trash icon in the floating tool stack at the corner
+         of the dial — a third identical grey circle next to two dial
+         PREFERENCES, nowhere near the thing it acts on, and reported as simply
+         not findable. An X pinned to the wedge you just picked has an obvious
+         subject. It rides the inner edge (the outer one is crowded with ticks,
+         hour numbers and leader lines) and follows the wedge while it's being
+         dragged, so it never points at the wrong block. */}
+      {!readOnly && onRemove && (() => {
+        const sel = renderBlocks.find((b) => b.id === selectedId);
+        if (!sel) return null;
+        const [bx, by] = pt((sel.start + sel.end) / 2, R_IN - 24);
+        return (
+          <g
+            className="dial-x"
+            style={{ cursor: "pointer" }}
+            // Stop the press reaching the wedge underneath, which would start
+            // a move and swallow the click that follows it.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onRemove(sel.id); }}
+          >
+            <title>{`Remove "${sel.title}"`}</title>
+            <circle cx={bx} cy={by} r="16" className="dial-x-bg" />
+            <path
+              d={`M ${bx - 5.5} ${by - 5.5} L ${bx + 5.5} ${by + 5.5} M ${bx + 5.5} ${by - 5.5} L ${bx - 5.5} ${by + 5.5}`}
+              className="dial-x-mark"
+            />
+          </g>
+        );
+      })()}
 
       {/* Reality tracks. They are deliberately drawn after planned wedges:
           inner = actual sleep, outer = things the user actually did. Keeping

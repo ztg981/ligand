@@ -2,7 +2,13 @@
 <html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
+    <!-- The SVG is the icon browsers should prefer (it stays sharp at any
+         size). favicon.ico is the fallback that matters more than it looks
+         like it should: crawlers, link unfurlers and older browsers request
+         /favicon.ico directly without ever parsing these tags, and with no
+         file there the deployed site simply had no mark in those places. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
 
     <!-- iOS home-screen icon. iOS ignores the web manifest's icons list, so
          these <link> tags are the only way it picks up an icon; 180x180 is
@@ -38,6 +44,25 @@
     <meta name="apple-mobile-web-app-title" content="Ligand" />
     <meta name="description" content="Focus, habits, and goals - designed for ADHD" />
     <title>Ligand</title>
+
+    <!-- Link preview. Without these, pasting the deployed URL into Slack,
+         iMessage, Discord or X renders a bare grey link with no logo at all —
+         which is most of why the site can look unbranded even when the tab
+         icon is correct. og:image must be an ABSOLUTE URL; crawlers do not
+         resolve relative paths. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ligand" />
+    <meta property="og:title" content="Ligand" />
+    <meta property="og:description" content="Focus, habits, and goals — designed for ADHD" />
+    <meta property="og:url" content="https://ligand-eta.vercel.app/" />
+    <meta property="og:image" content="https://ligand-eta.vercel.app/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Ligand" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Ligand" />
+    <meta name="twitter:description" content="Focus, habits, and goals — designed for ADHD" />
+    <meta name="twitter:image" content="https://ligand-eta.vercel.app/og-card.png" />
     <!-- Match the system while React loads; the app replaces this with the
          user's active Ligand theme and palette as soon as preferences load. -->
     <style>

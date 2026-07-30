@@ -18,7 +18,7 @@ import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
 import TweaksPanel from "./layout/TweaksPanel.jsx";
-import { useTweaks, accentShade } from "./theme/useTweaks.js";
+import { useTweaks, accentShade, accentHue } from "./theme/useTweaks.js";
 import { accentFor, ambientFor, paletteFor } from "./theme/palettes.js";
 import { goalHealth } from "./lib/goalHealth.js";
 import { triageGoals, shouldOfferReview } from "./lib/goalTriage.js";
@@ -1320,9 +1320,12 @@ export default function App() {
     // Applied here (not in useTweaks) because this is where the auto/wallpaper-
     // resolved mode is known.
     const activeAccent = accentFor(effectiveMode, tweaks);
-    root.style.setProperty("--accent-h", activeAccent);
-    // Deep accents carry their own lightness/chroma; everything else falls back
-    // to the theme's, so the override must be REMOVED rather than left behind.
+    // An accent normally IS its hue, but one that overrides `h` renders at a
+    // different one — that's how a slot can be restyled without invalidating
+    // the value already saved in everyone's preferences.
+    root.style.setProperty("--accent-h", accentHue(activeAccent));
+    // Deep/neon accents carry their own lightness/chroma; everything else falls
+    // back to the theme's, so the override must be REMOVED, not left behind.
     const shade = accentShade(activeAccent);
     if (shade?.l != null) {
       root.style.setProperty("--accent-l", shade.l);
