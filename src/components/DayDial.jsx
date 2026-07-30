@@ -95,8 +95,13 @@ function layoutLabelsBase(blocks, angleFn = minToAngle) {
   return items;
 }
 
-// Floating time-range tooltip pinned beside an arc (drag feedback).
-function RangeTipBase({ from, to, angleFn = minToAngle }) {
+/* Floating time-range tooltip pinned beside an arc (drag feedback).
+
+   `onRemove` adds an X to the corner of the card. That is here, rather than
+   only out on the ring, because the tooltip is the thing your eye is already
+   on when a block is selected — it's the only part of the dial that says which
+   block you mean, in words. An X sitting on it needs no looking for. */
+function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null }) {
   const [s, e] = from <= to ? [from, to] : [to, from];
   if (e - s < 1) return null;
   const mid = (s + e) / 2;
@@ -107,7 +112,7 @@ function RangeTipBase({ from, to, angleFn = minToAngle }) {
   const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
   return (
-    <g pointerEvents="none">
+    <g pointerEvents={onRemove ? "auto" : "none"}>
       <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
       <text x={x + w / 2} y={y + 20} textAnchor="middle" className="dial-tip-range">
         {minutesToLabel(s)} – {minutesToLabel(e)}
@@ -115,6 +120,21 @@ function RangeTipBase({ from, to, angleFn = minToAngle }) {
       <text x={x + w / 2} y={y + 38} textAnchor="middle" className="dial-tip-dur">
         {fmtDuration(e - s)}
       </text>
+      {onRemove && (
+        <g
+          className="dial-tip-x"
+          style={{ cursor: "pointer" }}
+          onPointerDown={(ev) => ev.stopPropagation()}
+          onClick={(ev) => { ev.stopPropagation(); onRemove(); }}
+        >
+          <title>Remove this block</title>
+          <circle cx={x + w - 13} cy={y + 13} r="11" className="dial-tip-x-bg" />
+          <path
+            d={`M ${x + w - 17.5} ${y + 8.5} L ${x + w - 8.5} ${y + 17.5} M ${x + w - 8.5} ${y + 8.5} L ${x + w - 17.5} ${y + 17.5}`}
+            className="dial-tip-x-mark"
+          />
+        </g>
+      )}
     </g>
   );
 }
@@ -235,7 +255,9 @@ export default function DayDial({
   const layoutLabels = (bl) => layoutLabelsBase(bl, angleOf);
   // A tiny render helper (not a component) so the tooltip follows the active
   // angle map without declaring a component during render.
-  const rangeTip = (from, to) => <RangeTipBase from={from} to={to} angleFn={angleOf} />;
+  const rangeTip = (from, to, onRemove = null) => (
+    <RangeTipBase from={from} to={to} angleFn={angleOf} onRemove={onRemove} />
+  );
 
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -473,7 +495,11 @@ export default function DayDial({
             strokeWidth="2.5"
             strokeDasharray="7 5"
           />
-          {rangeTip(draftRange.start, draftRange.end)}
+          {/* Selecting a block opens the editor with that block's times, so the
+             draft range and the selected block's own card would be identical
+             and stack on top of each other. The block's card wins — it's the
+             one carrying the remove X. */}
+          {!selectedId && rangeTip(draftRange.start, draftRange.end)}
         </g>
       )}
 
@@ -515,7 +541,15 @@ export default function DayDial({
                 <path d={sectorPath(b.start, b.end)} fill="none" stroke="var(--ink)" strokeWidth="1.5" opacity="0.6" />
               </>
             )}
-            {isMoving && rangeTip(b.start, b.end)}
+            {/* The time card stays up for as long as a block is selected, not
+                just while it's being dragged — it names the block you picked,
+                and it's what carries the remove X. */}
+            {(isMoving || (selected && !drag)) &&
+              rangeTip(
+                b.start,
+                b.end,
+                !readOnly && onRemove && !isMoving ? () => onRemove(b.id) : null
+              )}
           </g>
         );
       })}

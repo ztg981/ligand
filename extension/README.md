@@ -12,6 +12,28 @@ working in linked to a task, and your running Pomodoro on the toolbar.
 
 Pin the extension so the icon — and the Pomodoro badge — stay visible.
 
+## Updating it
+
+An unpacked extension is loaded from a **folder on disk**, not from the store,
+so Chrome keeps running whatever was in that folder when you loaded it. Pulling
+new code is therefore two steps, and skipping the second is why it can look
+like nothing changed:
+
+```bash
+git pull
+```
+
+Then open `chrome://extensions` and press the **↻ reload** icon on the Ligand
+card. (The "Update" button at the top only checks the Chrome Web Store — it
+does nothing for an unpacked extension.)
+
+Check the version on the card afterwards; it should read **0.3.0**. If it still
+shows the old one, the folder Chrome is watching isn't the one you just pulled:
+click **Details** to see the path it loaded from.
+
+Reloading the extension does not touch your Ligand data — everything lives in
+the app, not in the extension.
+
 ## What it does
 
 - **Quick task / note / log.** Type once, hit Enter. A task captured while

@@ -2329,7 +2329,17 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .pomo-window {
   position: relative;
   width: 100%;
-  max-width: 620px;
+  /* Grown by dragging either edge (see useSquishResize). --pomo-grow is the
+     fraction of the empty space beside the scene that's in use, NOT a width,
+     so the layout re-solves itself on every window resize instead of freezing
+     at whatever the page happened to be when you let go. max() keeps it inert
+     on screens too narrow to have any slack at all.
+
+     Halved, because the growth is ONE-SIDED: the scene sits centred, so the
+     gap it can expand into on its own side is only half the total empty space.
+     Using the whole of it let a full leftward drag put the scene's left edge
+     251px off the side of the page. */
+  max-width: calc(620px + var(--pomo-grow, 0) * max(0px, (100% - 620px) / 2));
   aspect-ratio: 16 / 10; /* wide, immersive backdrop */
   /* Widening must make the scene WIDER, not bigger. Left to the aspect ratio
      alone, dragging it out to the full page also grows it downward until it
@@ -2360,23 +2370,38 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
     transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
     scale 0.3s var(--ease);
 }
-/* Widened: use the room either side instead of sitting in a column. */
-.pomo-window.wide { max-width: 100%; }
+/* ── Edge-grip resizing ────────────────────────────────────────────────
+   A strip down each edge of the scene. Pull the right one right and the
+   scene grows rightward; pull the left one left and it grows leftward —
+   each edge moves alone, so the scene can lean into whichever side of the
+   page you want to fill.
 
-/* ── Grab-and-squish resizing ──────────────────────────────────────────
-   Press and it jiggles (a home-screen widget saying "you can move me"),
-   drag and the width tracks your pointer, push past either end and it
-   squashes instead of going dead. The squash transform is applied inline
-   by useSquishResize; the jiggle uses the individual `rotate`/`scale`
-   properties precisely so it composes with that instead of fighting it.
+   Deliberately unadvertised: no label, no handle bar, no hint text. The
+   resize cursor is the whole tell. Press and it jiggles, drag and it
+   follows, push past full and it squashes.
+
+   The jiggle uses the standalone `rotate`/`scale` properties precisely so
+   it composes with the inline `transform` (which carries both the
+   re-centring translate and the squash) instead of overwriting it.
    ────────────────────────────────────────────────────────────────────── */
-@media (min-width: 900px) {
-  .pomo-window:not(.hyperfocus) { cursor: grab; }
+.pomo-grip {
+  position: absolute; top: 0; bottom: 0; width: 56px; z-index: 4;
+  cursor: ew-resize;
+  /* Scoped to the 56px strips rather than the whole panel, so a vertical
+     swipe anywhere else on the scene still scrolls the page normally. */
+  touch-action: none;
 }
-.pomo-window.grabbed { cursor: grabbing; animation: pomoJiggle 0.36s ease-in-out infinite; }
-.pomo-window.grabbed.dragging { animation: none; scale: 1.006; }
-/* While the finger is down the width must follow it exactly — a transition
-   here would lag the pointer and feel like drag on a rope. */
+.pomo-grip.left { left: 0; }
+.pomo-grip.right { right: 0; }
+/* No room to grow into means no gesture — don't offer a cursor for it. */
+@media (max-width: 899px) {
+  .pomo-grip { display: none; }
+}
+
+.pomo-window.grabbed { animation: pomoJiggle 0.36s ease-in-out infinite; }
+.pomo-window.grabbed.dragging { animation: none; scale: 1.004; }
+/* While the pointer is down the edge must follow it exactly — a transition
+   here would lag behind and feel like dragging on a rope. */
 .pomo-window.dragging { transition: none; }
 @keyframes pomoJiggle {
   0%   { rotate: -0.5deg; scale: 1.006; }
@@ -2386,26 +2411,6 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   .pomo-window.grabbed { animation: none; }
   .pomo-window { transition: max-width 0.01s linear; }
-}
-/* The gesture has no button to advertise it, so say so on hover — and only
-   on the widths where there is actually room to grow into. */
-@media (min-width: 900px) {
-  .pomo-window::after {
-    content: "↔ drag to resize";
-    position: absolute; bottom: 12px; left: 50%; margin-left: -68px;
-    width: 136px; text-align: center;
-    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(0, 0, 0, 0.34);
-    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    padding: 4px 0; border-radius: 999px;
-    opacity: 0; transition: opacity 0.2s var(--ease);
-    pointer-events: none; z-index: 3;
-  }
-  .pomo-window:hover::after { opacity: 1; }
-  .pomo-window.dragging::after,
-  .pomo-window.grabbed::after,
-  .pomo-window.hyperfocus::after { opacity: 0; }
 }
 /* Semi-transparent veil over the real photo — keeps CSS scene
    animations and the timer ring legible against any photo content.
@@ -6878,6 +6883,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   position: absolute; top: 4px; right: 4px; z-index: 3;
   display: flex; flex-direction: column; gap: 6px;
 }
+/* The X on the floating time card. The wedge X below is easy to miss on a
+   busy dial; this one sits on the only thing that says, in words, which block
+   you have selected — so there is nowhere else to look for it. */
+.dial-tip-x-bg {
+  fill: oklch(0.58 0.19 25);
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.5;
+}
+.dial-tip-x-mark { stroke: #fff; stroke-width: 2.2; stroke-linecap: round; fill: none; }
+.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.5 0.21 25); }
+
 /* The X on the selected wedge — the remove control that actually lives next
    to the thing it removes (see DayDial). Pops in so it's noticed. */
 .dial-x-bg {

@@ -12,10 +12,13 @@ export const DEVICE_LOCAL_KEYS = new Set([
   "ligand.goalSidebarCollapsed",
   "ligand.journalSort",
   "ligand.focusTaskId",
-  // The live Pomodoro countdown + pause stopwatch are machine-local: a timer
-  // running (or paused) on your laptop must not teleport onto your phone.
-  "ligand.pomodoro.session",
-  "ligand.pomodoro.pausedAt",
+  /* NOTE: the live Pomodoro countdown (`ligand.pomodoro.session`) and its
+     pause stopwatch (`ligand.pomodoro.pausedAt`) used to be listed here, on
+     the reasoning that a timer running on your laptop must not teleport onto
+     your phone. That was backwards — starting a block at the desk, pausing,
+     and resuming on the iPad is exactly what the timer is for — and it is safe
+     because the session stores an ABSOLUTE end time, so two devices count down
+     to the same instant with nothing to reconcile. See usePomodoro. */
   // "Which celebrations have already played here" is a UI fact about this
   // device, not account data — and keeping it out of the synced blob is what
   // stops a stale pull from replaying a badge animation on every app open.

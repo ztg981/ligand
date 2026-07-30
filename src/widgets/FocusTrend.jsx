@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../components/Icons.jsx";
 import { todayKey } from "../lib/model.js";
+import { fmtMinutes } from "../lib/activities.js";
+
+/* Focus is logged in real minutes, which are fractional for anything under a
+   minute (a 40s block is 0.7). Summing floats drifts — three of those give
+   2.0999999999999996 — so every total is rounded back to a tenth before it is
+   shown or compared. fmtMinutes then renders sub-minute values as seconds
+   rather than "0m", so short sessions read as the time they actually were. */
+const tidy = (m) => Math.round((Number(m) || 0) * 10) / 10;
 
 /* FocusTrend — a seven-day bar chart of focused minutes.
 
@@ -29,7 +37,7 @@ function buildDays(focusLog, todayStr) {
     const key = todayKey(d);
     out.push({
       key,
-      minutes: totals.get(key) || 0,
+      minutes: tidy(totals.get(key) || 0),
       letter: DAY_LETTERS[d.getDay()],
       isToday: i === 0,
     });
@@ -82,7 +90,7 @@ function buildLifetime(focusLog) {
   }
   let bestDay = 0;
   for (const v of perDay.values()) bestDay = Math.max(bestDay, v);
-  return { lifetime, bestDay };
+  return { lifetime: tidy(lifetime), bestDay: tidy(bestDay) };
 }
 
 export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
@@ -90,7 +98,9 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
   const days = useMemo(() => buildDays(focusLog, today), [focusLog, today]);
   const { lifetime, bestDay } = useMemo(() => buildLifetime(focusLog), [focusLog]);
 
-  const total = days.reduce((n, d) => n + d.minutes, 0);
+  const total = tidy(days.reduce((n, d) => n + d.minutes, 0));
+  // A week whose whole total is under a minute must not headline as "0 min".
+  const subMinute = total > 0 && total < 1;
   const best = days.reduce((m, d) => Math.max(m, d.minutes), 0);
   const todayMin = days[days.length - 1]?.minutes || 0;
   const activeDays = days.filter((d) => d.minutes > 0).length;
@@ -119,8 +129,10 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
       </div>
 
       <div className="focustrend-stat">
-        <span className="focustrend-num mono">{countedTotal}</span>
-        <span className="focustrend-unit">min focused</span>
+        <span className="focustrend-num mono">
+          {subMinute ? Math.round(total * 60) : countedTotal}
+        </span>
+        <span className="focustrend-unit">{subMinute ? "sec focused" : "min focused"}</span>
         {best > 0 && (
           <span className="focustrend-badge" title="Days with any focus this week">
             {activeDays}/7 days
@@ -138,9 +150,11 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
                 <div
                   className={"focustrend-fill" + (d.isToday ? " today" : "") + (d.minutes === 0 ? " empty" : "")}
                   style={{ height: `${pct}%`, transitionDelay: `${i * 55}ms` }}
-                  title={`${d.minutes} min`}
+                  title={fmtMinutes(d.minutes) || "nothing yet"}
                 >
-                  {d.minutes > 0 && <span className="focustrend-val">{d.minutes}</span>}
+                  {d.minutes > 0 && (
+                    <span className="focustrend-val">{fmtMinutes(d.minutes)}</span>
+                  )}
                 </div>
               </div>
               <div className={"focustrend-lbl" + (d.isToday ? " today" : "")}>{d.letter}</div>
@@ -156,7 +170,7 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
       ) : (
         <p className="focustrend-foot">
           {todayMin > 0
-            ? `${todayMin} min today. Nice, keep the chain going.`
+            ? `${fmtMinutes(todayMin)} today. Nice, keep the chain going.`
             : "Nothing today yet. Even one session counts."}
         </p>
       )}
@@ -166,11 +180,11 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
       {lifetime > total && (
         <div className="focustrend-lifetime">
           <span title="Total focused minutes, all time">
-            <strong>{fmtMins(lifetime)}</strong> all-time
+            <strong>{fmtMinutes(lifetime)}</strong> all-time
           </span>
           {bestDay > 0 && (
             <span title="Your best single day">
-              best day <strong>{fmtMins(bestDay)}</strong>
+              best day <strong>{fmtMinutes(bestDay)}</strong>
             </span>
           )}
         </div>
@@ -179,10 +193,3 @@ export default function FocusTrend({ focusLog = [], onOpenPomodoro }) {
   );
 }
 
-// Minutes → "45 min" or "3h 20m" once it passes an hour.
-function fmtMins(m) {
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  return r ? `${h}h ${r}m` : `${h}h`;
-}

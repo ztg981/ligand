@@ -59,6 +59,13 @@ export const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 
 export function fmtMinutes(min) {
   if (!min || min <= 0) return "";
+  /* Under a minute reads in seconds.
+
+     Focus sessions are logged as real (fractional) minutes, so a 40-second
+     block is 0.7 — which this used to round to "1m", and a 20-second one to
+     "0m", i.e. time that was genuinely spent reported as none at all. Seconds
+     are the honest unit down here, and "40s" is also just what you'd say. */
+  if (min < 1) return `${Math.max(1, Math.round(min * 60))}s`;
   const h = Math.floor(min / 60);
   const m = Math.round(min % 60);
   if (h && m) return `${h}h ${m}m`;

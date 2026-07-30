@@ -570,14 +570,20 @@ export default function Pomodoro({
   }, [hyperfocus]);
   const showStartPrompt = hyperfocus && !pomo.running && !promptDismissed;
 
-  // Whether the scene fills the page or sits in its default column. Sized by
-  // grabbing the scene and dragging it sideways (see useSquishResize) rather
-  // than by a corner button — the width is a feel, not a toggle.
-  const [sceneWide, setSceneWide] = useLocalStorage("ligand.pomoSceneWide", false);
+  /* How far the scene reaches into the empty space beside it, and which way.
+
+     Stored as a fraction of the available slack rather than a width, so it
+     survives a window resize (see useSquishResize). Pull the scene's right
+     edge right to lean it right, its left edge left to lean it left. */
+  const [sceneSize, setSceneSize] = useLocalStorage("ligand.pomoScene", {
+    grow: 0,
+    side: "right",
+  });
   const squish = useSquishResize({
-    wide: sceneWide,
-    setWide: setSceneWide,
-    minWidth: POMO_NARROW_PX,
+    grow: sceneSize?.grow ?? 0,
+    side: sceneSize?.side === "left" ? "left" : "right",
+    onChange: setSceneSize,
+    narrowPx: POMO_NARROW_PX,
     // Hyperfocus is a deliberately fixed, undistracting layout — nothing to
     // resize there, and a jiggling panel would undo the point of it.
     enabled: !hyperfocus,
@@ -851,7 +857,7 @@ export default function Pomodoro({
           ref={squish.ref}
           className={"pomo-window" + (hyperfocus ? " hyperfocus" : "") + squish.className}
           role="group"
-          aria-label="Focus scene — drag sideways to resize"
+          aria-label="Focus scene — drag either edge sideways to resize"
           style={{
             ...(showScenePhoto ? {
               backgroundImage: `url(${SCENE_PHOTO[settings.theme]})`,
@@ -860,8 +866,17 @@ export default function Pomodoro({
             } : null),
             ...squish.style,
           }}
-          {...squish.handlers}
+          {...squish.keyHandlers}
         >
+          {/* Grab strips on the two edges. Each grows the scene toward its own
+             side, so the opposite edge stays where it is — unlabelled and
+             unadorned, found by the resize cursor rather than announced. */}
+          {!hyperfocus && (
+            <>
+              <div {...squish.gripProps("left")} />
+              <div {...squish.gripProps("right")} />
+            </>
+          )}
           {/* Dark overlay so CSS animations + timer remain legible over photo */}
           <div className="pomo-photo-veil" />
           <SceneContent themeId={effectiveThemeId} themeName={effectiveThemeName} dimmed={sceneDimmed} />

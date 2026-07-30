@@ -17,10 +17,21 @@ import { useLocalStorage } from "./useLocalStorage.js";
 
 export const PHASES = { WORK: "work", SHORT: "short", LONG: "long" };
 
-// Live-countdown persistence. Device-local and ephemeral, so it is NOT wired
-// into cloud sync (no ligand:localwrite dispatch) — a timer running on your
-// laptop shouldn't teleport onto your phone.
-const SESSION_KEY = "ligand.pomodoro.session";
+/* Live-countdown persistence — and, since it carries an ABSOLUTE end time
+   rather than a ticking counter, cross-device state as well.
+
+   This used to be deliberately machine-local, on the reasoning that a timer
+   running on your laptop shouldn't turn up on your phone. In practice that's
+   backwards: starting a block at the desk, pausing, and picking it up on the
+   iPad is exactly what a focus timer is for, and the absolute `endTime` makes
+   it correct for free — both devices count down to the same instant, so
+   there's nothing to reconcile while it runs.
+
+   `savedAt` is what makes a conflict resolvable. Two devices can both write,
+   so a session is only adopted if it was saved AFTER the one this device last
+   wrote: whoever pressed the button most recently wins, which is the same
+   last-write-wins rule the rest of the sync uses. */
+export const SESSION_KEY = "ligand.pomodoro.session";
 function readSession() {
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
@@ -31,6 +42,51 @@ function readSession() {
   } catch {
     return null;
   }
+}
+
+const validPhase = (p) => p === PHASES.WORK || p === PHASES.SHORT || p === PHASES.LONG;
+
+/* Turn a saved session into the state to show, given how much time has passed.
+
+   Three cases, and the middle one is the reason this is worth having as its
+   own function:
+     • running, end time still ahead → resume live, with the time that passed
+       while the page (or the other device) was closed honestly subtracted;
+     • running, but the block already elapsed while away → land on the NEXT
+       phase, freshly reset and stopped, as if you'd been there at the ding
+       minus the chime you didn't hear;
+     • paused/idle → come back frozen at the saved remaining.
+
+   `endTime` in the result is non-null only in the resume-live case; the caller
+   seeds its ref from it. Pure, so `now` is injectable and it can be tested. */
+export function restoreSession(saved, settings, now = Date.now()) {
+  const phaseFull = (p) =>
+    clampMin(p === PHASES.WORK ? settings.work : p === PHASES.SHORT ? settings.shortBreak : settings.longBreak);
+  const base = {
+    phase: PHASES.WORK,
+    completed: 0,
+    running: false,
+    remaining: phaseFull(PHASES.WORK),
+    endTime: null,
+  };
+  if (!saved || !validPhase(saved.phase)) return base;
+  const phase = saved.phase;
+  const completed = Number.isFinite(saved.completed) ? saved.completed : 0;
+
+  if (saved.running && Number.isFinite(saved.endTime)) {
+    const secs = Math.max(0, Math.round((saved.endTime - now) / 1000));
+    if (secs > 0) {
+      return { phase, completed, running: true, remaining: secs, endTime: saved.endTime };
+    }
+    if (phase === PHASES.WORK) {
+      const done = completed + 1;
+      const next = done % settings.longEvery === 0 ? PHASES.LONG : PHASES.SHORT;
+      return { phase: next, completed: done, running: false, remaining: phaseFull(next), endTime: null };
+    }
+    return { phase: PHASES.WORK, completed, running: false, remaining: phaseFull(PHASES.WORK), endTime: null };
+  }
+  const remaining = Number.isFinite(saved.remaining) ? saved.remaining : phaseFull(phase);
+  return { phase, completed, running: false, remaining, endTime: null };
 }
 
 export const POMO_DEFAULTS = {
@@ -77,43 +133,14 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
 
   // Restore any in-flight block once, at mount, so a refresh doesn't reset the
-  // timer. Three cases:
-  //   • running, end time still ahead → resume live (time that passed while the
-  //     page was closed is honestly subtracted from the absolute end time).
-  //   • running, but the block already elapsed while away → land on the NEXT
-  //     phase, freshly reset and stopped (as if you'd been here at the ding,
-  //     minus the chime you didn't hear).
-  //   • paused/idle → come back frozen at the saved remaining.
-  // endTimeRef is seeded here (before first paint) for the live-resume case.
+  // timer (see restoreSession). endTimeRef is seeded here, before first paint,
+  // for the resume-live case.
   const restored = useRef(readSession()).current;
-  const init = (() => {
-    const s = { ...POMO_DEFAULTS, ...stored };
-    const phaseFull = (p) =>
-      clampMin(p === PHASES.WORK ? s.work : p === PHASES.SHORT ? s.shortBreak : s.longBreak);
-    const validPhase = (p) => p === PHASES.WORK || p === PHASES.SHORT || p === PHASES.LONG;
-    const base = { phase: PHASES.WORK, completed: 0, running: false, remaining: phaseFull(PHASES.WORK) };
-    if (!restored || !validPhase(restored.phase)) return base;
-    const savedPhase = restored.phase;
-    const savedCompleted = Number.isFinite(restored.completed) ? restored.completed : 0;
-
-    if (restored.running && Number.isFinite(restored.endTime)) {
-      const secs = Math.max(0, Math.round((restored.endTime - Date.now()) / 1000));
-      if (secs > 0) {
-        endTimeRef.current = restored.endTime;
-        return { phase: savedPhase, completed: savedCompleted, running: true, remaining: secs };
-      }
-      // Elapsed while away → advance the cycle exactly as a natural finish would.
-      if (savedPhase === PHASES.WORK) {
-        const done = savedCompleted + 1;
-        const next = done % s.longEvery === 0 ? PHASES.LONG : PHASES.SHORT;
-        return { phase: next, completed: done, running: false, remaining: phaseFull(next) };
-      }
-      return { phase: PHASES.WORK, completed: savedCompleted, running: false, remaining: phaseFull(PHASES.WORK) };
-    }
-    // Paused or idle: keep the frozen remaining.
-    const rem = Number.isFinite(restored.remaining) ? restored.remaining : phaseFull(savedPhase);
-    return { phase: savedPhase, completed: savedCompleted, running: false, remaining: rem };
-  })();
+  const init = restoreSession(restored, { ...POMO_DEFAULTS, ...stored });
+  if (init.endTime != null) endTimeRef.current = init.endTime;
+  // The stamp on the session this device is currently showing. A session
+  // arriving from another device is only adopted if it is strictly newer.
+  const savedAtRef = useRef(Number(restored?.savedAt) || 0);
 
   const [phase, setPhase] = useState(init.phase);
   const [completed, setCompleted] = useState(init.completed); // focus blocks done this cycle
@@ -186,15 +213,60 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     const session = running
       ? { phase, completed, running: true, endTime: endTimeRef.current, remaining: null }
       : { phase, completed, running: false, endTime: null, remaining };
+    // Dedup on the session WITHOUT the timestamp: savedAt changes every time,
+    // so including it here would defeat the guard and write on every tick.
     const str = JSON.stringify(session);
     if (str === lastSavedRef.current) return;
     lastSavedRef.current = str;
+    const savedAt = Date.now();
+    savedAtRef.current = savedAt;
     try {
-      window.localStorage.setItem(SESSION_KEY, str);
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify({ ...session, savedAt }));
+      // Tell the sync layer there's something to push. Without this the key
+      // would sit in localStorage and never leave the machine, which is what
+      // kept a paused timer stranded on the device that paused it.
+      window.dispatchEvent(
+        new CustomEvent("ligand:localwrite", { detail: { key: SESSION_KEY } })
+      );
     } catch {
       /* storage full / unavailable — the timer still works, just won't survive a reload */
     }
   }, [phase, running, completed, remaining]);
+
+  /* Adopt a session that arrived from another device.
+
+     A cloud pull writes the key straight into localStorage and fires
+     `ligand:hydrate`; this hook holds the countdown in React state, so without
+     listening it would happily keep showing its own stale timer. Only a
+     STRICTLY newer session is taken, so a pull carrying this device's own
+     recent write — or an older one from a device that has been asleep — can't
+     yank the timer out from under whoever is actually using it. */
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  useEffect(() => {
+    const adopt = () => {
+      const saved = readSession();
+      const stamp = Number(saved?.savedAt) || 0;
+      if (!saved || !validPhase(saved.phase) || stamp <= savedAtRef.current) return;
+      savedAtRef.current = stamp;
+      const next = restoreSession(saved, settingsRef.current);
+      endTimeRef.current = next.endTime;
+      lastPhaseRef.current = next.phase;
+      // Keep the dedup guard in step, or the effect above immediately writes
+      // this same state back with a fresh stamp and starts a push/pull loop.
+      lastSavedRef.current = JSON.stringify(
+        next.running
+          ? { phase: next.phase, completed: next.completed, running: true, endTime: next.endTime, remaining: null }
+          : { phase: next.phase, completed: next.completed, running: false, endTime: null, remaining: next.remaining }
+      );
+      setPhase(next.phase);
+      setCompleted(next.completed);
+      setRemaining(next.remaining);
+      setRunning(next.running);
+    };
+    window.addEventListener("ligand:hydrate", adopt);
+    return () => window.removeEventListener("ligand:hydrate", adopt);
+  }, []);
 
   // Phase completion: when the clock hits zero while running.
   useEffect(() => {

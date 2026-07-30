@@ -19,8 +19,15 @@ import { startPomodoroChime, phaseChange, startAlarm } from "../lib/uiSounds.js"
 
    Returns everything the tab needs to render and drive the timer. */
 
-/** Below this an "end session" reads as a mis-tap rather than real focus. */
-export const MIN_LOGGED_SEC = 5;
+/* Below this an "end session" reads as a mis-tap rather than real focus.
+
+   Deliberately as low as it can go. A minute is not a meaningful threshold for
+   "did that count" — half a minute of actually sitting down is still half a
+   minute, and a tracker that silently discards it is lying about the day. Only
+   a start-and-stop inside the same second is treated as a fumble; everything
+   above that is logged as real (fractional) minutes and rendered in seconds
+   where that's the honest unit (see fmtMinutes). */
+export const MIN_LOGGED_SEC = 1;
 
 /** A pause this long means you left, not that you stepped away. */
 export const AUTO_END_PAUSED_MS = 3 * 60 * 60 * 1000; // 3 hours
