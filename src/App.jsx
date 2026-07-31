@@ -204,7 +204,9 @@ export default function App() {
   // with no extension installed — nothing else posts on this channel.
   useExtensionBridge({
     tasks: store.tasks,
+    goals: store.goals,
     addTask: store.addTask,
+    addGoal: store.addGoal,
     addNote: store.addNote,
     addActivity: store.addActivity,
     updateTask: store.updateTask,

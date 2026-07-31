@@ -32,10 +32,30 @@
       </div>
       <label class="field">
         <span class="label">Working on</span>
-        <select id="taskSelect">
-          <option value="">Nothing linked</option>
-        </select>
+        <div class="field-row">
+          <select id="taskSelect">
+            <option value="">Nothing linked</option>
+          </select>
+          <button class="mini" id="newToggle" title="Make something new for this group">+ New</button>
+        </div>
       </label>
+
+      <!-- Make something to work on without leaving the popup. The group is
+           attached as it's created, so there's no moment where it points at
+           nothing. -->
+      <div class="newlink" id="newRow" hidden>
+        <input id="newText" class="input" placeholder="What are you working on?" />
+        <select id="newGoal" class="input">
+          <option value="">No goal</option>
+          <option value="__new">+ New goal…</option>
+        </select>
+        <input id="newGoalName" class="input" placeholder="Name the goal" hidden />
+        <div class="newlink-actions">
+          <button class="linkbtn" id="newCancel">Cancel</button>
+          <button class="btn primary" id="newCreate">Create &amp; link</button>
+        </div>
+      </div>
+
       <p class="group-hint" id="groupHint" hidden></p>
     </section>
 

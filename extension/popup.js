@@ -18,6 +18,9 @@ let state = { snapshot: null, ligandOpen: false, queued: 0 };
 let group = null; // { id, title, color, tabCount }
 let activeTab = null;
 let kind = "task";
+/* The link the user just chose, held until the snapshot reports the same
+   thing. null means "no pending choice — trust the data". */
+let pendingLink = null;
 
 const send = (msg) => chrome.runtime.sendMessage(msg).catch(() => null);
 
@@ -113,24 +116,71 @@ function renderGroup() {
   $("groupSwatch").style.background = GROUP_COLORS[group.color] || "var(--ink-4)";
 }
 
+/* Which task the SNAPSHOT says owns this group. Matched on the group's human
+   identity, because Chrome's numeric group ids don't survive a restart. */
+function linkedTaskId(tasks) {
+  if (!group) return "";
+  const hit = (tasks || []).find(
+    (t) => t.tabGroup && t.tabGroup.title === group.title && t.tabGroup.color === group.color
+  );
+  return hit ? hit.id : "";
+}
+
 function renderTasks() {
   const select = $("taskSelect");
   const tasks = (state.snapshot?.tasks || []).filter((t) => !t.done).slice(0, 40);
-  select.innerHTML = '<option value="">Nothing linked</option>';
-  for (const t of tasks) {
+
+  /* Rebuild the options only when they actually changed.
+
+     This re-runs every three seconds from the poll, and replacing innerHTML
+     mid-interaction closes an open dropdown and drops the highlighted row —
+     half of why picking a task felt like fighting the thing. */
+  const signature = tasks.map((t) => t.id).join(",");
+  if (select.dataset.sig !== signature) {
+    select.dataset.sig = signature;
+    select.innerHTML = '<option value="">Nothing linked</option>';
+    for (const t of tasks) {
+      const opt = document.createElement("option");
+      opt.value = t.id;
+      opt.textContent = t.text.length > 46 ? t.text.slice(0, 45) + "…" : t.text;
+      select.appendChild(opt);
+    }
+  }
+
+  /* What to show.
+
+     `pendingLink` is what the user just chose. It wins until the snapshot
+     agrees, because the snapshot is written by another process and arrives a
+     beat later — rendering it blindly is what made a fresh choice snap back to
+     the previous owner and then flip forward again seconds later. Once the
+     data catches up, the pending value has served its purpose and is dropped. */
+  const fromData = linkedTaskId(tasks);
+  if (pendingLink !== null && fromData === pendingLink) pendingLink = null;
+  const show = pendingLink !== null ? pendingLink : fromData;
+  // Never yank the value out from under an open dropdown.
+  if (document.activeElement !== select && select.value !== show) select.value = show;
+}
+
+/* Goals for the "file it under" picker, rebuilt only when they change. */
+function renderGoals() {
+  const select = $("newGoal");
+  const goals = state.snapshot?.goals || [];
+  const signature = goals.map((g) => g.id).join(",");
+  if (select.dataset.sig === signature) return;
+  select.dataset.sig = signature;
+  const keep = select.value;
+  select.innerHTML = '<option value="">No goal</option>';
+  for (const g of goals) {
     const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = t.text.length > 46 ? t.text.slice(0, 45) + "…" : t.text;
+    opt.value = g.id;
+    opt.textContent = g.name.length > 34 ? g.name.slice(0, 33) + "…" : g.name;
     select.appendChild(opt);
   }
-  // Preselect whichever task already claims this group (matched by the group's
-  // human identity — Chrome's numeric group ids do not survive a restart).
-  if (group) {
-    const linked = tasks.find(
-      (t) => t.tabGroup && t.tabGroup.title === group.title && t.tabGroup.color === group.color
-    );
-    if (linked) select.value = linked.id;
-  }
+  const nu = document.createElement("option");
+  nu.value = "__new";
+  nu.textContent = "+ New goal…";
+  select.appendChild(nu);
+  if (keep) select.value = keep;
 }
 
 // ---- status / footer --------------------------------------------------
@@ -201,14 +251,88 @@ async function submitCapture() {
 
 async function linkGroupToTask(taskId) {
   if (!group) return;
+  // Hold the choice on screen from this instant. The write is a round trip
+  // through the page and back; without this the next render (which can happen
+  // in between) paints the OLD owner and the picker appears to undo itself.
+  pendingLink = taskId || "";
   const res = await send({
     type: "popup:submit",
     action: "linkTabGroup",
     payload: { taskId, tabGroup: { title: group.title, color: group.color } },
   });
-  if (!res?.ok) return hint("Could not link.");
+  if (!res?.ok) {
+    pendingLink = null; // the write failed — go back to whatever is true
+    return hint("Could not link.");
+  }
+  if (res.queued) {
+    hint("Saved — links when Ligand opens", true);
+    return;
+  }
   hint(taskId ? `Linked to "${group.title}"` : "Link removed", true);
-  refresh();
+  // Pull from the PAGE, not the worker's cache: the cache is written by the
+  // page's own broadcast and may not have arrived yet.
+  syncFromPage();
+}
+
+/* Make something new and hand this group to it, in one action. */
+async function createAndLink() {
+  const text = $("newText").value.trim();
+  if (!text) {
+    $("newText").focus();
+    return;
+  }
+  const goalChoice = $("newGoal").value;
+  const goalName = goalChoice === "__new" ? $("newGoalName").value.trim() : "";
+  if (goalChoice === "__new" && !goalName) {
+    $("newGoalName").focus();
+    return;
+  }
+  $("newCreate").disabled = true;
+  const res = await send({
+    type: "popup:submit",
+    action: "createFor",
+    payload: {
+      text,
+      label: $("taskLabel").value,
+      goalId: goalChoice && goalChoice !== "__new" ? goalChoice : null,
+      goalName,
+      ...(group ? { tabGroup: { title: group.title, color: group.color } } : {}),
+    },
+  });
+  $("newCreate").disabled = false;
+
+  if (!res?.ok) return hint(res?.error || "Could not create it.");
+  if (res.queued) {
+    // createFor needs the page (it makes a goal AND a task and links them), so
+    // say plainly that it's waiting rather than pretending it worked.
+    hint("Open Ligand to create this.");
+    return;
+  }
+  // Show it as selected straight away — the snapshot is a beat behind.
+  if (res.result?.id) pendingLink = res.result.id;
+  closeNewRow();
+  hint(group ? `Created and linked to "${group.title}"` : "Created", true);
+  syncFromPage();
+}
+
+function openNewRow() {
+  $("newRow").hidden = false;
+  $("newToggle").hidden = true;
+  // Seed it with the page title — usually what you're working on.
+  if (!$("newText").value && activeTab?.title) {
+    $("newText").value = activeTab.title.slice(0, 80);
+  }
+  $("newText").focus();
+  $("newText").select();
+}
+
+function closeNewRow() {
+  $("newRow").hidden = true;
+  $("newToggle").hidden = false;
+  $("newText").value = "";
+  $("newGoalName").value = "";
+  $("newGoal").value = "";
+  $("newGoalName").hidden = true;
 }
 
 // ---- boot -------------------------------------------------------------
@@ -228,6 +352,7 @@ async function refresh() {
   renderStatus();
   renderPomodoro();
   renderTasks();
+  renderGoals();
 }
 
 /* Pull a genuinely fresh snapshot from the page, then re-render.
@@ -246,6 +371,20 @@ $("text").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitCapture();
 });
 $("taskSelect").addEventListener("change", (e) => linkGroupToTask(e.target.value));
+$("newToggle").addEventListener("click", openNewRow);
+$("newCancel").addEventListener("click", closeNewRow);
+$("newCreate").addEventListener("click", createAndLink);
+$("newGoal").addEventListener("change", (e) => {
+  const isNew = e.target.value === "__new";
+  $("newGoalName").hidden = !isNew;
+  if (isNew) $("newGoalName").focus();
+});
+for (const id of ["newText", "newGoalName"]) {
+  $(id).addEventListener("keydown", (e) => {
+    if (e.key === "Enter") createAndLink();
+    if (e.key === "Escape") closeNewRow();
+  });
+}
 $("pomoToggle").addEventListener("click", () => {
   const running = state.snapshot?.pomodoro?.running;
   pomoCommand(running ? "pause" : "start");

@@ -39,6 +39,16 @@ function publicTasks(tasks = []) {
     }));
 }
 
+/* Goals, so the popup can file a new task under one — or make a new one —
+   without switching to the app. Name and colour only; a goal's notes, targets
+   and review history are none of the extension's business. */
+function publicGoals(goals = []) {
+  return (goals || [])
+    .filter((g) => !g.archived)
+    .slice(0, 40)
+    .map((g) => ({ id: g.id, name: g.name, color: g.color || null }));
+}
+
 function readSession() {
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
@@ -64,7 +74,9 @@ function readTheme() {
 
 export function useExtensionBridge({
   tasks = [],
+  goals = [],
   addTask,
+  addGoal,
   addNote,
   addActivity,
   updateTask,
@@ -76,7 +88,7 @@ export function useExtensionBridge({
   // Latest values, so the (once-registered) message listener never closes over
   // a stale store.
   const ref = useRef({});
-  ref.current = { tasks, addTask, addNote, addActivity, updateTask, pomo };
+  ref.current = { tasks, goals, addTask, addGoal, addNote, addActivity, updateTask, pomo };
 
   const post = (message) => {
     try {
@@ -88,6 +100,7 @@ export function useExtensionBridge({
 
   const snapshot = () => ({
     tasks: publicTasks(ref.current.tasks),
+    goals: publicGoals(ref.current.goals),
     pomodoro: readSession(),
     // Lets the toolbar icon wear the same accent as the app.
     theme: readTheme(),
@@ -137,9 +150,59 @@ export function useExtensionBridge({
             const saved = store.addTask?.({
               text,
               label,
+              ...(payload?.goalId ? { goalId: String(payload.goalId) } : {}),
               ...(payload?.tabGroup ? { tabGroup: payload.tabGroup } : {}),
             });
             reply(true, { result: { id: saved?.id } });
+            break;
+          }
+
+          /* Make something to work on, and hand this tab group to it — in one
+             round trip.
+
+             The popup could do this as create-then-link, but two trips means a
+             window where the group is linked to nothing and a refresh can
+             render the "before" state, which is exactly the flicker the picker
+             already suffered from. Doing it here means the reply is only sent
+             once everything is true.
+
+             `goalName` creates the goal too, so "new goal, new task under it,
+             linked to this group" is one action rather than a trip to the app. */
+          case "createFor": {
+            const text = String(payload?.text || "").trim().slice(0, 300);
+            if (!text) return reply(false, { error: "Needs a name." });
+            const group = payload?.tabGroup?.title
+              ? {
+                  title: String(payload.tabGroup.title).slice(0, 120),
+                  color: String(payload.tabGroup.color || "grey").slice(0, 20),
+                }
+              : null;
+
+            let goalId = payload?.goalId ? String(payload.goalId) : null;
+            const goalName = String(payload?.goalName || "").trim().slice(0, 80);
+            if (!goalId && goalName) {
+              const madeGoal = store.addGoal?.({ name: goalName });
+              goalId = madeGoal?.id || null;
+              if (!goalId) return reply(false, { error: "Could not create the goal." });
+            }
+
+            // Whatever held this group loses it — a group belongs to one thing.
+            if (group) {
+              for (const t of store.tasks || []) {
+                const owns =
+                  t.tabGroup && t.tabGroup.title === group.title && t.tabGroup.color === group.color;
+                if (owns) store.updateTask?.(t.id, { tabGroup: null });
+              }
+            }
+            const saved = store.addTask?.({
+              text,
+              label: ["Today", "Urgent", "General"].includes(payload?.label) ? payload.label : "Today",
+              ...(goalId ? { goalId } : {}),
+              ...(group ? { tabGroup: group } : {}),
+            });
+            if (!saved?.id) return reply(false, { error: "Could not create the task." });
+            setTimeout(() => post({ type: SNAPSHOT, snapshot: snapshot() }), 40);
+            reply(true, { result: { id: saved.id, goalId } });
             break;
           }
 
@@ -181,6 +244,11 @@ export function useExtensionBridge({
               if (owns && t.id !== taskId) store.updateTask?.(t.id, { tabGroup: null });
             }
             if (taskId) store.updateTask?.(taskId, { tabGroup: group });
+            // Push the new state straight back. Without this the popup's own
+            // follow-up read hits a cache written BEFORE the link landed, and
+            // the picker visibly snaps back to the previous owner until the
+            // next poll corrects it.
+            setTimeout(() => post({ type: SNAPSHOT, snapshot: snapshot() }), 40);
             reply(true);
             break;
           }

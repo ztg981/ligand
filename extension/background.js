@@ -190,10 +190,32 @@ chrome.tabs.onUpdated.addListener((_id, info, tab) => {
   if (/^https?:\/\/(localhost|127\.0\.0\.1)|\.vercel\.app/.test(tab.url)) flushQueue();
 });
 
-chrome.alarms.create("tick", { periodInMinutes: 0.5 });
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "tick") refreshBadge();
-});
+/* The badge ticker, guarded.
+
+   `chrome.alarms` is undefined unless the "alarms" permission is granted, and
+   an undefined dereference HERE is fatal in a way it wouldn't be inside a
+   function: this runs at the top level of the service worker, so it throws
+   before the listeners below are registered and takes the startup/installed
+   handlers down with it. The worker then dies on every wake, which is what
+   "the extension barely works" actually looks like.
+
+   It also happens for a reason no code change can prevent: an unpacked
+   extension keeps running with the manifest it was LOADED with, so anyone who
+   hasn't pressed reload since the permission was added is still running
+   without it. The countdown is a nicety; it degrades to "the badge updates
+   when the popup opens" rather than taking the whole worker with it. */
+if (chrome.alarms?.create) {
+  chrome.alarms.create("tick", { periodInMinutes: 0.5 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "tick") refreshBadge();
+  });
+} else {
+  console.warn(
+    "[Ligand] chrome.alarms unavailable — the toolbar countdown will not " +
+      "self-refresh. Reload the extension from chrome://extensions to pick up " +
+      "the current manifest."
+  );
+}
 // Repaint from the cached accent on wake, so the icon survives the service
 // worker being evicted without waiting for Ligand to push a fresh snapshot.
 async function restoreFromCache() {

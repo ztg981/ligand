@@ -27,7 +27,7 @@ Then open `chrome://extensions` and press the **↻ reload** icon on the Ligand
 card. (The "Update" button at the top only checks the Chrome Web Store — it
 does nothing for an unpacked extension.)
 
-Check the version on the card afterwards; it should read **0.3.0**. If it still
+Check the version on the card afterwards; it should read **0.4.0**. If it still
 shows the old one, the folder Chrome is watching isn't the one you just pulled:
 click **Details** to see the path it loaded from.
 
@@ -41,6 +41,11 @@ the app, not in the extension.
 - **Link a tab group to a task.** "Working on" picks which task the current
   group belongs to. A group belongs to at most one task, so choosing a new
   one releases the old.
+- **Or make a new one.** "+ New" creates the thing you're working on — a task,
+  optionally filed under an existing goal or a brand-new one — with the group
+  already attached. The page title is offered as the starting text. It's one
+  action, not create-then-link, so there's never a moment where the group
+  points at nothing.
 - **Pomodoro, with controls.** The popup shows the live countdown and can
   start, pause and skip the block; the toolbar badge shows minutes left. Both
   read the session's absolute end time, so they stay correct even when Ligand
