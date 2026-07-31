@@ -7484,6 +7484,22 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 }
 @media (prefers-reduced-motion: reduce) { .dial-x { animation: none; } }
 
+/* Editing a past journal entry, in place. */
+.journal-entry-edit { color: var(--ink-4); }
+.journal-entry-edit:hover { color: var(--accent); }
+.journal-edited {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-4); border: 1px solid var(--line); border-radius: 999px;
+  padding: 1px 6px;
+}
+.journal-edit { display: grid; gap: 8px; margin-top: 2px; }
+.journal-edit-text {
+  width: 100%; resize: vertical; line-height: 1.5; font-size: 13.5px;
+  min-height: 66px; padding: 9px 11px;
+}
+.journal-edit-moods { display: flex; flex-wrap: wrap; gap: 5px; }
+.journal-edit-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
 /* Late-night blocks: the editor says so where the times are. */
 .dp-overnight-note {
   display: flex; align-items: center; gap: 6px;

@@ -353,6 +353,43 @@ export default function Journal({
   const [attachedSongIds, setAttachedSongIds] = useState([]);
   const attachedSongs = songLog.filter((s) => attachedSongIds.includes(s.id));
 
+  /* Editing a past entry.
+
+     A journal you can only append to is a journal you write carefully, which
+     is the opposite of the point — the whole value of the thing is being able
+     to get a thought down badly and fix it later. Only one entry is open at a
+     time; the draft lives here rather than in the entry so cancelling is free
+     and a half-finished edit can never be mistaken for a save. */
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [editMood, setEditMood] = useState(null);
+
+  const beginEdit = (entry) => {
+    setEditingId(entry.id);
+    setEditText(entry.text || "");
+    setEditMood(entry.mood || null);
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+    setEditMood(null);
+  };
+  const saveEdit = (entry) => {
+    const text = editText.trim();
+    // An entry emptied to nothing is a delete in disguise; refuse it rather
+    // than leaving a blank row behind, and let the trash button do that job.
+    if (!text) return;
+    const changed = text !== (entry.text || "") || (editMood || null) !== (entry.mood || null);
+    // `editedAt` is only stamped on a REAL change, so re-saving an untouched
+    // entry doesn't mark it edited — the marker has to mean something.
+    updateJournalEntry?.(entry.id, {
+      text,
+      mood: editMood || null,
+      ...(changed ? { editedAt: new Date().toISOString() } : null),
+    });
+    cancelEdit();
+  };
+
   // Image attachments staged for the entry-in-progress (kept local until save).
   const [images, setImages] = useState([]); // [{ id, dataUrl }]
   const [imgMsg, setImgMsg] = useState("");
@@ -752,7 +789,26 @@ export default function Journal({
                             </span>
                           )}
                           {e.mood && <span className="chip">{moodLabel(e.mood)}</span>}
+                          {/* Said plainly rather than hidden: a journal that
+                             quietly rewrites its own history isn't a record. */}
+                          {e.editedAt && (
+                            <span className="journal-edited" title={formatEntryDateTime(e.editedAt)}>
+                              edited
+                            </span>
+                          )}
                         </span>
+                        <span className="row" style={{ gap: 2 }}>
+                        {editingId !== e.id && (
+                          <button
+                            type="button"
+                            className="iconbtn journal-entry-edit"
+                            title="Edit this entry"
+                            aria-label="Edit this entry"
+                            onClick={() => beginEdit(e)}
+                          >
+                            <Icon.Pencil width={13} height={13} />
+                          </button>
+                        )}
                         <ConfirmButton
                           className="iconbtn journal-entry-del"
                           title="Delete entry"
@@ -769,15 +825,61 @@ export default function Journal({
                           style={{ color: "var(--ink-4)" }}
                           icon={<Icon.Trash width={13} height={13} />}
                         />
+                        </span>
                       </div>
                       {e.prompt && (
                         <div style={{ fontSize: 11, color: "var(--ink-4)", fontStyle: "italic", marginBottom: 3 }}>
                           {e.prompt}
                         </div>
                       )}
-                      <div className="journal-entry-text" style={{ color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                        {e.text}
-                      </div>
+                      {editingId === e.id ? (
+                        <div className="journal-edit">
+                          <textarea
+                            className="input journal-edit-text"
+                            value={editText}
+                            autoFocus
+                            rows={Math.min(14, Math.max(3, editText.split("\n").length + 1))}
+                            onChange={(ev) => setEditText(ev.target.value)}
+                            onKeyDown={(ev) => {
+                              // Escape abandons; Cmd/Ctrl+Enter saves. Plain
+                              // Enter must stay a newline — this is prose.
+                              if (ev.key === "Escape") cancelEdit();
+                              if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) saveEdit(e);
+                            }}
+                          />
+                          <div className="journal-edit-moods" role="radiogroup" aria-label="Mood for this entry">
+                            {MOODS.map((mood) => (
+                              <button
+                                key={mood.value}
+                                type="button"
+                                role="radio"
+                                aria-checked={editMood === mood.value}
+                                className={"daily-mood-option" + (editMood === mood.value ? " active" : "")}
+                                // Tapping the chosen mood again clears it —
+                                // "I'd rather not say" has to stay reachable.
+                                onClick={() => setEditMood((m) => (m === mood.value ? null : mood.value))}
+                              >
+                                {mood.label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="journal-edit-actions">
+                            <button className="btn ghost sm" onClick={cancelEdit}>Cancel</button>
+                            <button
+                              className="btn primary sm"
+                              onClick={() => saveEdit(e)}
+                              disabled={!editText.trim()}
+                              title={editText.trim() ? "Save changes" : "An entry can't be emptied — delete it instead"}
+                            >
+                              <Icon.Check width={13} height={13} /> Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="journal-entry-text" style={{ color: "var(--ink-2)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                          {e.text}
+                        </div>
+                      )}
                       {(e.attachments || []).length > 0 && (
                         <div className="notes-attach-strip" style={{ marginTop: 8 }}>
                           {e.attachments.map((a) => (
