@@ -343,6 +343,39 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   // Skip the current phase. Skipping a focus block advances the cycle the
   // same way finishing it would, so a Long break still lands on every
   // `longEvery`-th block instead of always dropping to a Short break.
+  /* Take already-spent time off the current block.
+
+     For "I studied 5 minutes before opening the timer": rather than logging
+     those minutes and then sitting through a full 50, the block starts at 45.
+     The point of a Pomodoro is the total time at the desk, so time you already
+     did is time you don't owe.
+
+     Only the CURRENT block shrinks — settings are untouched, so the next one is
+     full length again. A running block moves its absolute end time by the same
+     amount, which keeps the countdown honest without a special case.
+
+     Never drives the block to zero: landing on 0 would fire the phase-end
+     handler and log the whole block as focus, double-counting the very minutes
+     being credited. It stops a second short and reports what it could take, so
+     the caller can say so. */
+  const creditSpent = useCallback(
+    (minutes) => {
+      const want = Math.max(0, Math.round((Number(minutes) || 0) * 60));
+      if (!want) return { applied: 0, appliedMin: 0 };
+      const left = running && endTimeRef.current != null ? secsLeft() : Math.max(0, remaining);
+      const applied = Math.max(0, Math.min(want, left - 1));
+      if (!applied) return { applied: 0, appliedMin: 0 };
+      if (running && endTimeRef.current != null) {
+        endTimeRef.current -= applied * 1000;
+        setRemaining(Math.max(0, left - applied));
+      } else {
+        setRemaining(Math.max(0, left - applied));
+      }
+      return { applied, appliedMin: Math.round((applied / 60) * 10) / 10 };
+    },
+    [running, remaining]
+  );
+
   const skip = useCallback(() => {
     endTimeRef.current = null;
     setRunning(false);
@@ -373,6 +406,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
     reset,
     skip,
     endSession,
+    creditSpent,
     goToPhase,
   };
 }

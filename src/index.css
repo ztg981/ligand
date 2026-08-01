@@ -2330,15 +2330,15 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   position: relative;
   width: 100%;
   /* Grown by dragging either edge (see useSquishResize). --pomo-grow is the
-     fraction of the empty space beside the scene that's in use, NOT a width,
-     so the layout re-solves itself on every window resize instead of freezing
-     at whatever the page happened to be when you let go. max() keeps it inert
-     on screens too narrow to have any slack at all.
+     LEFT growth plus the RIGHT growth — each 0…1 of that side's slack, so the
+     sum runs 0…2 and 2 means both edges fully out, i.e. the whole column.
+     Fractions rather than widths, so the layout re-solves itself on a window
+     resize instead of freezing at whatever the page was when you let go.
 
-     Halved, because the growth is ONE-SIDED: the scene sits centred, so the
-     gap it can expand into on its own side is only half the total empty space.
-     Using the whole of it let a full leftward drag put the scene's left edge
-     251px off the side of the page. */
+     Halved, because each side can only take half the empty space: the scene is
+     centred. Using the whole of it let a full leftward drag put the scene's
+     left edge 251px off the side of the page. max() keeps it inert on screens
+     too narrow to have any slack at all. */
   max-width: calc(620px + var(--pomo-grow, 0) * max(0px, (100% - 620px) / 2));
   aspect-ratio: 16 / 10; /* wide, immersive backdrop */
   /* Widening must make the scene WIDER, not bigger. Left to the aspect ratio
@@ -2386,10 +2386,15 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    ────────────────────────────────────────────────────────────────────── */
 .pomo-grip {
   position: absolute; top: 0; bottom: 0; width: 56px; z-index: 4;
-  cursor: ew-resize;
+  /* A plain pointer, not ew-resize. The resize arrows read as a window chrome
+     affordance — heavy, and they made the scene feel like something being
+     wrenched rather than something you pick up and move. */
+  cursor: pointer;
   /* Scoped to the 56px strips rather than the whole panel, so a vertical
      swipe anywhere else on the scene still scrolls the page normally. */
   touch-action: none;
+  /* Chrome selects text on the second click of a double-click otherwise. */
+  user-select: none; -webkit-user-select: none;
 }
 .pomo-grip.left { left: 0; }
 .pomo-grip.right { right: 0; }
@@ -2398,18 +2403,14 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   .pomo-grip { display: none; }
 }
 
-.pomo-window.grabbed { animation: pomoJiggle 0.36s ease-in-out infinite; }
-.pomo-window.grabbed.dragging { animation: none; scale: 1.004; }
 /* While the pointer is down the edge must follow it exactly — a transition
    here would lag behind and feel like dragging on a rope. */
 .pomo-window.dragging { transition: none; }
-@keyframes pomoJiggle {
-  0%   { rotate: -0.5deg; scale: 1.006; }
-  50%  { rotate:  0.5deg; scale: 1.012; }
-  100% { rotate: -0.5deg; scale: 1.006; }
-}
+/* No jiggle, and nothing scaled: the panel gets WIDER, and the ring and the
+   digits inside it stay exactly the size they were. Scaling the box to signal
+   "you're holding this" distorted everything in it, which read as the scene
+   wobbling rather than a box being resized. */
 @media (prefers-reduced-motion: reduce) {
-  .pomo-window.grabbed { animation: none; }
   .pomo-window { transition: max-width 0.01s linear; }
 }
 /* Semi-transparent veil over the real photo — keeps CSS scene
@@ -2425,7 +2426,18 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   pointer-events: none;
 }
 .pomo-window .scene { position: absolute; inset: 0; z-index: 1; }
-.pomo-center { z-index: 2; }
+/* The timer stays where it is while the scene opens up around it.
+
+   .pomo-center is `inset: 0`, so its 50% is half the WINDOW's width — the same
+   quantity the window's own shift is built from. Applying the exact inverse
+   therefore cancels it, and the clock holds its place on the page instead of
+   being dragged sideways every time an edge is pulled out. */
+.pomo-center {
+  z-index: 2;
+  transform: translateX(calc((50% - 310px) * var(--pomo-anchor, 0)));
+  transition: transform 0.46s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+.pomo-window.dragging .pomo-center { transition: none; }
 
 /* ──── Pomodoro Focus Mode overlay ──────────────────────────────────────
    A fixed fullscreen layer that hides all surrounding UI.
@@ -7483,6 +7495,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   to   { opacity: 1; scale: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .dial-x { animation: none; } }
+
+/* "Take it off this block" — logged time shortening the timer in front of you. */
+.pomo-logpast-credit {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 10px; font-size: 12.5px; color: var(--ink-2); cursor: pointer;
+}
+.pomo-logpast-credit input { margin-top: 2px; accent-color: var(--accent); }
+.pomo-logpast-credit-hint {
+  display: block; font-size: 11px; color: var(--ink-4); margin-top: 1px;
+  font-family: var(--font-mono);
+}
 
 /* Editing a past journal entry, in place. */
 .journal-entry-edit { color: var(--ink-4); }

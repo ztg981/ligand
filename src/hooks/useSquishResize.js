@@ -1,151 +1,126 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/* useSquishResize — drag a panel's edge outward to give it more room.
+/* useSquishResize — drag either edge of a panel outward to give it more room.
 
-   The panel sits centred in a column with empty space either side. Pulling its
-   RIGHT edge to the right grows it rightward; pulling its LEFT edge to the left
-   grows it leftward. Each edge moves on its own, so the panel can lean into
-   whichever side of the page you actually want to fill — which is the point,
-   and is why this isn't a button.
+   The panel sits centred with empty space either side. Each edge moves on its
+   own: pulling the right one right extends the panel rightward, pulling the
+   left one left extends it leftward, and doing one never undoes the other. Two
+   independent numbers, not one number with a side attached — that earlier
+   model is exactly why stretching left collapsed the right.
 
-   It is deliberately undiscoverable-ish: no label, no chrome. The only tell is
-   the resize cursor when you happen to be over an edge.
-
-   Feel:
-     • press and hold  → the panel jiggles, the way a home-screen widget does
-                         when it becomes draggable;
-     • drag            → that edge tracks your pointer 1:1;
-     • push past full  → it can't grow, so it SQUASHES — stretching along the
-                         drag and thinning across it — then springs back.
-
-   The squash is the honest part: rather than the drag going dead at the limit,
-   the resistance is visible, which is what tells you you've reached the edge
-   without a message saying so.
+   Nothing is SCALED. The panel gets wider; the timer and ring inside it stay
+   the size they were. Squashing the box with a transform distorted everything
+   in it, which read as the whole scene wobbling rather than a box being
+   resized.
 
    ── geometry ─────────────────────────────────────────────────────────────
-   `grow` is a 0…1 fraction of the available slack, not a pixel width, so the
-   layout stays responsive: the CSS reads
+   `left` and `right` are each 0…1 of the slack on that side, not pixel widths,
+   so the layout re-solves itself on a window resize instead of freezing at
+   whatever the page was when you let go. The CSS reads
 
-     max-width: calc(NARROW + var(--pomo-grow) * max(0px, 100% - NARROW))
+     max-width: calc(NARROW + var(--pomo-grow) * max(0px, (100% - NARROW) / 2))
 
-   and the panel is re-centred by translating it half the growth toward the
-   side being pulled, which is what keeps the OPPOSITE edge pinned. Doing it
-   in percentages of the panel's own width means the browser recomputes it on
-   every resize for free. */
+   with --pomo-grow = left + right (so 2 means both sides fully out, i.e. the
+   whole column). The panel is then shifted to put its edges where they belong:
+   a centred box of width W has to move by half the DIFFERENCE between the two
+   growths, which in terms of its own width is `(50% - NARROW/2) * K` with
+   K = (right - left) / (right + left). That form is used precisely because a
+   percentage inside translate() resolves against the element's own box, so the
+   browser recomputes it on resize for free. */
 
-/** How far past the limit you must push for a full-strength squash. */
-export const SQUISH_SCALE = 150;
+/** Movement (px) before a press counts as a drag rather than a click. */
+export const DRAG_SLOP = 2;
 
-/** Grab strip along each edge, in px. Wide enough to hit without aiming. */
-export const GRIP_PX = 56;
-
-/* Overshoot in px → a signed squash in −1…1.
-
-   tanh, so the deformation eases toward a limit instead of growing without
-   bound: shoving the pointer to the far edge of the screen shouldn't turn the
-   panel into a pancake. */
-export function squishFrom(overshootPx, scale = SQUISH_SCALE) {
-  return Math.tanh((Number(overshootPx) || 0) / scale);
+/** Clamp one side's growth into the range it can actually take. */
+export function clampGrow(v) {
+  return Math.max(0, Math.min(1, Number(v) || 0));
 }
 
-/* Pointer travel → how much of the available slack is taken up.
+/** Normalise whatever was persisted (including the older single-side shape). */
+export function normalizeGrow(value) {
+  if (!value || typeof value !== "object") return { left: 0, right: 0 };
+  // Older builds stored { grow, side }. Read it rather than resetting someone's
+  // panel to narrow on upgrade.
+  if (value.grow != null && value.left == null && value.right == null) {
+    const g = clampGrow(value.grow);
+    return value.side === "left" ? { left: g, right: 0 } : { left: 0, right: g };
+  }
+  return { left: clampGrow(value.left), right: clampGrow(value.right) };
+}
 
-   `side` is which edge is being dragged. Pulling the right edge right (dx > 0)
-   grows the panel; pulling the LEFT edge left (dx < 0) grows it by the same
-   amount, hence the sign flip. Returns the raw fraction, which may fall
-   outside 0…1 — the overshoot is what feeds the squash. */
-export function growFrom(baseGrow, dx, slackPx, side) {
-  if (!(slackPx > 0)) return baseGrow;
+/* Pointer travel on one edge → that edge's new growth.
+
+   Rightward travel on the right edge grows the panel; LEFTWARD travel on the
+   left edge grows it by the same amount, hence the sign flip. Only the edge
+   being dragged is returned — the other is the caller's to leave alone. */
+export function growFrom(base, dx, slackPx, side) {
+  if (!(slackPx > 0)) return clampGrow(base);
   const travel = side === "left" ? -dx : dx;
-  return baseGrow + travel / slackPx;
+  return clampGrow(base + travel / slackPx);
 }
 
-/* The transform that positions and deforms the panel.
+/* The transform that puts a grown panel's edges in the right places.
 
-   Two jobs in one property. The translate keeps the edge you are NOT dragging
-   exactly where it was: growth is shared equally either side of a centred box,
-   so shifting by half the growth toward the dragged side pins the other one.
-   `50%` is half the panel's own width, so `50% - half of NARROW` is precisely
-   half the growth, whatever the viewport is doing.
-
-   The scale is the squash, and only ever appears when the drag is pushing
-   past a limit. */
-export function panelTransform({ grow = 0, side = "right", squish = 0, narrowPx = 620 } = {}) {
-  const parts = [];
-  const half = narrowPx / 2;
-  if (grow > 0.0001) {
-    parts.push(
-      side === "left"
-        ? `translateX(calc(${half}px - 50%))`
-        : `translateX(calc(50% - ${half}px))`
-    );
-  }
-  const mag = Math.abs(squish);
-  if (mag > 0.0001) {
-    parts.push(`scaleX(${(1 + mag * 0.05).toFixed(4)})`);
-    parts.push(`scaleY(${(1 - mag * 0.04).toFixed(4)})`);
-  }
-  return parts.length ? parts.join(" ") : "none";
+   Shift by half the difference in growth: grow only rightward and the left
+   edge must stay put, grow only leftward and the right edge must, grow both
+   equally and it stays centred. Expressed against the panel's own width so it
+   survives a resize without being recomputed. */
+export function panelShift({ left = 0, right = 0 } = {}) {
+  const sum = left + right;
+  if (sum < 0.0001) return 0;
+  return (right - left) / sum;
 }
 
-/** Clamp a dragged fraction back into the range the panel can actually take. */
-export function clampGrow(grow) {
-  return Math.max(0, Math.min(1, Number(grow) || 0));
+export function panelTransform({ left = 0, right = 0, narrowPx = 620 } = {}) {
+  const k = panelShift({ left, right });
+  if (Math.abs(k) < 0.0001) return "none";
+  return `translateX(calc((50% - ${narrowPx / 2}px) * ${k.toFixed(4)}))`;
 }
 
 /**
  * @param {object}   opts
- * @param {number}   opts.grow      persisted 0…1 fraction of the slack in use
- * @param {string}   opts.side      "left" | "right" — which way it grew
- * @param {Function} opts.onChange  ({ grow, side }) => void, called on release
+ * @param {object}   opts.value     { left, right }, each 0…1 of that side's slack
+ * @param {Function} opts.onChange  ({ left, right }) => void
  * @param {number}   opts.narrowPx  the panel's natural (un-grown) width
  * @param {boolean}  opts.enabled   off where there's no room to grow into
  */
 export default function useSquishResize({
-  grow = 0,
-  side = "right",
+  value,
   onChange,
   narrowPx = 620,
   enabled = true,
 }) {
   const ref = useRef(null);
   const dragRef = useRef(null);
-  const [live, setLive] = useState(null); // { grow, side, squish } while dragging
-  const [held, setHeld] = useState(false);
+  const [live, setLive] = useState(null); // { left, right } while dragging
+  const saved = normalizeGrow(value);
 
   const reset = useCallback(() => {
     dragRef.current = null;
     setLive(null);
-    setHeld(false);
   }, []);
 
   useEffect(() => {
     if (!enabled) reset();
   }, [enabled, reset]);
 
-  /* One handler for both grips.
+  /** Room available on ONE side: the panel is centred, so half the slack. */
+  const sideSlack = useCallback(() => {
+    const el = ref.current;
+    if (!el) return 0;
+    const parent = el.parentElement;
+    return ((parent ? parent.clientWidth : el.offsetWidth) - narrowPx) / 2;
+  }, [narrowPx]);
 
-     Pointer CAPTURE rather than window listeners, which is what makes a slow,
-     deliberate hold-then-drag work: the grip owns the pointer from the moment
-     it goes down, so nothing can steal it, the drag survives the pointer
-     leaving the panel, and there is no window-listener race with React's
-     re-render in between. The previous version also cancelled the whole
-     gesture the moment vertical movement exceeded horizontal, which killed it
-     on the tiny wobble at the start of any unhurried drag — that check is
-     gone, and scrolling is handled by scoping `touch-action: none` to the
-     56px grips instead of the whole panel. */
+  /* Pointer CAPTURE rather than window listeners: the grip owns the pointer
+     from the moment it goes down, so nothing can steal it, the drag survives
+     the pointer leaving the panel, and there's no race with a re-render in
+     between. */
   const startDrag = useCallback(
-    (whichSide) => (e) => {
+    (side) => (e) => {
       if (!enabled || !ref.current) return;
       if (e.button != null && e.button !== 0) return;
-      const el = ref.current;
-      const parent = el.parentElement;
-      /* Halved: the panel is centred, so the room it can expand into on ONE
-         side is half the total empty space. Taking the whole of it let a full
-         drag carry the panel's far edge clean off the side of the page. This
-         is also the width the drag maps onto 1:1 — pulling an edge by N px
-         widens the panel by N px, which is what makes it feel attached. */
-      const slack = ((parent ? parent.clientWidth : el.offsetWidth) - narrowPx) / 2;
+      const slack = sideSlack();
       if (slack <= 8) return; // nowhere to grow — leave it alone
 
       e.preventDefault();
@@ -155,37 +130,30 @@ export default function useSquishResize({
       } catch {
         /* capture is an optimisation, not a requirement */
       }
+      const from = normalizeGrow(value);
       dragRef.current = {
         x: e.clientX,
         pointerId: e.pointerId,
         target: e.currentTarget,
-        side: whichSide,
-        // Dragging the opposite edge starts the growth over from zero: the
-        // panel can lean one way at a time, so switching sides is a new gesture
-        // rather than a continuation of the old one.
-        base: whichSide === side ? clampGrow(grow) : 0,
+        side,
+        base: from,
         slack,
         moved: false,
       };
-      setHeld(true);
-      setLive({ grow: whichSide === side ? clampGrow(grow) : 0, side: whichSide, squish: 0 });
+      setLive(from);
     },
-    [enabled, grow, side, narrowPx]
+    [enabled, value, sideSlack]
   );
 
   const onPointerMove = useCallback((e) => {
     const d = dragRef.current;
     if (!d || e.pointerId !== d.pointerId) return;
     const dx = e.clientX - d.x;
-    if (!d.moved && Math.abs(dx) < 2) return;
+    if (!d.moved && Math.abs(dx) < DRAG_SLOP) return;
     d.moved = true;
-    const raw = growFrom(d.base, dx, d.slack, d.side);
-    const clamped = clampGrow(raw);
-    setLive({
-      grow: clamped,
-      side: d.side,
-      squish: squishFrom((raw - clamped) * d.slack * (d.side === "left" ? -1 : 1)),
-    });
+    // Only the dragged edge changes. The other keeps whatever it had, which is
+    // what makes the two sides genuinely independent.
+    setLive({ ...d.base, [d.side]: growFrom(d.base[d.side], dx, d.slack, d.side) });
   }, []);
 
   const endDrag = useCallback(
@@ -199,62 +167,76 @@ export default function useSquishResize({
       }
       if (d.moved) {
         const dx = (e?.clientX ?? d.x) - d.x;
-        onChange?.({ grow: clampGrow(growFrom(d.base, dx, d.slack, d.side)), side: d.side });
+        onChange?.({ ...d.base, [d.side]: growFrom(d.base[d.side], dx, d.slack, d.side) });
       }
       reset();
     },
     [onChange, reset]
   );
 
-  const gripProps = (whichSide) => ({
-    className: "pomo-grip " + whichSide,
-    onPointerDown: startDrag(whichSide),
+  /* Double-click an edge to throw it all the way out — and again to bring it
+     back. The drag is for choosing a width; this is for the two you actually
+     want most of the time. */
+  const onDoubleClick = useCallback(
+    (side) => (e) => {
+      if (!enabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (sideSlack() <= 8) return;
+      const from = normalizeGrow(value);
+      onChange?.({ ...from, [side]: from[side] >= 0.999 ? 0 : 1 });
+      reset();
+    },
+    [enabled, value, onChange, sideSlack, reset]
+  );
+
+  const gripProps = (side) => ({
+    className: "pomo-grip " + side,
+    onPointerDown: startDrag(side),
     onPointerMove,
     onPointerUp: endDrag,
     onPointerCancel: endDrag,
+    onDoubleClick: onDoubleClick(side),
+    title: "Drag to resize · double-click for the full width",
   });
 
   // Arrow keys do the same job for anyone not using a pointer.
   const onKeyDown = useCallback(
     (e) => {
       if (!enabled) return;
-      const step = (dir) => {
+      const from = normalizeGrow(value);
+      if (e.key === "ArrowRight") {
         e.preventDefault();
-        const cur = live?.grow ?? clampGrow(grow);
-        const curSide = live?.side ?? side;
-        // Growing the way it already leans widens it; the other way shrinks it
-        // back before it can lean the other side.
-        const delta = dir === curSide ? 0.25 : -0.25;
-        const next = clampGrow(cur + delta);
-        onChange?.({ grow: next, side: next === 0 ? dir : curSide });
-      };
-      if (e.key === "ArrowRight") step("right");
-      else if (e.key === "ArrowLeft") step("left");
+        onChange?.({ ...from, right: clampGrow(from.right + 0.25) });
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        onChange?.({ ...from, left: clampGrow(from.left + 0.25) });
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onChange?.({ left: 0, right: 0 });
+      }
     },
-    [enabled, grow, side, live, onChange]
+    [enabled, value, onChange]
   );
 
-  const shownGrow = live ? live.grow : clampGrow(grow);
-  const shownSide = live ? live.side : side;
+  const shown = live || saved;
 
   return {
     ref,
     gripProps,
-    held,
     dragging: Boolean(live && dragRef.current?.moved),
     keyHandlers: enabled ? { onKeyDown, tabIndex: 0 } : {},
     style: {
-      "--pomo-grow": shownGrow,
-      transform: panelTransform({
-        grow: shownGrow,
-        side: shownSide,
-        squish: live?.squish ?? 0,
-        narrowPx,
-      }),
+      "--pomo-grow": shown.left + shown.right,
+      /* The inverse of the panel's own shift, for the content to cancel it
+         with. Growing one way slides the box sideways, which would carry the
+         timer off the centre of the page with it — the box should open up
+         AROUND the clock, not drag it along. */
+      "--pomo-anchor": -panelShift(shown),
+      transform: panelTransform({ ...shown, narrowPx }),
     },
     className:
-      (shownGrow > 0.0001 ? " grown" : "") +
-      (held ? " grabbed" : "") +
+      (shown.left + shown.right > 0.0001 ? " grown" : "") +
       (live && dragRef.current?.moved ? " dragging" : ""),
   };
 }

@@ -812,12 +812,11 @@ export default function Pomodoro({
      survives a window resize (see useSquishResize). Pull the scene's right
      edge right to lean it right, its left edge left to lean it left. */
   const [sceneSize, setSceneSize] = useLocalStorage("ligand.pomoScene", {
-    grow: 0,
-    side: "right",
+    left: 0,
+    right: 0,
   });
   const squish = useSquishResize({
-    grow: sceneSize?.grow ?? 0,
-    side: sceneSize?.side === "left" ? "left" : "right",
+    value: sceneSize,
     onChange: setSceneSize,
     narrowPx: POMO_NARROW_PX,
     // Hyperfocus is a deliberately fixed, undistracting layout — nothing to
@@ -836,6 +835,9 @@ export default function Pomodoro({
   const [showLogPast, setShowLogPast] = useState(false);
   const [pastMin, setPastMin] = useState(25);
   const [justLoggedMin, setJustLoggedMin] = useState(0);
+  // Whether logged time also shortens the block in front of you.
+  const [creditBlock, setCreditBlock] = useLocalStorage("ligand.pomoCreditBlock", true);
+  const [justCreditedMin, setJustCreditedMin] = useState(0);
   useEffect(() => {
     if (!justLoggedMin) return undefined;
     const t = setTimeout(() => setJustLoggedMin(0), 5000);
@@ -987,6 +989,11 @@ export default function Pomodoro({
       label: focusTaskId ? focusLabel : null,
     });
     setJustLoggedMin(m);
+    // Shorten the block in front of you by what you just logged. creditSpent
+    // reports what it could actually take — it stops a second short of zero,
+    // because landing on zero would fire the phase-end handler and log the
+    // whole block as focus on top of the minutes just credited.
+    setJustCreditedMin(creditBlock ? pomo.creditSpent?.(m)?.appliedMin || 0 : 0);
     setShowLogPast(false);
   };
 
@@ -1306,6 +1313,32 @@ export default function Pomodoro({
                   format={fmtMin}
                 />
               </div>
+              {/* Time already done is time you don't owe. Rather than logging
+                 45 minutes and then sitting through a full block anyway, take
+                 it off the one in front of you. Only the CURRENT block shrinks;
+                 the next is full length again. */}
+              <label className="pomo-logpast-credit">
+                <input
+                  type="checkbox"
+                  checked={creditBlock}
+                  onChange={(e) => setCreditBlock(e.target.checked)}
+                />
+                <span>
+                  Take it off this block
+                  {/* Mirrors creditSpent's own clamp — it stops a second short
+                     of zero so the block can't complete and log itself on top
+                     of the minutes being credited. Promising "00:00" when the
+                     timer will actually read 00:01 is a small lie the preview
+                     doesn't need to tell. */}
+                  <span className="pomo-logpast-credit-hint">
+                    {creditBlock
+                      ? Math.round(pastMin) * 60 >= pomo.remaining
+                        ? `covers the whole ${PHASE_LABEL[pomo.phase].toLowerCase()} block`
+                        : `${PHASE_LABEL[pomo.phase]} becomes ${mmss(pomo.remaining - Math.round(pastMin) * 60)}`
+                      : `leaves ${PHASE_LABEL[pomo.phase]} at ${mmss(pomo.remaining)}`}
+                  </span>
+                </span>
+              </label>
               <div className="pomo-logpast-foot">
                 <span className="pomo-logpast-attr">
                   For <strong>{focusLabel}</strong>
@@ -1318,7 +1351,8 @@ export default function Pomodoro({
           ) : justLoggedMin ? (
             <div className="pomo-logpast-done" role="status">
               <span className="pomo-logpast-done-msg">
-                <Icon.Check width={14} height={14} /> Added {fmtMin(justLoggedMin)} to today's focus.
+                <Icon.Check width={14} height={14} /> Added {fmtMin(justLoggedMin)} to today's focus
+                {justCreditedMin > 0 && <> · {fmtMin(justCreditedMin)} off this block</>}.
               </span>
               <button
                 type="button"
