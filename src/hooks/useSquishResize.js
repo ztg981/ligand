@@ -31,6 +31,62 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** Movement (px) before a press counts as a drag rather than a click. */
 export const DRAG_SLOP = 2;
 
+/* Above this speed (px/ms) a release is a FLICK, not a placement.
+
+   Set well clear of an ordinary drag on purpose. Someone dragging an edge to a
+   chosen width moves at roughly 0.2–0.8 px/ms, and a threshold down in that
+   range would fling the panel to an end almost every time — which reads as the
+   control refusing to be placed. A genuine throw clears 1.5 easily. */
+export const FLICK_SPEED = 1.2;
+
+/** How close to a notch (0, half, full) counts as landing on it. */
+export const MAGNET = 0.07;
+
+/** How far past a limit you must push for a full-strength squash. */
+export const SQUISH_SCALE = 160;
+
+/* Pointer speed from the last couple of move samples, in px/ms.
+
+   Two samples, not the whole gesture: what matters is how fast the edge was
+   moving when you LET GO, and averaging that with the slow start of a long
+   drag would read every throw as a gentle placement. */
+export function velocityFrom(samples = []) {
+  if (samples.length < 2) return 0;
+  const a = samples[samples.length - 2];
+  const b = samples[samples.length - 1];
+  const dt = b.t - a.t;
+  if (!(dt > 0)) return 0;
+  return (b.x - a.x) / dt;
+}
+
+/* Where a released edge settles.
+
+   Two behaviours, and which one applies is decided by speed. Thrown hard, the
+   edge commits to whichever end it was thrown toward — that's the "flick it
+   open" gesture, and stopping halfway because your finger left the screen
+   early would feel like the throw was ignored. Placed slowly, the value is
+   kept as-is except for a little magnetism onto the obvious stops, so landing
+   on "all the way out" doesn't require pixel accuracy.
+
+   `velocity` is in pointer space, so a leftward throw on the LEFT edge is
+   growth and has to change sign before it can be read as a direction. */
+export function settleGrow(grow, velocity = 0, side = "right") {
+  const g = clampGrow(grow);
+  const v = side === "left" ? -velocity : velocity;
+  if (Math.abs(v) >= FLICK_SPEED) return v > 0 ? 1 : 0;
+  for (const notch of [0, 0.5, 1]) {
+    if (Math.abs(g - notch) <= MAGNET) return notch;
+  }
+  return g;
+}
+
+/* Overshoot in px → a signed squash in −1…1. tanh, so pushing the pointer to
+   the far edge of the screen shows resistance rather than turning the panel
+   into a pancake. */
+export function squishFrom(overshootPx) {
+  return Math.tanh((Number(overshootPx) || 0) / SQUISH_SCALE);
+}
+
 /** Clamp one side's growth into the range it can actually take. */
 export function clampGrow(v) {
   return Math.max(0, Math.min(1, Number(v) || 0));
@@ -71,10 +127,26 @@ export function panelShift({ left = 0, right = 0 } = {}) {
   return (right - left) / sum;
 }
 
-export function panelTransform({ left = 0, right = 0, narrowPx = 620 } = {}) {
+/* How far the panel deforms when pushed past a limit. Stretch along the drag,
+   thin across it — volume roughly held, which is what makes it read as squashy
+   rather than merely bigger. The content cancels this exactly (see
+   .pomo-center), so the frame gives way while the clock does not. */
+export function squishScale(squish = 0) {
+  const mag = Math.min(1, Math.abs(Number(squish) || 0));
+  return { sx: 1 + mag * 0.05, sy: 1 - mag * 0.04 };
+}
+
+export function panelTransform({ left = 0, right = 0, squish = 0, narrowPx = 620 } = {}) {
   const k = panelShift({ left, right });
-  if (Math.abs(k) < 0.0001) return "none";
-  return `translateX(calc((50% - ${narrowPx / 2}px) * ${k.toFixed(4)}))`;
+  const { sx, sy } = squishScale(squish);
+  const parts = [];
+  if (Math.abs(k) >= 0.0001) {
+    parts.push(`translateX(calc((50% - ${narrowPx / 2}px) * ${k.toFixed(4)}))`);
+  }
+  if (Math.abs(sx - 1) >= 0.0001 || Math.abs(sy - 1) >= 0.0001) {
+    parts.push(`scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`);
+  }
+  return parts.length ? parts.join(" ") : "none";
 }
 
 /**
@@ -92,12 +164,14 @@ export default function useSquishResize({
 }) {
   const ref = useRef(null);
   const dragRef = useRef(null);
-  const [live, setLive] = useState(null); // { left, right } while dragging
+  const [live, setLive] = useState(null); // { left, right, squish } while dragging
+  const [held, setHeld] = useState(false); // pointer down: the pick-up wiggle
   const saved = normalizeGrow(value);
 
   const reset = useCallback(() => {
     dragRef.current = null;
     setLive(null);
+    setHeld(false);
   }, []);
 
   useEffect(() => {
@@ -139,8 +213,12 @@ export default function useSquishResize({
         base: from,
         slack,
         moved: false,
+        // The last couple of positions, for reading how fast the edge was
+        // moving at the moment of release.
+        samples: [{ x: e.clientX, t: e.timeStamp || performance.now() }],
       };
-      setLive(from);
+      setLive({ ...from, squish: 0 });
+      setHeld(true);
     },
     [enabled, value, sideSlack]
   );
@@ -151,9 +229,20 @@ export default function useSquishResize({
     const dx = e.clientX - d.x;
     if (!d.moved && Math.abs(dx) < DRAG_SLOP) return;
     d.moved = true;
+    d.samples.push({ x: e.clientX, t: e.timeStamp || performance.now() });
+    if (d.samples.length > 4) d.samples.shift();
+
     // Only the dragged edge changes. The other keeps whatever it had, which is
     // what makes the two sides genuinely independent.
-    setLive({ ...d.base, [d.side]: growFrom(d.base[d.side], dx, d.slack, d.side) });
+    const raw = d.base[d.side] + (d.side === "left" ? -dx : dx) / (d.slack || 1);
+    const next = clampGrow(raw);
+    // Whatever the drag asked for beyond the limit has nowhere to go, so it
+    // becomes deformation instead of the drag simply going dead.
+    setLive({
+      ...d.base,
+      [d.side]: next,
+      squish: squishFrom((raw - next) * d.slack * (d.side === "left" ? -1 : 1)),
+    });
   }, []);
 
   const endDrag = useCallback(
@@ -167,7 +256,13 @@ export default function useSquishResize({
       }
       if (d.moved) {
         const dx = (e?.clientX ?? d.x) - d.x;
-        onChange?.({ ...d.base, [d.side]: growFrom(d.base[d.side], dx, d.slack, d.side) });
+        const landed = growFrom(d.base[d.side], dx, d.slack, d.side);
+        // Throw it and it commits to that end; place it and it just tidies up
+        // onto the nearest obvious stop.
+        onChange?.({
+          ...d.base,
+          [d.side]: settleGrow(landed, velocityFrom(d.samples), d.side),
+        });
       }
       reset();
     },
@@ -220,6 +315,7 @@ export default function useSquishResize({
   );
 
   const shown = live || saved;
+  const { sx, sy } = squishScale(shown.squish || 0);
 
   return {
     ref,
@@ -228,15 +324,18 @@ export default function useSquishResize({
     keyHandlers: enabled ? { onKeyDown, tabIndex: 0 } : {},
     style: {
       "--pomo-grow": shown.left + shown.right,
-      /* The inverse of the panel's own shift, for the content to cancel it
-         with. Growing one way slides the box sideways, which would carry the
-         timer off the centre of the page with it — the box should open up
-         AROUND the clock, not drag it along. */
+      /* The inverse of the panel's own shift and squash, for the content to
+         cancel them with. Growing one way slides the box sideways and pushing
+         past a limit deforms it; either would carry the timer along, and the
+         box should open up AROUND the clock rather than dragging it. */
       "--pomo-anchor": -panelShift(shown),
+      "--pomo-sx": 1 / sx,
+      "--pomo-sy": 1 / sy,
       transform: panelTransform({ ...shown, narrowPx }),
     },
     className:
       (shown.left + shown.right > 0.0001 ? " grown" : "") +
+      (held ? " held" : "") +
       (live && dragRef.current?.moved ? " dragging" : ""),
   };
 }

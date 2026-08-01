@@ -2406,12 +2406,37 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 /* While the pointer is down the edge must follow it exactly — a transition
    here would lag behind and feel like dragging on a rope. */
 .pomo-window.dragging { transition: none; }
-/* No jiggle, and nothing scaled: the panel gets WIDER, and the ring and the
-   digits inside it stay exactly the size they were. Scaling the box to signal
-   "you're holding this" distorted everything in it, which read as the scene
-   wobbling rather than a box being resized. */
+
+/* Picking it up: a springy little wobble, so grabbing an edge feels like
+   taking hold of something rather than nudging a value.
+
+   The trick that makes this safe is that the clock cancels it. These use the
+   standalone `scale`/`rotate` properties (which compose with `transform`
+   rather than overwriting it), and .pomo-center runs the mirrored keyframes
+   at identical timing — same duration, same easing, started in the same
+   frame — so the two stay in lockstep and the timer sits perfectly still
+   while its frame springs. Rotation isn't a mathematically exact inverse once
+   combined with scale, but at 0.4° and 1.4% the residual is well under a
+   pixel. Squashing the box without this is what made the whole scene look
+   like it was wobbling. */
+.pomo-window.held { animation: pomoHold 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.pomo-window.held .pomo-center { animation: pomoHoldInv 0.46s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+@keyframes pomoHold {
+  0%   { scale: 1;      rotate: 0deg; }
+  30%  { scale: 1.014;  rotate: -0.4deg; }
+  62%  { scale: 1.002;  rotate: 0.25deg; }
+  100% { scale: 1.008;  rotate: 0deg; }
+}
+@keyframes pomoHoldInv {
+  0%   { scale: 1;      rotate: 0deg; }
+  30%  { scale: 0.9862; rotate: 0.4deg; }
+  62%  { scale: 0.998;  rotate: -0.25deg; }
+  100% { scale: 0.9921; rotate: 0deg; }
+}
 @media (prefers-reduced-motion: reduce) {
   .pomo-window { transition: max-width 0.01s linear; }
+  .pomo-window.held,
+  .pomo-window.held .pomo-center { animation: none; }
 }
 /* Semi-transparent veil over the real photo — keeps CSS scene
    animations and the timer ring legible against any photo content.
@@ -2434,7 +2459,12 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
    being dragged sideways every time an edge is pulled out. */
 .pomo-center {
   z-index: 2;
-  transform: translateX(calc((50% - 310px) * var(--pomo-anchor, 0)));
+  /* Exactly the inverse of the window's own transform, applied in the reverse
+     order — (T∘S)⁻¹ = S⁻¹∘T⁻¹ — so the two cancel and the clock holds still
+     while the frame moves and squashes around it. */
+  transform:
+    scale(var(--pomo-sx, 1), var(--pomo-sy, 1))
+    translateX(calc((50% - 310px) * var(--pomo-anchor, 0)));
   transition: transform 0.46s cubic-bezier(0.22, 1.4, 0.36, 1);
 }
 .pomo-window.dragging .pomo-center { transition: none; }

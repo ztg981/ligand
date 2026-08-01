@@ -5,6 +5,12 @@ import {
   clampGrow,
   normalizeGrow,
   panelTransform,
+  velocityFrom,
+  settleGrow,
+  squishFrom,
+  squishScale,
+  FLICK_SPEED,
+  MAGNET,
 } from "../src/hooks/useSquishResize.js";
 
 /* Dragging the Pomodoro scene's edges. The React plumbing needs a browser;
@@ -58,8 +64,8 @@ test("a grown panel puts its edges where the growth says", () => {
   assert.equal(panelTransform({ left: 0, right: 0 }), "none");
 });
 
-test("the transform never scales anything", () => {
-  // The panel gets wider; the ring and digits inside must not be distorted.
+test("resizing alone never scales anything", () => {
+  // The panel gets wider; the ring and digits must not be distorted by growth.
   for (const v of [
     { left: 0, right: 1 },
     { left: 1, right: 0 },
@@ -69,6 +75,62 @@ test("the transform never scales anything", () => {
     const t = panelTransform(v);
     assert.ok(!/scale/i.test(t), `no scaling in ${t}`);
   }
+});
+
+/* Squash, and the inverse the clock uses to sit still through it. */
+
+test("pushing past a limit squashes, and the squash is bounded", () => {
+  assert.equal(squishFrom(0), 0);
+  assert.ok(squishFrom(160) > 0);
+  assert.equal(squishFrom(-160), -squishFrom(160), "symmetric");
+  assert.ok(squishFrom(160 * 2) < squishFrom(160) * 2, "eases toward a limit");
+  assert.ok(squishFrom(Number.MAX_SAFE_INTEGER) <= 1);
+});
+
+test("a squashed panel stretches one way and thins the other", () => {
+  const { sx, sy } = squishScale(1);
+  assert.ok(sx > 1 && sy < 1);
+  // Magnitude drives it, so a leftward push deforms identically.
+  assert.deepEqual(squishScale(-1), { sx, sy });
+  assert.deepEqual(squishScale(0), { sx: 1, sy: 1 });
+});
+
+test("the content's inverse exactly undoes the panel's squash", () => {
+  // This is what lets the frame give way while the clock does not move.
+  for (const s of [0.2, 0.6, 1]) {
+    const { sx, sy } = squishScale(s);
+    assert.ok(Math.abs(sx * (1 / sx) - 1) < 1e-12);
+    assert.ok(Math.abs(sy * (1 / sy) - 1) < 1e-12);
+  }
+});
+
+/* Letting go: throw it and it commits, place it and it tidies up. */
+
+test("velocity is read from the last moments, not the whole drag", () => {
+  // A drag that crawls then bolts must read as fast.
+  const samples = [{ x: 0, t: 0 }, { x: 10, t: 400 }, { x: 110, t: 450 }];
+  assert.ok(Math.abs(velocityFrom(samples) - 2) < 1e-9);
+  assert.equal(velocityFrom([{ x: 0, t: 0 }]), 0, "one sample is no speed");
+  assert.equal(velocityFrom([{ x: 0, t: 5 }, { x: 9, t: 5 }]), 0, "no time passed");
+});
+
+test("a flick commits to the end it was thrown toward", () => {
+  const fast = FLICK_SPEED + 0.4;
+  assert.equal(settleGrow(0.2, fast, "right"), 1, "thrown outward");
+  assert.equal(settleGrow(0.8, -fast, "right"), 0, "thrown back");
+  // On the LEFT edge, leftward travel is growth — the sign has to flip.
+  assert.equal(settleGrow(0.2, -fast, "left"), 1);
+  assert.equal(settleGrow(0.8, fast, "left"), 0);
+});
+
+test("a slow placement is kept, with a little magnetism onto the stops", () => {
+  const slow = FLICK_SPEED / 4;
+  assert.equal(settleGrow(0.62, slow, "right"), 0.62, "left where you put it");
+  assert.equal(settleGrow(1 - MAGNET / 2, slow, "right"), 1);
+  assert.equal(settleGrow(MAGNET / 2, slow, "right"), 0);
+  assert.equal(settleGrow(0.5 + MAGNET / 2, slow, "right"), 0.5, "the halfway stop");
+  // Just outside the magnet's reach it is NOT dragged onto the notch.
+  assert.equal(settleGrow(0.5 + MAGNET * 2, slow, "right"), 0.5 + MAGNET * 2);
 });
 
 test("an unevenly grown panel leans toward the bigger side", () => {
