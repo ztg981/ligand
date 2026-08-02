@@ -6,6 +6,7 @@ import DayStory from "../components/DayStory.jsx";
 import AssistantReviewPanel from "../components/AssistantReviewPanel.jsx";
 import ScheduleImportSheet from "../components/ScheduleImportSheet.jsx";
 import MobileDayTimeline from "../components/MobileDayTimeline.jsx";
+import MobileDayRing from "../components/MobileDayRing.jsx";
 import { MonthView, NaturalAddBar, WeekView } from "../components/CalendarViews.jsx";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
@@ -978,6 +979,16 @@ export default function DayPlanner({
              in time order, tappable free gaps, and a warm now-line. The dial
              stays the instrument for pointer-and-tablet screens. */}
           <div className="card dp-mobile-agenda">
+            {/* The shape of the day first, the detail underneath. The ring is
+               the one thing the desktop dial does that a list can't — you
+               either have a full day or you don't, and that's a picture, not a
+               number. Everything else the dial does needs a pointer. */}
+            <MobileDayRing
+              blocks={blocks}
+              isToday={isToday}
+              selectedId={selectedId}
+              onSelect={openExisting}
+            />
             <div className="dp-mobile-dial-foot" style={{ border: "none", padding: 0, marginBottom: 10 }}>
               <span className="dp-mobile-dial-sum">
                 {blocks.length

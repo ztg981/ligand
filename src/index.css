@@ -7558,6 +7558,67 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   font-family: var(--font-mono);
 }
 
+/* ── Pomodoro on a phone ───────────────────────────────────────────────
+   The reason to open this tab on a phone is almost always to see the clock
+   and pause it from across the room. So the settings fold away, and the
+   transport controls get thumb-sized instead of inheriting a pointer's.
+   ────────────────────────────────────────────────────────────────────── */
+.pomo-more { margin: 0; }
+/* On desktop this is a plain container: `open` is set, and the summary — the
+   only thing that would give it away — is gone. */
+.pomo-more > summary { display: none; }
+@media (max-width: 899px) {
+  .pomo-more > summary {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    margin-top: 18px; padding: 11px 14px;
+    border-radius: var(--r-lg); border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink-2);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    list-style: none;
+  }
+  .pomo-more > summary::-webkit-details-marker { display: none; }
+  .pomo-more[open] > summary { color: var(--ink); }
+
+  /* Thumb-sized transport. Four buttons in a pointer-sized row is a row of
+     targets you keep missing; two rows of two is one you don't. */
+  .pomo-transport {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;
+  }
+  .pomo-transport .btn {
+    justify-content: center; padding: 13px 10px; font-size: 14px;
+  }
+  /* Start/Pause is the one you actually came for — full width, on top. */
+  .pomo-transport .btn:first-child { grid-column: 1 / -1; }
+  .pomo-stage { gap: 12px; }
+}
+
+/* ── The phone's day ring ──────────────────────────────────────────────
+   Deliberately bare: arcs, a dot for now, a total. No ticks, no hour
+   numbers, no labels — all of which are noise at this size, and all of
+   which the agenda list below already says properly.
+   ────────────────────────────────────────────────────────────────────── */
+.mdr { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 14px; }
+.mdr-svg { width: 200px; height: 200px; display: block; }
+.mdr-arc { cursor: pointer; transition: stroke-width 0.18s var(--ease); }
+.mdr-total {
+  font-family: var(--font-mono); font-size: 21px; font-weight: 600;
+  fill: var(--ink); letter-spacing: -0.02em;
+}
+.mdr-sub {
+  font-size: 9.5px; fill: var(--ink-4);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+/* The "now / next" line sits below the ring rather than inside it — a title
+   crammed into the middle of a 200px circle is unreadable at any length. */
+.mdr-now {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 100%;
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--ink-2); font-size: 12.5px; cursor: pointer;
+}
+.mdr-now-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.mdr-now-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* A screen that couldn't be shown — never a blank page. */
 .tab-missing { text-align: center; padding: 30px 20px; }
 .tab-missing-title { font-size: 15px; font-weight: 600; color: var(--ink); }

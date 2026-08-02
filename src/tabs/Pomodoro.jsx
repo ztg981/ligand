@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PHASES } from "../hooks/usePomodoro.js";
 import { todayKey } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import useSquishResize from "../hooks/useSquishResize.js";
 import FocusPicker from "../components/FocusPicker.jsx";
 import { Ring, Slider, Segmented, Switch } from "../components/Controls.jsx";
@@ -779,6 +780,7 @@ export default function Pomodoro({
   } = engine;
   // A short receipt after ending early, so banked focus time is visible rather
   // than something you have to trust happened.
+  const isMobile = useIsMobile();
   const [endedNote, setEndedNote] = useState("");
   useEffect(() => {
     if (!endedNote) return undefined;
@@ -1181,7 +1183,7 @@ export default function Pomodoro({
         )}
 
         {/* Transport controls */}
-        <div className="row" style={{ gap: 10 }}>
+        <div className="row pomo-transport" style={{ gap: 10 }}>
           {pomo.running ? (
             <button className="btn" onClick={handlePause}>
               <Icon.Pause /> Pause
@@ -1445,8 +1447,20 @@ export default function Pomodoro({
         </div>
       )}
 
-      {/* Settings (standard mode only) */}
+      {/* Settings (standard mode only).
+
+         Folded away on a phone. The reason to open this tab on a phone is
+         almost always to see the clock and pause it from across the room —
+         four sliders and a scene gallery are a desktop sitting, and putting
+         them between you and the Pause button is backwards. They're one tap
+         away rather than gone. */}
       {!hyperfocus && (
+      <details className="pomo-more" open={!isMobile}>
+        {/* Hidden entirely on desktop (CSS), where `open` keeps this a plain
+           container and the markup below is unchanged. */}
+        <summary>
+          <Icon.Wand width={13} height={13} /> Timings &amp; scene
+        </summary>
       <div className="grid grid-12" style={{ marginTop: 20 }}>
         {/* Session lengths */}
         <div className="card col-7" style={{ minWidth: 0 }}>
@@ -1556,6 +1570,7 @@ export default function Pomodoro({
           </p>
         </div>
       </div>
+      </details>
       )}
     </>
   );
