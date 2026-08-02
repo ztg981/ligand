@@ -123,14 +123,29 @@ test("a flick commits to the end it was thrown toward", () => {
   assert.equal(settleGrow(0.8, fast, "left"), 0);
 });
 
-test("a slow placement is kept, with a little magnetism onto the stops", () => {
+test("a slow placement snaps onto the nearest stop within reach", () => {
   const slow = FLICK_SPEED / 4;
-  assert.equal(settleGrow(0.62, slow, "right"), 0.62, "left where you put it");
   assert.equal(settleGrow(1 - MAGNET / 2, slow, "right"), 1);
   assert.equal(settleGrow(MAGNET / 2, slow, "right"), 0);
   assert.equal(settleGrow(0.5 + MAGNET / 2, slow, "right"), 0.5, "the halfway stop");
-  // Just outside the magnet's reach it is NOT dragged onto the notch.
-  assert.equal(settleGrow(0.5 + MAGNET * 2, slow, "right"), 0.5 + MAGNET * 2);
+  assert.equal(settleGrow(0.25 - MAGNET / 2, slow, "right"), 0.25, "quarters too");
+  assert.equal(settleGrow(0.75 + MAGNET / 2, slow, "right"), 0.75);
+});
+
+test("the magnet takes the NEAREST stop, not the first one it checks", () => {
+  const slow = FLICK_SPEED / 4;
+  // 0.72 is within reach of 0.75 and nothing else; checking stops in order
+  // must not let an earlier one claim it.
+  assert.equal(settleGrow(0.72, slow, "right"), 0.75);
+  assert.equal(settleGrow(0.28, slow, "right"), 0.25);
+});
+
+test("there is still room to rest between the stops", () => {
+  // Dead centre between two stops is further than the magnet reaches, so a
+  // deliberate placement there survives — this is a drag, not a stepper.
+  const slow = FLICK_SPEED / 4;
+  assert.equal(settleGrow(0.625, slow, "right"), 0.625);
+  assert.equal(settleGrow(0.375, slow, "right"), 0.375);
 });
 
 test("an unevenly grown panel leans toward the bigger side", () => {

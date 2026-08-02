@@ -815,6 +815,20 @@ export default function Pomodoro({
     left: 0,
     right: 0,
   });
+  /* Hold the scene still.
+
+     Some scenes move a lot — the highway has palms and traffic streaming at
+     you — and motion in the corner of your eye is exactly what a focus screen
+     shouldn't be adding. Persisted, because someone who wants it still wants
+     it still every time.
+
+     It's also the cheap one for battery: a paused scene stops compositing
+     entirely, which is most of what this tab costs when it's just sitting
+     there. (Browsers already suspend animations in a backgrounded tab, so
+     leaving Ligand open in another window doesn't burn anything — the cost is
+     only while you're looking at it.) */
+  const [sceneStill, setSceneStill] = useLocalStorage("ligand.pomoSceneStill", false);
+
   const squish = useSquishResize({
     value: sceneSize,
     onChange: setSceneSize,
@@ -1104,7 +1118,12 @@ export default function Pomodoro({
         {/* The scene window - real photo + CSS animations layered on top */}
         <div
           ref={squish.ref}
-          className={"pomo-window" + (hyperfocus ? " hyperfocus" : "") + squish.className}
+          className={
+            "pomo-window" +
+            (hyperfocus ? " hyperfocus" : "") +
+            (sceneStill ? " scene-still" : "") +
+            squish.className
+          }
           role="group"
           aria-label="Focus scene — drag either edge sideways to resize"
           style={{
@@ -1124,6 +1143,19 @@ export default function Pomodoro({
             <>
               <div {...squish.gripProps("left")} />
               <div {...squish.gripProps("right")} />
+              <button
+                type="button"
+                className="pomo-still"
+                onClick={() => setSceneStill((s) => !s)}
+                title={sceneStill ? "Let the scene move again" : "Hold the scene still"}
+                aria-label={sceneStill ? "Let the scene move again" : "Hold the scene still"}
+                aria-pressed={sceneStill}
+                data-mute-click
+              >
+                {sceneStill
+                  ? <Icon.Play width={12} height={12} />
+                  : <Icon.Pause width={12} height={12} />}
+              </button>
             </>
           )}
           {/* Dark overlay so CSS animations + timer remain legible over photo */}

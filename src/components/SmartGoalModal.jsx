@@ -168,8 +168,38 @@ export default function SmartGoalModal({ onCreate, onClose }) {
     setStep(0);
   };
 
+  /* Has anything actually been typed?
+
+     A stray click on the backdrop used to throw the whole half-written goal
+     away with no warning and no undo — which is a lot of work to lose to a
+     misplaced click. Once there's anything in the form, the backdrop stops
+     being a dismiss target and you have to mean it: the X, or Cancel.
+
+     Only fields the user FILLS IN count. The blank form ships with defaults
+     (three workouts a week, bodyweight equipment, today's date), so comparing
+     the whole object would treat an untouched modal as dirty and make it
+     impossible to dismiss by clicking away — which is the right gesture when
+     you haven't written anything. */
+  const isDirty = Boolean(
+    form.name.trim() ||
+      form.specific.trim() ||
+      form.measurable.trim() ||
+      form.relevant.trim() ||
+      form.deadline ||
+      form.habits.some((h) => h.trim()) ||
+      rec.label.trim() ||
+      rec.why.trim() ||
+      fit.name.trim()
+  );
+
   return (
-    <div className="scrim" role="presentation" onMouseDown={onClose}>
+    <div
+      className="scrim"
+      role="presentation"
+      onMouseDown={() => {
+        if (!isDirty) onClose();
+      }}
+    >
       <div
         className="modal"
         role="dialog"

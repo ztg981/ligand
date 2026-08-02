@@ -2350,18 +2350,26 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   margin: 0 auto;
   border-radius: 24px;
   overflow: hidden;
+  /* `isolation` forces this into its own stacking context up front. Combined
+     with the transform it already carries, that's what makes Chrome apply the
+     rounded clip to the COMPOSITED layer rather than to a repaint that some
+     GPU/driver pairs skip — the failure mode being the children's square
+     corners showing through, which is bright on a light scene and reads as
+     white blocks in the corners. `.scene` and the veil carry the radius
+     themselves as well (below), so the corners survive even when the parent's
+     clip is ignored entirely. */
+  isolation: isolate;
   background: #0a1230;
-  /* The border is deliberately NOT --line: that's a pale colour meant for
-     panels, and ringing an always-dark scene with it showed as white flecks in
-     the rounded corners (worse on higher-DPI screens, where the antialiased
-     arc has more pale pixels to reveal). A faint light-on-dark edge instead. */
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  /* Deliberately NOT --shadow-pop. That token opens with an inset
-     `0 1px 0 rgba(255,255,255,0.95)` — a near-white highlight along the top
-     edge, which is right for a pale card and wrong for an always-dark scene:
-     it wrapped the rounded corners and read as random white flecks up there.
-     A plain drop shadow, no highlight. */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 18px 42px -16px rgba(0, 0, 0, 0.5);
+  /* No white anywhere on this element, by construction. Both a pale border and
+     --shadow-pop's inset `0 1px 0 rgba(255,255,255,0.95)` highlight have been
+     reported as white flecks around these corners, and an always-dark scene
+     has no business carrying a light edge in the first place. The ring is now
+     an inset dark line, which reads as a rim without adding any light. */
+  border: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.22),
+    0 18px 42px -16px rgba(0, 0, 0, 0.5);
   /* Sideways drags belong to the resize gesture; vertical ones still scroll
      the page, so the scene isn't a dead zone on a touchscreen. */
   touch-action: pan-y;
@@ -2450,7 +2458,20 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
   border-radius: inherit;
   pointer-events: none;
 }
-.pomo-window .scene { position: absolute; inset: 0; z-index: 1; }
+/* The scene carries the corner radius ITSELF, not just the parent's clip.
+
+   Relying on `overflow: hidden` alone is what let this go wrong on one machine
+   and not others: when the window is a composited layer, some GPU/driver pairs
+   don't apply its rounded clip to the layer, and the child's square corners
+   show through. On a dark scene that's invisible; on a light one (Zen is
+   nearly cream, the highway sky is bright blue) it's four bright blocks in the
+   corners. The Pomodoro scene is stored per-device, so two machines on the same
+   account genuinely can — and did — differ here. */
+.pomo-window .scene {
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  overflow: hidden;
+}
 /* The timer stays where it is while the scene opens up around it.
 
    .pomo-center is `inset: 0`, so its 50% is half the WINDOW's width — the same
@@ -7535,6 +7556,44 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 .pomo-logpast-credit-hint {
   display: block; font-size: 11px; color: var(--ink-4); margin-top: 1px;
   font-family: var(--font-mono);
+}
+
+/* A screen that couldn't be shown — never a blank page. */
+.tab-missing { text-align: center; padding: 30px 20px; }
+.tab-missing-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+.tab-missing-sub {
+  font-size: 12.5px; color: var(--ink-3); line-height: 1.6;
+  max-width: 360px; margin: 6px auto 14px;
+}
+
+/* Hold the scene still.
+
+   A pause for the animation, not the timer — deliberately quiet, in the corner
+   and mostly transparent until you go looking for it, because a control that
+   competes for attention on a focus screen has defeated its own purpose. */
+.pomo-still {
+  position: absolute; top: 10px; right: 10px; z-index: 5;
+  width: 26px; height: 26px; display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3); color: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  cursor: pointer; opacity: 0;
+  transition: opacity 0.2s var(--ease), background 0.2s var(--ease);
+}
+.pomo-window:hover .pomo-still,
+.pomo-still:focus-visible { opacity: 0.55; }
+.pomo-still:hover { opacity: 1; background: rgba(0, 0, 0, 0.5); }
+/* Once it's holding, say so — otherwise a still scene just looks broken. */
+.pomo-window.scene-still .pomo-still { opacity: 0.85; }
+@media (max-width: 899px) { .pomo-still { opacity: 0.5; } }
+
+/* Freeze every animation in the scene, and only in the scene — the ring, the
+   controls and the rest of the page carry on. */
+.pomo-window.scene-still .scene,
+.pomo-window.scene-still .scene *,
+.pomo-window.scene-still .scene *::before,
+.pomo-window.scene-still .scene *::after {
+  animation-play-state: paused !important;
 }
 
 /* Editing a past journal entry, in place. */

@@ -15,6 +15,7 @@ import SetNewPassword from "./components/SetNewPassword.jsx";
 import BadgeCelebration from "./components/BadgeCelebration.jsx";
 import BadgesModal from "./components/BadgesModal.jsx";
 import FocusDetail from "./components/FocusDetail.jsx";
+import ScreenBoundary from "./components/ScreenBoundary.jsx";
 import { useBadges } from "./hooks/useBadges.js";
 import TopNav from "./layout/TopNav.jsx";
 import GoalSidebar from "./components/GoalSidebar.jsx";
@@ -1650,6 +1651,30 @@ export default function App() {
       case "goal": {
         const id = activeGoal;
         const goal = store.goals.find((g) => g.id === id);
+        /* A goal tab pointing at a goal that isn't there any more.
+
+           This is what the blank page actually was. Every branch below needs a
+           goal, and with none they fell through to a screen that rendered
+           nothing — leaving the nav and the sidebar in place with an empty
+           space where the tab should be, which looks exactly like a crash and
+           is only fixable by reloading. It happens whenever the goal goes away
+           underneath the tab: archived on another device, or replaced by a
+           cloud pull that hadn't caught up yet. Say so, and offer the way
+           out. */
+        if (!goal) {
+          return (
+            <div className="card tab-missing" role="status">
+              <div className="tab-missing-title">That goal isn't here any more</div>
+              <p className="tab-missing-sub">
+                It may have been archived or removed on another device. Your
+                other goals are all still where you left them.
+              </p>
+              <button className="btn primary" onClick={() => setTab("home")}>
+                Back to home
+              </button>
+            </div>
+          );
+        }
         if (goal?.type === "recovery") {
           return (
             <RecoveryGoalTab
@@ -1883,7 +1908,24 @@ export default function App() {
           />
         );
       default:
-        return null;
+        /* Never render nothing.
+
+           A tab with no case used to return null, which paints an empty page
+           inside a working shell — indistinguishable from a crash, and there
+           is no way back except reloading. Anything unrecognised now says so
+           and offers the door. */
+        return (
+          <div className="card tab-missing" role="status">
+            <div className="tab-missing-title">Nothing to show here</div>
+            <p className="tab-missing-sub">
+              This view couldn't be opened. Nothing has been lost — pick a tab
+              to carry on.
+            </p>
+            <button className="btn primary" onClick={() => setTab("home")}>
+              Back to home
+            </button>
+          </div>
+        );
     }
   })();
 
@@ -2066,15 +2108,20 @@ export default function App() {
           {/* key={tab} remounts on tab switch so the fade/slide-in plays. */}
           <div className="content">
             <div className="tab-fade" key={tab}>
-              <Suspense
-                fallback={
-                  <div className="card tab-loading" role="status">
-                    Opening…
-                  </div>
-                }
-              >
-                {screen}
-              </Suspense>
+              {/* Scoped to the tab, so one broken screen costs you that screen
+                 and not the whole session. Keyed on `tab` so navigating away
+                 and back retries instead of staying stuck on a stale error. */}
+              <ScreenBoundary resetKey={tab} onHome={() => setTab("home")}>
+                <Suspense
+                  fallback={
+                    <div className="card tab-loading" role="status">
+                      Opening…
+                    </div>
+                  }
+                >
+                  {screen}
+                </Suspense>
+              </ScreenBoundary>
             </div>
           </div>
           {/* DESKTOP-only goal navigation on the RIGHT (hidden <768px via CSS). */}

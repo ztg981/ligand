@@ -50,6 +50,10 @@ export function useSupabaseSync(session) {
   const lastPushedRef = useRef(null); // JSON string last sent to the cloud
   const activeRef = useRef(false); // pushes allowed only after hydrate/migrate
   const debounceRef = useRef(null);
+  // True for the duration of a push's round trip. See pushNow / pullNow: the
+  // debounce ref clears when the timer fires, leaving a window in which a pull
+  // could overwrite data that was still on its way up.
+  const pushingRef = useRef(false);
   const taskSyncRef = useRef(Promise.resolve());
 
   // Serialize record reconciliation so a focus event and a debounced local
@@ -66,20 +70,33 @@ export function useSupabaseSync(session) {
   // effect and migration. Returns nothing; updates status.
   const pushNow = useCallback(async () => {
     if (!userId || !supabase || !activeRef.current) return;
-    const taskResult = await reconcileTasksNow();
-    const blob = collectLocalBlob();
-    const json = JSON.stringify(blob);
-    if (json === lastPushedRef.current) {
-      if (!taskResult.ok) setStatus("offline");
-      return; // nothing changed
-    }
-    setStatus("syncing");
-    const res = await pushUserData(userId, blob);
-    if (res.ok) {
-      lastPushedRef.current = json;
-      setStatus(taskResult.ok ? "synced" : "offline");
-    } else {
-      setStatus("offline");
+    /* Held for the whole round trip, and checked by pullNow.
+
+       The debounce ref alone was not enough: it is nulled the instant the
+       timer fires, so between "the push started" and "the server confirmed it"
+       there was a window where pullNow saw no pending edit and happily applied
+       an OLDER cloud blob over the top — destroying whatever had just been
+       created locally. A goal made seconds before a pull could simply vanish,
+       and the tab showing it then had nothing to render. */
+    pushingRef.current = true;
+    try {
+      const taskResult = await reconcileTasksNow();
+      const blob = collectLocalBlob();
+      const json = JSON.stringify(blob);
+      if (json === lastPushedRef.current) {
+        if (!taskResult.ok) setStatus("offline");
+        return; // nothing changed
+      }
+      setStatus("syncing");
+      const res = await pushUserData(userId, blob);
+      if (res.ok) {
+        lastPushedRef.current = json;
+        setStatus(taskResult.ok ? "synced" : "offline");
+      } else {
+        setStatus("offline");
+      }
+    } finally {
+      pushingRef.current = false;
     }
   }, [userId, reconcileTasksNow]);
 
@@ -178,6 +195,7 @@ export function useSupabaseSync(session) {
   const pullNow = useCallback(async () => {
     if (!userId || !supabase || !activeRef.current) return;
     if (debounceRef.current) return; // local edits about to push — don't clobber
+    if (pushingRef.current) return; // a push is mid-flight — its data is newer
     const res = await fetchUserData(userId);
     if (!res.ok || !res.row?.data) return;
     const json = JSON.stringify(res.row.data);

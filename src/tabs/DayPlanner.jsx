@@ -325,7 +325,11 @@ function BlockEditor({
         className="scrim"
         role="presentation"
         onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
+          // Once a title has been typed, the backdrop stops being a dismiss
+          // target: losing a half-written block to a misplaced click is a lot
+          // of work thrown away with no warning and no undo. Close it with the
+          // X instead.
+          if (e.target === e.currentTarget && !draft.title.trim()) onClose();
         }}
       >
         <div

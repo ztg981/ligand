@@ -37,10 +37,20 @@ export const DRAG_SLOP = 2;
    chosen width moves at roughly 0.2–0.8 px/ms, and a threshold down in that
    range would fling the panel to an end almost every time — which reads as the
    control refusing to be placed. A genuine throw clears 1.5 easily. */
-export const FLICK_SPEED = 1.2;
+export const FLICK_SPEED = 0.95;
 
-/** How close to a notch (0, half, full) counts as landing on it. */
-export const MAGNET = 0.07;
+/* How close to a stop counts as landing on it.
+
+   With stops every 0.25 this pulls over most of the range but deliberately not
+   all of it: a magnet wider than half the gap would leave no free space at all
+   and the panel could only ever rest on a quarter, which is a different
+   control — a stepper, not a drag. */
+export const MAGNET = 0.1;
+
+/* The widths worth landing exactly on. Quarters as well as halves, so there's
+   almost always a stop within reach — with only three, most of the range fell
+   between them and the panel came to rest on arbitrary numbers. */
+export const NOTCHES = [0, 0.25, 0.5, 0.75, 1];
 
 /** How far past a limit you must push for a full-strength squash. */
 export const SQUISH_SCALE = 160;
@@ -74,10 +84,15 @@ export function settleGrow(grow, velocity = 0, side = "right") {
   const g = clampGrow(grow);
   const v = side === "left" ? -velocity : velocity;
   if (Math.abs(v) >= FLICK_SPEED) return v > 0 ? 1 : 0;
-  for (const notch of [0, 0.5, 1]) {
-    if (Math.abs(g - notch) <= MAGNET) return notch;
+  // Nearest stop within reach, not merely the first one that qualifies — with
+  // the magnet this wide the ranges overlap, and taking the first would pull
+  // a value toward a stop further away than one it had already passed.
+  let best = null;
+  for (const notch of NOTCHES) {
+    const d = Math.abs(g - notch);
+    if (d <= MAGNET && (best === null || d < Math.abs(g - best))) best = notch;
   }
-  return g;
+  return best === null ? g : best;
 }
 
 /* Overshoot in px → a signed squash in −1…1. tanh, so pushing the pointer to
