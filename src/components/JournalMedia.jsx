@@ -14,6 +14,7 @@ import {
 import { putMedia, getMediaUrl, deleteMedia, formatBytes } from "../lib/mediaStore.js";
 import { fetchMedia } from "../lib/mediaSync.js";
 import { posterFromVideo } from "../lib/videoPoster.js";
+import { startLiveTranscript } from "../lib/liveTranscript.js";
 
 /* JournalMedia — recording controls for the composer, and playback for saved
    entries.
@@ -45,12 +46,14 @@ function CaptureSheet({ onClose, onSaved }) {
   const [mode, setMode] = useState("audio"); // "audio" | "video"
   const [facing, setFacing] = useState("environment"); // back camera by default
   const [silent, setSilent] = useState(false); // opt-in music-preserving clip
+  const [transcribe, setTranscribe] = useState(false); // explicit opt-in; browsers may use an online speech service
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
   const [slide, setSlide] = useState(0); // px dragged toward the lock
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [switchingCamera, setSwitchingCamera] = useState(false);
 
   const controllerRef = useRef(null);
   const previewStreamRef = useRef(null);
@@ -58,6 +61,8 @@ function CaptureSheet({ onClose, onSaved }) {
   const timerRef = useRef(null);
   const closedRef = useRef(false);
   const holdRef = useRef({ active: false, x: 0, locked: false });
+  const transcriptRef = useRef("");
+  const transcriberRef = useRef(null);
 
   const cap =
     mode === "video" ? (locked ? MAX_VIDEO_LOCKED_MS : MAX_VIDEO_MS) : MAX_AUDIO_MS;
@@ -89,6 +94,7 @@ function CaptureSheet({ onClose, onSaved }) {
     () => () => {
       closedRef.current = true;
       controllerRef.current?.cancel();
+      transcriberRef.current?.cancel();
       releasePreview();
       clearInterval(timerRef.current);
     },
@@ -106,6 +112,9 @@ function CaptureSheet({ onClose, onSaved }) {
         cancelled = true;
       };
     }
+    // Updating `facing` after an in-take applyConstraints switch must not tear
+    // down the exact stream MediaRecorder is still consuming.
+    if (controllerRef.current) return;
     (async () => {
       try {
         releasePreview(); // flipping camera or muting reopens the stream
@@ -127,7 +136,6 @@ function CaptureSheet({ onClose, onSaved }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, facing, silent]);
 
   const finish = async ({ blob, durationMs, kind }) => {
@@ -139,7 +147,9 @@ function CaptureSheet({ onClose, onSaved }) {
     setElapsed(0);
     controllerRef.current = null;
     setSaving(true);
-    const ref = await putMedia(blob, { kind, durationMs });
+    const transcript = (await transcriberRef.current?.stop()) || transcriptRef.current;
+    transcriberRef.current = null;
+    const ref = await putMedia(blob, { kind, durationMs, transcript });
     setSaving(false);
     if (ref) {
       onSaved?.(ref);
@@ -160,6 +170,7 @@ function CaptureSheet({ onClose, onSaved }) {
         onStop: finish,
         onError: () => {
           clearInterval(timerRef.current);
+          transcriberRef.current?.stop();
           setRecording(false);
           setError("Recording stopped unexpectedly.");
         },
@@ -170,6 +181,16 @@ function CaptureSheet({ onClose, onSaved }) {
         return;
       }
       controllerRef.current = controller;
+      transcriptRef.current = "";
+      // Speech recognition is best-effort and never gates recording. A silent
+      // clip intentionally does not touch the microphone, so it stays off.
+      if (mode === "video" && transcribe && !silent) {
+        transcriberRef.current = startLiveTranscript({
+          onText: (text) => {
+            transcriptRef.current = text;
+          },
+        });
+      }
       setRecording(true);
       clearInterval(timerRef.current);
       timerRef.current = setInterval(
@@ -182,6 +203,7 @@ function CaptureSheet({ onClose, onSaved }) {
   };
 
   const stop = () => {
+    transcriberRef.current?.stop();
     controllerRef.current?.stop();
     controllerRef.current = null;
   };
@@ -201,6 +223,12 @@ function CaptureSheet({ onClose, onSaved }) {
     // but a slide means lock. So arm the gesture and decide on release —
     // that's what keeps "tap to start, then slide to lock" possible.
     if (recording) {
+      // Once locked, the shutter is an unambiguous stop control. Stop on down
+      // so a lost pointer-up cannot strand the user in a finished take.
+      if (locked) {
+        stop();
+        return;
+      }
       holdRef.current = {
         active: true,
         x: e.clientX,
@@ -233,7 +261,9 @@ function CaptureSheet({ onClose, onSaved }) {
       hold.locked = true;
       hold.active = false;
       setLocked(true);
-      setSlide(LOCK_SLIDE_PX);
+      // The slide is only the locking gesture; the stop button belongs back in
+      // its centered home as soon as the take latches.
+      setSlide(0);
       // Locking is a promise of a longer take, so lift the cap to match.
       controllerRef.current?.extendCap?.(
         mode === "video" ? MAX_VIDEO_LOCKED_MS : MAX_AUDIO_MS
@@ -267,7 +297,28 @@ function CaptureSheet({ onClose, onSaved }) {
 
   const close = () => {
     if (recording) controllerRef.current?.cancel();
+    transcriberRef.current?.cancel();
     onClose?.();
+  };
+
+  const flipCamera = async () => {
+    const next = facing === "environment" ? "user" : "environment";
+    if (!recording) {
+      setFacing(next);
+      return;
+    }
+    setSwitchingCamera(true);
+    setError("");
+    try {
+      const controller = controllerRef.current;
+      if (!controller) return;
+      await controller.switchCamera(next);
+      setFacing(next);
+    } catch {
+      setError("This browser can't switch cameras during a recording. Stop the take, switch cameras, then start again.");
+    } finally {
+      setSwitchingCamera(false);
+    }
   };
 
   // Escape leaves — never trap someone inside a recorder.
@@ -294,7 +345,10 @@ function CaptureSheet({ onClose, onSaved }) {
           <button
             type="button"
             className={"jm-tool" + (silent ? " off" : "")}
-            onClick={() => setSilent((s) => !s)}
+            onClick={() => {
+              if (!silent) setTranscribe(false);
+              setSilent((s) => !s);
+            }}
             disabled={recording}
             title={
               silent
@@ -350,6 +404,24 @@ function CaptureSheet({ onClose, onSaved }) {
           </button>
         </div>
 
+        {mode === "video" && (
+          <button
+            type="button"
+            className={"jm-transcribe-toggle" + (transcribe ? " on" : "")}
+            onClick={() => setTranscribe((value) => !value)}
+            disabled={recording || silent}
+            title={
+              silent
+                ? "Turn clip sound on to add a transcript"
+                : "Your browser may use its online speech service to create the transcript"
+            }
+            aria-pressed={transcribe}
+          >
+            <Icon.Note width={13} height={13} />
+            {transcribe ? "Transcript on" : "Add transcript"}
+          </button>
+        )}
+
         {/* Shutter + the lock rail it slides along, with the camera flip
            parked bottom-right of it the way the camera app does. */}
         <div className={"jm-shutter-wrap" + (recording && !locked ? " sliding" : "")}>
@@ -377,13 +449,12 @@ function CaptureSheet({ onClose, onSaved }) {
               <Icon.Arrow width={13} height={13} />
             </span>
           )}
-          {/* Hidden mid-take: the camera can't be swapped during a recording,
-             and it would otherwise sit where the lock rail appears. */}
-          {mode === "video" && !recording && (
+          {mode === "video" && (
             <button
               type="button"
               className="jm-flip"
-              onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+              onClick={flipCamera}
+              disabled={saving || switchingCamera}
               title="Switch camera"
               aria-label="Switch camera"
             >
@@ -491,7 +562,13 @@ function MediaItem({ item, onRemove, userId = null }) {
   };
 
   return (
-    <div className={"jm-item" + (item.kind === "video" ? " is-video" : "")}>
+    <div
+      className={
+        "jm-item" +
+        (item.kind === "video" ? " is-video" : "") +
+        (item.transcript ? " has-transcript" : "")
+      }
+    >
       {fetching ? (
         <span className="jm-note">Fetching this recording…</span>
       ) : missing ? (
@@ -511,6 +588,13 @@ function MediaItem({ item, onRemove, userId = null }) {
         {formatDuration(item.durationMs || 0)}
         {item.size ? ` · ${formatBytes(item.size)}` : ""}
       </span>
+      {item.transcript && (
+        <details className="jm-transcript">
+          <summary>Transcript</summary>
+          <p>{item.transcript}</p>
+          <small>Captured automatically and may contain mistakes.</small>
+        </details>
+      )}
       {onRemove && (
         <button type="button" className="jm-x" onClick={remove} title="Remove recording">
           <Icon.Close width={11} height={11} />

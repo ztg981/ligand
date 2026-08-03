@@ -82,7 +82,7 @@ export function mediaId() {
  * Store one recording. Returns the lightweight reference to put on the entry
  * (never the blob itself), or null if storage was unavailable.
  */
-export async function putMedia(blob, { kind = "audio", durationMs = 0 } = {}) {
+export async function putMedia(blob, { kind = "audio", durationMs = 0, transcript = "" } = {}) {
   if (!blob) return null;
   const record = {
     id: mediaId(),
@@ -105,6 +105,7 @@ export async function putMedia(blob, { kind = "audio", durationMs = 0 } = {}) {
     mime: record.mime,
     durationMs: record.durationMs,
     size: record.size,
+    ...(transcript.trim() ? { transcript: transcript.trim() } : {}),
   };
 }
 

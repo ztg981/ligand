@@ -6,6 +6,7 @@ import {
   MAX_AUDIO_MS,
   MAX_VIDEO_MS,
   MAX_VIDEO_LOCKED_MS,
+  switchCameraTrack,
 } from "../src/lib/mediaRecord.js";
 
 /* The codec ladder is the part that silently breaks across browsers, so it
@@ -19,6 +20,18 @@ test("audio prefers opus, and falls back to Safari's mp4", () => {
   // Safari supports neither webm nor ogg for recording — only mp4.
   const safari = (type) => type === "audio/mp4";
   assert.equal(pickMimeType("audio", safari), "audio/mp4");
+});
+
+test("camera switching constrains the active track without replacing its stream", async () => {
+  let constraints = null;
+  const track = { applyConstraints: async (value) => { constraints = value; } };
+  const stream = { getVideoTracks: () => [track] };
+  assert.equal(await switchCameraTrack(stream, "user"), "user");
+  assert.deepEqual(constraints, { facingMode: { exact: "user" } });
+});
+
+test("camera switching reports an unsupported active track", async () => {
+  await assert.rejects(() => switchCameraTrack({ getVideoTracks: () => [] }, "user"));
 });
 
 test("video prefers mp4, then walks down the webm ladder", () => {

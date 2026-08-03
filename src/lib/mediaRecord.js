@@ -71,6 +71,22 @@ export function formatDuration(ms) {
 }
 
 /**
+ * Ask an active video track to change cameras without replacing the stream.
+ * Replacing tracks after MediaRecorder starts is not portable (notably on
+ * Safari), while applyConstraints keeps the recorder and preview attached to
+ * the same track. Browsers that cannot do this reject cleanly so the UI can
+ * explain that the take must be stopped before switching.
+ */
+export async function switchCameraTrack(stream, facingMode) {
+  const track = stream?.getVideoTracks?.()[0];
+  if (!track || typeof track.applyConstraints !== "function") {
+    throw new Error("Active camera switching is not supported here.");
+  }
+  await track.applyConstraints({ facingMode: { exact: facingMode } });
+  return facingMode;
+}
+
+/**
  * Begin recording. Resolves to a controller once the stream is live:
  *
  *   { stream, mimeType, kind, stop(), cancel() }
@@ -215,6 +231,9 @@ export async function startRecording({
     /** Raise the cap mid-take — used when a hold is slid into a locked take. */
     extendCap(ms) {
       armCap(ms);
+    },
+    switchCamera(facingMode) {
+      return switchCameraTrack(stream, facingMode);
     },
     stop() {
       if (recorder.state === "recording") recorder.stop();

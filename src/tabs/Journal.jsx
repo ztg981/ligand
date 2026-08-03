@@ -341,9 +341,9 @@ export default function Journal({
     setLocation(name);
     setGeo(position || null);
   };
-  // List or map. Remembered, since it's a way of reading the journal rather
-  // than a one-off action.
-  const [view, setView] = useLocalStorage("ligand.journalView", "list");
+  // Each visit starts on entries; the map is an alternate view, not the
+  // journal's landing page.
+  const [view, setView] = useState("list");
   // Sort preference persists across sessions (app-wide for the main journal).
   const [sort, setSort] = useLocalStorage("ligand.journalSort", "newest");
 
