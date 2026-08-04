@@ -5213,6 +5213,84 @@ html[data-hyperfocus="true"][data-hf-theme="ice"] {
    BMW-M blue+red livery painted over everything. Crimson keeps the M colors
    on purpose: red is an M color and the user liked it there. Scoped to an
    active hyperfocus so the vars never leak into the normal app. */
+/* ══════════════════════════════════════════════════════════════════════
+   Hyperfocus: a lit edge around the whole window.
+
+   Two layers, because one never looks right. A wide, heavily blurred halo
+   just inside the frame does the colour and the softness; a hairline ring
+   on top gives it an edge to end on. Both are the SAME rotating conic
+   gradient at different blurs, so the colour bands line up and the whole
+   thing reads as one light source travelling round the frame rather than
+   two effects that happen to share a palette.
+
+   The rotation is a registered custom property. Animating an <angle> that
+   the browser understands means it interpolates on the compositor; without
+   @property the angle is just a string, the gradient re-rasterises every
+   frame, and a full-screen conic repaint is exactly the kind of thing that
+   turns a laptop fan on. Browsers without @property get the gradient
+   standing still, which still looks deliberate.
+
+   Colours come from the active livery (--hf-tri-1..3), so this follows
+   whichever hyperfocus theme is chosen instead of hardcoding one.
+   ────────────────────────────────────────────────────────────────────── */
+@property --hf-edge-spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+html[data-hyperfocus="true"] body::before,
+html[data-hyperfocus="true"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  border-radius: 18px;
+  background: conic-gradient(
+    from var(--hf-edge-spin),
+    rgba(var(--hf-tri-1), 0.95),
+    rgba(var(--hf-tri-2), 0.95) 28%,
+    rgba(var(--hf-tri-3), 0.95) 52%,
+    rgba(var(--hf-tri-2), 0.95) 74%,
+    rgba(var(--hf-tri-1), 0.95)
+  );
+  /* Punch out the middle: only the frame is painted. `exclude` keeps the
+     ring's inner edge exactly parallel to the outer one, which a second
+     inset element can't guarantee once the radius changes. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: hfEdgeSpin 8s linear infinite;
+}
+/* The halo: thick and blurred, thrown inward. */
+html[data-hyperfocus="true"] body::before {
+  padding: 26px;
+  filter: blur(22px);
+  opacity: 0.5;
+}
+/* The edge itself: a hairline the halo can resolve into. */
+html[data-hyperfocus="true"] body::after {
+  padding: 1.5px;
+  opacity: 0.8;
+}
+@keyframes hfEdgeSpin {
+  to { --hf-edge-spin: 360deg; }
+}
+/* Motion is the whole effect, so reduced-motion holds it still rather than
+   removing it — a stationary lit frame is still a lit frame. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-hyperfocus="true"] body::before,
+  html[data-hyperfocus="true"] body::after { animation: none; }
+}
+[data-reduce-motion="true"] html[data-hyperfocus="true"] body::before,
+[data-reduce-motion="true"] html[data-hyperfocus="true"] body::after { animation: none; }
+
 html[data-hyperfocus="true"] { /* crimson default — the M livery */
   --hf-tri-1: 231, 34, 46;   /* M red */
   --hf-tri-2: 0, 102, 177;   /* M dark blue */
@@ -7532,17 +7610,18 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 /* The X on the floating time card. The wedge X below is easy to miss on a
    busy dial; this one sits on the only thing that says, in words, which block
    you have selected — so there is nowhere else to look for it. */
-/* The same quiet icon button the top bar uses — .iconbtn's panel fill, hairline
-   border and muted glyph — rather than a red disc. It only turns red on hover,
-   where the intent is unambiguous and the warning is actually useful. */
-.dial-tip-x-bg {
-  fill: var(--panel);
-  stroke: var(--line);
-  stroke-width: 1;
+/* Deliberately the same button as .pomo-still, the scene's hold-still control:
+   a soft dark disc with a light glyph, quiet until you reach for it. SVG can't
+   take backdrop-filter, so the fill carries a little more alpha to stand in
+   for the blur. Red only on hover, where the intent is already unambiguous. */
+.dial-tip-x-bg { fill: rgba(0, 0, 0, 0.38); }
+.dial-tip-x-mark {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 1.9; stroke-linecap: round; fill: none;
 }
-.dial-tip-x-mark { stroke: var(--ink-3); stroke-width: 1.8; stroke-linecap: round; fill: none; }
-.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.55 0.2 25); stroke: transparent; }
-.dial-tip-x:hover .dial-tip-x-mark { stroke: #fff; }
+.dial-tip-x { opacity: 0.75; transition: opacity 0.18s var(--ease); }
+.dial-tip-x:hover { opacity: 1; }
+.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.55 0.2 25); }
 
 /* The X on the selected wedge — the remove control that actually lives next
    to the thing it removes (see DayDial). Pops in so it's noticed. */

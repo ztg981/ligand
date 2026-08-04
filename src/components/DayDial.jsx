@@ -108,19 +108,25 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
   const a = angleFn(mid);
   const right = Math.cos(a) >= 0;
   const [ax, ay] = ptBase(mid, R_OUT + 26, angleFn);
-  const w = 168;
+  /* The card grows to make room for the button rather than the button being
+     laid over the text. Sized for the X, the text stays centred in what's LEFT
+     of it — otherwise a centred label runs straight under the badge and eats
+     its own last characters ("3:00 AI" instead of "3:00 AM"). */
+  const PAD = onRemove ? 34 : 0;
+  const w = 168 + PAD;
   const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
-  // Inside the card's top-right corner, clear of its rounded edge.
-  const cx = x + w - 15;
-  const cy = y + 14;
+  const textMid = x + (w - PAD) / 2;
+  // Centred in the reserved strip, clear of the card's rounded corner.
+  const cx = x + w - 20;
+  const cy = y + 24;
   return (
     <g pointerEvents={onRemove ? "auto" : "none"}>
       <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
-      <text x={x + w / 2} y={y + 20} textAnchor="middle" className="dial-tip-range">
+      <text x={textMid} y={y + 20} textAnchor="middle" className="dial-tip-range">
         {minutesToLabel(s)} – {minutesToLabel(e)}
       </text>
-      <text x={x + w / 2} y={y + 38} textAnchor="middle" className="dial-tip-dur">
+      <text x={textMid} y={y + 38} textAnchor="middle" className="dial-tip-dur">
         {fmtDuration(e - s)}
       </text>
       {onRemove && (
@@ -131,21 +137,13 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
           onClick={(ev) => { ev.stopPropagation(); onRemove(); }}
         >
           <title>{removeLabel}</title>
-          {/* Styled as one of the toolbar's icon buttons, not as an alarm. A
-             red disc hanging off the corner was louder than the card it sits
-             on and overlapped its border; this is the same quiet square-ish
-             button used in the top bar, sized to match and kept inside the
-             card's own padding. */}
-          <rect
-            x={cx - 10}
-            y={cy - 10}
-            width="20"
-            height="20"
-            rx="6"
-            className="dial-tip-x-bg"
-          />
+          {/* The same button as the scene's hold-still control (.pomo-still):
+             a 26px translucent dark circle with a light glyph. Round, not a
+             box, and sitting in its own reserved strip so it never covers the
+             time it belongs to. */}
+          <circle cx={cx} cy={cy} r="13" className="dial-tip-x-bg" />
           <path
-            d={`M ${cx - 3.6} ${cy - 3.6} L ${cx + 3.6} ${cy + 3.6} M ${cx + 3.6} ${cy - 3.6} L ${cx - 3.6} ${cy + 3.6}`}
+            d={`M ${cx - 4} ${cy - 4} L ${cx + 4} ${cy + 4} M ${cx + 4} ${cy - 4} L ${cx - 4} ${cy + 4}`}
             className="dial-tip-x-mark"
           />
         </g>
