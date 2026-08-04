@@ -66,38 +66,54 @@ export function useSupabaseSync(session) {
     return run;
   }, []);
 
-  // Push the current local blob (debounced caller). Shared by the writer
-  // effect and migration. Returns nothing; updates status.
-  const pushNow = useCallback(async () => {
-    if (!userId || !supabase || !activeRef.current) return;
-    /* Held for the whole round trip, and checked by pullNow.
+  /* Push the local blob — one at a time, newest state wins.
 
-       The debounce ref alone was not enough: it is nulled the instant the
-       timer fires, so between "the push started" and "the server confirmed it"
-       there was a window where pullNow saw no pending edit and happily applied
-       an OLDER cloud blob over the top — destroying whatever had just been
-       created locally. A goal made seconds before a pull could simply vanish,
-       and the tab showing it then had nothing to render. */
-    pushingRef.current = true;
-    try {
-      const taskResult = await reconcileTasksNow();
-      const blob = collectLocalBlob();
-      const json = JSON.stringify(blob);
-      if (json === lastPushedRef.current) {
-        if (!taskResult.ok) setStatus("offline");
-        return; // nothing changed
-      }
-      setStatus("syncing");
-      const res = await pushUserData(userId, blob);
-      if (res.ok) {
-        lastPushedRef.current = json;
-        setStatus(taskResult.ok ? "synced" : "offline");
-      } else {
-        setStatus("offline");
-      }
-    } finally {
-      pushingRef.current = false;
-    }
+     Pushes used to be able to overlap, and that is a lost update waiting to
+     happen: each call snapshotted the blob and then awaited two network round
+     trips, so if push A (light theme) and push B (dark theme) were in flight
+     together and A happened to land second, the cloud ended up holding A's
+     older snapshot. Nothing looked wrong until the next reload, where the
+     cloud copy wins on hydrate — and the change came back undone. A theme
+     flipping back after a reload is exactly that, and so is a freshly created
+     goal quietly reverting.
+
+     Chaining fixes both halves. Only one push is ever in flight, and the blob
+     is collected AFTER waiting its turn, so whichever push runs last carries
+     the newest local state rather than a stale snapshot of it. Same pattern as
+     reconcileTasksNow above, for the same reason.
+
+     `pushingRef` is held for the whole round trip and checked by pullNow: the
+     debounce ref is nulled the instant the timer FIRES, leaving a window where
+     a pull saw no pending edit and applied an older cloud blob over the top. */
+  const pushChainRef = useRef(Promise.resolve());
+  const pushNow = useCallback(() => {
+    if (!userId || !supabase || !activeRef.current) return Promise.resolve();
+    const run = pushChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        pushingRef.current = true;
+        try {
+          const taskResult = await reconcileTasksNow();
+          const blob = collectLocalBlob();
+          const json = JSON.stringify(blob);
+          if (json === lastPushedRef.current) {
+            if (!taskResult.ok) setStatus("offline");
+            return; // nothing changed
+          }
+          setStatus("syncing");
+          const res = await pushUserData(userId, blob);
+          if (res.ok) {
+            lastPushedRef.current = json;
+            setStatus(taskResult.ok ? "synced" : "offline");
+          } else {
+            setStatus("offline");
+          }
+        } finally {
+          pushingRef.current = false;
+        }
+      });
+    pushChainRef.current = run;
+    return run;
   }, [userId, reconcileTasksNow]);
 
   // --- 1. Initial fetch + hydrate whenever the logged-in user changes ---

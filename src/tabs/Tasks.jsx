@@ -447,11 +447,26 @@ export default function Tasks({
     setTaskOrder?.([...reordered, ...rest]);
     if (sort.by !== "manual") setSort({ by: "manual" });
   };
+  /* Which burst, if any, belongs to this task.
+
+     Written out rather than inlined as `burst?.id === t.id && burst.kind`,
+     which LOOKS safe and isn't. The optional chain guards the first read but
+     not the second, and it relies on the `&&` short-circuiting to protect it —
+     which it does, right up until a task turns up with no id. Then
+     `undefined === undefined` is true, execution carries on to `burst.kind`,
+     and that reads off null. One id-less task — from a half-written record, an
+     import, or a stale sync blob — took the entire Tasks tab down with it.
+
+     Requiring a real id on both sides makes the comparison mean what it says. */
+  const burstKindFor = (id) =>
+    id != null && burst && burst.id === id ? burst.kind : null;
+
   const visible = useMemo(() => {
     return tasks
       .filter((t) => {
-        const leavingActive = burst?.id === t.id && burst.kind === "check" && status === "active";
-        const leavingDone = burst?.id === t.id && burst.kind === "uncheck" && status === "done";
+        const kind = burstKindFor(t.id);
+        const leavingActive = kind === "check" && status === "active";
+        const leavingDone = kind === "uncheck" && status === "done";
         if (leavingActive || leavingDone) return true;
         return status === "all" ? true : status === "done" ? t.done : !t.done;
       })
@@ -463,10 +478,9 @@ export default function Tasks({
       })
       .sort((a, b) => {
         const effectiveDone = (t) => {
-          const leavingActive = burst?.id === t.id && burst.kind === "check" && status === "active";
-          const leavingDone = burst?.id === t.id && burst.kind === "uncheck" && status === "done";
-          if (leavingActive) return false;
-          if (leavingDone) return true;
+          const kind = burstKindFor(t.id);
+          if (kind === "check" && status === "active") return false;
+          if (kind === "uncheck" && status === "done") return true;
           return t.done;
         };
         // Done always sinks below open work, whatever the chosen order.
@@ -699,10 +713,10 @@ export default function Tasks({
         >
         <SortableContext items={visible.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {visible.map((task) => {
+            const burstKind = burstKindFor(task.id);
             const leaving =
-              burst?.id === task.id &&
-              ((burst.kind === "check" && status === "active") ||
-                (burst.kind === "uncheck" && status === "done"));
+              (burstKind === "check" && status === "active") ||
+              (burstKind === "uncheck" && status === "done");
             return (
               <SortableTaskRow
                 key={task.id}
@@ -712,11 +726,11 @@ export default function Tasks({
                   "taskrow" +
                   (task.done ? " done" : "") +
                   (pressingId === task.id ? " pressing" : "") +
-                  (burst?.id === task.id
-                    ? burst.kind === "check"
-                      ? " check-burst"
-                      : " uncheck-burst"
-                    : "") +
+                  (burstKind === "check"
+                    ? " check-burst"
+                    : burstKind === "uncheck"
+                      ? " uncheck-burst"
+                      : "") +
                   (leaving ? " leaving-burst" : "")
                 }
               >

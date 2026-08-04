@@ -38,6 +38,7 @@ export default class ScreenBoundary extends Component {
     // Left in deliberately. This is the only trace of what went wrong, and a
     // silently swallowed stack is how a bug like this survives for weeks.
     console.error("[Ligand] screen crashed:", error, info?.componentStack);
+    this.setState({ detail: [error?.message, info?.componentStack].filter(Boolean).join("\n") });
   }
 
   render() {
@@ -59,6 +60,24 @@ export default class ScreenBoundary extends Component {
             </button>
           )}
         </div>
+        {/* The actual error, on screen rather than only in the console.
+
+           "Something went wrong" with the cause hidden in DevTools is how a
+           crash gets reported as "it just breaks sometimes" and stays
+           unfixable. Folded away so it doesn't shout, one click to open, and
+           one more to copy the whole thing into a message. */}
+        {this.state.detail && (
+          <details className="tab-missing-detail">
+            <summary>What went wrong</summary>
+            <pre>{this.state.detail}</pre>
+            <button
+              className="btn ghost sm"
+              onClick={() => navigator.clipboard?.writeText(this.state.detail)}
+            >
+              Copy details
+            </button>
+          </details>
+        )}
       </div>
     );
   }

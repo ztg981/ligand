@@ -37,8 +37,48 @@ const STORAGE_KEY = "ligand.data";
    Productivity tab, Journal, etc.) consume this instead of
    touching localStorage directly.
    ============================================================ */
+/* Lists whose rows are addressed by id everywhere in the app. A row that is
+   null, or has no id, cannot be rendered, keyed, toggled or deleted. */
+const ID_LISTS = ["tasks", "goals", "habits", "journal", "dayBlocks", "notes"];
+
+/** Strip unrenderable rows, returning the SAME object when nothing is wrong. */
+export function sanitizeData(raw) {
+  if (!raw || typeof raw !== "object") return raw;
+  let patch = null;
+  for (const key of ID_LISTS) {
+    const list = raw[key];
+    if (!Array.isArray(list)) continue;
+    const clean = list.filter((row) => row && typeof row === "object" && row.id != null);
+    if (clean.length !== list.length) (patch ||= {})[key] = clean;
+  }
+  return patch ? { ...raw, ...patch } : raw;
+}
+
 export function useStore() {
-  const [data, setData] = useLocalStorage(STORAGE_KEY, seedData);
+  const [rawData, setData] = useLocalStorage(STORAGE_KEY, seedData);
+
+  /* Drop records that can't be rendered, before anything reads them.
+
+     A null or id-less entry in one of these lists is not a record anybody can
+     act on, and it doesn't fail politely: `list.filter(t => t.done)` throws on
+     a null, and that throw happens while App itself is rendering — ABOVE the
+     tab's error boundary — so it unmounts the entire tree and leaves a blank
+     page whose only cure is a reload.
+
+     They shouldn't exist. But "shouldn't" is carrying a lot across an import,
+     an assistant write, an extension capture, a half-finished migration and a
+     synced blob from another device, and any one of those arriving malformed
+     should cost that row and not the session. Cleaned once here rather than
+     guarded against at every call site.
+
+     Deliberately NOT a useMemo. This file is compiled by the React compiler,
+     which is already memoizing here; adding a manual hook into the middle of
+     that changed the hook sequence App ends up calling and tripped React's
+     "order of Hooks" check outright. It doesn't need one anyway — the lists
+     are small, and the ORIGINAL object comes back untouched whenever there is
+     nothing to clean, so identity is preserved on every normal render and the
+     memos downstream don't churn. */
+  const data = sanitizeData(rawData);
 
   // Recurring tasks: on load (and when the tab regains focus, e.g. across a
   // day boundary) reset any whose next occurrence has arrived back to not-done.
