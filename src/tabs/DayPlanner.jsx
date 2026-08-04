@@ -1110,6 +1110,12 @@ export default function DayPlanner({
                 setSelectedId(null);
                 setDraft(null);
               }}
+              // The X on the draft card throws the range away. Nothing is
+              // saved yet, so there's nothing to confirm — it just closes.
+              onClearDraft={() => {
+                setDraft(null);
+                setSelectedId(null);
+              }}
             />
             <div className="dp-reality-legend" aria-label="Day ring legend">
               <span><i className="planned" /> Planned blocks</span>

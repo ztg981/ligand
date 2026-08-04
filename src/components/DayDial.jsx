@@ -101,7 +101,7 @@ function layoutLabelsBase(blocks, angleFn = minToAngle) {
    only out on the ring, because the tooltip is the thing your eye is already
    on when a block is selected — it's the only part of the dial that says which
    block you mean, in words. An X sitting on it needs no looking for. */
-function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null }) {
+function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeLabel = "Remove this block" }) {
   const [s, e] = from <= to ? [from, to] : [to, from];
   if (e - s < 1) return null;
   const mid = (s + e) / 2;
@@ -111,6 +111,9 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null }) {
   const w = 168;
   const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
+  // Top-right of the card, hung half off the corner.
+  const cx = x + w - 6;
+  const cy = y + 6;
   return (
     <g pointerEvents={onRemove ? "auto" : "none"}>
       <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
@@ -127,10 +130,14 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null }) {
           onPointerDown={(ev) => ev.stopPropagation()}
           onClick={(ev) => { ev.stopPropagation(); onRemove(); }}
         >
-          <title>Remove this block</title>
-          <circle cx={x + w - 13} cy={y + 13} r="11" className="dial-tip-x-bg" />
+          <title>{removeLabel}</title>
+          {/* Straddling the corner rather than tucked inside it. Sat within
+             the card's padding it read as part of the text block and got
+             looked straight past; hung half-off the corner it reads as what
+             it is — the close badge on this card. */}
+          <circle cx={cx} cy={cy} r="13" className="dial-tip-x-bg" />
           <path
-            d={`M ${x + w - 17.5} ${y + 8.5} L ${x + w - 8.5} ${y + 17.5} M ${x + w - 8.5} ${y + 8.5} L ${x + w - 17.5} ${y + 17.5}`}
+            d={`M ${cx - 4.5} ${cy - 4.5} L ${cx + 4.5} ${cy + 4.5} M ${cx + 4.5} ${cy - 4.5} L ${cx - 4.5} ${cy + 4.5}`}
             className="dial-tip-x-mark"
           />
         </g>
@@ -198,6 +205,7 @@ export default function DayDial({
   onCreateRange, // (startMin, endMin) => void
   onMove, // (id, newStart, newEnd) => void — drag an existing block
   onRemove, // (id) => void — the X badge on the selected wedge
+  onClearDraft, // () => void — the X badge on the draft range card
   readOnly = false, // mobile: display + tap-to-edit only (no drag create/move)
   compact = false, // phone: crop the label gutters, upscale type, no leaders
   rotateHours = 0, // hours added to the top of the dial (0 = midnight top, 12 = noon top)
@@ -255,8 +263,14 @@ export default function DayDial({
   const layoutLabels = (bl) => layoutLabelsBase(bl, angleOf);
   // A tiny render helper (not a component) so the tooltip follows the active
   // angle map without declaring a component during render.
-  const rangeTip = (from, to, onRemove = null) => (
-    <RangeTipBase from={from} to={to} angleFn={angleOf} onRemove={onRemove} />
+  const rangeTip = (from, to, onRemove = null, removeLabel) => (
+    <RangeTipBase
+      from={from}
+      to={to}
+      angleFn={angleOf}
+      onRemove={onRemove}
+      removeLabel={removeLabel}
+    />
   );
 
   const now = new Date();
@@ -499,7 +513,12 @@ export default function DayDial({
              draft range and the selected block's own card would be identical
              and stack on top of each other. The block's card wins — it's the
              one carrying the remove X. */}
-          {!selectedId && rangeTip(draftRange.start, draftRange.end)}
+          {/* The X belongs on the draft card too — arguably more here than on
+             a saved block. This card is what's on screen while you're picking
+             a range, and until now the only way out of a range you didn't want
+             was to find the editor and close it. */}
+          {!selectedId &&
+            rangeTip(draftRange.start, draftRange.end, onClearDraft || null, "Discard this range")}
         </g>
       )}
 
