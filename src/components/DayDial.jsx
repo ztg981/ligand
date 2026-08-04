@@ -111,9 +111,9 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
   const w = 168;
   const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
-  // Top-right of the card, hung half off the corner.
-  const cx = x + w - 6;
-  const cy = y + 6;
+  // Inside the card's top-right corner, clear of its rounded edge.
+  const cx = x + w - 15;
+  const cy = y + 14;
   return (
     <g pointerEvents={onRemove ? "auto" : "none"}>
       <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
@@ -131,13 +131,21 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
           onClick={(ev) => { ev.stopPropagation(); onRemove(); }}
         >
           <title>{removeLabel}</title>
-          {/* Straddling the corner rather than tucked inside it. Sat within
-             the card's padding it read as part of the text block and got
-             looked straight past; hung half-off the corner it reads as what
-             it is — the close badge on this card. */}
-          <circle cx={cx} cy={cy} r="13" className="dial-tip-x-bg" />
+          {/* Styled as one of the toolbar's icon buttons, not as an alarm. A
+             red disc hanging off the corner was louder than the card it sits
+             on and overlapped its border; this is the same quiet square-ish
+             button used in the top bar, sized to match and kept inside the
+             card's own padding. */}
+          <rect
+            x={cx - 10}
+            y={cy - 10}
+            width="20"
+            height="20"
+            rx="6"
+            className="dial-tip-x-bg"
+          />
           <path
-            d={`M ${cx - 4.5} ${cy - 4.5} L ${cx + 4.5} ${cy + 4.5} M ${cx + 4.5} ${cy - 4.5} L ${cx - 4.5} ${cy + 4.5}`}
+            d={`M ${cx - 3.6} ${cy - 3.6} L ${cx + 3.6} ${cy + 3.6} M ${cx + 3.6} ${cy - 3.6} L ${cx - 3.6} ${cy + 3.6}`}
             className="dial-tip-x-mark"
           />
         </g>

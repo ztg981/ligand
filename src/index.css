@@ -5160,6 +5160,21 @@ html[data-hyperfocus="true"] {
   --ink-2: #b9b4a8;
   --ink-3: #807a6e;
   --ink-4: #54504a;
+
+  /* Shadows have to be redefined here, not just inherited.
+
+     Hyperfocus deliberately REMOVES data-palette (see App.jsx — a light
+     palette left stamped on would paint light-mode ink onto this dark
+     background). That also drops every palette-scoped variable, so these fall
+     all the way back to the :root LIGHT values — and the light --shadow-pop
+     opens with an inset `0 1px 0 rgba(255,255,255,0.95)`. A near-white
+     highlight line, correct on a pale card and very wrong here: it drew a
+     white edge along the top of the nav bar and every other raised surface.
+     Same token, same cause, as the white corners on the Pomodoro scene. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 2px 6px rgba(0, 0, 0, 0.45), 0 18px 40px -16px rgba(0, 0, 0, 0.7);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+
   --accent-h: var(--hf-hue);
   --accent: var(--hf-accent);
   --accent-soft: rgba(var(--hf-rgb), 0.14);
@@ -7517,16 +7532,17 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
 /* The X on the floating time card. The wedge X below is easy to miss on a
    busy dial; this one sits on the only thing that says, in words, which block
    you have selected — so there is nowhere else to look for it. */
+/* The same quiet icon button the top bar uses — .iconbtn's panel fill, hairline
+   border and muted glyph — rather than a red disc. It only turns red on hover,
+   where the intent is unambiguous and the warning is actually useful. */
 .dial-tip-x-bg {
-  fill: oklch(0.55 0.2 25);
-  /* Ringed in the page colour so it reads as a button sitting ON the card
-     rather than a red dot printed inside it. */
-  stroke: var(--bg);
-  stroke-width: 2.5;
+  fill: var(--panel);
+  stroke: var(--line);
+  stroke-width: 1;
 }
-.dial-tip-x-mark { stroke: #fff; stroke-width: 2.4; stroke-linecap: round; fill: none; }
-.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.47 0.22 25); }
-.dial-tip-x { transform-box: fill-box; transform-origin: center; }
+.dial-tip-x-mark { stroke: var(--ink-3); stroke-width: 1.8; stroke-linecap: round; fill: none; }
+.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.55 0.2 25); stroke: transparent; }
+.dial-tip-x:hover .dial-tip-x-mark { stroke: #fff; }
 
 /* The X on the selected wedge — the remove control that actually lives next
    to the thing it removes (see DayDial). Pops in so it's noticed. */
