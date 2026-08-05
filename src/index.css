@@ -5241,63 +5241,77 @@ html[data-hyperfocus="true"] body::after {
   position: fixed;
   /* Bleeds off every edge so the brightest part of each blob sits outside the
      viewport; what you see is the falloff, never the blob itself. */
-  inset: -12px;
+  inset: -20px;
   z-index: 999;
   pointer-events: none;
-  border-radius: 22px;
+  border-radius: 26px;
   background:
-    radial-gradient(72% 46% at 50% -4%,  rgba(var(--hf-tri-3), 0.85), transparent 74%),
-    radial-gradient(46% 72% at 104% 50%, rgba(var(--hf-tri-1), 0.8),  transparent 74%),
-    radial-gradient(72% 46% at 50% 104%, rgba(var(--hf-tri-2), 0.8),  transparent 74%),
-    radial-gradient(46% 72% at -4% 50%,  rgba(var(--hf-tri-3), 0.7),  transparent 74%),
-    radial-gradient(34% 34% at 6% 5%,    rgba(var(--hf-tri-1), 0.7),  transparent 72%),
-    radial-gradient(34% 34% at 94% 95%,  rgba(var(--hf-tri-2), 0.7),  transparent 72%);
+    radial-gradient(80% 55% at 50% -4%,  rgba(var(--hf-tri-3), 1),    transparent 78%),
+    radial-gradient(55% 80% at 104% 50%, rgba(var(--hf-tri-1), 0.98), transparent 78%),
+    radial-gradient(80% 55% at 50% 104%, rgba(var(--hf-tri-2), 0.98), transparent 78%),
+    radial-gradient(55% 80% at -4% 50%,  rgba(var(--hf-tri-3), 0.92), transparent 78%),
+    radial-gradient(44% 44% at 6% 5%,    rgba(var(--hf-tri-1), 0.9),  transparent 76%),
+    radial-gradient(44% 44% at 94% 95%,  rgba(var(--hf-tri-2), 0.9),  transparent 76%);
   /* Clear in the middle, present at the edges. Without this it's a colour
-     wash over the whole app and everything underneath goes muddy. */
-  -webkit-mask: radial-gradient(118% 118% at 50% 50%, transparent 40%, #000 86%);
-  mask: radial-gradient(118% 118% at 50% 50%, transparent 40%, #000 86%);
+     wash over the whole app and everything underneath goes muddy.
+
+     The clear centre is deliberately smaller than it was: at 40% the glow was
+     confined to a thin band right at the frame and read as barely there. It
+     now starts fading in a quarter of the way out, which gives the light room
+     to actually be seen without reaching the middle of the page. */
+  -webkit-mask: radial-gradient(120% 120% at 50% 50%, transparent 24%, #000 74%);
+  mask: radial-gradient(120% 120% at 50% 50%, transparent 24%, #000 74%);
   opacity: 0;
   /* Two animations that touch DIFFERENT properties on purpose: the entrance
      drives opacity/transform/filter, the drift only the standalone `scale`.
      Sharing a property would make the second cancel the first mid-flight. */
   animation:
-    hfGlowIn 1500ms cubic-bezier(0.16, 0.84, 0.28, 1) forwards,
-    hfGlowDrift 9s 1500ms ease-in-out infinite alternate;
+    hfGlowIn 3600ms cubic-bezier(0.16, 0.84, 0.28, 1) forwards,
+    hfGlowDrift 11s 3600ms ease-in-out infinite alternate;
   will-change: opacity, transform, filter;
 }
+/* The entrance is deliberately unhurried and HOLDS at full before it settles.
+   At a second and a half it was over before you'd finished registering that
+   anything had happened, which is the same as not having one. */
 @keyframes hfGlowIn {
   0% {
     opacity: 0;
-    transform: scale(1.08);
-    filter: blur(60px) saturate(115%);
+    transform: scale(1.1);
+    filter: blur(70px) saturate(115%);
   }
-  40% {
+  22% {
     opacity: 1;
-    filter: blur(34px) saturate(165%);
+    filter: blur(38px) saturate(175%);
+  }
+  55% {
+    /* Sits at full for a beat — this is the part you actually see. */
+    opacity: 1;
+    filter: blur(40px) saturate(170%);
   }
   100% {
-    /* Settles low. It has to survive being looked at for an hour. */
-    opacity: 0.5;
+    /* Settles, but stays plainly visible: it has to survive being looked at
+       for an hour without being something you have to hunt for. */
+    opacity: 0.82;
     transform: scale(1);
-    filter: blur(38px) saturate(140%);
+    filter: blur(46px) saturate(155%);
   }
 }
 @keyframes hfGlowDrift {
-  to { scale: 1.03; }
+  to { scale: 1.035; }
 }
 /* Reduced motion keeps the glow and drops the flourish — a still lit frame is
    still a lit frame, and the point is the mode being visibly on. */
 @media (prefers-reduced-motion: reduce) {
   html[data-hyperfocus="true"] body::after {
     animation: none;
-    opacity: 0.45;
-    filter: blur(38px) saturate(140%);
+    opacity: 0.82;
+    filter: blur(46px) saturate(155%);
   }
 }
 [data-reduce-motion="true"] html[data-hyperfocus="true"] body::after {
   animation: none;
-  opacity: 0.45;
-  filter: blur(38px) saturate(140%);
+  opacity: 0.82;
+  filter: blur(46px) saturate(155%);
 }
 html[data-hyperfocus="true"] { /* crimson default — the M livery */
   --hf-tri-1: 231, 34, 46;   /* M red */
