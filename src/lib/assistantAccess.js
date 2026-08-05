@@ -6,6 +6,14 @@ function safeGoals(data) {
   return Array.isArray(core?.goals) ? core.goals : [];
 }
 
+/* Which goals may be offered to ChatGPT.
+
+   Archived goals are excluded deliberately. Ligand's "delete a goal" archives
+   it rather than destroying it, so an archived goal is one the user believes
+   is gone — it must not keep appearing in the share picker, and the database
+   applies the same rule (see assistant_goal_is_shareable). A goal with status
+   "done" is a real completed goal and stays. Records written before status
+   existed have none, and count as active. */
 export function shareableGoalsFromUserData(data) {
   return safeGoals(data)
     .filter(
@@ -14,7 +22,8 @@ export function shareableGoalsFromUserData(data) {
         typeof goal.id === "string" &&
         goal.id.length > 0 &&
         goal.id.length <= 200 &&
-        goal.type !== "recovery"
+        goal.type !== "recovery" &&
+        (goal.status || "active") !== "archived"
     )
     .map((goal) => ({
       id: goal.id,

@@ -41,6 +41,47 @@ test("shareable goals expose only bounded id/name fields and exclude recovery", 
   assert.doesNotMatch(JSON.stringify(goals), /reflections|recoveryData|privateField/);
 });
 
+/* Archiving IS deleting, as far as the user is concerned — Ligand's delete
+   button archives so the recycle bin can undo it. An archived goal that stays
+   offerable here is how deleted goals kept reaching ChatGPT. */
+test("shareable goals exclude archived goals but keep completed ones", () => {
+  const goals = shareableGoalsFromUserData({
+    "ligand.data": {
+      goals: [
+        { id: "active", name: "Research", type: "custom", status: "active" },
+        { id: "archived", name: "Improve Chinese", type: "custom", status: "archived" },
+        { id: "done", name: "Improve SAT score", type: "custom", status: "done" },
+        { id: "legacy", name: "College planning", type: "custom" },
+      ],
+    },
+  });
+
+  assert.deepEqual(goals, [
+    { id: "active", name: "Research" },
+    { id: "done", name: "Improve SAT score" },
+    { id: "legacy", name: "College planning" },
+  ]);
+});
+
+test("an archived goal already in the stored grant is dropped on normalization", () => {
+  const shareable = shareableGoalsFromUserData({
+    "ligand.data": {
+      goals: [
+        { id: "active", name: "Research", type: "custom" },
+        { id: "archived", name: "Side Hustles", type: "custom", status: "archived" },
+      ],
+    },
+  });
+
+  assert.deepEqual(
+    normalizeAssistantAccess(
+      { enabled: true, tasks_read: true, allowed_goal_ids: ["active", "archived"] },
+      shareable
+    ).allowedGoalIds,
+    ["active"]
+  );
+});
+
 test("assistant access normalization drops stale or sensitive goal ids", () => {
   assert.deepEqual(
     normalizeAssistantAccess(
