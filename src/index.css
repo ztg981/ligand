@@ -5262,56 +5262,61 @@ html[data-hyperfocus="true"] body::after {
   -webkit-mask: radial-gradient(120% 120% at 50% 50%, transparent 24%, #000 74%);
   mask: radial-gradient(120% 120% at 50% 50%, transparent 24%, #000 74%);
   opacity: 0;
-  /* Two animations that touch DIFFERENT properties on purpose: the entrance
-     drives opacity/transform/filter, the drift only the standalone `scale`.
-     Sharing a property would make the second cancel the first mid-flight. */
-  animation:
-    hfGlowIn 3600ms cubic-bezier(0.16, 0.84, 0.28, 1) forwards,
-    hfGlowDrift 11s 3600ms ease-in-out infinite alternate;
+  /* One animation, ten seconds, and then it is GONE.
+
+     It used to settle at 0.82 and sit there for as long as hyperfocus was on,
+     with a drift looping underneath it forever. That's a permanent decoration,
+     not a thing that announces a mode being switched on — and a permanently
+     lit frame in a mode built for not being distracted is working against
+     itself. It now announces the switch and gets out of the way.
+
+     `forwards` holds the final frame, which is opacity 0, so nothing lingers
+     and nothing keeps compositing once it's finished. */
+  animation: hfGlowIn 10s cubic-bezier(0.16, 0.84, 0.28, 1) forwards;
   will-change: opacity, transform, filter;
 }
-/* The entrance is deliberately unhurried and HOLDS at full before it settles.
-   At a second and a half it was over before you'd finished registering that
-   anything had happened, which is the same as not having one. */
 @keyframes hfGlowIn {
   0% {
     opacity: 0;
     transform: scale(1.1);
     filter: blur(70px) saturate(115%);
   }
-  22% {
+  8% {
     opacity: 1;
     filter: blur(38px) saturate(175%);
   }
+  /* Holds lit through the middle — this is the part you actually see. */
   55% {
-    /* Sits at full for a beat — this is the part you actually see. */
     opacity: 1;
-    filter: blur(40px) saturate(170%);
-  }
-  100% {
-    /* Settles, but stays plainly visible: it has to survive being looked at
-       for an hour without being something you have to hunt for. */
-    opacity: 0.82;
     transform: scale(1);
-    filter: blur(46px) saturate(155%);
+    filter: blur(42px) saturate(170%);
+  }
+  /* Then fades out over the last few seconds rather than cutting. */
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    filter: blur(52px) saturate(150%);
   }
 }
-@keyframes hfGlowDrift {
-  to { scale: 1.035; }
-}
-/* Reduced motion keeps the glow and drops the flourish — a still lit frame is
-   still a lit frame, and the point is the mode being visibly on. */
+/* Reduced motion drops the scale and blur ramp but still ENDS.
+
+   A plain cross-fade isn't the kind of motion this setting is protecting
+   against, and leaving it pinned on instead would give exactly the permanent
+   lit frame the timed version exists to avoid. */
 @media (prefers-reduced-motion: reduce) {
   html[data-hyperfocus="true"] body::after {
-    animation: none;
-    opacity: 0.82;
+    animation: hfGlowFade 10s ease-out forwards;
     filter: blur(46px) saturate(155%);
   }
 }
 [data-reduce-motion="true"] html[data-hyperfocus="true"] body::after {
-  animation: none;
-  opacity: 0.82;
+  animation: hfGlowFade 10s ease-out forwards;
   filter: blur(46px) saturate(155%);
+}
+@keyframes hfGlowFade {
+  0% { opacity: 0; }
+  8%, 55% { opacity: 0.82; }
+  100% { opacity: 0; }
 }
 html[data-hyperfocus="true"] { /* crimson default — the M livery */
   --hf-tri-1: 231, 34, 46;   /* M red */
