@@ -22,6 +22,16 @@ import {
    - everything is mirrored in the side list for keyboard/screen-reader use */
 
 const SIZE = 760;
+/* The remove button on the time card, in SVG units.
+
+   The dial scales with its container, so SVG units are not CSS pixels: at the
+   desktop width one unit is ~0.82px, which is why 36 here lands at ~30px on
+   screen — the size of an .iconbtn in the nav. It tracks the dial rather than
+   staying pinned at 30px, same as every label on the ring. */
+const BTN_HALF = 18;
+// How far the button hangs off the card's corner; the card is clamped by this
+// so the overhanging part can't fall off the canvas edge.
+const BTN_OVERHANG = 22;
 const C = SIZE / 2;
 const R_OUT = 292;
 const R_IN = 224;
@@ -108,18 +118,21 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
   const a = angleFn(mid);
   const right = Math.cos(a) >= 0;
   const [ax, ay] = ptBase(mid, R_OUT + 26, angleFn);
-  /* The card grows to make room for the button rather than the button being
-     laid over the text. Sized for the X, the text stays centred in what's LEFT
-     of it — otherwise a centred label runs straight under the badge and eats
-     its own last characters ("3:00 AI" instead of "3:00 AM"). */
-  const PAD = onRemove ? 34 : 0;
-  const w = 168 + PAD;
-  const x = right ? Math.min(ax, SIZE - w - 6) : Math.max(ax - w, 6);
+  /* The X sits ON the card's top-right corner, mostly outside it, the way a
+     dismiss badge does. Because it no longer overlaps the text, the card
+     doesn't need to reserve an internal strip for it and the label can use
+     the full width again. */
+  const w = 168;
+  // Clamped with room for the part of the button that hangs off the edge.
+  const x = right ? Math.min(ax, SIZE - w - BTN_OVERHANG) : Math.max(ax - w, BTN_OVERHANG);
   const y = Math.max(30, Math.min(ay - 26, SIZE - 60));
-  const textMid = x + (w - PAD) / 2;
-  // Centred in the reserved strip, clear of the card's rounded corner.
-  const cx = x + w - 20;
-  const cy = y + 24;
+  const textMid = x + w / 2;
+  /* Sat ON the corner rather than tucked inside it. Pulled far enough out
+     that its bottom-left corner clears the end of the time label — at 6px in,
+     it clipped the last characters of "3:30 PM – 6:00 PM", which is the same
+     collision the old reserved-strip padding was working around. */
+  const cx = x + w + 3;
+  const cy = y - 3;
   return (
     <g pointerEvents={onRemove ? "auto" : "none"}>
       <rect x={x} y={y} rx="12" width={w} height="48" className="dial-tip-bg" />
@@ -137,13 +150,21 @@ function RangeTipBase({ from, to, angleFn = minToAngle, onRemove = null, removeL
           onClick={(ev) => { ev.stopPropagation(); onRemove(); }}
         >
           <title>{removeLabel}</title>
-          {/* The same button as the scene's hold-still control (.pomo-still):
-             a 26px translucent dark circle with a light glyph. Round, not a
-             box, and sitting in its own reserved strip so it never covers the
-             time it belongs to. */}
-          <circle cx={cx} cy={cy} r="13" className="dial-tip-x-bg" />
+          {/* Drawn to match .iconbtn — the nav buttons — rather than being its
+             own thing: a rounded square of panel over a hairline border, with
+             the glyph in ink, not white-on-black. The old version was an
+             opaque dark disc, which read as far heavier than any other button
+             in the app even though it was actually SMALLER than one. */}
+          <rect
+            x={cx - BTN_HALF}
+            y={cy - BTN_HALF}
+            width={BTN_HALF * 2}
+            height={BTN_HALF * 2}
+            rx="9.5"
+            className="dial-tip-x-bg"
+          />
           <path
-            d={`M ${cx - 4} ${cy - 4} L ${cx + 4} ${cy + 4} M ${cx + 4} ${cy - 4} L ${cx - 4} ${cy + 4}`}
+            d={`M ${cx - 4.5} ${cy - 4.5} L ${cx + 4.5} ${cy + 4.5} M ${cx + 4.5} ${cy - 4.5} L ${cx - 4.5} ${cy + 4.5}`}
             className="dial-tip-x-mark"
           />
         </g>

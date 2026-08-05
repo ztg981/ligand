@@ -1825,6 +1825,10 @@ export default function App() {
         return (
           <WorkoutTab
             profile={store.fitnessProfile}
+            // Active goals only: an archived fitness goal must not reappear
+            // in the workspace selector, and recovery is filtered out inside
+            // the selector itself.
+            goals={activeGoals}
             workouts={store.workouts}
             templates={store.workoutTemplates}
             scheduledWorkouts={store.scheduledWorkouts}

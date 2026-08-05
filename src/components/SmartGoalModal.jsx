@@ -1,7 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "./Icons.jsx";
 import { todayKey } from "../lib/model.js";
 import { EQUIPMENT_OPTIONS } from "../lib/exercises.js";
+
+/* The footer for every step of every create-goal flow.
+
+   Cancel leaves the whole flow, so it sits apart on the left; Back and Next
+   move within it, so they travel together on the right with Back first. The
+   DOM order is Cancel → Back → Next, which is also the visual order, so Tab
+   walks them the way they read.
+
+   On the first step, Back still has somewhere real to go — the "what would
+   you like to add?" chooser — so it stays, but says where it goes rather than
+   looking like a Back that does nothing. */
+function WizardFooter({ step, onCancel, onBack, onNext, nextLabel, nextDisabled = false }) {
+  return (
+    <div className="row between goal-wizard-footer" style={{ marginTop: 18 }}>
+      <button type="button" className="btn ghost" onClick={onCancel}>
+        Cancel
+      </button>
+      <div className="row" style={{ gap: 8 }}>
+        <button type="button" className="btn ghost" onClick={onBack}>
+          {step === 0 ? "Back to goal types" : "Back"}
+        </button>
+        <button
+          type="button"
+          className="btn primary"
+          onClick={onNext}
+          disabled={nextDisabled}
+          style={{ opacity: nextDisabled ? 0.55 : 1 }}
+        >
+          {nextLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const STEPS = [
   "Goal name",
@@ -192,6 +226,28 @@ export default function SmartGoalModal({ onCreate, onClose }) {
       fit.name.trim()
   );
 
+  /* Escape leaves the flow, on the same terms as clicking the backdrop: free
+     when nothing has been typed, and confirmed once it would cost the user
+     something. Reusing isDirty keeps the two dismissal gestures consistent
+     rather than having Escape be the one that quietly discards work. */
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      if (!isDirty || window.confirm("Discard this goal? What you've entered will be lost.")) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isDirty, onClose]);
+
+  const cancel = () => {
+    if (!isDirty || window.confirm("Discard this goal? What you've entered will be lost.")) {
+      onClose();
+    }
+  };
+
   return (
     <div
       className="scrim"
@@ -339,19 +395,14 @@ export default function SmartGoalModal({ onCreate, onClose }) {
                 )}
               </div>
 
-              <div className="row between" style={{ marginTop: 18 }}>
-                <button className="btn ghost"
-                  onClick={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}>
-                  Back
-                </button>
-                <div className="row" style={{ gap: 8 }}>
-                  <button className="btn ghost" onClick={onClose}>Cancel</button>
-                  <button className="btn primary" onClick={next} disabled={!canContinue}
-                    style={{ opacity: canContinue ? 1 : 0.55 }}>
-                    {isLast ? (<><Icon.Check /> Create goal</>) : (<>Next <Icon.Arrow /></>)}
-                  </button>
-                </div>
-              </div>
+              <WizardFooter
+                step={step}
+                onCancel={cancel}
+                onBack={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}
+                onNext={next}
+                nextDisabled={!canContinue}
+                nextLabel={isLast ? (<><Icon.Check /> Create goal</>) : (<>Next <Icon.Arrow /></>)}
+              />
             </>
           )}
 
@@ -410,19 +461,14 @@ export default function SmartGoalModal({ onCreate, onClose }) {
                 )}
               </div>
 
-              <div className="row between" style={{ marginTop: 18 }}>
-                <button className="btn ghost"
-                  onClick={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}>
-                  Back
-                </button>
-                <div className="row" style={{ gap: 8 }}>
-                  <button className="btn ghost" onClick={onClose}>Cancel</button>
-                  <button className="btn primary" onClick={recNext} disabled={!recCanContinue}
-                    style={{ opacity: recCanContinue ? 1 : 0.55 }}>
-                    {recLast ? (<><Icon.Check /> Begin</>) : (<>Next <Icon.Arrow /></>)}
-                  </button>
-                </div>
-              </div>
+              <WizardFooter
+                step={step}
+                onCancel={cancel}
+                onBack={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}
+                onNext={recNext}
+                nextDisabled={!recCanContinue}
+                nextLabel={recLast ? (<><Icon.Check /> Begin</>) : (<>Next <Icon.Arrow /></>)}
+              />
             </>
           )}
 
@@ -551,19 +597,14 @@ export default function SmartGoalModal({ onCreate, onClose }) {
                 )}
               </div>
 
-              <div className="row between" style={{ marginTop: 18 }}>
-                <button className="btn ghost"
-                  onClick={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}>
-                  Back
-                </button>
-                <div className="row" style={{ gap: 8 }}>
-                  <button className="btn ghost" onClick={onClose}>Cancel</button>
-                  <button className="btn primary" onClick={fitNext} disabled={!fitCanContinue}
-                    style={{ opacity: fitCanContinue ? 1 : 0.55 }}>
-                    {fitLast ? (<><Icon.Check /> Create</>) : (<>Next <Icon.Arrow /></>)}
-                  </button>
-                </div>
-              </div>
+              <WizardFooter
+                step={step}
+                onCancel={cancel}
+                onBack={() => (step === 0 ? backToChooser() : setStep((s) => s - 1))}
+                onNext={fitNext}
+                nextDisabled={!fitCanContinue}
+                nextLabel={fitLast ? (<><Icon.Check /> Create</>) : (<>Next <Icon.Arrow /></>)}
+              />
             </>
           )}
         </div>

@@ -1,5 +1,12 @@
 import { useMemo, useRef, useState } from "react";
-import { todayKey, shiftDay, isCheckedOn, currentStreak } from "../lib/model.js";
+import {
+  todayKey,
+  shiftDay,
+  currentStreak,
+  MAX_HABIT_DAILY_TARGET,
+  MIN_HABIT_DAILY_TARGET,
+} from "../lib/model.js";
+import { habitDailyTarget, readHabitDay } from "../lib/habitProgress.js";
 import { Icon } from "../components/Icons.jsx";
 import ConfirmButton from "../components/ConfirmButton.jsx";
 
@@ -7,7 +14,13 @@ import ConfirmButton from "../components/ConfirmButton.jsx";
    - Shows the last 7 days as toggleable cells.
    - We only ever store completed days; an empty cell is just "no data",
      never a recorded miss, so a gap can't shame you.
-   - Streaks PAUSE rather than shatter (see currentStreak in model.js). */
+   - Streaks PAUSE rather than shatter (see currentStreak in model.js).
+
+   A habit can need doing more than once a day ("brush teeth", target 3). Each
+   tap adds one occurrence and the cell fills by that fraction, so 1/3 reads
+   as visibly different from 3/3 and only a finished day gets the completed
+   styling. The fraction is carried as a CSS variable and ALSO printed as a
+   number, so partial progress is never conveyed by colour alone. */
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -27,8 +40,10 @@ export default function HabitChecker({
   showStreaks = true,
 }) {
   const [name, setName] = useState("");
+  const [newTarget, setNewTarget] = useState(1);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
+  const [editTarget, setEditTarget] = useState(1);
   // Set true by Escape so the unmount-triggered onBlur skips the save.
   const cancelEditRef = useRef(false);
   const days = useMemo(() => last7(), []);
@@ -38,13 +53,15 @@ export default function HabitChecker({
   const submit = () => {
     const n = name.trim();
     if (!n) return;
-    addHabit(goal.id, { name: n });
+    addHabit(goal.id, { name: n, dailyTarget: newTarget });
     setName("");
+    setNewTarget(1);
   };
 
   const startEdit = (habit) => {
     setEditingId(habit.id);
     setEditText(habit.name);
+    setEditTarget(habitDailyTarget(habit));
   };
 
   const commitEdit = () => {
@@ -56,11 +73,16 @@ export default function HabitChecker({
     }
     if (editingId) {
       const t = editText.trim();
-      if (t) updateHabit?.(goal.id, editingId, { name: t });
+      // Only the target for FUTURE days changes; each recorded day keeps the
+      // target it was kept under, so history is not rewritten.
+      if (t) updateHabit?.(goal.id, editingId, { name: t, dailyTarget: editTarget });
     }
     setEditingId(null);
     setEditText("");
   };
+
+  const clampTarget = (value) =>
+    Math.min(MAX_HABIT_DAILY_TARGET, Math.max(MIN_HABIT_DAILY_TARGET, Number(value) || 1));
 
   return (
     <div className="card">
@@ -83,6 +105,18 @@ export default function HabitChecker({
           onKeyDown={(e) => e.key === "Enter" && submit()}
           style={{ flex: 1 }}
         />
+        <label className="habit-target-field" title="Times per day">
+          <span className="sr-only">Times per day</span>
+          <input
+            className="input habit-target-input"
+            type="number"
+            min={MIN_HABIT_DAILY_TARGET}
+            max={MAX_HABIT_DAILY_TARGET}
+            value={newTarget}
+            onChange={(e) => setNewTarget(clampTarget(e.target.value))}
+          />
+          <span aria-hidden="true">/day</span>
+        </label>
         <button type="button" className="btn primary" onClick={submit} style={{ flex: "none" }}>
           <Icon.Plus /> Add
         </button>
@@ -114,27 +148,46 @@ export default function HabitChecker({
 
           {habits.map((h) => {
             const streak = currentStreak(h, today);
+            const target = habitDailyTarget(h);
+            const multi = target > 1;
+            const todayCount = readHabitDay(h, today).count;
             return (
               <div key={h.id} className="habit-row">
                 <div className="habit-name">
                   {editingId === h.id ? (
-                    <input
-                      className="input habit-edit-input"
-                      autoFocus
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          commitEdit();
-                        }
-                        if (e.key === "Escape") {
-                          cancelEditRef.current = true;
-                          setEditingId(null);
-                        }
-                      }}
-                      onBlur={commitEdit}
-                    />
+                    <span className="row" style={{ gap: 6 }}>
+                      <input
+                        className="input habit-edit-input"
+                        autoFocus
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            commitEdit();
+                          }
+                          if (e.key === "Escape") {
+                            cancelEditRef.current = true;
+                            setEditingId(null);
+                          }
+                        }}
+                        onBlur={commitEdit}
+                      />
+                      <input
+                        className="input habit-target-input"
+                        type="number"
+                        min={MIN_HABIT_DAILY_TARGET}
+                        max={MAX_HABIT_DAILY_TARGET}
+                        value={editTarget}
+                        aria-label={`Times per day for ${h.name}`}
+                        title="Times per day"
+                        onChange={(e) => setEditTarget(clampTarget(e.target.value))}
+                        // Committing on blur would fire when focus moves from
+                        // the name field to this one, closing the editor
+                        // before the target could be changed.
+                        onBlur={commitEdit}
+                      />
+                    </span>
                   ) : (
                     <span className="row habit-name-row" style={{ gap: 4, alignItems: "center" }}>
                       <span className="habit-label-text">{h.name}</span>
@@ -160,6 +213,8 @@ export default function HabitChecker({
                     </span>
                   )}
                   <span className="sub">
+                    {multi && `${todayCount}/${target} today`}
+                    {multi && " · "}
                     {!showStreaks
                       ? "Tracking quietly"
                       : streak > 0
@@ -168,26 +223,57 @@ export default function HabitChecker({
                   </span>
                 </div>
                 {days.map((d) => {
-                  const on = isCheckedOn(h, d);
+                  // Each day reports the target IT was kept under, so a day
+                  // finished back when the target was 1 still reads as done.
+                  const day = readHabitDay(h, d);
+                  const fraction = day.target > 0 ? Math.min(1, day.count / day.target) : 0;
                   const isToday = d === today;
+                  const label = day.target > 1
+                    ? `${h.name}, ${d}: ${day.count} of ${day.target}`
+                    : `${h.name}, ${d}: ${day.done ? "done" : "not done"}`;
                   return (
                     <button
                       type="button"
                       key={d}
                       className={[
                         "habit-cell",
-                        on && "done",
+                        day.done && "done",
+                        !day.done && day.count > 0 && "partial",
                         isToday && "today",
                       ]
                         .filter(Boolean)
                         .join(" ")}
-                      title={`${h.name} · ${d}`}
+                      // The fill is driven from here so the indicator matches
+                      // the real fraction rather than snapping to thirds.
+                      style={{ "--habit-fill": fraction }}
+                      title={label}
+                      aria-label={label}
                       onClick={() => checkInHabit(goal.id, h.id, d)}
                     >
-                      {on ? <Icon.Check width={11} height={11} /> : ""}
+                      {day.done ? (
+                        <Icon.Check width={11} height={11} />
+                      ) : day.count > 0 ? (
+                        // A number, not a half-check: it stays honest for any
+                        // target, and doesn't rely on colour to be understood.
+                        <span className="habit-cell-count">{day.count}</span>
+                      ) : (
+                        ""
+                      )}
                     </button>
                   );
                 })}
+                {multi && (
+                  <button
+                    type="button"
+                    className="iconbtn sm habit-undo-btn"
+                    title={`Undo one ${h.name}`}
+                    aria-label={`Undo one occurrence of ${h.name} today`}
+                    disabled={todayCount === 0}
+                    onClick={() => checkInHabit(goal.id, h.id, today, -1)}
+                  >
+                    <Icon.Minus width={12} height={12} />
+                  </button>
+                )}
               </div>
             );
           })}

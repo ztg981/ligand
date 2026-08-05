@@ -1213,11 +1213,41 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .col-12 { grid-column: span 12; }
 
 /* Goal widget dashboard */
+/* Compaction, not rows.
+
+   With one implicit row per widget, grid sizes each row to its tallest member
+   and a short card beside a tall one leaves the difference as dead space. So
+   the rows are made tiny (--widget-row) and each widget spans as many of them
+   as its measured content needs — see useWidgetRowSpan.js, which sets
+   --widget-span. `dense` then lets a short widget backfill the hole a tall
+   neighbour left rather than starting a new full-width row.
+
+   --widget-span is only set once measured; --widget-fallback (per size class,
+   derived from that size's min-height) holds the slot until then so the grid
+   doesn't visibly reflow on load. */
 .goal-widget-grid {
+  --widget-row: 1px;
+  --widget-gap: 12px;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+  grid-auto-rows: var(--widget-row);
+  grid-auto-flow: row dense;
+  /* No ROW gap on purpose — the vertical rhythm is the margin under each
+     widget (below). Rows this short only stay exact if nothing rounds up to
+     a row boundary, and a row gap is exactly that kind of rounding. */
+  row-gap: 0;
+  column-gap: var(--widget-gap);
   align-items: start;
+}
+.goal-widget-shell {
+  grid-row: span var(--widget-span, var(--widget-fallback, 252));
+}
+/* The measured element. Its height must stay natural — the shell's height is
+   derived from it, so giving this one a computed height would feed the span
+   back into its own input. */
+.goal-widget-measure {
+  min-width: 0;
+  margin-bottom: var(--widget-gap);
 }
 .goal-layout-toolbar {
   display: flex;
@@ -1253,7 +1283,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .goal-widget-grid.is-editing .goal-widget-shell:nth-child(3n) {
   animation-delay: -2.1s;
 }
-.goal-widget-shell.is-editing > .card {
+.goal-widget-shell.is-editing > .goal-widget-measure > .card {
   box-shadow: var(--shadow-pop);
   outline: 1px solid var(--line-strong);
 }
@@ -1262,7 +1292,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 .goal-widget-shell.is-dragging {
   opacity: 0.4;
 }
-.goal-widget-shell.is-dragging > .card {
+.goal-widget-shell.is-dragging > .goal-widget-measure > .card {
   outline: 1px dashed var(--line-strong);
   box-shadow: none;
 }
@@ -1278,7 +1308,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   transform: scale(1.03);
   animation: none;
 }
-.goal-widget-overlay > .card {
+.goal-widget-overlay > .goal-widget-measure > .card {
   box-shadow: var(--shadow-pop), 0 22px 48px -16px oklch(0 0 0 / 0.4);
   outline: 1px solid var(--line-strong);
 }
@@ -1287,8 +1317,9 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   35% { transform: translateY(-2px) rotate(0.16deg); }
   70% { transform: translateY(-1px) rotate(-0.12deg); }
 }
-.goal-widget-shell > .card {
-  height: 100%;
+/* Natural height, deliberately: equal-height rows are exactly what created
+   the dead space. Cards now end where their content ends. */
+.goal-widget-shell > .goal-widget-measure > .card {
   margin-bottom: 0 !important;
 }
 .goal-widget-editbar {
@@ -1351,16 +1382,18 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
   gap: 10px;
   flex-wrap: wrap;
 }
-.goal-widget-size-compact { grid-column: span 2; }
-.goal-widget-size-medium { grid-column: span 3; }
-.goal-widget-size-wide { grid-column: span 6; }
-.goal-widget-size-tall { grid-column: span 3; }
-.goal-widget-size-large { grid-column: span 6; }
-.goal-widget-size-compact > .card { min-height: 156px; }
-.goal-widget-size-medium > .card { min-height: 240px; }
-.goal-widget-size-wide > .card { min-height: 230px; }
-.goal-widget-size-tall > .card { min-height: 430px; }
-.goal-widget-size-large > .card { min-height: 460px; }
+/* Each --widget-fallback is that size's min-height plus the gap, in 1px rows —
+   the span the widget gets before its first measurement lands. */
+.goal-widget-size-compact { grid-column: span 2; --widget-fallback: 168; }
+.goal-widget-size-medium { grid-column: span 3; --widget-fallback: 252; }
+.goal-widget-size-wide { grid-column: span 6; --widget-fallback: 242; }
+.goal-widget-size-tall { grid-column: span 3; --widget-fallback: 442; }
+.goal-widget-size-large { grid-column: span 6; --widget-fallback: 472; }
+.goal-widget-size-compact > .goal-widget-measure > .card { min-height: 156px; }
+.goal-widget-size-medium > .goal-widget-measure > .card { min-height: 240px; }
+.goal-widget-size-wide > .goal-widget-measure > .card { min-height: 230px; }
+.goal-widget-size-tall > .goal-widget-measure > .card { min-height: 430px; }
+.goal-widget-size-large > .goal-widget-measure > .card { min-height: 460px; }
 
 @media (max-width: 980px) {
   .goal-widget-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1401,9 +1434,17 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]
 }
 
 @media (max-width: 640px) {
-  .goal-widget-grid { grid-template-columns: minmax(0, 1fr); }
-  .goal-widget-shell { grid-column: span 1; }
-  .goal-widget-shell > .card { min-height: 0; }
+  /* One column: nothing to pack against, so drop back to plain auto rows and
+     let the widgets stack in their stored order. */
+  .goal-widget-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+    grid-auto-flow: row;
+    /* Spacing still comes from the measure wrapper's margin, so the row gap
+       stays at zero here too — otherwise the phone layout double-spaces. */
+  }
+  .goal-widget-shell { grid-column: span 1; grid-row: auto; }
+  .goal-widget-shell > .goal-widget-measure > .card { min-height: 0; }
 }
 
 /* ============================================================
@@ -2121,6 +2162,72 @@ textarea.input { height: auto; padding: 9px 10px; resize: vertical; }
 .habit-cell.reflect { background: oklch(0.94 0.05 var(--hue-lav)); border-color: transparent; color: oklch(0.45 0.10 var(--hue-lav)); }
 [data-theme="dark"] .habit-cell.reflect { background: oklch(0.32 0.06 var(--hue-lav)); color: oklch(0.85 0.10 var(--hue-lav)); }
 .habit-cell.today { box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* Partial days, for habits that need doing more than once.
+
+   The fill rises from the bottom by exactly --habit-fill (set from the
+   measured count/target), so 1/3 and 2/3 are visibly different rather than
+   both reading as "started". It is a pseudo-element rather than a gradient
+   background so the height can actually animate.
+
+   The count is ALSO printed inside the cell — the fraction must not be
+   carried by colour alone. */
+.habit-cell { position: relative; overflow: hidden; }
+.habit-cell::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: calc(var(--habit-fill, 0) * 100%);
+  background: #22c55e;
+  opacity: 0.9;
+  transition: height 0.22s var(--ease);
+  pointer-events: none;
+}
+/* A finished day keeps its solid styling; the fill would only muddy it. */
+.habit-cell.done::after { display: none; }
+.habit-cell.partial {
+  border-color: color-mix(in oklab, #22c55e 45%, var(--line));
+  color: var(--ink-1);
+}
+.habit-cell > * { position: relative; z-index: 1; }
+.habit-cell-count { font-weight: 700; font-size: 10px; }
+
+.habit-undo-btn { width: 22px; height: 22px; color: var(--ink-4); }
+.habit-undo-btn:disabled { opacity: 0.35; cursor: default; }
+
+.habit-target-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.habit-target-input {
+  width: 52px;
+  flex: none;
+  text-align: center;
+  padding-inline: 6px;
+}
+
+/* Reduced motion: land on the final state rather than sliding to it. */
+@media (prefers-reduced-motion: reduce) {
+  .habit-cell::after { transition: none; }
+}
+[data-reduce-motion="true"] .habit-cell::after { transition: none; }
+
+/* Visually hidden, still announced. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Habit heatmap — weeks as columns, days as rows. Missed days stay a calm
    neutral square (never red); checked days glow in the accent. */
@@ -7641,14 +7748,24 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
    a soft dark disc with a light glyph, quiet until you reach for it. SVG can't
    take backdrop-filter, so the fill carries a little more alpha to stand in
    for the blur. Red only on hover, where the intent is already unambiguous. */
-.dial-tip-x-bg { fill: rgba(0, 0, 0, 0.38); }
-.dial-tip-x-mark {
-  stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 1.9; stroke-linecap: round; fill: none;
+/* The remove button on the time card. Same tokens as .iconbtn (the nav
+   buttons) so it reads as the same control: panel fill, hairline border,
+   ink glyph. It was previously an opaque black disc with a white X, which
+   looked like a completely different button — heavier than anything else on
+   screen despite being smaller than one. */
+.dial-tip-x-bg {
+  fill: var(--panel);
+  stroke: var(--line);
+  stroke-width: 1.2;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.18));
 }
-.dial-tip-x { opacity: 0.75; transition: opacity 0.18s var(--ease); }
-.dial-tip-x:hover { opacity: 1; }
-.dial-tip-x:hover .dial-tip-x-bg { fill: oklch(0.55 0.2 25); }
+.dial-tip-x-mark {
+  stroke: var(--ink-2);
+  stroke-width: 2; stroke-linecap: round; fill: none;
+}
+.dial-tip-x { transition: opacity 0.18s var(--ease); }
+.dial-tip-x:hover .dial-tip-x-mark { stroke: var(--ink); }
+.dial-tip-x:hover .dial-tip-x-bg { stroke: var(--line-strong); }
 
 /* The X on the selected wedge — the remove control that actually lives next
    to the thing it removes (see DayDial). Pops in so it's noticed. */
@@ -11340,3 +11457,57 @@ input[type="date"].input::-webkit-date-and-time-value {
 .stats-legend-name { font-size: 12.5px; color: var(--ink-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-legend-val { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 @media (max-width: 767px) { .stats-body .col-5 { margin-top: 12px; } }
+
+/* ============================================================
+   Workout goal selector
+   ------------------------------------------------------------
+   Sits at the end of the Workout page-head (which is a
+   space-between flex row), so it lands opposite the title
+   without needing its own row.
+   ============================================================ */
+.workout-goal-select {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: none;
+  min-width: 0;
+}
+.workout-goal-select-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  box-shadow: var(--shadow-card);
+}
+.workout-goal-select-mark {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  color: var(--muted);
+}
+/* The select carries the accessible name and the focus ring; the frame around
+   it is decoration only, so the control keeps its own visible focus state. */
+.workout-goal-select-control .input {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  padding: 4px 0;
+  min-height: 34px;
+  max-width: 210px;
+  font-weight: 600;
+}
+.workout-goal-select-note {
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  /* Let the head wrap rather than squeezing the title or overflowing. */
+  .page-head { flex-wrap: wrap; }
+  .workout-goal-select { width: 100%; }
+  .workout-goal-select-control { width: 100%; }
+  .workout-goal-select-control .input { max-width: none; flex: 1; }
+}

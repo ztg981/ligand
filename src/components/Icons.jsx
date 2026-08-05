@@ -51,6 +51,7 @@ export const Icon = {
     </>
   ),
   Plus: make(<path d="M8 3v10M3 8h10" />),
+  Minus: make(<path d="M3 8h10" />),
   Search: make(
     <>
       <circle cx="7" cy="7" r="4" />

@@ -11,8 +11,6 @@ import NutritionPanel from "../components/NutritionPanel.jsx";
 import RoutinesPanel from "../components/RoutinesPanel.jsx";
 import { enrichWithLibrary } from "../lib/workoutParser.js";
 import {
-  workoutsThisWeek,
-  weeklyWorkoutStreak,
   workoutVolume,
   createWorkoutExercise,
   createSet,
@@ -25,6 +23,13 @@ import { todayWeekday, splitLabel } from "../components/WorkoutPlanner.jsx";
 import MobileWorkoutHome from "../components/MobileWorkoutHome.jsx";
 import DesktopWorkoutHub from "../components/DesktopWorkoutHub.jsx";
 import { useIsMobile } from "../hooks/useIsMobile.js";
+import WorkoutGoalSelect from "../components/WorkoutGoalSelect.jsx";
+import {
+  WORKOUT_SCOPE_ALL,
+  defaultGoalIdForScope,
+  resolveWorkoutScope,
+  workoutScopeSummary,
+} from "../lib/workoutScope.js";
 
 // Turn a saved template's exercise plans into fresh, empty logger exercises.
 function planToLoggerExercises(template) {
@@ -102,6 +107,7 @@ function fmtDuration(sec) {
    fitnessProfile). */
 export default function WorkoutTab({
   profile,
+  goals = [],
   workouts = [],
   templates = [],
   scheduledWorkouts = [],
@@ -166,36 +172,40 @@ export default function WorkoutTab({
 
   const unit = profile?.weightUnit || "lbs";
 
-  const weekCount = useMemo(() => workoutsThisWeek(workouts).length, [workouts]);
-  const streak = useMemo(() => weeklyWorkoutStreak(workouts), [workouts]);
-  const target = profile?.workoutDaysPerWeek || 3;
-  const recent = workouts.slice(0, 3);
+  /* Which fitness goal this workspace is currently pointed at.
 
-  const weekVolume = useMemo(
-    () => workoutsThisWeek(workouts).reduce((sum, w) => sum + workoutVolume(w), 0),
-    [workouts]
+     Remembered across visits, and re-resolved against the goals that exist
+     now: if the selected goal was archived while away, this falls back to the
+     all-workouts view rather than showing an unexplained empty screen. */
+  const [storedScope, setStoredScope] = useLocalStorage(
+    "ligand.workoutScope",
+    WORKOUT_SCOPE_ALL
   );
+  const scope = resolveWorkoutScope(storedScope, goals, workouts);
 
-  // Recent personal records: heaviest completed set per exercise, most recent
-  // first, top 3.
-  const recentPRs = useMemo(() => {
-    const best = {}; // exerciseId -> { name, weight, reps, date }
-    workouts.forEach((w) => {
-      (w.exercises || []).forEach((ex) => {
-        if (ex.type === "cardio" || !ex.exerciseId) return;
-        (ex.sets || []).forEach((s) => {
-          if (!s.done || s.weight == null) return;
-          const cur = best[ex.exerciseId];
-          if (!cur || s.weight > cur.weight) {
-            best[ex.exerciseId] = { name: ex.name, weight: s.weight, reps: s.reps, date: w.date };
-          }
-        });
-      });
-    });
-    return Object.values(best)
-      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-      .slice(0, 3);
-  }, [workouts]);
+  /* Every number on this screen comes from workoutScopeSummary, which is the
+     same function the fitness goal page uses. That is what keeps the goal
+     view and the workspace from drifting apart — there is one set of
+     sessions and one way of counting them. */
+  const summary = useMemo(
+    () =>
+      workoutScopeSummary({
+        workouts,
+        scheduledWorkouts,
+        goals,
+        profile,
+        scope,
+        recentLimit: 3,
+      }),
+    [workouts, scheduledWorkouts, goals, profile, scope]
+  );
+  const scopedWorkouts = summary.workouts;
+  const weekCount = summary.weekCount;
+  const streak = summary.streak;
+  const target = summary.target ?? 3;
+  const recent = summary.recent;
+  const weekVolume = summary.weekVolume;
+  const recentPRs = summary.personalRecords;
 
   // Open the "what do you have today?" equipment sheet, persisting the choice.
   const onOpenEquip = () =>
@@ -208,7 +218,10 @@ export default function WorkoutTab({
     });
 
   const handleFinish = (workout) => {
-    const saved = addWorkout({ ...workout, goalId: null });
+    // Files the session under whichever goal the workspace is pointed at.
+    // In the all-workouts or unassigned view that is null, which is the same
+    // unassigned state every session had before goals could own them.
+    const saved = addWorkout({ ...workout, goalId: defaultGoalIdForScope(scope) });
     // Started from a scheduled instance → mark it done and link the session.
     if (logging?.scheduledId) {
       updateScheduledWorkout?.(logging.scheduledId, {
@@ -264,7 +277,9 @@ export default function WorkoutTab({
   const buildPlan = () =>
     generateWorkout({
       profile: { ...profile, availableEquipment: sessionEquipment },
-      workouts,
+      // Progression is read from the history of the goal on screen, so a
+      // Bulk-up plan builds on Bulk-up sessions rather than everything logged.
+      workouts: scopedWorkouts,
     });
 
   // Generate: first confirm today's equipment, then review the plan.
@@ -277,7 +292,7 @@ export default function WorkoutTab({
         setPreview({
           plan: generateWorkout({
             profile: { ...profile, availableEquipment: equip },
-            workouts,
+            workouts: scopedWorkouts,
           }),
           source: "generated",
         });
@@ -400,6 +415,7 @@ export default function WorkoutTab({
         date: dateKey,
         name: name || planName(plan),
         exercises: plan,
+        goalId: defaultGoalIdForScope(scope),
       });
     }
   };
@@ -451,22 +467,22 @@ export default function WorkoutTab({
     );
   // Build today's session from the last completed one ("same as last time").
   const repeatLast = () => {
-    if (!workouts.length) return;
+    if (!scopedWorkouts.length) return;
     setPreview({
-      plan: workoutToTemplatePlan(workouts[0].exercises),
+      plan: workoutToTemplatePlan(scopedWorkouts[0].exercises),
       source: "repeat",
     });
   };
 
   const scheduleApi = {
-    list: scheduledWorkouts,
+    list: summary.scheduled,
     onStart: startScheduled,
     onEdit: editScheduled,
     onMove: moveScheduled,
     onDuplicate: duplicateScheduled,
     onDelete: (id) => deleteScheduledWorkout?.(id),
     onCreate: openBuilder,
-    onRepeatLast: workouts.length ? repeatLast : null,
+    onRepeatLast: scopedWorkouts.length ? repeatLast : null,
   };
 
   const PREVIEW_COPY = {
@@ -505,6 +521,12 @@ export default function WorkoutTab({
             Generate today's session, log it in the gym, and track your lifts.
           </p>
         </div>
+        <WorkoutGoalSelect
+          goals={goals}
+          workouts={workouts}
+          value={scope}
+          onChange={setStoredScope}
+        />
       </div>
 
       <div className="seg fit-view-seg">
@@ -547,14 +569,14 @@ export default function WorkoutTab({
           addMeal={addMeal}
           removeMeal={removeMeal}
           addWater={addWater}
-          trainedToday={workouts.some((w) => w.date === todayKey())}
+          trainedToday={scopedWorkouts.some((w) => w.date === todayKey())}
         />
       )}
 
       {view === "progress" && (
         <FitnessProgress
           profile={profile}
-          workouts={workouts}
+          workouts={scopedWorkouts}
           updateFitnessProfile={updateFitnessProfile}
         />
       )}

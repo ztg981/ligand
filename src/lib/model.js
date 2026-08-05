@@ -36,13 +36,81 @@ export const WEIGHT_UNITS = ["lbs", "kg"];
 // Sets per exercise suggested by experience level (used by the generator).
 export const SETS_BY_LEVEL = { beginner: 3, intermediate: 4, advanced: 5 };
 
-// ---- date helpers ----------------------------------------------
-// Dates are stored as local "YYYY-MM-DD" strings to avoid timezone drift.
-export function todayKey(d = new Date()) {
+/* ---- date helpers ----------------------------------------------
+   Dates are stored as local "YYYY-MM-DD" strings to avoid timezone drift.
+
+   THE DAY DOESN'T END AT MIDNIGHT.
+
+   Someone still up at 1am is still having Tuesday, and checking off a habit
+   then should land on Tuesday — not silently open Wednesday and break a
+   streak they were in the middle of keeping. So the logical day rolls over at
+   a cutoff hour (4am by default) rather than at 00:00.
+
+   The cutoff applies ONLY when nobody says which date they mean:
+
+     todayKey()   "what day is it right now"      → cutoff applied
+     todayKey(d)  "what calendar day is this Date" → cutoff NOT applied
+
+   That distinction is load-bearing. shiftDay, weeklyWorkoutStreak and a dozen
+   widgets all normalize an already-parsed midnight Date through todayKey(d);
+   shifting those back four hours would move every one of them to the previous
+   day and quietly corrupt history everywhere. Callers that hold a real "now"
+   and want the logical day should use activeDayKey(now) instead. */
+export const DEFAULT_DAY_CUTOFF_HOUR = 4;
+export const MAX_DAY_CUTOFF_HOUR = 12;
+
+export function normalizeDayCutoffHour(hour) {
+  // Number(null) and Number("") are both 0, which would silently read as a
+  // deliberate midnight rollover. Absent means absent: fall back to default.
+  if (hour === null || hour === undefined || hour === "") {
+    return DEFAULT_DAY_CUTOFF_HOUR;
+  }
+  const value = Number(hour);
+  if (!Number.isFinite(value)) return DEFAULT_DAY_CUTOFF_HOUR;
+  return Math.min(MAX_DAY_CUTOFF_HOUR, Math.max(0, Math.round(value)));
+}
+
+/* The active cutoff, as a module-level value.
+
+   model.js is deliberately React-free and is imported by pure helpers that
+   have no way to reach a hook, so the preference is pushed in from App once
+   settings load rather than threaded through every call site. Until then the
+   default applies, which is also what guests and tests get. */
+let dayCutoffHour = DEFAULT_DAY_CUTOFF_HOUR;
+
+export function setDayCutoffHour(hour) {
+  dayCutoffHour = normalizeDayCutoffHour(hour);
+  return dayCutoffHour;
+}
+
+export function getDayCutoffHour() {
+  return dayCutoffHour;
+}
+
+/**
+ * The logical day an instant belongs to.
+ *
+ * Anything before the cutoff still counts as the previous day, so 1am Tuesday
+ * night reads as Tuesday, and 4am Wednesday reads as Wednesday.
+ */
+export function activeDayKey(now = new Date(), cutoffHour = dayCutoffHour) {
+  const shifted = new Date(now.getTime());
+  // setHours (not a millisecond subtraction) so the shift stays correct
+  // across a daylight-saving boundary.
+  shifted.setHours(shifted.getHours() - normalizeDayCutoffHour(cutoffHour));
+  return calendarDayKey(shifted);
+}
+
+/** The plain calendar date of a Date, with no cutoff applied. */
+export function calendarDayKey(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+export function todayKey(d) {
+  return d === undefined ? activeDayKey(new Date()) : calendarDayKey(d);
 }
 export function daysBetween(aKey, bKey) {
   const a = new Date(aKey + "T00:00:00");
@@ -214,12 +282,45 @@ export function repeatLabel(repeat) {
 }
 
 // Forgiving habit: checkIns holds only completed days. Never a "miss".
-export function createHabit({ name, cadence = "daily" } = {}) {
+/* Habits can need doing more than once a day ("brush teeth", target 3).
+
+   The storage keeps TWO views on purpose, and which is authoritative matters:
+
+     occurrences  {day: {count, target, at[]}} — the full record. Each day
+                  snapshots the target that was in force THAT day, so raising
+                  the target later cannot retroactively turn completed days
+                  into partial ones.
+     checkIns     the days where count reached target — i.e. fully completed
+                  days, and nothing else.
+
+   checkIns keeping exactly its old meaning is what makes this safe to ship:
+   currentStreak, the calendar heatmaps, goalHealth and dayWins all read it
+   and all stay correct without being touched. A habit with target 1 behaves
+   precisely as it always did. */
+export const MIN_HABIT_DAILY_TARGET = 1;
+export const MAX_HABIT_DAILY_TARGET = 20;
+
+export function normalizeHabitDailyTarget(target) {
+  const value = Number(target);
+  if (!Number.isFinite(value)) return MIN_HABIT_DAILY_TARGET;
+  return Math.min(MAX_HABIT_DAILY_TARGET, Math.max(MIN_HABIT_DAILY_TARGET, Math.round(value)));
+}
+
+export function createHabit({
+  name,
+  cadence = "daily",
+  dailyTarget = MIN_HABIT_DAILY_TARGET,
+  unitLabel = null,
+} = {}) {
   return {
     id: uid("habit"),
     name: name || "New habit",
     cadence, // "daily" | "weekly"
-    checkIns: [], // array of "YYYY-MM-DD" strings
+    dailyTarget: normalizeHabitDailyTarget(dailyTarget),
+    // What one occurrence is called ("brushes", "glasses"). Display only.
+    unitLabel: unitLabel || null,
+    checkIns: [], // days the daily target was fully met
+    occurrences: {}, // day -> { count, target, at: [ISO] }
     createdAt: todayKey(),
   };
 }
@@ -469,6 +570,11 @@ export function createScheduledWorkout({
   exercises = [], // plan shape: { exerciseId, name, muscleGroup, type, targetSets, targetReps, targetWeight, targetMinutes, restSec, notes }
   templateId = null,
   notes = "",
+  // Which fitness goal this session is FOR. Null means unassigned, which is
+  // what every session planned before this field existed stays — there is no
+  // reliable way to infer the goal after the fact, and guessing would file
+  // somebody's history under the wrong heading.
+  goalId = null,
 } = {}) {
   const now = new Date().toISOString();
   return {
@@ -478,6 +584,7 @@ export function createScheduledWorkout({
     exercises,
     templateId,
     notes,
+    goalId,
     status: "planned", // planned | done | skipped
     completedWorkoutId: null,
     createdAt: now,

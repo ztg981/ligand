@@ -26,6 +26,16 @@ import {
   isGoalOverdue,
   todayKey,
 } from "../lib/model.js";
+import {
+  WIDGET_LAYOUT_VERSION,
+  WIDGET_SIZE_LABELS,
+  WIDGET_SIZE_VARIANTS,
+  createGoalWidgetLayout,
+  normalizeWidgetOrders,
+  widgetId,
+} from "../lib/goalWidgets.js";
+import { useWidgetRowSpan } from "../hooks/useWidgetRowSpan.js";
+import { useIsMobile } from "../hooks/useIsMobile.js";
 import { fetchAiInsight } from "../lib/aiApi.js";
 import HabitChecker from "../widgets/HabitChecker.jsx";
 import GoalProgress from "../widgets/GoalProgress.jsx";
@@ -333,25 +343,6 @@ function TermChip({ term }) {
   return <span className={long ? "chip lav" : "chip mint"}>{long ? "Long-term" : "Short-term"}</span>;
 }
 
-const WIDGET_LAYOUT_VERSION = 2;
-const WIDGET_SIZE_VARIANTS = ["compact", "medium", "wide", "tall", "large"];
-const WIDGET_SIZE_LABELS = {
-  compact: "Compact",
-  medium: "Medium",
-  wide: "Wide",
-  tall: "Tall",
-  large: "Large",
-};
-const LEGACY_WIDGET_SIZE_MAP = { small: "compact", medium: "medium", large: "wide" };
-const LEGACY_WIDGET_TYPE_MAP = {
-  habits: "habits",
-  tasks: "goalTasks",
-  progress: "progress",
-  countup: "countUp",
-  reflections: "reflections",
-  encouragement: "encouragement",
-  pomodoro: "pomodoroQuickStart",
-};
 
 const PRESET_WIDGETS = [
   {
@@ -798,92 +789,14 @@ const WIDGET_REGISTRY = {
   },
 };
 
-function normalizeWidgetType(type) {
-  return LEGACY_WIDGET_TYPE_MAP[type] || type;
-}
-
-function normalizeWidgetSize(size, type) {
-  const registry = WIDGET_REGISTRY[type];
-  const mapped = LEGACY_WIDGET_SIZE_MAP[size] || size || registry?.defaultSize || "medium";
-  const allowed = registry?.allowedSizes || WIDGET_SIZE_VARIANTS;
-  return allowed.includes(mapped) ? mapped : registry?.defaultSize || "medium";
-}
-
-function normalizeWidgetOrder(widget, fallbackOrder) {
-  return Number.isFinite(widget?.order) ? widget.order : fallbackOrder;
-}
-
-function normalizeWidget(widget, fallbackOrder = 100, fallbackSource = "user") {
-  const type = normalizeWidgetType(widget?.type);
-  const registry = WIDGET_REGISTRY[type];
-  if (!registry) return null;
-  return {
-    id: widget.id || widgetId(),
-    type,
-    size: normalizeWidgetSize(widget.size, type),
-    order: normalizeWidgetOrder(widget, fallbackOrder),
-    hidden: Boolean(widget.hidden),
-    locked: widget.locked ?? registry.locked ?? false,
-    source: widget.source || fallbackSource,
-    settings: widget.settings || undefined,
-  };
-}
-
-function defaultWidgetLayout() {
-  return PRESET_WIDGETS.map((widget) => normalizeWidget(widget, widget.order, "preset")).filter(Boolean);
-}
-
-function legacyWidgetsForV2(goal) {
-  if (!Array.isArray(goal?.widgetLayout)) return [];
-  return goal.widgetLayout
-    .map((widget, index) =>
-      normalizeWidget(
-        {
-          ...widget,
-          id: widget.id || `legacy-widget-${index}`,
-          type: normalizeWidgetType(widget.type),
-          order: 100 + index * 10,
-          locked: false,
-          source: "user",
-        },
-        100 + index * 10,
-        "user"
-      )
-    )
-    .filter(Boolean);
-}
-
-function resolveWidgetLayoutV2(goal) {
-  const presets = defaultWidgetLayout();
-  const stored = goal?.widgetLayoutV2;
-  const storedWidgets = Array.isArray(stored?.widgets)
-    ? stored.widgets
-        .map((widget, index) => normalizeWidget(widget, (index + 1) * 10, widget.source || "user"))
-        .filter(Boolean)
-    : null;
-
-  if (storedWidgets) {
-    const ids = new Set(storedWidgets.map((widget) => widget.id));
-    const missingPresets = presets.filter((widget) => !ids.has(widget.id));
-    return {
-      version: WIDGET_LAYOUT_VERSION,
-      widgets: [...storedWidgets, ...missingPresets].sort((a, b) => a.order - b.order),
-    };
-  }
-
-  return {
-    version: WIDGET_LAYOUT_VERSION,
-    widgets: [...presets, ...legacyWidgetsForV2(goal)].sort((a, b) => a.order - b.order),
-  };
-}
-
-function normalizeWidgetOrders(widgets) {
-  return widgets.map((widget, index) => ({ ...widget, order: (index + 1) * 10 }));
-}
-
-function widgetId() {
-  return `widget_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-}
+/* The layout helpers, bound to this tab's registry and preset set. The
+   pure logic lives in lib/goalWidgets.js so it can be tested without React;
+   only the registry (which holds JSX) has to stay here. */
+const {
+  normalizeWidgetSize,
+  defaultWidgetLayout,
+  resolveWidgetLayoutV2,
+} = createGoalWidgetLayout(WIDGET_REGISTRY, PRESET_WIDGETS);
 
 function GoalTasks({
   goal,
@@ -1591,11 +1504,13 @@ function GoalWidgetShell({
   editing,
   index,
   total,
+  compact = true,
   onResize,
   onHide,
   onRemove,
   onMove,
 }) {
+  const [measureRef, rowSpan] = useWidgetRowSpan(compact);
   const {
     attributes,
     listeners,
@@ -1626,23 +1541,31 @@ function GoalWidgetShell({
         minWidth: 0,
         transform: CSS.Transform.toString(transform),
         transition,
+        // Until the first measurement lands, the per-size fallback in the
+        // stylesheet holds the slot, so the grid doesn't reflow on load.
+        ...(rowSpan ? { "--widget-span": rowSpan } : null),
       }}
     >
-      {editing && (
-        <WidgetEditControls
-          widget={widget}
-          index={index}
-          total={total}
-          onResize={onResize}
-          onHide={onHide}
-          onRemove={onRemove}
-          onMove={onMove}
-          dragHandleProps={{ ...attributes, ...listeners }}
-          setActivatorNodeRef={setActivatorNodeRef}
-          confirmBeforeDelete={context.confirmBeforeDelete}
-        />
-      )}
-      {content}
+      {/* Natural-height wrapper. The shell's own height is driven by the row
+          span we derive from THIS element, so it cannot be the thing we
+          measure without feeding the result back into itself. */}
+      <div className="goal-widget-measure" ref={measureRef}>
+        {editing && (
+          <WidgetEditControls
+            widget={widget}
+            index={index}
+            total={total}
+            onResize={onResize}
+            onHide={onHide}
+            onRemove={onRemove}
+            onMove={onMove}
+            dragHandleProps={{ ...attributes, ...listeners }}
+            setActivatorNodeRef={setActivatorNodeRef}
+            confirmBeforeDelete={context.confirmBeforeDelete}
+          />
+        )}
+        {content}
+      </div>
     </div>
   );
 }
@@ -1660,7 +1583,7 @@ function WidgetOverlayCard({ widget, context }) {
       className={["goal-widget-shell", `goal-widget-size-${size}`, "goal-widget-overlay"].join(" ")}
       style={{ minWidth: 0 }}
     >
-      {content}
+      <div className="goal-widget-measure">{content}</div>
     </div>
   );
 }
@@ -1700,6 +1623,10 @@ function GoalWidgetGrid({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeDragId, setActiveDragId] = useState(null);
   const layout = useMemo(() => resolveWidgetLayoutV2(goal), [goal]);
+  // 640px is where the stylesheet collapses the grid to one column. A single
+  // column has no gaps to pack into, so compaction is switched off there and
+  // widgets simply stack in their stored order — the desktop reading order.
+  const singleColumn = useIsMobile(640);
 
   // Pointer drag needs a little movement before it kicks in, so taps on the
   // grip's neighbouring buttons still register as clicks. Keyboard sensor
@@ -1942,6 +1869,7 @@ function GoalWidgetGrid({
                 editing={editing}
                 index={index}
                 total={visibleWidgets.length}
+                compact={!singleColumn}
                 onResize={resizeWidget}
                 onHide={hideWidget}
                 onRemove={removeWidget}
