@@ -5214,83 +5214,91 @@ html[data-hyperfocus="true"][data-hf-theme="ice"] {
    on purpose: red is an M color and the user liked it there. Scoped to an
    active hyperfocus so the vars never leak into the normal app. */
 /* ══════════════════════════════════════════════════════════════════════
-   Hyperfocus: a lit edge around the whole window.
+   Hyperfocus: the glow that plays when it turns on.
 
-   Two layers, because one never looks right. A wide, heavily blurred halo
-   just inside the frame does the colour and the softness; a hairline ring
-   on top gives it an edge to end on. Both are the SAME rotating conic
-   gradient at different blurs, so the colour bands line up and the whole
-   thing reads as one light source travelling round the frame rather than
-   two effects that happen to share a palette.
+   The first attempt at this was a crisp rotating ring, which was the wrong
+   thing entirely — a hard-edged border sitting on top of the layout, running
+   forever. What this is meant to be is the bloom you get when Apple
+   Intelligence or Google's AI mode activates: soft light spilling INWARD from
+   behind the frame, no line anywhere, arriving as a one-shot flourish and
+   then settling almost out of the way.
 
-   The rotation is a registered custom property. Animating an <angle> that
-   the browser understands means it interpolates on the compositor; without
-   @property the angle is just a string, the gradient re-rasterises every
-   frame, and a full-screen conic repaint is exactly the kind of thing that
-   turns a laptop fan on. Browsers without @property get the gradient
-   standing still, which still looks deliberate.
+   Three things make that read right, and all three matter:
 
-   Colours come from the active livery (--hf-tri-1..3), so this follows
-   whichever hyperfocus theme is chosen instead of hardcoding one.
+     • it's blurred far past the point of having an edge — the blur is the
+       effect, not a finishing touch on a shape;
+     • the centre is masked out, so it hugs the frame instead of washing the
+       page and drowning the content it's supposed to frame;
+     • it ANIMATES IN and settles. It opens wide and bright, then falls back
+       to a low resting level, which is what makes it feel like something
+       switching on rather than a decoration that was always there.
+
+   Colours come from the active livery (--hf-tri-1..3) — three hues, offset
+   around the frame, which is where the multi-colour sweep comes from.
    ────────────────────────────────────────────────────────────────────── */
-@property --hf-edge-spin {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-html[data-hyperfocus="true"] body::before,
 html[data-hyperfocus="true"] body::after {
   content: "";
   position: fixed;
-  inset: 0;
+  /* Bleeds off every edge so the brightest part of each blob sits outside the
+     viewport; what you see is the falloff, never the blob itself. */
+  inset: -12px;
   z-index: 999;
   pointer-events: none;
-  border-radius: 18px;
-  background: conic-gradient(
-    from var(--hf-edge-spin),
-    rgba(var(--hf-tri-1), 0.95),
-    rgba(var(--hf-tri-2), 0.95) 28%,
-    rgba(var(--hf-tri-3), 0.95) 52%,
-    rgba(var(--hf-tri-2), 0.95) 74%,
-    rgba(var(--hf-tri-1), 0.95)
-  );
-  /* Punch out the middle: only the frame is painted. `exclude` keeps the
-     ring's inner edge exactly parallel to the outer one, which a second
-     inset element can't guarantee once the radius changes. */
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  animation: hfEdgeSpin 8s linear infinite;
+  border-radius: 22px;
+  background:
+    radial-gradient(72% 46% at 50% -4%,  rgba(var(--hf-tri-3), 0.85), transparent 74%),
+    radial-gradient(46% 72% at 104% 50%, rgba(var(--hf-tri-1), 0.8),  transparent 74%),
+    radial-gradient(72% 46% at 50% 104%, rgba(var(--hf-tri-2), 0.8),  transparent 74%),
+    radial-gradient(46% 72% at -4% 50%,  rgba(var(--hf-tri-3), 0.7),  transparent 74%),
+    radial-gradient(34% 34% at 6% 5%,    rgba(var(--hf-tri-1), 0.7),  transparent 72%),
+    radial-gradient(34% 34% at 94% 95%,  rgba(var(--hf-tri-2), 0.7),  transparent 72%);
+  /* Clear in the middle, present at the edges. Without this it's a colour
+     wash over the whole app and everything underneath goes muddy. */
+  -webkit-mask: radial-gradient(118% 118% at 50% 50%, transparent 40%, #000 86%);
+  mask: radial-gradient(118% 118% at 50% 50%, transparent 40%, #000 86%);
+  opacity: 0;
+  /* Two animations that touch DIFFERENT properties on purpose: the entrance
+     drives opacity/transform/filter, the drift only the standalone `scale`.
+     Sharing a property would make the second cancel the first mid-flight. */
+  animation:
+    hfGlowIn 1500ms cubic-bezier(0.16, 0.84, 0.28, 1) forwards,
+    hfGlowDrift 9s 1500ms ease-in-out infinite alternate;
+  will-change: opacity, transform, filter;
 }
-/* The halo: thick and blurred, thrown inward. */
-html[data-hyperfocus="true"] body::before {
-  padding: 26px;
-  filter: blur(22px);
-  opacity: 0.5;
+@keyframes hfGlowIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+    filter: blur(60px) saturate(115%);
+  }
+  40% {
+    opacity: 1;
+    filter: blur(34px) saturate(165%);
+  }
+  100% {
+    /* Settles low. It has to survive being looked at for an hour. */
+    opacity: 0.5;
+    transform: scale(1);
+    filter: blur(38px) saturate(140%);
+  }
 }
-/* The edge itself: a hairline the halo can resolve into. */
-html[data-hyperfocus="true"] body::after {
-  padding: 1.5px;
-  opacity: 0.8;
+@keyframes hfGlowDrift {
+  to { scale: 1.03; }
 }
-@keyframes hfEdgeSpin {
-  to { --hf-edge-spin: 360deg; }
-}
-/* Motion is the whole effect, so reduced-motion holds it still rather than
-   removing it — a stationary lit frame is still a lit frame. */
+/* Reduced motion keeps the glow and drops the flourish — a still lit frame is
+   still a lit frame, and the point is the mode being visibly on. */
 @media (prefers-reduced-motion: reduce) {
-  html[data-hyperfocus="true"] body::before,
-  html[data-hyperfocus="true"] body::after { animation: none; }
+  html[data-hyperfocus="true"] body::after {
+    animation: none;
+    opacity: 0.45;
+    filter: blur(38px) saturate(140%);
+  }
 }
-[data-reduce-motion="true"] html[data-hyperfocus="true"] body::before,
-[data-reduce-motion="true"] html[data-hyperfocus="true"] body::after { animation: none; }
-
+[data-reduce-motion="true"] html[data-hyperfocus="true"] body::after {
+  animation: none;
+  opacity: 0.45;
+  filter: blur(38px) saturate(140%);
+}
 html[data-hyperfocus="true"] { /* crimson default — the M livery */
   --hf-tri-1: 231, 34, 46;   /* M red */
   --hf-tri-2: 0, 102, 177;   /* M dark blue */
@@ -7644,6 +7652,15 @@ html[data-hyperfocus="true"] h2 { letter-spacing: 0.02em; }
   to   { opacity: 1; scale: 1; }
 }
 @media (prefers-reduced-motion: reduce) { .dial-x { animation: none; } }
+
+/* Which day the logged time belongs to. */
+.pomo-logpast-when {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.pomo-logpast-date {
+  height: 30px; padding: 0 8px; font-size: 12px; width: auto; flex: none;
+  color-scheme: light dark;
+}
 
 /* "Take it off this block" — logged time shortening the timer in front of you. */
 .pomo-logpast-credit {

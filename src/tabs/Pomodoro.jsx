@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PHASES } from "../hooks/usePomodoro.js";
-import { todayKey } from "../lib/model.js";
+import { todayKey, shiftDay } from "../lib/model.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import useSquishResize from "../hooks/useSquishResize.js";
@@ -850,7 +850,13 @@ export default function Pomodoro({
   // attributed to whatever you're focusing on — never a fake timed block.
   const [showLogPast, setShowLogPast] = useState(false);
   const [pastMin, setPastMin] = useState(25);
+  /* Which day the time belongs to. Focus you forgot to log doesn't always get
+     remembered the same day — the whole point of logging after the fact is
+     that it happened when you weren't at the timer, and "yesterday evening" is
+     the commonest case of all. Defaults to today; can't be in the future. */
+  const [pastDate, setPastDate] = useState(() => todayKey());
   const [justLoggedMin, setJustLoggedMin] = useState(0);
+  const [justLoggedDate, setJustLoggedDate] = useState(null);
   // Whether logged time also shortens the block in front of you.
   const [creditBlock, setCreditBlock] = useLocalStorage("ligand.pomoCreditBlock", true);
   const [justCreditedMin, setJustCreditedMin] = useState(0);
@@ -1000,16 +1006,23 @@ export default function Pomodoro({
     logFocusSession?.({
       minutes: m,
       goalId: focusGoalOf(focusTaskId),
+      date: pastDate,
       source: "manual",
       taskId: focusTaskId || null,
       label: focusTaskId ? focusLabel : null,
     });
     setJustLoggedMin(m);
+    setJustLoggedDate(pastDate);
     // Shorten the block in front of you by what you just logged. creditSpent
     // reports what it could actually take — it stops a second short of zero,
     // because landing on zero would fire the phase-end handler and log the
     // whole block as focus on top of the minutes just credited.
-    setJustCreditedMin(creditBlock ? pomo.creditSpent?.(m)?.appliedMin || 0 : 0);
+    //
+    // Only for TODAY: the block in front of you can't be credited with time
+    // from last Tuesday, and silently shortening it would be wrong twice over.
+    setJustCreditedMin(
+      creditBlock && pastDate === todayKey() ? pomo.creditSpent?.(m)?.appliedMin || 0 : 0
+    );
     setShowLogPast(false);
   };
 
@@ -1322,9 +1335,34 @@ export default function Pomodoro({
                 </button>
               </div>
               <p className="pomo-logpast-sub">
-                Add time you already put in. It counts toward today just like a
-                timed block — no need to run the clock after the fact.
+                Add time you already put in. It counts just like a timed block —
+                no need to run the clock after the fact.
               </p>
+              {/* Which day it belongs to. Today and yesterday get a tap each
+                 because they're almost all of it; anything older is a date. */}
+              <div className="pomo-logpast-when" role="group" aria-label="Which day?">
+                {[
+                  { key: todayKey(), label: "Today" },
+                  { key: shiftDay(todayKey(), -1), label: "Yesterday" },
+                ].map((d) => (
+                  <button
+                    key={d.key}
+                    type="button"
+                    className={"chip" + (pastDate === d.key ? " accent" : "")}
+                    onClick={() => setPastDate(d.key)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+                <input
+                  className="input pomo-logpast-date"
+                  type="date"
+                  value={pastDate}
+                  max={todayKey()}
+                  onChange={(e) => setPastDate(e.target.value || todayKey())}
+                  aria-label="Or pick a date"
+                />
+              </div>
               <div className="pomo-logpast-chips" role="group" aria-label="How long did you focus?">
                 {[15, 25, 30, 45, 60, 90].map((m) => (
                   <button
@@ -1351,7 +1389,13 @@ export default function Pomodoro({
                  45 minutes and then sitting through a full block anyway, take
                  it off the one in front of you. Only the CURRENT block shrinks;
                  the next is full length again. */}
-              <label className="pomo-logpast-credit">
+              {/* Only offered for today. The block in front of you cannot be
+                 credited with time from last Tuesday, and quietly shortening
+                 it anyway would be wrong twice over. */}
+              <label
+                className={"pomo-logpast-credit" + (pastDate === todayKey() ? "" : " off")}
+                hidden={pastDate !== todayKey()}
+              >
                 <input
                   type="checkbox"
                   checked={creditBlock}
@@ -1385,7 +1429,17 @@ export default function Pomodoro({
           ) : justLoggedMin ? (
             <div className="pomo-logpast-done" role="status">
               <span className="pomo-logpast-done-msg">
-                <Icon.Check width={14} height={14} /> Added {fmtMin(justLoggedMin)} to today's focus
+                {/* Names the day when it isn't today — "added to today's
+                   focus" after logging Saturday's would be a plain lie. */}
+                <Icon.Check width={14} height={14} /> Added {fmtMin(justLoggedMin)} to{" "}
+                {!justLoggedDate || justLoggedDate === todayKey()
+                  ? "today's focus"
+                  : justLoggedDate === shiftDay(todayKey(), -1)
+                    ? "yesterday's focus"
+                    : new Date(justLoggedDate + "T00:00:00").toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
                 {justCreditedMin > 0 && <> · {fmtMin(justCreditedMin)} off this block</>}.
               </span>
               <button
