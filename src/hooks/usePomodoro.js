@@ -46,6 +46,37 @@ function readSession() {
 
 const validPhase = (p) => p === PHASES.WORK || p === PHASES.SHORT || p === PHASES.LONG;
 
+/* The exact record written for a session, and a signature for comparing two.
+
+   Three separate places used to build this shape by hand — the persist effect,
+   the adopt handler, and the mount (which didn't build it at all). That last
+   omission is what made merely OPENING the app look like pressing a button:
+   with nothing to compare against, the first effect run always wrote, and
+   `savedAt` — which the whole cross-device rule reads as "who acted most
+   recently" — jumped forward on every page load. A second tab or a phone
+   sitting on the Pomodoro screen would therefore out-rank the device you were
+   actually using, and hand it back a stale session. */
+export function sessionRecord({ phase, completed, running, endTime = null, remaining = null }) {
+  return running
+    ? { phase, completed, running: true, endTime, remaining: null }
+    : { phase, completed, running: false, endTime: null, remaining };
+}
+
+export const signatureOf = (session) => JSON.stringify(sessionRecord(session));
+
+/** The signature of a session as it currently sits in storage. */
+export function storedSignature(saved) {
+  if (!saved || !validPhase(saved.phase)) return "";
+  const running = Boolean(saved.running) && Number.isFinite(saved.endTime);
+  return signatureOf({
+    phase: saved.phase,
+    completed: Number.isFinite(saved.completed) ? saved.completed : 0,
+    running,
+    endTime: running ? saved.endTime : null,
+    remaining: running ? null : Number.isFinite(saved.remaining) ? saved.remaining : null,
+  });
+}
+
 /* Turn a saved session into the state to show, given how much time has passed.
 
    Three cases, and the middle one is the reason this is worth having as its
@@ -132,6 +163,19 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   const secsLeft = () =>
     Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
 
+  /* The seconds a pause froze at, handed straight to the next start.
+
+     Resuming used to read `remaining` out of the callback's closure, and in a
+     live page that value could not be relied on at the moment the button ran:
+     a resume after a 90-second pause came back 90 seconds short, as though the
+     clock had gone on counting while stopped. Reloading first always worked,
+     which is what placed the fault in memory rather than in storage.
+
+     A ref makes the handoff explicit — the value pause froze IS the value
+     start resumes from — so nothing has to be inferred from state that may
+     have moved on. Cleared by anything that abandons the block. */
+  const frozenRef = useRef(null);
+
   // Restore any in-flight block once, at mount, so a refresh doesn't reset the
   // timer (see restoreSession). endTimeRef is seeded here, before first paint,
   // for the resume-live case.
@@ -208,11 +252,18 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   // RUNNING timer (whose serialized form is a constant end time, not the
   // ticking `remaining`) writes just once per start — the 250ms ticks don't
   // hammer localStorage. Paused/idle states write their frozen `remaining`.
-  const lastSavedRef = useRef("");
+  /* Seeded from what is ALREADY in storage, so a mount that changes nothing
+     writes nothing and leaves savedAt alone. Only a real change — a button, or
+     a restore that genuinely moved the session on — bumps the stamp. */
+  const lastSavedRef = useRef(storedSignature(restored));
   useEffect(() => {
-    const session = running
-      ? { phase, completed, running: true, endTime: endTimeRef.current, remaining: null }
-      : { phase, completed, running: false, endTime: null, remaining };
+    const session = sessionRecord({
+      phase,
+      completed,
+      running,
+      endTime: endTimeRef.current,
+      remaining,
+    });
     // Dedup on the session WITHOUT the timestamp: savedAt changes every time,
     // so including it here would defeat the guard and write on every tick.
     const str = JSON.stringify(session);
@@ -249,16 +300,19 @@ export function usePomodoro({ onPhaseEnd } = {}) {
       const stamp = Number(saved?.savedAt) || 0;
       if (!saved || !validPhase(saved.phase) || stamp <= savedAtRef.current) return;
       savedAtRef.current = stamp;
+      // A newer stamp on an IDENTICAL session is not news. Taking the stamp
+      // and stopping avoids tearing the countdown down and rebuilding it —
+      // and means a device with a slightly fast clock can't nudge the timer.
+      if (storedSignature(saved) === lastSavedRef.current) return;
       const next = restoreSession(saved, settingsRef.current);
+      // An adopted session replaces the block entirely; a value frozen by a
+      // pause here no longer refers to it.
+      frozenRef.current = null;
       endTimeRef.current = next.endTime;
       lastPhaseRef.current = next.phase;
       // Keep the dedup guard in step, or the effect above immediately writes
       // this same state back with a fresh stamp and starts a push/pull loop.
-      lastSavedRef.current = JSON.stringify(
-        next.running
-          ? { phase: next.phase, completed: next.completed, running: true, endTime: next.endTime, remaining: null }
-          : { phase: next.phase, completed: next.completed, running: false, endTime: null, remaining: next.remaining }
-      );
+      lastSavedRef.current = signatureOf(next);
       setPhase(next.phase);
       setCompleted(next.completed);
       setRemaining(next.remaining);
@@ -287,7 +341,12 @@ export function usePomodoro({ onPhaseEnd } = {}) {
 
   // -- controls --------------------------------------------------
   const start = useCallback(() => {
-    const base = remaining <= 0 ? phaseSeconds(phase) : remaining;
+    // A frozen value from a pause wins outright; it is the only reading taken
+    // at the instant the clock actually stopped.
+    const frozen = frozenRef.current;
+    const base =
+      frozen != null && frozen > 0 ? frozen : remaining <= 0 ? phaseSeconds(phase) : remaining;
+    frozenRef.current = null;
     endTimeRef.current = Date.now() + base * 1000;
     setRemaining(base);
     setRunning(true);
@@ -295,12 +354,17 @@ export function usePomodoro({ onPhaseEnd } = {}) {
 
   const pause = useCallback(() => {
     // Freeze at the accurate current value before dropping the end time.
-    if (endTimeRef.current != null) setRemaining(secsLeft());
+    const left = endTimeRef.current != null ? secsLeft() : null;
+    if (left != null) {
+      frozenRef.current = left;
+      setRemaining(left);
+    }
     endTimeRef.current = null;
     setRunning(false);
   }, []);
 
   const reset = useCallback(() => {
+    frozenRef.current = null;
     endTimeRef.current = null;
     setRunning(false);
     setRemaining(phaseSeconds(phase));
@@ -315,6 +379,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
      { wasFocus, elapsedSec, elapsedMin } and leaves the timer on a fresh
      focus block with the cycle cleared. */
   const endSession = useCallback(() => {
+    frozenRef.current = null;
     const total = phaseSeconds(phase);
     const left =
       running && endTimeRef.current != null ? secsLeft() : Math.max(0, remaining);
@@ -335,6 +400,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
 
   // Manually jump to a phase (also used by the segmented control).
   const goToPhase = useCallback((p) => {
+    frozenRef.current = null;
     endTimeRef.current = null;
     setRunning(false);
     setPhase(p);
@@ -377,6 +443,7 @@ export function usePomodoro({ onPhaseEnd } = {}) {
   );
 
   const skip = useCallback(() => {
+    frozenRef.current = null;
     endTimeRef.current = null;
     setRunning(false);
     if (phase === PHASES.WORK) {

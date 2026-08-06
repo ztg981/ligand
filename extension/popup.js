@@ -396,10 +396,15 @@ $("usePage").addEventListener("click", () => {
     $("text").focus();
   }
 });
+// Where Ligand actually lives. An already-open tab always wins — including a
+// dev server — but opening a NEW one goes to the deployed app, which is what
+// "Open Ligand" means to anyone who isn't running Vite at the time.
+const LIGAND_URL = "https://ligand-eta.vercel.app/";
+
 $("openLigand").addEventListener("click", async () => {
   const tabs = await chrome.tabs.query({ url: ["http://localhost/*", "https://*.vercel.app/*"] });
   if (tabs.length) chrome.tabs.update(tabs[0].id, { active: true });
-  else chrome.tabs.create({ url: "http://localhost:5173/" });
+  else chrome.tabs.create({ url: LIGAND_URL });
   window.close();
 });
 
