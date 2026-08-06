@@ -123,6 +123,18 @@ export function shiftDay(dayKey, delta) {
   return todayKey(d);
 }
 
+/* Is this a goal the user can still act on?
+
+   Archiving is what Ligand's delete button does — the record stays so the
+   recycle bin can undo it — so "not archived" is the test for every surface
+   that lists goals. Written once here because getting it wrong is invisible:
+   the extension checked a `goal.archived` field that nothing has ever set,
+   so its filter silently passed everything through for as long as it existed.
+   A goal marked done is finished, not gone, and still counts. */
+export function isActiveGoal(goal) {
+  return (goal?.status || GOAL_STATUS.ACTIVE) !== GOAL_STATUS.ARCHIVED;
+}
+
 export function goalTargetDate(goal) {
   return goal?.smartFields?.timeBound || goal?.deadline || null;
 }

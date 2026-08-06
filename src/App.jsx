@@ -34,7 +34,7 @@ import { useExtensionBridge } from "./hooks/useExtensionBridge.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useNotifications } from "./hooks/useNotifications.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
-import { todayKey, daysBetween, shiftDay, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak, createWorkout, createWorkoutExercise, createSet, nextGoalColor } from "./lib/model.js";
+import { todayKey, daysBetween, shiftDay, isActiveGoal, isGoalOverdue, currentStreak, daysSince, SEED_GOAL_IDS, workoutVolume, weeklyWorkoutStreak, createWorkout, createWorkoutExercise, createSet, nextGoalColor } from "./lib/model.js";
 import { PHASES } from "./hooks/usePomodoro.js";
 import {
   wallpaperById,
@@ -205,7 +205,10 @@ export default function App() {
   // with no extension installed — nothing else posts on this channel.
   useExtensionBridge({
     tasks: store.tasks,
-    goals: store.goals,
+    // Active goals only. publicGoals filters again on its way out, but the
+    // popup should never be handed a goal the user has deleted in the first
+    // place. Filtered inline because activeGoals is declared further down.
+    goals: store.goals.filter(isActiveGoal),
     addTask: store.addTask,
     addGoal: store.addGoal,
     addNote: store.addNote,
@@ -483,7 +486,7 @@ export default function App() {
 
   // Archived goals are tucked away in a recycle bin (Settings) and hidden from
   // the nav, pickers and dashboards until restored or permanently deleted.
-  const activeGoals = goals.filter((g) => g.status !== "archived");
+  const activeGoals = goals.filter(isActiveGoal);
   const archivedGoals = goals.filter((g) => g.status === "archived");
   const userDisplayName =
     isGuest && (settings.profile?.name || "").trim() === "Maya"

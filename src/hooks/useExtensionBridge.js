@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { resolvedAccent } from "../lib/appIcon.js";
+import { GOAL_TYPES, isActiveGoal } from "../lib/model.js";
 
 /* useExtensionBridge — the Ligand side of the Chrome extension link.
 
@@ -42,9 +43,17 @@ function publicTasks(tasks = []) {
 /* Goals, so the popup can file a new task under one — or make a new one —
    without switching to the app. Name and colour only; a goal's notes, targets
    and review history are none of the extension's business. */
+/* Goals the popup may list, name and colour only.
+
+   Two things are filtered out and both matter. Archived goals are ones the
+   user believes they deleted, and they were reaching the popup because this
+   tested a `goal.archived` field that nothing in the app has ever written —
+   archiving sets status, so the filter passed everything. Recovery goals are
+   private and have no business in a browser extension at all, the same rule
+   the assistant connector applies. */
 function publicGoals(goals = []) {
   return (goals || [])
-    .filter((g) => !g.archived)
+    .filter((g) => g && isActiveGoal(g) && g.type !== GOAL_TYPES.RECOVERY)
     .slice(0, 40)
     .map((g) => ({ id: g.id, name: g.name, color: g.color || null }));
 }
