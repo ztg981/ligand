@@ -1714,6 +1714,19 @@ export default function App() {
               setTab("goal");
             }}
             tasks={store.tasks}
+            workouts={store.workouts}
+            adjustCountUp={store.adjustCountUp}
+            undoCountUp={store.undoCountUp}
+            addMilestone={store.addMilestone}
+            updateMilestone={store.updateMilestone}
+            completeMilestone={store.completeMilestone}
+            uncompleteMilestone={store.uncompleteMilestone}
+            archiveMilestone={store.archiveMilestone}
+            restoreMilestone={store.restoreMilestone}
+            removeMilestone={store.removeMilestone}
+            reorderMilestones={store.reorderMilestones}
+            claimMilestoneReward={store.claimMilestoneReward}
+            toggleMilestones={store.toggleMilestones}
             countUps={store.countUps}
             addCountUp={store.addCountUp}
             updateCountUp={store.updateCountUp}

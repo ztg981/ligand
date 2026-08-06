@@ -34,6 +34,11 @@ import {
   normalizeWidgetOrders,
   widgetId,
 } from "../lib/goalWidgets.js";
+import { isCountUpGoal } from "../lib/countUpGoal.js";
+import { milestonesEnabled, readMilestones } from "../lib/milestones.js";
+import CountUpControl from "../components/CountUpControl.jsx";
+import GoalTimeline from "../components/GoalTimeline.jsx";
+import MilestoneEditor from "../components/MilestoneEditor.jsx";
 import { useWidgetRowSpan } from "../hooks/useWidgetRowSpan.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 import { fetchAiInsight } from "../lib/aiApi.js";
@@ -1951,10 +1956,28 @@ export default function GoalTab({
   showStreaks = true,
   weekStartsMonday = false,
   scrollTo = null,
+  workouts = [],
+  adjustCountUp,
+  undoCountUp,
+  addMilestone,
+  updateMilestone,
+  completeMilestone,
+  uncompleteMilestone,
+  archiveMilestone,
+  restoreMilestone,
+  removeMilestone,
+  reorderMilestones,
+  claimMilestoneReward,
+  toggleMilestones,
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [milestoneEditor, setMilestoneEditor] = useState(false);
   const inputRef = useRef(null);
+  const countUp = isCountUpGoal(goal);
+  // The timeline shows only when the goal has milestones AND hasn't switched
+  // them off. Both conditions live in milestonesEnabled().
+  const timelineOn = milestonesEnabled(goal) && readMilestones(goal).length > 0;
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -2050,7 +2073,44 @@ export default function GoalTab({
               : "Habits, progress, and reflection for this goal."}
           </p>
         </div>
+
+        {/* The way in for a goal that has no timeline yet. Deliberately small
+            and off to the side: most goals never need milestones. */}
+        {!timelineOn && (
+          <button
+            type="button"
+            className="btn ghost sm"
+            style={{ flex: "none" }}
+            onClick={() => setMilestoneEditor(true)}
+          >
+            <Icon.Flag width={13} height={13} /> Add milestones
+          </button>
+        )}
       </div>
+
+      {/* Between the header and the cards, full width: the timeline is part of
+          the goal, not one of its widgets. Absent entirely when the goal has
+          no milestones — an empty roadmap is worse than none. */}
+      {timelineOn && (
+        <GoalTimeline
+          goal={goal}
+          tasks={tasks}
+          workouts={workouts}
+          onEdit={() => setMilestoneEditor(true)}
+          onComplete={completeMilestone}
+          onUndoComplete={uncompleteMilestone}
+          onClaimReward={claimMilestoneReward}
+        />
+      )}
+
+      {countUp && (
+        <CountUpControl
+          goal={goal}
+          onAdjust={adjustCountUp}
+          onUndo={undoCountUp}
+          onEditMetric={() => setMilestoneEditor(true)}
+        />
+      )}
 
       <GoalWidgetGrid
         goal={goal}
@@ -2083,6 +2143,24 @@ export default function GoalTab({
         showStreaks={showStreaks}
         weekStartsMonday={weekStartsMonday}
       />
+
+      {milestoneEditor && (
+        <MilestoneEditor
+          goal={goal}
+          tasks={tasks}
+          workouts={workouts}
+          updateGoal={updateGoal}
+          addMilestone={addMilestone}
+          updateMilestone={updateMilestone}
+          archiveMilestone={archiveMilestone}
+          restoreMilestone={restoreMilestone}
+          removeMilestone={removeMilestone}
+          reorderMilestones={reorderMilestones}
+          toggleMilestones={toggleMilestones}
+          confirmBeforeDelete={confirmBeforeDelete}
+          onClose={() => setMilestoneEditor(false)}
+        />
+      )}
     </>
   );
 }

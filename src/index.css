@@ -11511,3 +11511,327 @@ input[type="date"].input::-webkit-date-and-time-value {
   .workout-goal-select-control { width: 100%; }
   .workout-goal-select-control .input { max-width: none; flex: 1; }
 }
+
+/* ============================================================
+   Goal timeline
+   ------------------------------------------------------------
+   Not a widget. No .card, no edit bar, no resize grip — it runs
+   full width between the goal header and the dashboard, and
+   reads as a roadmap across the top of the goal rather than
+   another tile in the grid.
+
+   Desktop: a horizontal rail. Under 720px the same list turns
+   vertical with the rail down the left, in the same order.
+   ============================================================ */
+.goal-timeline {
+  margin: 0 0 16px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  /* A flatter, cooler surface than a card, so it reads as chrome
+     for the goal rather than as content sitting in the grid. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent-soft) 26%, transparent),
+    color-mix(in oklab, var(--panel) 45%, transparent)
+  );
+}
+.gt-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.gt-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.gt-edit { margin-left: auto; }
+
+.gt-rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.gt-node {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 116px;
+}
+/* The connecting rail: drawn behind the markers, stopping at the
+   first and last so the line never dangles past either end. */
+.gt-node::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--line);
+}
+.gt-node:first-child::before { left: 50%; }
+.gt-node:last-child::before { right: 50%; }
+.gt-node.is-reached::before { background: color-mix(in oklab, var(--accent) 60%, var(--line)); }
+
+.gt-node-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 0 6px 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: center;
+  color: inherit;
+}
+.gt-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  flex: none;
+  transition: transform 0.16s var(--ease);
+}
+.gt-marker svg { width: 12px; height: 12px; }
+.gt-node.is-reached .gt-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+/* The one you are working on: ringed, so "where am I" survives a
+   greyscale screenshot as well as a colour one. */
+.gt-node.is-next .gt-marker {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.gt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.gt-node-btn:hover .gt-marker { transform: translateY(-1px); }
+.gt-node-btn:focus-visible .gt-marker { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.gt-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  /* Long milestone names wrap instead of forcing the rail wider. */
+  overflow-wrap: anywhere;
+}
+.gt-meta {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+}
+.gt-node.is-overdue .gt-meta { color: oklch(0.58 0.14 55); }
+.gt-reward-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.gt-detail {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--panel) 70%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+.gt-detail-main { flex: 1 1 220px; min-width: 0; }
+.gt-detail-desc { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.gt-detail-meta { display: block; margin-top: 4px; font-size: 11px; color: var(--ink-3); }
+.gt-detail-actions { flex: none; }
+.gt-reward {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+.gt-reward-ic { display: inline-flex; color: var(--accent-ink); flex: none; }
+.gt-reward-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.gt-reward-text strong { font-size: 12.5px; }
+.gt-reward-text span { font-size: 11.5px; color: var(--ink-2); overflow-wrap: anywhere; }
+
+@media (max-width: 720px) {
+  /* Vertical, same order, no horizontal scrolling. */
+  .gt-rail { flex-direction: column; gap: 2px; overflow-x: visible; }
+  .gt-node { min-width: 0; }
+  .gt-node::before {
+    top: 0;
+    bottom: 0;
+    left: 11px;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  .gt-node:first-child::before { top: 50%; left: 11px; }
+  .gt-node:last-child::before { bottom: 50%; right: auto; }
+  .gt-node-btn {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    padding: 4px 0;
+  }
+  .gt-title { flex: 1; }
+  .gt-meta { flex: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-marker { transition: none; }
+}
+[data-reduce-motion="true"] .gt-marker { transition: none; }
+
+/* ============================================================
+   Count-up control
+   ------------------------------------------------------------
+   Core to a count-up goal rather than a removable widget: it is
+   the only way to move the number, so it sits under the header.
+   ============================================================ */
+.countup {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: color-mix(in oklab, var(--panel) 62%, transparent);
+}
+.countup-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.countup-readout { flex: 1 1 200px; min-width: 0; }
+.countup-value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 2px 0 6px;
+}
+.countup-value strong {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 700;
+}
+.countup-target { font-family: var(--font-mono); font-size: 14px; color: var(--ink-3); }
+.countup-unit { font-size: 12px; color: var(--ink-3); }
+.countup-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  overflow: hidden;
+}
+.countup-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.28s var(--ease);
+}
+.countup-buttons { display: flex; gap: 8px; flex: none; }
+/* Comfortably past the 44px touch minimum. */
+.countup-step {
+  width: 52px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.countup-more {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.countup-custom { width: 72px; flex: none; text-align: center; }
+.countup-note { width: 168px; flex: 1 1 120px; min-width: 0; }
+.countup-history {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.countup-history li { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
+.countup-history-delta {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  min-width: 34px;
+  color: var(--accent-ink);
+}
+.countup-history-note { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--ink-2); }
+.countup-history-at { color: var(--ink-3); font-size: 11px; flex: none; }
+/* An undone entry stays visible — the history is the record, not the sum. */
+.countup-history li.is-reversed { opacity: 0.5; }
+.countup-history li.is-reversed .countup-history-delta { text-decoration: line-through; }
+
+@media (prefers-reduced-motion: reduce) {
+  .countup-bar > span { transition: none; }
+}
+[data-reduce-motion="true"] .countup-bar > span { transition: none; }
+
+/* ---- milestone editor ---- */
+.ms-modal { width: 620px; max-width: 100%; }
+.ms-body { padding: 18px; max-height: 84vh; overflow-y: auto; }
+.ms-section { margin-top: 18px; }
+.ms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.ms-grid label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ms-grid label > span { font-size: 11px; color: var(--ink-3); }
+.ms-empty { font-size: 12.5px; color: var(--ink-3); margin: 8px 0 0; }
+.ms-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+.ms-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ms-list li { display: flex; align-items: center; gap: 6px; }
+.ms-list-order { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); width: 16px; flex: none; }
+.ms-list-title { flex: 1; min-width: 0; }
+.ms-list-title-static { flex: 1; min-width: 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.ms-list-date { width: 132px; flex: none; }
+.ms-list-kind { font-size: 10px; color: var(--ink-3); width: 40px; flex: none; text-align: center; }
+.ms-list-actions { display: flex; gap: 2px; flex: none; }
+.ms-list--archived li { opacity: 0.7; }
+.ms-add { border-top: 1px solid var(--line); padding-top: 14px; }
+.ms-add > .input { margin-top: 8px; }
+.ms-add > .btn { margin-top: 10px; }
+.ms-tasks { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.ms-tasks label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .ms-list li { flex-wrap: wrap; }
+  .ms-list-date { width: 118px; }
+}
