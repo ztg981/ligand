@@ -46,6 +46,10 @@ export default function HabitChecker({
   const [editTarget, setEditTarget] = useState(1);
   // Set true by Escape so the unmount-triggered onBlur skips the save.
   const cancelEditRef = useRef(false);
+  // Ref attached to the container <span> wrapping both edit inputs so that
+  // onBlur can check whether focus is moving to a sibling within the editor
+  // (e.g. the +/- spinner) rather than leaving it entirely.
+  const editContainerRef = useRef(null);
   const days = useMemo(() => last7(), []);
   const today = todayKey();
   const habits = goal.habits || [];
@@ -79,6 +83,18 @@ export default function HabitChecker({
     }
     setEditingId(null);
     setEditText("");
+  };
+
+  // Guard called from onBlur of either edit input. Commits the edit only when
+  // focus is genuinely leaving the inline editor. The key check is
+  // e.relatedTarget: the element that will receive focus next. If it lives
+  // inside the editor container (e.g. the user clicked the +/- spinner on the
+  // target number input, or tabbed between the two fields), focus is just
+  // moving between siblings — don't commit yet and don't close the editor.
+  const handleEditBlur = (e) => {
+    const container = editContainerRef.current;
+    if (container && container.contains(e.relatedTarget)) return;
+    commitEdit();
   };
 
   const clampTarget = (value) =>
@@ -155,7 +171,7 @@ export default function HabitChecker({
               <div key={h.id} className="habit-row">
                 <div className="habit-name">
                   {editingId === h.id ? (
-                    <span className="row" style={{ gap: 6 }}>
+                    <span className="row" ref={editContainerRef} style={{ gap: 6 }}>
                       <input
                         className="input habit-edit-input"
                         autoFocus
@@ -171,7 +187,7 @@ export default function HabitChecker({
                             setEditingId(null);
                           }
                         }}
-                        onBlur={commitEdit}
+                        onBlur={handleEditBlur}
                       />
                       <input
                         className="input habit-target-input"
@@ -182,10 +198,10 @@ export default function HabitChecker({
                         aria-label={`Times per day for ${h.name}`}
                         title="Times per day"
                         onChange={(e) => setEditTarget(clampTarget(e.target.value))}
-                        // Committing on blur would fire when focus moves from
-                        // the name field to this one, closing the editor
-                        // before the target could be changed.
-                        onBlur={commitEdit}
+                        // Commit when focus leaves the target field to somewhere
+                        // outside the editor; clicking the spinner buttons keeps
+                        // focus inside the container so handleEditBlur skips it.
+                        onBlur={handleEditBlur}
                       />
                     </span>
                   ) : (

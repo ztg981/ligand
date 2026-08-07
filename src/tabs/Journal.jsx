@@ -224,9 +224,11 @@ function SongTitle({ song, compact = false }) {
         aria-expanded={hasNote ? open : undefined}
         title={hasNote ? (open ? "Hide song note" : "Show song note") : undefined}
       >
-        <Icon.Music width={11} height={11} />
-        <span>{song.title}</span>
-        {song.artist ? <span className="song-title-artist">— {song.artist}</span> : null}
+        <Icon.Music width={11} height={11} className="song-title-icon" />
+        <span className="song-title-text">
+          <span className="song-title-name">{song.title}</span>
+          {song.artist ? <span className="song-title-artist">— {song.artist}</span> : null}
+        </span>
         {hasNote && (
           <span className="song-note-indicator" aria-label="Has a note">
             <Icon.Note width={11} height={11} />
@@ -661,10 +663,16 @@ export default function Journal({
               {attachedSongs.length > 0 && (
                 <div className="row" style={{ gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                   {attachedSongs.map((s) => (
-                    <span key={s.id} className="chip song-chip">
-                      <Icon.Music width={11} height={11} />
-                      {s.title}
-                      {s.artist ? ` - ${s.artist}` : ""}
+                    <span
+                      key={s.id}
+                      className="chip song-chip"
+                      title={`${s.title}${s.artist ? ` — ${s.artist}` : ""}`}
+                    >
+                      <Icon.Music width={11} height={11} className="song-chip-icon" />
+                      <span className="song-chip-text">
+                        <span className="song-chip-title">{s.title}</span>
+                        {s.artist ? <span className="song-chip-artist"> — {s.artist}</span> : null}
+                      </span>
                       <button
                         type="button"
                         className="song-chip-remove"

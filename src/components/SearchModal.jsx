@@ -141,18 +141,18 @@ function buildResults(query, { goals, tasks, journal, countUps, actions }) {
     }
   }
 
-  // Count-ups. These are app-wide, but the manager widget lives on goal tabs;
-  // the built-in Productivity goal always has it, so we open there and flash
-  // the specific tracker row.
+  // Count-ups are app-wide, but the manager widget lives on a goal tab, so we
+  // open on whichever goal is around and flash the specific tracker row.
+  const firstGoalId = goals?.[0]?.id;
   for (const c of countUps || []) {
-    if (match(c.label)) {
+    if (match(c.label) && firstGoalId) {
       groups.tracker.push({
         key: "tracker:" + c.id,
         type: "tracker",
         label: c.label,
         sub: "Tracker",
         icon: GROUP_META.tracker.icon,
-        nav: { tab: "goal", goalId: "productivity", id: c.id },
+        nav: { tab: "goal", goalId: firstGoalId, id: c.id },
       });
     }
   }

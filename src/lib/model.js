@@ -969,24 +969,15 @@ export function formatEntryDateTime(iso) {
 }
 
 // ---- seed ------------------------------------------------------
-// First-run data: the built-in Productivity goal plus two starter goals.
-// Stable ids keep the nav goal-pills consistent across reloads.
-// Exposed so the sync layer can tell pristine sample goals apart from
-// goals the user actually created (see hasMeaningfulLocalData).
-export const SEED_GOAL_IDS = ["productivity"];
+// First-run data: no goals — the intro tour walks a brand-new user through
+// creating their first one. Exposed so the sync layer can tell pristine
+// sample data apart from goals the user actually created (see
+// hasMeaningfulLocalData).
+export const SEED_GOAL_IDS = [];
 export function seedData() {
-  const productivity = {
-    ...createGoal({
-      name: "Productivity",
-      type: GOAL_TYPES.BUILT_IN,
-      color: "oklch(0.62 0.10 245)",
-    }),
-    id: "productivity",
-  };
-
   return {
     version: 1,
-    goals: [productivity],
+    goals: [],
     tasks: [],
     // No seeded count-up: "Days showing up" is now a real distinct-active-days
     // metric (ligand.activeDays), not an elapsed-days count-up. Users can still

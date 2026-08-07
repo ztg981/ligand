@@ -218,7 +218,7 @@ export default function App() {
   });
   const { goals, addGoal } = store;
   const [tab, setTab] = useState("home");
-  const [activeGoal, setActiveGoal] = useState("productivity");
+  const [activeGoal, setActiveGoal] = useState(null);
 
   // --- first-run intro tour -------------------------------------------------
   // Shown once to a fresh guest/account: a spotlight walkthrough plus a guided
@@ -1458,12 +1458,11 @@ export default function App() {
     setTab("goal");
   };
 
-  // "Deleting" a custom goal moves it to the archive (recycle bin) — reversible,
-  // so no scary prompt. Permanent removal happens from the archive in Settings.
-  // The built-in Productivity goal is never offered for archiving.
+  // "Deleting" a goal moves it to the archive (recycle bin) — reversible, so
+  // no scary prompt. Permanent removal happens from the archive in Settings.
   const handleArchiveGoal = (id) => {
     const goal = goals.find((g) => g.id === id);
-    if (!goal || goal.type === "built-in") return;
+    if (!goal) return;
     if (
       confirmBeforeDelete &&
       !window.confirm(`Archive "${goal.name}"? You can restore it from Settings.`)
@@ -1472,7 +1471,10 @@ export default function App() {
     }
     store.archiveGoal(id);
     // If we were viewing it, step back to a safe screen.
-    if (activeGoal === id) setActiveGoal("productivity");
+    if (activeGoal === id) {
+      const next = goals.find((g) => g.id !== id && g.status !== "archived");
+      setActiveGoal(next ? next.id : null);
+    }
     if (tab === "goal" && activeGoal === id) setTab("home");
   };
 

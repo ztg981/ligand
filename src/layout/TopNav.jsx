@@ -721,7 +721,7 @@ export default function TopNav({
     icon: g.type === "recovery" ? (
       <span className="recovery-leaf"><Icon.Leaf /></span>
     ) : null,
-    deletable: g.type !== "built-in",
+    deletable: true,
   }));
 
   const sensors = useSensors(

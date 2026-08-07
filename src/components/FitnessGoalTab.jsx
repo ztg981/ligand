@@ -218,7 +218,7 @@ export default function FitnessGoalTab({
             Log your sessions, track your lifts, and keep the streak going.
           </p>
         </div>
-        {onArchiveGoal && goal.type !== "built-in" && (
+        {onArchiveGoal && (
           <button
             className="btn ghost sm"
             onClick={() => onArchiveGoal(goal.id)}

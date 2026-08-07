@@ -573,7 +573,7 @@ const WIDGET_REGISTRY = {
         onSnoozeGoal={onSnoozeGoal}
         onReviseGoalDate={onReviseGoalDate}
         onArchiveGoal={onArchiveGoal}
-        canArchive={!builtIn}
+        canArchive={true}
       />
     ),
   },
@@ -2042,28 +2042,26 @@ export default function GoalTab({
                 }}
               />
               {goal.name}
-              {!builtIn && (
-                <span className="row" style={{ gap: 2 }}>
-                  <button
-                    type="button"
-                    className="iconbtn"
-                    title="Rename goal"
-                    onClick={startRename}
-                    style={{ width: 26, height: 26, color: "var(--ink-3)" }}
-                  >
-                    <Icon.Edit />
-                  </button>
-                  <button
-                    type="button"
-                    className="iconbtn"
-                    title="Archive goal"
-                    onClick={() => onArchiveGoal(goal.id)}
-                    style={{ width: 26, height: 26, color: "var(--ink-3)" }}
-                  >
-                    <Icon.Trash />
-                  </button>
-                </span>
-              )}
+              <span className="row" style={{ gap: 2 }}>
+                <button
+                  type="button"
+                  className="iconbtn"
+                  title="Rename goal"
+                  onClick={startRename}
+                  style={{ width: 26, height: 26, color: "var(--ink-3)" }}
+                >
+                  <Icon.Edit />
+                </button>
+                <button
+                  type="button"
+                  className="iconbtn"
+                  title="Archive goal"
+                  onClick={() => onArchiveGoal(goal.id)}
+                  style={{ width: 26, height: 26, color: "var(--ink-3)" }}
+                >
+                  <Icon.Trash />
+                </button>
+              </span>
             </h1>
           )}
 

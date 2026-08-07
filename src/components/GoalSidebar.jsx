@@ -66,7 +66,7 @@ function GoalRow({ goal, tasks, selected, collapsed, onSelect, onArchive }) {
         aria-label={health.label}
       />
       {!collapsed &&
-        (goal.type !== "built-in" && onArchive ? (
+        (onArchive ? (
           <span
             className="gs-row-x"
             role="button"

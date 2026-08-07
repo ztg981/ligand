@@ -216,15 +216,13 @@ export default function Home({
                 >
                   Revise target date
                 </button>
-                {g.type !== "built-in" && (
-                  <button
-                    className="btn ghost sm"
-                    onClick={() => onArchiveGoal?.(g.id)}
-                    style={{ color: "oklch(0.55 0.16 20)" }}
-                  >
-                    Archive goal
-                  </button>
-                )}
+                <button
+                  className="btn ghost sm"
+                  onClick={() => onArchiveGoal?.(g.id)}
+                  style={{ color: "oklch(0.55 0.16 20)" }}
+                >
+                  Archive goal
+                </button>
               </div>
             </div>
           );
